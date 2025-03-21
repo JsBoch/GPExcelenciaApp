@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Empleado;
+use App\Models\Identificacion;
+use App\Models\Departamento;
+use App\Models\Puesto;
+use App\Models\DepartamentoPais;
+use App\Models\Correlativo;
+use Illuminate\Support\Facades\DB; // Importa la clase DB para transacciones
+
+/*
+ * Es una clase que representa una solicitud Http
+ * Es un objeto que contiene toda la información de la solicitud que el cliente
+ * por ejemplo un navegador web envía al servidor.
+ */
+use Illuminate\Http\Request;
+
+class EmpleadoController extends Controller
+{
+    public function index()
+    {
+        //$empleados = Empleado::all();
+        $empleados = Empleado::where('estado',1)->get();
+        return response()->json($empleados);
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            DB::beginTransaction(); // Inicia una transacción para asegurar la integridad de los datos
+    
+            $correlativo = Correlativo::find('adm_empleados'); // Obtiene el registro de correlativo para la tabla 'adm_empleados'
+    
+            if (!$correlativo) {
+                return response()->json(['message' => 'No se encontró el correlativo para empleados'], 400);
+            }
+    
+            $idEmpleado = $correlativo->correlativo + $correlativo->incremento; // Genera el nuevo ID del empleado
+            $correlativo->correlativo = $idEmpleado; // Actualiza el correlativo en la base de datos
+            $correlativo->save();
+    
+            $datosEmpleado = $request->all();
+            $datosEmpleado['id_empleado'] = $idEmpleado; // Asigna el ID generado al empleado
+            $datosEmpleado['usuario_registro'] = auth()->user()->name; // Asigna el usuario registrado
+            $datosEmpleado['fecha_registro'] = now(); // Asigna la fecha de registro
+            $datosEmpleado['estado'] = 1; // Asigna el estado
+    
+            $empleado = Empleado::create($datosEmpleado);
+    
+            DB::commit(); // Confirma la transacción
+    
+            //return response()->json($empleado, 201); //devuelve una copia del objeto empleado
+            $respuesta = array("estado"=>"Creado con éxito"); 
+            return response()->json($respuesta,201);
+        } catch (\Exception $e) {
+            DB::rollback(); // Revierte la transacción en caso de error
+            return response()->json(['message' => 'Error al crear empleado: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function show($id)
+    {
+        $empleado = Empleado::find($id);
+        if (!$empleado) {
+            return response()->json(['message' => 'Empleado no encontrado'], 404);
+        }
+        return response()->json($empleado);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $empleado = Empleado::find($id);
+        if (!$empleado) {
+            return response()->json(['message' => 'Empleado no encontrado'], 404);
+        }        
+        $empleado->update($request->all());
+        return response()->json($empleado);
+    }
+
+    public function destroy($id)
+    {
+        $empleado = Empleado::find($id);
+        if (!$empleado) {
+            return response()->json(['message' => 'Empleado no encontrado'], 404);
+        }
+        $empleado->delete();
+        return response()->json(['message' => 'Empleado eliminado']);
+    }
+
+    // Funciones adicionales para obtener datos de las listas desplegables
+    public function getIdentificaciones()
+    {
+        $identificaciones = Identificacion::all(['id_identificacion', 'nombre']); // Selecciona solo los campos necesarios
+        return response()->json($identificaciones);
+    }
+
+    public function getDepartamentos()
+    {
+        $departamentos = Departamento::where('estado',1)->get(['id_departamento', 'nombre']); // Reemplaza Departamento con tu modelo real
+        return response()->json($departamentos);
+    }
+
+    public function getPuestos(Request $request)
+    {
+        $departamentoId = $request->input('id_departamento');
+        $puestos = Puesto::where('id_departamento', $departamentoId)->get(['id_puesto', 'nombre']); // Reemplaza Puesto con tu modelo real)
+        return response()->json($puestos);
+    }
+
+    public function getDepartamentosPais()
+    {
+        $departamentosPais = DepartamentoPais::where('estado',1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
+        return response()->json($departamentosPais);
+    }
+}
