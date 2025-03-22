@@ -24,7 +24,7 @@ import React, { useState, useEffect } from 'react';
 //Axios es un cliente HTTP basado en promesas que facilita la realización de solicitudes HTTP desde el navegador o Node.js.
 import axios from 'axios';
 
-function EmpleadoForm() {
+function EmpleadoForm() {    
     //maneja el estado, en este caso un objeto con varios campos.
     //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
     const [empleado, setEmpleado] = useState({

@@ -21,8 +21,11 @@ class EmpleadoController extends Controller
 {
     public function index()
     {
-        //$empleados = Empleado::all();
-        $empleados = Empleado::where('estado',1)->get();
+        //$empleados = Empleado::all();        
+        //$empleados = Empleado::where('estado',1)->get();
+        $empleados = Empleado::where('estado', 1)
+            ->select('id_empleado', 'codigo', 'nombre', 'correo_empresa', 'direccion')
+            ->get();
         return response()->json($empleados);
     }
 
