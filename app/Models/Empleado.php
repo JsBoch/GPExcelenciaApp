@@ -52,27 +52,24 @@ class Empleado extends Model
         'id_departamento',
         'id_puesto',
         'fecha_nacimiento',
-        'fecha_registro',
+        'fecha_ingreso',
         'observaciones',
         'estado',
         'nit',
         'genero',
         'direccion',
-        'id_departamentopais',
-        'fecha_ingreso',        
+        'id_departamentopais',       
+        'fecha_registro',
+        'usuario_registro',
+        'fecha_modificacion',
+        'usuario_modificacion' ,        
     ];
 
-    // Mutador para fecha_registro
-    public function setFechaRegistroAttribute($value)
-    {
-        $this->attributes['fecha_registro'] = Carbon::now();
-    }
-
-    // Mutador para estado
-    public function setEstadoAttribute($value)
-    {
-        $this->attributes['estado'] = 1;
-    }
+    // Mutador para fecha_registro (los mútadores son útiles para cambiar el formato de la información, como una fecha por ejemplo)
+    // public function setFechaRegistroAttribute($value)
+    // {
+    //     $this->attributes['fecha_registro'] = Carbon::now();
+    // }
     // Relaciones con otras tablas (si las necesitas)
     //Es la relación con la tabla identificación belongsTo indica que un empleado pertenece a una identificación    
     public function identificacion()

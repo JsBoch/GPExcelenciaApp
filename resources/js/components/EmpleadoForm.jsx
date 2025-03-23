@@ -23,8 +23,10 @@
 import React, { useState, useEffect } from 'react';
 //Axios es un cliente HTTP basado en promesas que facilita la realización de solicitudes HTTP desde el navegador o Node.js.
 import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 
+import { Link } from 'react-router-dom'; // Importa Link
 
-function EmpleadoForm() {    
+function EmpleadoForm() {
     //maneja el estado, en este caso un objeto con varios campos.
     //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
     const [empleado, setEmpleado] = useState({
@@ -32,26 +34,25 @@ function EmpleadoForm() {
         nombre: '',
         id_identificacion: '',
         numero_identificacion: '',
-        telefono_casa:'',
-        movil:'',
-        otro_telefono:'',
-        correo_personal:'',
-        correo_empresa:'',
-        salud:'',
-        contacto_emergencia:'',
-        telefono_emergencia:'',
-        id_departamento:'',
-        id_puesto:'',
-        fecha_nacimiento:'',
-        fecha_registro:'',
-        observaciones:'',
-        estado:'',
-        nit:'',
-        genero:'',
-        direccion:'',
-        id_departamentopais:'',
-        fecha_ingreso:'',
-        usuario_registro:''
+        telefono_casa: '',
+        movil: '',
+        otro_telefono: '',
+        correo_personal: '',
+        correo_empresa: '',
+        salud: '',
+        contacto_emergencia: '',
+        telefono_emergencia: '',
+        id_departamento: '',
+        id_puesto: '',
+        fecha_nacimiento: '',
+        fecha_ingreso: '',
+        observaciones: '',
+        estado: '',
+        nit: '',
+        genero: '',
+        direccion: '',
+        id_departamentopais: '',
+        usuario_registro: ''
         // ... otros campos
     });
     const [identificaciones, setIdentificaciones] = useState([]);
@@ -67,15 +68,15 @@ function EmpleadoForm() {
             Authorization: `Bearer ${token}`
         };
         // Obtener datos para las listas desplegables
-        axios.get('/api/identificaciones',{headers}).then(res => setIdentificaciones(res.data));
-        axios.get('/api/departamentos',{headers}).then(res => setDepartamentos(res.data));        
-        axios.get('/api/departamentos-pais',{headers}).then(res => setDepartamentosPais(res.data));
+        axios.get('/api/identificaciones', { headers }).then(res => setIdentificaciones(res.data));
+        axios.get('/api/departamentos', { headers }).then(res => setDepartamentos(res.data));
+        axios.get('/api/departamentos-pais', { headers }).then(res => setDepartamentosPais(res.data));
         // Obtener puestos basados en el departamento seleccionado
         if (departamentoId) {
-            axios.get(`/api/puestos?id_departamento=${departamentoId}`,{headers}).then(res => setPuestos(res.data));
+            axios.get(`/api/puestos?id_departamento=${departamentoId}`, { headers }).then(res => setPuestos(res.data));
         } else {
             setPuestos([]); // Limpiar puestos si no hay departamento seleccionado
-        }        
+        }
     }, [departamentoId]); // Dependencia en departamentoId para ejecutar el efecto cuando cambia
 
     const handleDepartamentoChange = (e) => {
@@ -100,7 +101,7 @@ function EmpleadoForm() {
     const handleSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token'); // Obtiene el token de localStorage
-        axios.post('/api/empleados', empleado,{
+        axios.post('/api/empleados', empleado, {
             headers: {
                 Authorization: `Bearer ${token}` // Incluye el token en el encabezado
             }
@@ -113,58 +114,147 @@ function EmpleadoForm() {
 
     //return JSX que representa el formulario, se utiliza para devolver elementos HTML o mejor dicho elementos de React desde un componente funcional
     return (
-        <form onSubmit={handleSubmit}>
-            <input type="text" name="codigo" value={empleado.codigo} onChange={handleChange} placeholder="Código" />
-            <input type="text" name="nombre" value={empleado.nombre} onChange={handleChange} placeholder="Nombre" />
-            <select name="id_identificacion" value={empleado.id_identificacion} onChange={handleChange}>
-                <option value="">Seleccionar Identificación</option>
-                {identificaciones.map(identificacion => (
-                    <option key={identificacion.id_identificacion} value={identificacion.id_identificacion}>
-                        {identificacion.nombre}
-                    </option>
-                ))}
-            </select>
-            <input type="text" name="numero_identificacion" value={empleado.numero_identificacion} onChange={handleChange} placeholder="Número de identificación" />
-            <input type='text' name="telefono_casa" value={empleado.telefono_casa} onChange={handleChange} placeholder="Teléfono casa" />
-            <input type='text' name="movil" value={empleado.movil} onChange={handleChange} placeholder="Celular" />
-            <input type='text' name="otro_telefono" value={empleado.otro_telefono} onChange={handleChange} placeholder="Otro teléfono" />
-            <input type='email' name='correo_personal' value={empleado.correo_personal} onChange={handleChange} placeholder="Correo personal" />
-            <input type='email' name='correo_empresa' value={empleado.correo_empresa} onChange={handleChange} placeholder="Correo empresa" />
-            <input type='text' name="salud" value={empleado.salud} onChange={handleChange} placeholder="Problemas de salud" />
-            <input type='text' name="contacto_emergencia" value={empleado.contacto_emergencia} onChange={handleChange} placeholder="Contacto emergencia" />
-            <input type='text' name="telefono_emergencia" value={empleado.telefono_emergencia} onChange={handleChange} placeholder="Teléfono emergencia" />
-            <select name="id_departamento" value={empleado.id_departamento} onChange={handleDepartamentoChange}>
-                <option value="">Seleccionar Área</option>
-                {departamentos.map(departamento => (
-                    <option key={departamento.id_departamento} value={departamento.id_departamento}>
-                        {departamento.nombre}
-                    </option>
-                ))}
-            </select>
-            <select name="id_puesto" value={empleado.id_puesto} onChange={handleChange}>
-                <option value="">Seleccionar Puesto</option>
-                {puestos.map(puesto => (
-                    <option key={puesto.id_puesto} value={puesto.id_puesto}>
-                        {puesto.nombre}
-                    </option>
-                ))}
-            </select>
-            <input type="date" name="fecha_nacimiento" value={empleado.fecha_nacimiento} onChange={handleChange} placeholder="Fecha nacimiento" />
-            <input type="date" name="fecha_registro" value={empleado.fecha_registro} onChange={handleChange} placeholder="Fecha registro" />            
-            <input type="text" name="observaciones" value={empleado.observaciones} onChange={handleChange} placeholder="Observaciones" />
-            <input type="text" name="nit" value={empleado.nit} onChange={handleChange} placeholder="Nit" />
-            <input type="text" name="genero" value={empleado.genero} onChange={handleChange} placeholder="Género"/>
-            <input type="text" name="direccion" value={empleado.direccion} onChange={handleChange} placeholder="Dirección"/>
-            <select name="id_departamentopais" value={empleado.id_departamentopais} onChange={handleChange}>
-                <option value="">Seleccionar Departamento</option>
-                {departamentosPais.map(departamentoPais => (
-                    <option key={departamentoPais.iddepartamentopais} value={departamentoPais.iddepartamentopais}>
-                        {departamentoPais.nombre}
-                    </option>
-                ))}
-            </select>
+        <form onSubmit={handleSubmit} className='container'>
+            <div className='row'>
+                <div className='col-2 mb-3'>
+                    <label className="form-label">Código</label>
+                    <input type="text" name="codigo" value={empleado.codigo} onChange={handleChange} placeholder="Código" className='form-control' />
+                </div>
+                <div className='col-6 mb-3'>
+                    <label className="form-label">Nombre</label>
+                    <input type="text" name="nombre" value={empleado.nombre} onChange={handleChange} placeholder="Nombre" className='form-control' />
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>NIT</label>
+                    <input type="text" name="nit" value={empleado.nit} onChange={handleChange} placeholder="Nit" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Tipo Identificación</label>'
+                    <select name="id_identificacion" value={empleado.id_identificacion} onChange={handleChange} className='form-control'>
+                        <option value="">Seleccionar Identificación</option>
+                        {identificaciones.map(identificacion => (
+                            <option key={identificacion.id_identificacion} value={identificacion.id_identificacion}>
+                                {identificacion.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Número de identificación</label>
+                    <input type="text" name="numero_identificacion" value={empleado.numero_identificacion} onChange={handleChange} placeholder="Número de identificación" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Teléfono casa</label>
+                    <input type='text' name="telefono_casa" value={empleado.telefono_casa} onChange={handleChange} placeholder="Teléfono casa" className='form-control' />
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Celular</label>
+                    <input type='text' name="movil" value={empleado.movil} onChange={handleChange} placeholder="Celular" className='form-control' />
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Otro teléfono</label>
+                    <input type='text' name="otro_telefono" value={empleado.otro_telefono} onChange={handleChange} placeholder="Otro teléfono" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-5 mb-3'>
+                    <label className='form-label'>Correo personal</label>
+                    <input type='email' name='correo_personal' value={empleado.correo_personal} onChange={handleChange} placeholder="Correo personal" className='form-control' />
+                </div>
+                <div className='col-5 mb-3'>
+                    <label className='form-label'>Correo empresa</label>
+                    <input type='email' name='correo_empresa' value={empleado.correo_empresa} onChange={handleChange} placeholder="Correo empresa" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Problemas de salud</label>
+                    <input type='text' name="salud" value={empleado.salud} onChange={handleChange} placeholder="Problemas de salud" className='form-control' />
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Contacto emergencia</label>
+                    <input type='text' name="contacto_emergencia" value={empleado.contacto_emergencia} onChange={handleChange} placeholder="Contacto emergencia" className='form-control' />
+                </div>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Teléfono emergencia</label>
+                    <input type='text' name="telefono_emergencia" value={empleado.telefono_emergencia} onChange={handleChange} placeholder="Teléfono emergencia" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-6 mb-3'>
+                    <label className='form-label'>Área</label>
+                    <select name="id_departamento" value={empleado.id_departamento} onChange={handleDepartamentoChange} className='form-control'>
+                        <option value="">Seleccionar Área</option>
+                        {departamentos.map(departamento => (
+                            <option key={departamento.id_departamento} value={departamento.id_departamento}>
+                                {departamento.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className='col-6 mb-3'>
+                    <label className='form-label'>Puesto</label>
+                    <select name="id_puesto" value={empleado.id_puesto} onChange={handleChange} className='form-control'>
+                        <option value="">Seleccionar Puesto</option>
+                        {puestos.map(puesto => (
+                            <option key={puesto.id_puesto} value={puesto.id_puesto}>
+                                {puesto.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-2 mb-3'>
+                    <label className='form-label'>Fecha nacimiento</label>
+                    <input type="date" name="fecha_nacimiento" value={empleado.fecha_nacimiento} onChange={handleChange} placeholder="Fecha nacimiento" className='form-control' />
+                </div>
+                <div className='col-2 mb-3'>
+                    <label className='form-label'>Fecha ingreso</label>
+                    <input type="date" name="fecha_ingreso" value={empleado.fecha_ingreso} onChange={handleChange} placeholder="Fecha ingreso" className='form-control' />
+                </div>
+                <div className='col-2 mb-3'>
+                    <label className='form-label'>Género</label>
+                    <input type="text" name="genero" value={empleado.genero} onChange={handleChange} placeholder="Género" className='form-control' />
+                </div>
+                <div className='col-6 mb-3'>
+                    <label className='form-label'>Dirección</label>
+                    <input type="text" name="direccion" value={empleado.direccion} onChange={handleChange} placeholder="Dirección" className='form-control' />
+                </div>
+            </div>
+            <div className='row'>
+                <div className='col-4 mb-3'>
+                    <label className='form-label'>Departamento</label>
+                    <select name="id_departamentopais" value={empleado.id_departamentopais} onChange={handleChange} className='form-control'>
+                        <option value="">Seleccionar Departamento</option>
+                        {departamentosPais.map(departamentoPais => (
+                            <option key={departamentoPais.iddepartamentopais} value={departamentoPais.iddepartamentopais}>
+                                {departamentoPais.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>                
+                <div className='col-8 mb-3'>
+                    <label className='form-label'>Observaciones</label>
+                    <input type="text" name="observaciones" value={empleado.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control' />
+                </div>            
+            </div>
+            
             {/* ... otros campos y listas desplegables */}
-            <button type="submit">Guardar</button>
+            <div className='row'>
+                <div className='col-2 mb-3'>
+                    <button type="submit" className='btn btn-primary'>Guardar</button>
+                </div>
+                <div className='col-2 mb-3'>
+                <Link to="/empleados/lista" className="btn btn-secondary ms-2">Consulta</Link>
+                <Link to="/Home" className="btn btn-secondary ms-2">Volver a Inicio</Link>
+                </div>
+            </div>
+
         </form>
     );
 }

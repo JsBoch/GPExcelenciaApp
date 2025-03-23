@@ -48,4 +48,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function perfiles()
+    {
+        return $this->belongsToMany(Perfil::class, 'perfil_usuario', 'user_id', 'perfil_id');
+    }
 }

@@ -17,8 +17,20 @@
     },
     "dependencies": {
         "@vitejs/plugin-react": "^4.3.4",
+        "bootstrap": "^5.3.0",
+        "datatables.net": "^2.2.2",
+        "datatables.net-bs4": "^2.2.2",
+        "datatables.net-bs5": "^2.2.2",
+        "datatables.net-dt": "^2.2.2",
+        "datatables.net-react": "^1.0.0",
+        "datatables.net-responsive-dt": "^3.0.4",
+        "datatables.net-select-dt": "^3.0.0",
+        "jquery": "^3.7.1",
         "react": "^19.0.0",
+        "react-burger-menu": "^3.1.0",
+        "react-data-table-component": "^7.7.0",
         "react-dom": "^19.0.0",
-        "react-router-dom": "^7.4.0"
+        "react-router-dom": "^7.4.0",
+        "styled-components": "^6.1.16"
     }
 }

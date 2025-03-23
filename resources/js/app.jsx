@@ -6,16 +6,50 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Empleado from './components/EmpleadoForm';
 import ListaEmpleados from './components/ListaEmpleados';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <React.StrictMode>
+// const root = ReactDOM.createRoot(document.getElementById('root'));
+// root.render(
+//     <React.StrictMode>
+//         <BrowserRouter>
+//             <Routes>
+//                 <Route path="/" element={<Login />} />
+//                 <Route path="/home" element={<Home />} />                
+//                 <Route path="/empleados/crear" element={<Empleado />} />
+//                 <Route path="/empleados/lista" element={<ListaEmpleados />} /> 
+//             </Routes>
+//         </BrowserRouter>
+//     </React.StrictMode>
+// );
+
+function App() {
+    // Función para verificar si el usuario está autenticado
+    const isAuthenticated = () => {
+        const token = localStorage.getItem('token');
+        return !!token; // Devuelve true si hay un token, false si no
+    };
+
+    // Componente para proteger rutas
+    const ProtectedRoute = ({ children }) => {
+        if (!isAuthenticated()) {
+            return <Navigate to="/" />; // Redirige a /login si no está autenticado
+        }
+        return children;
+    };
+
+    return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Login />} />
-                <Route path="/home" element={<Home />} />                
-                <Route path="/empleados/crear" element={<Empleado />} />
-                <Route path="/empleados/lista" element={<ListaEmpleados />} /> 
+                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/empleados/crear" element={<ProtectedRoute><Empleado /></ProtectedRoute>} />
+                <Route path="/empleados/lista" element={<ProtectedRoute><ListaEmpleados /></ProtectedRoute>} />
             </Routes>
         </BrowserRouter>
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <React.StrictMode>
+        <App />
     </React.StrictMode>
 );
