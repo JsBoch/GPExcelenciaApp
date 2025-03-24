@@ -1,22 +1,39 @@
-// resources/js/components/Home.js
-import React, { useState } from 'react';
+// resources/js/components/Home.jsx
+import React, { useState, useEffect } from 'react';
 import SlideMenu from './SlideMenu';
-import './Home.css'; // Importa los estilos de tu Home.css
+import './Home.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function Home() {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true); // Estado de carga
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await axios.get('/api/user', {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                setUser(res.data);
+                setLoading(false); // Carga completada
+                console.log(res.data);
+            } catch (error) {
+                console.error('Error al obtener el usuario:', error);
+                setLoading(false); // Carga completada (con error)
+            }
+        };
+
+        fetchUser();
+    }, []);
 
     const handleStateChange = (state) => {
         setMenuOpen(state.isOpen);
     };
-
-    const closeMenu = () => {
-        setMenuOpen(false);
-    };
-
-    const navigate = useNavigate();
 
     const logout = async () => {
         try {
@@ -26,19 +43,48 @@ function Home() {
                 },
             });
             localStorage.removeItem('token');
-            navigate('/'); // Redirige al usuario a la página de inicio de sesión
+            navigate('/');
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
         }
     };
 
+    const getFilteredLinks = () => {
+        if (!user || !user.perfiles) {
+            console.log('Usuario o perfiles no definidos:', user);
+            return [];
+        }
+
+        let links = [];
+
+        user.perfiles.forEach((perfil) => {
+            perfil.opciones.forEach((opcion) => {
+                if (opcion.nombre === 'Registro empleados') {
+                    links.push({ to: '/empleados/crear', text: 'Crear Empleado' });
+                } else if (opcion.nombre === 'Consulta empleados') {
+                    links.push({ to: '/empleados/lista', text: 'Consultar Empleados' });
+                }
+                // Agrega más opciones según tus permisos
+            });
+        });
+        return links;
+    };
+
+    if (loading) {
+        return <div>Cargando...</div>; // Muestra un indicador de carga
+    }
+
     return (
         <div className="home-container">
-            <SlideMenu isOpen={menuOpen} onStateChange={handleStateChange} logout={logout} />            
+            <SlideMenu
+                isOpen={menuOpen}
+                onStateChange={handleStateChange}
+                logout={logout}
+                links={getFilteredLinks()}
+            />
             <div className="content">
                 <h1>Página de Inicio</h1>
                 <p>¡Bienvenido!</p>
-                {/* El contenido principal de tu página Home */}
             </div>
         </div>
     );

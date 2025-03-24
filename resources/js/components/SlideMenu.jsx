@@ -1,24 +1,14 @@
-// resources/js/components/SlideMenu.js
+// resources/js/components/SlideMenu.jsx
 import React from 'react';
 import { slide as Menu } from 'react-burger-menu';
 import { Link } from 'react-router-dom';
 
-function SlideMenu(props) {
-    // return (
-    //     <Menu {...props}>
-    //         <Link to="/empleados/crear" className="menu-item">Crear Empleado</Link>
-    //         <Link to="/empleados/lista" className="menu-item">Consultar Empleados</Link>
-    //         <button onClick={logout} className="menu-item logout-button">Cerrar Sesión</button>
-    //         {/* Agrega aquí más enlaces a tus formularios */}
-    //     </Menu>
-    // );
-    const { logout, ...rest } = props;
-    //console.log("Props to Menu:", rest); // Agrega esta línea para depurar
-
+function SlideMenu({ logout, links, ...props }) { // Recibe la prop links
     return (
-        <Menu {...rest}>
-            <Link to="/empleados/crear" className="menu-item">Crear Empleado</Link>
-            <Link to="/empleados/lista" className="menu-item">Consultar Empleados</Link>
+        <Menu {...props}>
+            {links.map(link => ( // Renderiza los enlaces dinámicamente
+                <Link key={link.to} to={link.to} className="menu-item">{link.text}</Link>
+            ))}
             <button onClick={logout} className="menu-item logout-button">Cerrar Sesión</button>
         </Menu>
     );

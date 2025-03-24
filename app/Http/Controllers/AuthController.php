@@ -18,8 +18,9 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-             // Force the trait's methods to load by accessing a method.
+            $user = User::with('perfiles')->find(Auth::id()); // Carga los perfiles del usuario
+            $user->load('perfiles.opciones'); // Carga las opciones de cada perfil
+            // Force the trait's methods to load by accessing a method.
             // we can get the token names, this will force the trait to load.
             $user->tokens()->get();
 
