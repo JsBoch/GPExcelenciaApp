@@ -3,7 +3,7 @@ import axios from 'axios';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 DataTable.use(DT);
 
@@ -11,6 +11,8 @@ function ListaEmpleados() {
     const [empleados, setEmpleados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null); // Estado para la traducción
+    //2025-03-24 19:18:13.000
+    const navigate = useNavigate(); // Hook para la navegación
 
     useEffect(() => {
         // Carga la traducción desde public/i18n/Spanish.json
@@ -44,42 +46,119 @@ function ListaEmpleados() {
         }
     }, []);
 
-    if (loading) {
-        return <p>Cargando empleados...</p>;
-    }
+    // if (loading) {
+    //     return <p>Cargando empleados...</p>;
+    // }
 
     const columns = [
         { data: 'id_empleado', title: 'ID' },
         { data: 'codigo', title: 'Código' },
         { data: 'nombre', title: 'Nombre' },
-        { data: 'correo_empresa', title: 'Correo' },
+        { data: 'nit', title: 'NIT' },
+        //{ data: 'id_identificacion', title: 'ID Identificación' },
+        { data: 'identificacion_nombre', title: 'Tipo Identificación' },
+        { data: 'numero_identificacion', title: 'No.Identificación' },
+        { data: 'telefono_casa', title: 'Tel. Casa' },
+        { data: 'movil', title: 'Celular' },
+        { data: 'otro_telefono', title: 'Tel.Adicional' },
+        { data: 'correo_personal', title: 'Correo Personal' },
+        { data: 'correo_empresa', title: 'Correo Empresa' },
+        { data: 'salud', title: 'Problemas de salud' },
+        { data: 'contacto_emergencia', title: 'Contacto emergencia' },
+        { data: 'telefono_emergencia', title: 'Tel. emergencia' },
+        //{ data: 'id_departamento', title: 'Id. Departamento' },
+        { data: 'departamento_nombre', title: 'Area' },
+        //{ data: 'id_puesto', title: 'Id. Puesto' },
+        { data: 'puesto_nombre', title: 'Puesto' },
+        { data: 'fecha_nacimiento', title: 'Fecha nacimiento' },
+        { data: 'fecha_ingreso', title: 'Fecha ingreso' },
+        { data: 'genero', title: 'Género' },
         { data: 'direccion', title: 'Dirección' },
-      ];
+        //{ data: 'id_departamentopais', title: 'Id. departamento pais' },
+        { data: 'departamentopais_nombre', title: 'Departamento' },
+        { data: 'Observaciones', title: 'Observaciones' },
+        {
+            data: 'id_empleado', 
+            title: 'Acciones',
+            render: (data) => {
+                return `<button class="btn btn-primary editar-btn" data-id="${data}">Editar</button>`;
+            }
+        }
+    ];
 
-      const options = {
-        language: spanishTranslation, // Agrega la traducción aquí
+    useEffect(() => {
+        // Función para manejar los clics en los botones "Editar"
+        const handleButtonClick = (event) => {
+            if (event.target.classList.contains('editar-btn')) {
+                const id = event.target.getAttribute('data-id');
+                navigate(`/empleados/editar/${id}`);
+            }
+        };
+
+        // Agregar el evento al documento
+        document.addEventListener('click', handleButtonClick);
+
+        // Limpiar el evento cuando el componente se desmonte
+        return () => {
+            document.removeEventListener('click', handleButtonClick);
+        };
+    }, [navigate]); // Dependencia 'navigate' para evitar problemas con la navegación
+
+    const options = {
+        language: spanishTranslation, // Agrega la traducción aquí        
     };
+
+
+    //20250324192013.000 
+    const handleEditar = (id) => {
+        navigate(`/empleados/editar/${id}`);
+    };
+
+    // const options = {
+    //     language: spanishTranslation, // Agrega la traducción aquí        
+    // };
     return (
-        <div class= "container">
-        
-        <DataTable 
-        data={empleados} 
-        columns={columns} 
-        options={options} 
-        className="table table-striped table-bordered" // Aplicar clases de Bootstrap 5
-        >
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Correo</th>
-                    <th>Dirección</th>
-                </tr>
-            </thead>
-        </DataTable>
-        <Link to="/empleados/crear" className="btn btn-secondary ms-2">Registro</Link>
-        <Link to="/Home" className="btn btn-secondary mt-3">Volver a Inicio</Link>
+        <div className="container">
+{loading ? (
+                <p>Cargando empleados...</p>
+            ) : (
+
+            <DataTable
+                data={empleados}
+                columns={columns}
+                options={options}
+                className="table table-striped table-bordered" // Aplicar clases de Bootstrap 5
+            >
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>NIT</th>
+                        <th>Tipo Identificación</th>
+                        <th>No. Identificación</th>
+                        <th>Tel. Casa</th>
+                        <th>Movil</th>
+                        <th>Tel. Adicional</th>
+                        <th>Correo Personal</th>
+                        <th>Correo Empresa</th>
+                        <th>Salud</th>
+                        <th>Contacto Emergencia</th>
+                        <th>Tel. Emergencia</th>
+                        <th>Area</th>
+                        <th>Puesto</th>
+                        <th>Fecha Nacimiento</th>
+                        <th>Fecha Ingreso</th>
+                        <th>Genero</th>                        
+                        <th>Dirección</th>
+                        <th>Departamento</th>                        
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+            </DataTable>
+            )}
+            <Link to="/empleados/crear" className="btn btn-secondary ms-2">Registro</Link>
+            <Link to="/Home" className="btn btn-secondary mt-3">Volver a Inicio</Link>
         </div>
     );
 }

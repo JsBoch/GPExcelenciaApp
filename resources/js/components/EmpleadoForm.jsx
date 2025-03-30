@@ -24,7 +24,7 @@ import React, { useState, useEffect } from 'react';
 //Axios es un cliente HTTP basado en promesas que facilita la realización de solicitudes HTTP desde el navegador o Node.js.
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 
-import { Link } from 'react-router-dom'; // Importa Link
+import { Link, useParams, useNavigate } from 'react-router-dom'; // Importa Link
 
 function EmpleadoForm() {
     //maneja el estado, en este caso un objeto con varios campos.
@@ -59,25 +59,115 @@ function EmpleadoForm() {
     const [departamentos, setDepartamentos] = useState([]);
     const [puestos, setPuestos] = useState([]);
     const [departamentosPais, setDepartamentosPais] = useState([]);
-
     const [departamentoId, setDepartamentoId] = useState(''); // Estado para el id del departamento seleccionado
 
+    //20250324 19:25 edit
+    const { id } = useParams(); // Obtiene el id de la URL
+    const navigate = useNavigate();
+
     useEffect(() => {
-        const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local, para enviarlo a las rutas, ya que en las rutas se valida que el usuario esté autenticado
-        const headers = {
-            Authorization: `Bearer ${token}`
-        };
-        // Obtener datos para las listas desplegables
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Cargar datos del empleado para editar (si id está presente)
+    //     if (id) {
+    //         axios.get(`/api/empleados/${id}`, { headers })
+    //             .then(res => {
+    //                 const data = res.data;
+    //                 setEmpleado({
+    //                     codigo: data.codigo || '',
+    //                     nombre: data.nombre || '',
+    //                     id_identificacion: data.id_identificacion || '',
+    //                     numero_identificacion: data.numero_identificacion || '',
+    //                     telefono_casa: data.telefono_casa || '',
+    //                     movil: data.movil || '',
+    //                     otro_telefono: data.otro_telefono || '',
+    //                     correo_personal: data.correo_personal || '',
+    //                     correo_empresa: data.correo_empresa || '',
+    //                     salud: data.salud || '',
+    //                     contacto_emergencia: data.contacto_emergencia || '',
+    //                     telefono_emergencia: data.telefono_emergencia || '',
+    //                     id_departamento: data.id_departamento || '',
+    //                     id_puesto: data.id_puesto || '',
+    //                     fecha_nacimiento: data.fecha_nacimiento || '',
+    //                     fecha_ingreso: data.fecha_ingreso || '',
+    //                     observaciones: data.Observaciones || '',
+    //                     estado: data.estado || '',
+    //                     nit: data.nit || '',
+    //                     genero: data.genero || '',
+    //                     direccion: data.direccion || '',
+    //                     id_departamentopais: data.id_departamentopais || '',
+    //                     usuario_registro: data.usuario_registro || ''
+    //                 });
+    //             })
+    //             .catch(error => console.error('Error al cargar empleado:', error));
+    //     } else {
+    //         // Cargar listas desplegables solo si NO estamos editando
+    //         axios.get('/api/identificaciones', { headers }).then(res => setIdentificaciones(res.data));
+    //         axios.get('/api/departamentos', { headers }).then(res => setDepartamentos(res.data));
+    //         axios.get('/api/departamentos-pais', { headers }).then(res => setDepartamentosPais(res.data));
+    //         if (departamentoId) {
+    //             axios.get(`/api/puestos?id_departamento=${departamentoId}`, { headers }).then(res => setPuestos(res.data));
+    //         } else {
+    //             setPuestos([]);
+    //         }
+    //     }
+    // }, [id, departamentoId]); // Dependencias: id y departamentoId
+
+    if (id) {
+        // Cargar datos del empleado para editar
+        axios.get(`/api/empleados/${id}`, { headers })
+            .then(res => {
+                const data = res.data;
+                setEmpleado({
+                    codigo: data.codigo || '',
+                    nombre: data.nombre || '',
+                    id_identificacion: data.id_identificacion || '',
+                    numero_identificacion: data.numero_identificacion || '',
+                    telefono_casa: data.telefono_casa || '',
+                    movil: data.movil || '',
+                    otro_telefono: data.otro_telefono || '',
+                    correo_personal: data.correo_personal || '',
+                    correo_empresa: data.correo_empresa || '',
+                    salud: data.salud || '',
+                    contacto_emergencia: data.contacto_emergencia || '',
+                    telefono_emergencia: data.telefono_emergencia || '',
+                    id_departamento: data.id_departamento || '',
+                    id_puesto: data.id_puesto || '',
+                    fecha_nacimiento: data.fecha_nacimiento || '',
+                    fecha_ingreso: data.fecha_ingreso || '',
+                    observaciones: data.Observaciones || '',
+                    estado: data.estado || '',
+                    nit: data.nit || '',
+                    genero: data.genero || '',
+                    direccion: data.direccion || '',
+                    id_departamentopais: data.id_departamentopais || '',
+                    usuario_registro: data.usuario_registro || ''
+                });
+
+                // Cargar listas desplegables después de cargar los datos del empleado
+                axios.get('/api/identificaciones', { headers }).then(res => setIdentificaciones(res.data));
+                axios.get('/api/departamentos', { headers }).then(res => setDepartamentos(res.data));
+                axios.get('/api/departamentos-pais', { headers }).then(res => setDepartamentosPais(res.data));
+                if (data.id_departamento) {
+                    axios.get(`/api/puestos?id_departamento=${data.id_departamento}`, { headers }).then(res => setPuestos(res.data));
+                } else {
+                    setPuestos([]);
+                }
+            })
+            .catch(error => console.error('Error al cargar empleado:', error));
+    } else {
+        // Cargar listas desplegables para crear un nuevo empleado
         axios.get('/api/identificaciones', { headers }).then(res => setIdentificaciones(res.data));
         axios.get('/api/departamentos', { headers }).then(res => setDepartamentos(res.data));
         axios.get('/api/departamentos-pais', { headers }).then(res => setDepartamentosPais(res.data));
-        // Obtener puestos basados en el departamento seleccionado
         if (departamentoId) {
             axios.get(`/api/puestos?id_departamento=${departamentoId}`, { headers }).then(res => setPuestos(res.data));
         } else {
-            setPuestos([]); // Limpiar puestos si no hay departamento seleccionado
+            setPuestos([]);
         }
-    }, [departamentoId]); // Dependencia en departamentoId para ejecutar el efecto cuando cambia
+    }
+}, [id, departamentoId]);
 
     const handleDepartamentoChange = (e) => {
         setDepartamentoId(e.target.value); // Actualizar el estado con el id del departamento seleccionado
@@ -100,16 +190,26 @@ function EmpleadoForm() {
     //limpiar el formulario o mostrar un mensaje de éxito    
     const handleSubmit = (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token'); // Obtiene el token de localStorage
-        axios.post('/api/empleados', empleado, {
-            headers: {
-                Authorization: `Bearer ${token}` // Incluye el token en el encabezado
-            }
-        }).then(res => {
-            //Este console es importante para depurar la respuesta.
-            console.log('Empleado creado:', res.data);
-            // Limpiar el formulario o mostrar un mensaje de éxito
-        });
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        if (id) {
+            // Editar empleado existente (solicitud PUT)
+            axios.put(`/api/empleados/${id}`, empleado, { headers })
+                .then(res => {
+                    console.log('Empleado actualizado:', res.data);
+                    navigate('/empleados/lista'); // Redirige a la lista
+                })
+                .catch(error => console.error('Error al actualizar empleado:', error));
+        } else {
+            // Crear nuevo empleado (solicitud POST)
+            axios.post('/api/empleados', empleado, { headers })
+                .then(res => {
+                    console.log('Empleado creado:', res.data);
+                    navigate('/empleados/lista'); // Redirige a la lista
+                })
+                .catch(error => console.error('Error al crear empleado:', error));
+        }
     };
 
     //return JSX que representa el formulario, se utiliza para devolver elementos HTML o mejor dicho elementos de React desde un componente funcional
@@ -237,21 +337,21 @@ function EmpleadoForm() {
                             </option>
                         ))}
                     </select>
-                </div>                
+                </div>
                 <div className='col-8 mb-3'>
                     <label className='form-label'>Observaciones</label>
                     <input type="text" name="observaciones" value={empleado.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control' />
-                </div>            
+                </div>
             </div>
-            
+
             {/* ... otros campos y listas desplegables */}
             <div className='row'>
                 <div className='col-2 mb-3'>
                     <button type="submit" className='btn btn-primary'>Guardar</button>
                 </div>
                 <div className='col-2 mb-3'>
-                <Link to="/empleados/lista" className="btn btn-secondary ms-2">Consulta</Link>
-                <Link to="/Home" className="btn btn-secondary ms-2">Volver a Inicio</Link>
+                    <Link to="/empleados/lista" className="btn btn-secondary ms-2">Consulta</Link>
+                    <Link to="/Home" className="btn btn-secondary ms-2">Volver a Inicio</Link>
                 </div>
             </div>
 

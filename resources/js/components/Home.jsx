@@ -20,8 +20,7 @@ function Home() {
                     },
                 });
                 setUser(res.data);
-                setLoading(false); // Carga completada
-                console.log(res.data);
+                setLoading(false); // Carga completada                
             } catch (error) {
                 console.error('Error al obtener el usuario:', error);
                 setLoading(false); // Carga completada (con error)

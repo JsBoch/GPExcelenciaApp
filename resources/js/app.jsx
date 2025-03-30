@@ -5,6 +5,7 @@ import Home from './components/Home'; // Crea un componente Home
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Empleado from './components/EmpleadoForm';
 import ListaEmpleados from './components/ListaEmpleados';
+import EditarEmpleado from './components/EmpleadoForm'; // Importa el componente EditarEmpleado
 
 // const root = ReactDOM.createRoot(document.getElementById('root'));
 // root.render(
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                 <Route path="/empleados/crear" element={<ProtectedRoute><Empleado /></ProtectedRoute>} />
                 <Route path="/empleados/lista" element={<ProtectedRoute><ListaEmpleados /></ProtectedRoute>} />
+                <Route path="/empleados/editar/:id" element={<ProtectedRoute><EditarEmpleado /></ProtectedRoute>} /> {/* Agrega esta ruta */}
             </Routes>
         </BrowserRouter>
     );

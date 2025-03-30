@@ -23,8 +23,39 @@ class EmpleadoController extends Controller
     {
         //$empleados = Empleado::all();        
         //$empleados = Empleado::where('estado',1)->get();
-        $empleados = Empleado::where('estado', 1)
-            ->select('id_empleado', 'codigo', 'nombre', 'correo_empresa', 'direccion')
+        $empleados = Empleado::where('adm_empleados.estado', 1)
+            ->select(
+                'adm_empleados.id_empleado', 
+            'adm_empleados.codigo', 
+            'adm_empleados.nombre',
+            'adm_empleados.nit',
+            'adm_empleados.id_identificacion', 
+            'adm_identificacion.nombre as identificacion_nombre', 
+            'adm_empleados.numero_identificacion',
+            'adm_empleados.telefono_casa',
+            'adm_empleados.movil',
+            'adm_empleados.otro_telefono',
+            'adm_empleados.correo_personal', 
+            'adm_empleados.correo_empresa',
+            'adm_empleados.salud', 
+            'adm_empleados.contacto_emergencia', 
+            'adm_empleados.telefono_emergencia', 
+            'adm_empleados.id_departamento',
+            'adm_departamento.nombre as departamento_nombre', 
+            'adm_empleados.id_puesto',
+            'adm_puestos.nombre as puesto_nombre',
+            'adm_empleados.fecha_nacimiento',
+            'adm_empleados.fecha_ingreso',
+            'adm_empleados.genero',
+            'adm_empleados.direccion',
+            'adm_empleados.id_departamentopais',
+            'adm_departamentopais.nombre as departamentopais_nombre',
+            'adm_empleados.Observaciones',                                                
+        )
+        ->join('adm_identificacion', 'adm_empleados.id_identificacion', '=', 'adm_identificacion.id_identificacion')
+        ->join('adm_puestos', 'adm_empleados.id_puesto', '=', 'adm_puestos.id_puesto')
+        ->join('adm_departamento', 'adm_empleados.id_departamento', '=', 'adm_departamento.id_departamento')
+        ->join('adm_departamentopais', 'adm_empleados.id_departamentopais', '=', 'adm_departamentopais.iddepartamentopais')        
             ->get();
         return response()->json($empleados);
     }
