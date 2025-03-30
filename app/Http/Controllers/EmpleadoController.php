@@ -123,6 +123,24 @@ class EmpleadoController extends Controller
         return response()->json(['message' => 'Empleado eliminado']);
     }
 
+    /**
+     * Desactivar un empleado
+     * @param $id El ID del empleado a desactivar
+     * @return Una respuesta JSON con un mensaje de éxito o error
+     */
+    public function desactivar($id)
+    {
+        $empleado = Empleado::find($id);
+        if (!$empleado) {
+            return response()->json(['message' => 'Empleado no encontrado'], 404);
+        }
+
+        $empleado->estado = 0;
+        $empleado->save();
+
+        return response()->json(['message' => 'Empleado desactivado']);
+    }
+
     // Funciones adicionales para obtener datos de las listas desplegables
     public function getIdentificaciones()
     {
@@ -147,5 +165,5 @@ class EmpleadoController extends Controller
     {
         $departamentosPais = DepartamentoPais::where('estado',1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
         return response()->json($departamentosPais);
-    }
+    }    
 }

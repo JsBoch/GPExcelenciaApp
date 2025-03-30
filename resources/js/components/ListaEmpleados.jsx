@@ -78,10 +78,11 @@ function ListaEmpleados() {
         { data: 'departamentopais_nombre', title: 'Departamento' },
         { data: 'Observaciones', title: 'Observaciones' },
         {
-            data: 'id_empleado', 
+            data: 'id_empleado',
             title: 'Acciones',
             render: (data) => {
-                return `<button class="btn btn-primary editar-btn" data-id="${data}">Editar</button>`;
+                return `<button class="btn btn-primary editar-btn" data-id="${data}">Editar</button>
+                <button class="btn btn-danger desactivar-btn" data-id="${data}">Desactivar</button>`;
             }
         }
     ];
@@ -89,9 +90,11 @@ function ListaEmpleados() {
     useEffect(() => {
         // Función para manejar los clics en los botones "Editar"
         const handleButtonClick = (event) => {
+            const id = event.target.getAttribute('data-id');
             if (event.target.classList.contains('editar-btn')) {
-                const id = event.target.getAttribute('data-id');
                 navigate(`/empleados/editar/${id}`);
+            } else if (event.target.classList.contains('desactivar-btn')) {
+                handleDesactivar(id);
             }
         };
 
@@ -114,48 +117,83 @@ function ListaEmpleados() {
         navigate(`/empleados/editar/${id}`);
     };
 
+    useEffect(() => {
+        // Este useEffect se ejecutará después de que el estado empleados cambie.
+        console.log('Estado empleados actualizado:', empleados);
+    }, [empleados]);
+    /*
+    Este handle se utiliza para cambiar el estado de 0 a 1 para los registros al eliminar
+    */
+    const handleDesactivar = (id) => {        
+        const token = localStorage.getItem('token');
+        if (token) {
+            axios.put(`/api/empleados/desactivar/${id}`, {}, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then(() => {
+                    // Recargar la lista de empleados después de desactivar
+                    //window.location.reload();
+                    //window.location.href = '/empleados/lista';
+                    // Actualizar el estado local para eliminar el empleado desactivado
+                    //setEmpleados(empleados.filter(empleado => empleado.id_empleado !== id));                    
+                    setEmpleados(prevEmpleados => {
+                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
+                        return prevEmpleados.filter(empleado => Number(empleado.id_empleado) !== Number(id)); //convertimos a numero
+                    });                    
+                })
+                .catch((error) => {
+                    console.error('Error al desactivar empleado:', error);
+                });
+        }
+    };
+
+
+
+    /************************************************* */
     // const options = {
     //     language: spanishTranslation, // Agrega la traducción aquí        
     // };
     return (
         <div className="container">
-{loading ? (
+            {loading ? (
                 <p>Cargando empleados...</p>
             ) : (
 
-            <DataTable
-                data={empleados}
-                columns={columns}
-                options={options}
-                className="table table-striped table-bordered" // Aplicar clases de Bootstrap 5
-            >
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>NIT</th>
-                        <th>Tipo Identificación</th>
-                        <th>No. Identificación</th>
-                        <th>Tel. Casa</th>
-                        <th>Movil</th>
-                        <th>Tel. Adicional</th>
-                        <th>Correo Personal</th>
-                        <th>Correo Empresa</th>
-                        <th>Salud</th>
-                        <th>Contacto Emergencia</th>
-                        <th>Tel. Emergencia</th>
-                        <th>Area</th>
-                        <th>Puesto</th>
-                        <th>Fecha Nacimiento</th>
-                        <th>Fecha Ingreso</th>
-                        <th>Genero</th>                        
-                        <th>Dirección</th>
-                        <th>Departamento</th>                        
-                        <th>Observaciones</th>
-                    </tr>
-                </thead>
-            </DataTable>
+                <DataTable
+                    data={empleados}
+                    columns={columns}
+                    options={options}
+                    className="table table-striped table-bordered" // Aplicar clases de Bootstrap 5
+                >
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>NIT</th>
+                            <th>Tipo Identificación</th>
+                            <th>No. Identificación</th>
+                            <th>Tel. Casa</th>
+                            <th>Movil</th>
+                            <th>Tel. Adicional</th>
+                            <th>Correo Personal</th>
+                            <th>Correo Empresa</th>
+                            <th>Salud</th>
+                            <th>Contacto Emergencia</th>
+                            <th>Tel. Emergencia</th>
+                            <th>Area</th>
+                            <th>Puesto</th>
+                            <th>Fecha Nacimiento</th>
+                            <th>Fecha Ingreso</th>
+                            <th>Genero</th>
+                            <th>Dirección</th>
+                            <th>Departamento</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                </DataTable>
             )}
             <Link to="/empleados/crear" className="btn btn-secondary ms-2">Registro</Link>
             <Link to="/Home" className="btn btn-secondary mt-3">Volver a Inicio</Link>

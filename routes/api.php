@@ -39,7 +39,7 @@ DELETE /empleados/{empleado}: destroy (elimina un empleado)
  */
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/empleados', EmpleadoController::class);
-
+    Route::put('/empleados/desactivar/{id}', [EmpleadoController::class, 'desactivar']);
 // Rutas adicionales para las listas desplegables
 //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/identificaciones', [EmpleadoController::class, 'getIdentificaciones']);
