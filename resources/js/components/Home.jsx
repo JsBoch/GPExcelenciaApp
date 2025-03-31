@@ -62,6 +62,8 @@ function Home() {
                     links.push({ to: '/empleados/crear', text: 'Crear Empleado' });
                 } else if (opcion.nombre === 'Consulta empleados') {
                     links.push({ to: '/empleados/lista', text: 'Consultar Empleados' });
+                }else if (opcion.nombre === 'Registro clientes') {
+                    links.push({ to: '/clientes/crear', text: 'Registrar cliente' });
                 }
                 // Agrega más opciones según tus permisos
             });

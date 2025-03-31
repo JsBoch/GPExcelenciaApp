@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\ClientesController;
+use App\Models\Clientes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
@@ -37,6 +39,8 @@ GET /empleados/{empleado}: show (muestra un empleado específico)
 PUT/PATCH /empleados/{empleado}: update (actualiza un empleado)
 DELETE /empleados/{empleado}: destroy (elimina un empleado)
  */
+
+ //EMPLEADOS
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/empleados', EmpleadoController::class);
     Route::put('/empleados/desactivar/{id}', [EmpleadoController::class, 'desactivar']);
@@ -46,4 +50,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/departamentos', [EmpleadoController::class, 'getDepartamentos']);
     Route::get('/puestos', [EmpleadoController::class, 'getPuestos']);
     Route::get('/departamentos-pais', [EmpleadoController::class, 'getDepartamentosPais']);
+});
+
+//CLIENTES
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/clientes', ClientesController::class);
+    Route::put('/clientes/desactivar/{id}', [ClientesController::class, 'desactivar']);
+// Rutas adicionales para las listas desplegables
+//Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
+    Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
+    Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
 });

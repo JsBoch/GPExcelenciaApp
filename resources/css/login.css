@@ -1,7 +1,7 @@
 /* Estilos para el formulario de login */
 
 .login-form {
-    background-image: url('https://www.freepik.com/free-photo/modern-office-building-with-glass-facade-and-blue-sky-background_1148777.jpg');
+    background-image: url('/images/Fondo.jpg');
     background-size: cover;
     background-position: center;
     display: flex;
@@ -19,6 +19,7 @@
   }
   
   .login-title {
+    color: white;
     font-size: 24px;
     font-weight: bold;
     text-align: center;

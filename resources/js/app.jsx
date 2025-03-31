@@ -6,6 +6,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Empleado from './components/EmpleadoForm';
 import ListaEmpleados from './components/ListaEmpleados';
 import EditarEmpleado from './components/EmpleadoForm'; // Importa el componente EditarEmpleado
+import Clientes from './components/ClienteRegistro';
+// import ListaClientes from './components/ListaClientes';
+import EditarCliente from './components/ClienteRegistro'; // Importa el componente EditarCliente
+
+
 
 // const root = ReactDOM.createRoot(document.getElementById('root'));
 // root.render(
@@ -44,6 +49,9 @@ function App() {
                 <Route path="/empleados/crear" element={<ProtectedRoute><Empleado /></ProtectedRoute>} />
                 <Route path="/empleados/lista" element={<ProtectedRoute><ListaEmpleados /></ProtectedRoute>} />
                 <Route path="/empleados/editar/:id" element={<ProtectedRoute><EditarEmpleado /></ProtectedRoute>} /> {/* Agrega esta ruta */}
+                <Route path="/clientes/crear" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+                {/* <Route path="/clientes/lista" element={<ProtectedRoute><ListaClientes /></ProtectedRoute>} /> */}
+                <Route path="/clientes/editar/:id" element={<ProtectedRoute><EditarCliente /></ProtectedRoute>} /> {/* Agrega esta ruta */}
             </Routes>
         </BrowserRouter>
     );
