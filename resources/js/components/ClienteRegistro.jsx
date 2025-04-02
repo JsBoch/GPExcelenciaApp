@@ -64,7 +64,7 @@ function ClienteRegistro() {
                         id_empleado: data.id_empleado || '',
                         comentario: data.comentario || '',
                         idtipocliente: data.idtipocliente || '',
-                        id_municipio: data.id_municipio || '0',
+                        id_municipio: data.id_municipio || '',
                         codigo_postal: data.codigo_postal || '',
                         usuario_registro: data.usuario_registro || '',
                         usuario_modifica: data.usuario_modifica || '',

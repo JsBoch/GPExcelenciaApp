@@ -25,15 +25,15 @@ class ClientesController extends Controller
             'clientes.razonsocial',
             'clientes.direccion',
             'clientes.codigo_postal',
-            'departamentopais.nombre as departamento',
+            'adm_departamentopais.nombre as departamento',
             'clientes.telefono_uno',
             'clientes.telefono_dos',
             'clientes.telefono_tres',
             'clientes.email', 
             'clientes.monto_credito',
-            'clientes.comentario',                                                                          
             'clientes.dias_credito', 
-            'empleado.nombre as vendedor', 
+            'clientes.comentario',                                                                                      
+            'adm_empleados.nombre as vendedor', 
             'clientes.id_empleado',             
             'clientes.id_municipio',
             'clientes.idtipocliente',
@@ -44,7 +44,8 @@ class ClientesController extends Controller
             'clientes.fecha_modificacion',    
             'clientes.estado',        
         )        
-        ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')        
+        ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais') 
+        ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')        
             ->get();
         return response()->json($clientes);
     }
@@ -67,7 +68,7 @@ class ClientesController extends Controller
             $datosCliente = $request->all();
             $datosCliente['idcliente'] = $idCliente; // Asigna el ID generado al empleado
             $datosCliente['usuario_registro'] = auth()->user()->name; // Asigna el usuario registrado
-            $datosCliente['fecha_registro'] = now(); // Asigna la fecha de registro
+            $datosCliente['fecharegistro'] = now(); // Asigna la fecha de registro
             $datosCliente['estado'] = 1; // Asigna el estado
             $datosCliente['id_municipio'] = 0; // Asigna el estado
             $datosCliente['idtipocliente'] = 1; // Asigna el estado
@@ -77,9 +78,9 @@ class ClientesController extends Controller
     
             DB::commit(); // Confirma la transacción
     
-            //return response()->json($empleado, 201); //devuelve una copia del objeto empleado
-            $respuesta = array("estado"=>"Creado con éxito"); 
-            return response()->json($respuesta,201);
+            return response()->json($cliente, 201); //devuelve una copia del objeto empleado
+            // $respuesta = array("estado"=>"Creado con éxito"); 
+            // return response()->json($respuesta,201);
         } catch (\Exception $e) {
             DB::rollback(); // Revierte la transacción en caso de error
             return response()->json(['message' => 'Error al crear empleado: ' . $e->getMessage()], 500);
@@ -88,21 +89,85 @@ class ClientesController extends Controller
 
     public function show($id)
     {
-        $cliente = Clientes::find($id);
-        if (!$cliente) {
-            return response()->json(['message' => 'Cliente no encontrado'], 404);
-        }
-        return response()->json($cliente);
+        // $cliente = Clientes::find($id);
+        // if (!$cliente) {
+        //     return response()->json(['message' => 'Cliente no encontrado'], 404);
+        // }
+        // return response()->json($cliente);
+        $cliente = Clientes::where('clientes.idcliente', $id)
+        ->select(
+            'clientes.idcliente',
+            'clientes.codigo',
+            'clientes.nit',
+            'clientes.cui',
+            'clientes.nombre',
+            'clientes.razonsocial',
+            'clientes.direccion',
+            'clientes.codigo_postal',
+            'adm_departamentopais.nombre as departamento',
+            'clientes.telefono_uno',
+            'clientes.telefono_dos',
+            'clientes.telefono_tres',
+            'clientes.email',
+            'clientes.monto_credito',
+            'clientes.dias_credito',
+            'clientes.comentario',
+            'adm_empleados.nombre as vendedor',
+            'clientes.id_empleado',
+            'clientes.id_municipio',
+            'clientes.idtipocliente',
+            'clientes.iddepartamento',
+            'clientes.fecharegistro',
+            'clientes.usuario_registro',
+            'clientes.usuario_modifica',
+            'clientes.fecha_modificacion',
+            'clientes.estado',
+        )
+        ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+        ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+        ->first(); // Usa first() en lugar de get() para obtener un solo resultado
+
+    if (!$cliente) {
+        return response()->json(['message' => 'Cliente no encontrado'], 404);
+    }
+    return response()->json($cliente);
     }
 
     public function update(Request $request, $id)
     {
-        $cliente = Clientes::find($id);
-        if (!$cliente) {
-            return response()->json(['message' => 'Cliente no encontrado'], 404);
-        }        
-        $cliente->update($request->all());
-        return response()->json($cliente);
+        // $cliente = Clientes::find($id);
+        // if (!$cliente) {
+        //     return response()->json(['message' => 'Cliente no encontrado'], 404);
+        // }        
+        // $cliente->update($request->all());
+        // return response()->json($cliente);
+        try {
+            DB::beginTransaction(); // Inicia una transacción para asegurar la integridad de los datos
+    
+            $cliente = Clientes::find($id);
+            if (!$cliente) {
+                return response()->json(['message' => 'Cliente no encontrado'], 404);
+            }
+    
+            $datosCliente = $request->all();
+    
+            // Aplica valores predeterminados si no se proporcionan en la solicitud
+            $datosCliente['usuario_modifica'] = auth()->user()->name; // Asigna el usuario registrado
+            $datosCliente['fecha_modificacion'] = date('Y-m-d H:i:s'); // Asigna la fecha de registro
+            $datosCliente['estado'] = $datosCliente['estado'] ?? 1; // Asigna 1 si no se proporciona, o el valor proporcionado
+            $datosCliente['id_municipio'] = $datosCliente['id_municipio'] ?? 0; // Asigna 0 si no se proporciona, o el valor proporcionado
+            $datosCliente['idtipocliente'] = $datosCliente['idtipocliente'] ?? 1; // Asigna 1 si no se proporciona, o el valor proporcionado
+            $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? ''; // Asigna '' si no se proporciona, o el valor proporcionado
+    
+            $cliente->update($datosCliente);
+    
+            DB::commit(); // Confirma la transacción
+    
+            return response()->json($cliente);
+        } catch (\Exception $e) {
+            DB::rollback(); // Revierte la transacción en caso de error
+            return response()->json(['message' => 'Error al actualizar el cliente: ' . $e->getMessage()], 500);
+        }
     }
 
     public function destroy($id)
