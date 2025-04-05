@@ -3,11 +3,13 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\ContactoClienteController;
 use App\Models\Clientes;
+use App\Models\ContactoCliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
-
+use App\Http\Controllers\CotizacionController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -60,4 +62,28 @@ Route::middleware('auth:sanctum')->group(function () {
 //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
     Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
+});
+
+//CONTACTO CLIENTE
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/contacto_cliente', ContactoClienteController::class)->except(['index']); // Excluye la ruta index generada automáticamente;
+    //Route::apiResource('/contacto_cliente', ContactoClienteController::class);
+    Route::get('/contacto_cliente/cliente/{idcliente}', [ContactoClienteController::class, 'index']); // Agrega la ruta personalizada
+    Route::put('/contacto_cliente/desactivar/{id}', [ContactoClienteController::class, 'desactivar']);
+// Rutas adicionales para las listas desplegables
+//Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
+    Route::get('/lista_clientes', [ContactoClienteController::class, 'getClientes']);
+});
+
+
+//COTIZACIONES
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/cotizaciones', CotizacionController::class);
+    Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
+    // Rutas adicionales para las listas desplegables
+    //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
+    Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
+    Route::get('/lista_contactos', [CotizacionController::class, 'listarContactos']);
+    Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);    
+    Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);    
 });

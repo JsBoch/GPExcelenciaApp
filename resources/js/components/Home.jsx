@@ -66,6 +66,14 @@ function Home() {
                     links.push({ to: '/clientes/crear', text: 'Registrar cliente' });
                 } else if (opcion.nombre === 'Consulta clientes') {
                     links.push({ to: '/clientes/lista', text: 'Consultar Clientes' });
+                }else if (opcion.nombre === 'Contacto cliente') {
+                    links.push({ to: '/contacto_cliente/crear', text: 'Registrar contacto cliente' });
+                } else if (opcion.nombre === 'Consulta contacto cliente') {
+                    links.push({ to: '/contacto_cliente/lista', text: 'Consultar contactos cliente' });
+                }else if (opcion.nombre === 'Cotizaciones') {
+                    links.push({ to: '/cotizaciones/crear', text: 'Registrar cotización' });
+                } else if (opcion.nombre === 'Consulta cotizaciones') {
+                    links.push({ to: '/cotizaciones/lista', text: 'Consultar cotizaciones' });
                 }
                 // Agrega más opciones según tus permisos
             });

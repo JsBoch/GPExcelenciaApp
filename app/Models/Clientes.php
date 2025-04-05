@@ -44,4 +44,9 @@ class Clientes extends Model
     public function empleados(){
         return $this->hasMany(Empleado::class,'id_empleado','id_empleado');
     }
+
+    public function contactos()
+    {
+        return $this->hasMany(ContactoCliente::class, 'idcliente', 'idcliente');
+    }
 }
