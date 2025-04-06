@@ -80,10 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizaciones', CotizacionController::class);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
+    Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
     Route::get('/lista_contactos', [CotizacionController::class, 'listarContactos']);
     Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);    
-    Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);    
+    Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);        
 });
+

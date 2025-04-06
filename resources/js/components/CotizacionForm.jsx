@@ -251,8 +251,36 @@ function CotizacionForm() {
         setDetalle({ ...detalle, [e.target.name]: e.target.value });
     };
 
+    // const handleAddDetalle = () => {
+    //     setDetalles([...detalles, detalle]);
+    //     setDetalle({
+    //         unidad_medida: '',
+    //         descripcion: '',
+    //         cantidad: 0,
+    //         ancho: 0,
+    //         alto: 0,
+    //         m2: 0,
+    //         profundidad: 0,
+    //         precio: 0,
+    //         total: 0,
+    //     });
+    // };
     const handleAddDetalle = () => {
-        setDetalles([...detalles, detalle]);
+        if (detalleSeleccionado) {
+            // Editar detalle existente
+            const index = detalles.findIndex(d => d === detalleSeleccionado);
+            if (index !== -1) {
+                const nuevosDetalles = [...detalles];
+                nuevosDetalles[index] = detalle; // Reemplaza el detalle existente
+                setDetalles(nuevosDetalles);
+            }
+            setDetalleSeleccionado(null); // Resetea la selección
+        } else {
+            // Agregar nuevo detalle
+            setDetalles([...detalles, detalle]);
+        }
+    
+        // Resetea el formulario de detalle
         setDetalle({
             unidad_medida: '',
             descripcion: '',
@@ -514,7 +542,7 @@ function CotizacionForm() {
                                 />
                             </div>
                              <div className='col-auto'> {/* col-auto para que ocupe solo el espacio necesario */}
-                                <button type="button" onClick={handleAddDetalle} className='btn btn-success btn-sm'>Agregar</button>
+                                <button type="button" onClick={handleAddDetalle} className={detalleSeleccionado ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm'}>{detalleSeleccionado ? 'Actualizar Detalle' : 'Agregar Detalle'}</button>
                                 <button type="button" onClick={handleQuitarDetalle} className='btn btn-danger btn-sm ms-2'>Quitar</button>
                             </div>
                         </div>

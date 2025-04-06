@@ -65,20 +65,54 @@ function ListaCotizaciones() {
             data: 'idcotizacion',
             title: 'Acciones',
             render: (data) => {
-                return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                    <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
+                //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                return `
+            <button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
+            <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>
+            <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
             }
         }
     ];
 
     useEffect(() => {
         // Función para manejar los clics en los botones "Editar"
+        // const handleButtonClick = (event) => {
+        //     const id = event.target.getAttribute('data-id');
+        //     if (event.target.classList.contains('editar-btn')) {
+        //         navigate(`/cotizaciones/editar/${id}`);
+        //     } else if (event.target.classList.contains('desactivar-btn')) {
+        //         handleDesactivar(id);
+        //     }else if(event.target.classList.contains('pdf-btn')) {
+        //         window.open(`/api/cotizaciones/${id}/pdf`, '_blank');
+        //     }
+        // };
+
         const handleButtonClick = (event) => {
             const id = event.target.getAttribute('data-id');
+            const token = localStorage.getItem('token'); // Recupera el token del localStorage
+
             if (event.target.classList.contains('editar-btn')) {
                 navigate(`/cotizaciones/editar/${id}`);
             } else if (event.target.classList.contains('desactivar-btn')) {
                 handleDesactivar(id);
+            } else if (event.target.classList.contains('pdf-btn')) {
+                if (token) {
+                    fetch(`/api/cotizaciones/${id}/pdf`, { // Usa fetch en lugar de window.open
+                        headers: {
+                            'Authorization': `Bearer ${token}` // Envía el token en la cabecera
+                        }
+                    })
+                    .then(response => response.blob()) //Obtenemos la respuesta como blob
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob); //creamos una url para el objeto blob
+                        window.open(url, '_blank') //abrimos el pdf en una nueva ventana
+                    })
+                    .catch(error => console.error('Error al generar el PDF:', error));
+                } else {
+                    console.error('Token no encontrado para generar PDF.');
+                    // Manejar la falta de token, por ejemplo, redirigiendo a la página de inicio de sesión
+                }
             }
         };
 

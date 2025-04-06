@@ -8,10 +8,11 @@ use App\Models\AdmUnidadMedida;
 use App\Models\Clientes;
 use App\Models\ContactoCliente;
 use App\Models\Correlativo;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // <-- Importar Log si quieres registrar errores detallados
-
+use Illuminate\Support\Facades\DB; // <-- Importar Log si quieres registrar errores detallados
+use Illuminate\Support\Facades\Log;
+use NumberToWords\NumberToWords;
 class CotizacionController extends Controller
 {
     public function index()
@@ -28,14 +29,14 @@ class CotizacionController extends Controller
                 'ct.nombre as contacto',
                 'c.direccion_entrega',
                 'c.observaciones_costeo',
-                'c.observaciones_cliente',                
+                'c.observaciones_cliente',
                 'c.costeo_observaciones',
-                'c.idcotizacionoriginal',                
-                'c.idcliente',                
-                'c.idcontacto',                                
-                'c.trabajo',                                
+                'c.idcotizacionoriginal',
+                'c.idcliente',
+                'c.idcontacto',
+                'c.trabajo',
                 'c.version',
-                'c.idtipopago',                
+                'c.idtipopago',
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -63,51 +64,51 @@ class CotizacionController extends Controller
             $datosCotizacion                     = $request->all();
             $datosCotizacion['idcotizacion']     = $idCotizacion;
             $datosCotizacion['usuario_registro'] = auth()->user()->name;
-            $datosCotizacion['fecha_registro']   = date('Y-m-d H:i:s');;
+            $datosCotizacion['fecha_registro']   = date('Y-m-d H:i:s');
             $datosCotizacion['estado']           = 1;
             $datosCotizacion['idusuario']        = auth()->user()->id;
 
             $cotizacion = AdmCotizacion::create($datosCotizacion);
 
-             // Guardar detalles de la cotización
+            // Guardar detalles de la cotización
 
-             $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
+            $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
 
             if (! $correlativoDetalle) {
                 return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
             }
 
-            $idDetalleCotizacion             = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-           
-             $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-             foreach ($detalles as $detalle) {
-                 AdmDetalleCotizacion::create([
-                     'iddetallecotizacion' => $idDetalleCotizacion,                     
-                     'idcotizacion' => $idCotizacion,
-                     'idproducto' => 0,
-                     'producto' => $detalle['descripcion'], // Asegúrate de que el nombre del campo coincida
-                     'titulo' => '',
-                     'descripcion' => $detalle['descripcion'],
-                     'cantidad' => $detalle['cantidad'],
-                     'ancho' => $detalle['ancho'],
-                     'alto' => $detalle['alto'],
-                     'profundidad' => $detalle['profundidad'],
-                     'precio' => $detalle['precio'],
-                     'total' => $detalle['total'],
-                     'fecha_registro' => date('Y-m-d H:i:s'),
-                     'usuario_registro' => auth()->user()->name,
-                     'costeado' => 'N',
-                     'incluyefoto' => 'N',
-                     'estado' => 1,
-                     'unidad_medida' => $detalle['unidad_medida'],
-                     'm2' => $detalle['m2'],
-                 ]);
+            $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
 
-                 $idDetalleCotizacion += 1;
-             }
+            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
+            foreach ($detalles as $detalle) {
+                AdmDetalleCotizacion::create([
+                    'iddetallecotizacion' => $idDetalleCotizacion,
+                    'idcotizacion'        => $idCotizacion,
+                    'idproducto'          => 0,
+                    'producto'            => $detalle['descripcion'], // Asegúrate de que el nombre del campo coincida
+                    'titulo'              => '',
+                    'descripcion'         => $detalle['descripcion'],
+                    'cantidad'            => $detalle['cantidad'],
+                    'ancho'               => $detalle['ancho'],
+                    'alto'                => $detalle['alto'],
+                    'profundidad'         => $detalle['profundidad'],
+                    'precio'              => $detalle['precio'],
+                    'total'               => $detalle['total'],
+                    'fecha_registro'      => date('Y-m-d H:i:s'),
+                    'usuario_registro'    => auth()->user()->name,
+                    'costeado'            => 'N',
+                    'incluyefoto'         => 'N',
+                    'estado'              => 1,
+                    'unidad_medida'       => $detalle['unidad_medida'],
+                    'm2'                  => $detalle['m2'],
+                ]);
 
-             $correlativoDetalle->correlativo = $idDetalleCotizacion;
-             $correlativoDetalle->save();
+                $idDetalleCotizacion += 1;
+            }
+
+            $correlativoDetalle->correlativo = $idDetalleCotizacion;
+            $correlativoDetalle->save();
 
             DB::commit();
 
@@ -121,9 +122,9 @@ class CotizacionController extends Controller
     public function show($id)
     {
         $cotizaciones = AdmCotizacion::where('c.idcotizacion', $id)
-            ->select(      
-                'c.idcotizacionoriginal',          
-                'c.idcotizacion',                                
+            ->select(
+                'c.idcotizacionoriginal',
+                'c.idcotizacion',
                 'c.idcliente',
                 'cl.nombre as cliente',
                 'c.idcontacto',
@@ -166,7 +167,7 @@ class CotizacionController extends Controller
         try {
             // 1. Encontrar y actualizar la cotización principal
             $cotizacion = AdmCotizacion::find($id);
-            if (!$cotizacion) {
+            if (! $cotizacion) {
                 DB::rollback(); // Revertir si no se encuentra
                 return response()->json(['message' => 'Cotización no encontrada'], 404);
             }
@@ -179,9 +180,9 @@ class CotizacionController extends Controller
 
             // Añadir campos de auditoría para la cabecera
             $datosCabecera['usuario_modificacion'] = auth()->user()->name;
-            $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
-            // Quitar la línea de estado si no la envías o quieres mantener la existente
-            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+            $datosCabecera['fecha_modificacion']   = now(); // Usar now() es más conveniente
+                                                            // Quitar la línea de estado si no la envías o quieres mantener la existente
+                                                            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
 
             $cotizacion->update($datosCabecera);
 
@@ -189,29 +190,29 @@ class CotizacionController extends Controller
             // Es importante hacer esto DENTRO de la transacción
             AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
 
-            // 3. Obtener y procesar los nuevos detalles (como en store)
+                                                         // 3. Obtener y procesar los nuevos detalles (como en store)
             $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
 
-            if (!empty($detalles)) { // Solo procesar si hay detalles
-                // Obtener el correlativo para los detalles (igual que en store)
+            if (! empty($detalles)) { // Solo procesar si hay detalles
+                                         // Obtener el correlativo para los detalles (igual que en store)
                 $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-                if (!$correlativoDetalle) {
+                if (! $correlativoDetalle) {
                     DB::rollback();
-                    // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
+                                                                                                                                  // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
                     return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
                 }
 
                 // Determinar el siguiente ID disponible basado en el correlativo actual
                 // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
                 $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-                $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
+                $ultimoIdUsado       = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
 
                 foreach ($detalles as $detalle) {
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
-                     AdmDetalleCotizacion::create([
+                    AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $idDetalleCotizacion,
-                        'idcotizacion'        => $id, // Usar el $id de la cotización que estamos actualizando
-                        'idproducto'          => $detalle['idproducto'] ?? 0, // Usar ?? para valores por defecto si no vienen
+                        'idcotizacion'        => $id,                                                        // Usar el $id de la cotización que estamos actualizando
+                        'idproducto'          => $detalle['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
                         'producto'            => $detalle['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
                         'titulo'              => $detalle['titulo'] ?? '',
                         'descripcion'         => $detalle['descripcion'] ?? '',
@@ -228,10 +229,10 @@ class CotizacionController extends Controller
                         'estado'              => $detalle['estado'] ?? 1,
                         'unidad_medida'       => $detalle['unidad_medida'] ?? null,
                         'm2'                  => $detalle['m2'] ?? 0,
-                     ]);
+                    ]);
 
-                     $ultimoIdUsado = $idDetalleCotizacion; // Actualizar el último ID que acabamos de usar
-                     $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
+                    $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
+                    $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
                 }
 
                 // Actualizar el correlativo con el ÚLTIMO ID que se usó
@@ -242,8 +243,8 @@ class CotizacionController extends Controller
             // Si todo fue bien, confirmar la transacción
             DB::commit();
 
-            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-            // Para devolverla con detalles, necesitas volver a cargar la relación
+                                           // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
+                                           // Para devolverla con detalles, necesitas volver a cargar la relación
             $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
 
             return response()->json($cotizacion);
@@ -254,7 +255,7 @@ class CotizacionController extends Controller
             Log::error('Error al actualizar la cotización ID ' . $id . ': ' . $e->getMessage()); // Loguear el error para depuración
             return response()->json(['message' => 'Error al actualizar la cotización: ' . $e->getMessage()], 500);
         }
-    }    
+    }
 
     public function destroy($id)
     {
@@ -305,5 +306,51 @@ class CotizacionController extends Controller
     {
         $unidadesMedida = AdmUnidadMedida::where('estado', 1)->get(['idunidadmedida', 'unidad']);
         return response()->json($unidadesMedida);
+    }
+
+    public function generarPdf($id)
+    {
+        $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+        ->select(
+            'c.idcotizacion',
+            'c.nocotizacion',
+            'c.fecha_cotizacion',
+            't.tipo as tipo_pago',
+            'c.total_general',
+            'c.costear',
+            'cl.nombre as cliente',
+            'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+            'ct.nombre as contacto',
+            'e.nombre as vendedor', // Asegúrate de tener este campo en tu tabla (o relación)
+            'e.movil as telefono_vendedor', // Ajusta según tu estructura
+            'e.correo_personal as correo_vendedor',   // Ajusta según tu estructura
+            'c.direccion_entrega',
+            'c.observaciones_costeo',
+            'c.observaciones_cliente',
+            'c.costeo_observaciones',
+            'c.trabajo',
+            'c.version'
+        )
+        ->from('adm_cotizacion as c')
+        ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+        ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+        ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+        ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')        
+        ->first();
+
+    if (! $cotizacion) {
+        return response()->json(['message' => 'Cotización no encontrada'], 404);
+    }
+
+    $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+    $cotizacion->detalles = $detalles;
+
+    // Convertir total a letras (usando kwn/number-to-words)
+    $numberToWords = new NumberToWords();
+    $numberTransformer = $numberToWords->getNumberTransformer('es');
+    $totalEnLetras = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+
+    $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
+    return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
     }
 }
