@@ -20,7 +20,7 @@ class CotizacionController extends Controller
         $cotizaciones = AdmCotizacion::where('c.estado', 1)
             ->select(
                 'c.idcotizacion',
-                'c.nocotizacion',
+                DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
                 'c.fecha_cotizacion',
                 't.tipo as tipo_pago',
                 'c.total_general',
@@ -47,7 +47,7 @@ class CotizacionController extends Controller
     }
 
     public function store(Request $request)
-    {
+    {        
         try {
             DB::beginTransaction();
 
@@ -61,8 +61,18 @@ class CotizacionController extends Controller
             $correlativo->correlativo = $idCotizacion;
             $correlativo->save();
 
+            $correlativonocotizacion = Correlativo::find('no_cotizacion');
+            if (! $correlativonocotizacion) {
+                return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
+            }
+
+            $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
+            $correlativonocotizacion->correlativo = $nocotizacion;
+            $correlativonocotizacion->save();
+            
             $datosCotizacion                     = $request->all();
             $datosCotizacion['idcotizacion']     = $idCotizacion;
+            $datosCotizacion['nocotizacion']     = $nocotizacion;
             $datosCotizacion['usuario_registro'] = auth()->user()->name;
             $datosCotizacion['fecha_registro']   = date('Y-m-d H:i:s');
             $datosCotizacion['estado']           = 1;
@@ -78,9 +88,15 @@ class CotizacionController extends Controller
                 return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
             }
 
+            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
+            if (! is_array($detalles)) {
+                Log::error('Los detalles no son un array: ' . print_r($detalles, true));
+                DB::rollback();
+                return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
+            }
+
             $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
 
-            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
             foreach ($detalles as $detalle) {
                 AdmDetalleCotizacion::create([
                     'iddetallecotizacion' => $idDetalleCotizacion,
@@ -115,7 +131,7 @@ class CotizacionController extends Controller
             return response()->json($cotizacion, 201);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['message' => 'Error al crear empleado: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
         }
     }
 
@@ -311,46 +327,46 @@ class CotizacionController extends Controller
     public function generarPdf($id)
     {
         $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-        ->select(
-            'c.idcotizacion',
-            'c.nocotizacion',
-            'c.fecha_cotizacion',
-            't.tipo as tipo_pago',
-            'c.total_general',
-            'c.costear',
-            'cl.nombre as cliente',
-            'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
-            'ct.nombre as contacto',
-            'e.nombre as vendedor', // Asegúrate de tener este campo en tu tabla (o relación)
-            'e.movil as telefono_vendedor', // Ajusta según tu estructura
-            'e.correo_personal as correo_vendedor',   // Ajusta según tu estructura
-            'c.direccion_entrega',
-            'c.observaciones_costeo',
-            'c.observaciones_cliente',
-            'c.costeo_observaciones',
-            'c.trabajo',
-            'c.version'
-        )
-        ->from('adm_cotizacion as c')
-        ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-        ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-        ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-        ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')        
-        ->first();
+            ->select(
+                'c.idcotizacion',
+                'c.nocotizacion',
+                'c.fecha_cotizacion',
+                't.tipo as tipo_pago',
+                'c.total_general',
+                'c.costear',
+                'cl.nombre as cliente',
+                'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+                'ct.nombre as contacto',
+                'e.nombre as vendedor',                 // Asegúrate de tener este campo en tu tabla (o relación)
+                'e.movil as telefono_vendedor',         // Ajusta según tu estructura
+                'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
+                'c.direccion_entrega',
+                'c.observaciones_costeo',
+                'c.observaciones_cliente',
+                'c.costeo_observaciones',
+                'c.trabajo',
+                'c.version'
+            )
+            ->from('adm_cotizacion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->first();
 
-    if (! $cotizacion) {
-        return response()->json(['message' => 'Cotización no encontrada'], 404);
-    }
+        if (! $cotizacion) {
+            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        }
 
-    $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-    $cotizacion->detalles = $detalles;
+        $detalles             = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+        $cotizacion->detalles = $detalles;
 
-    // Convertir total a letras (usando kwn/number-to-words)
-    $numberToWords = new NumberToWords();
-    $numberTransformer = $numberToWords->getNumberTransformer('es');
-    $totalEnLetras = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+        // Convertir total a letras (usando kwn/number-to-words)
+        $numberToWords     = new NumberToWords();
+        $numberTransformer = $numberToWords->getNumberTransformer('es');
+        $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
 
-    $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-    return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
+        $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
+        return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
     }
 }

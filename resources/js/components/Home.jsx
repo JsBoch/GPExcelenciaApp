@@ -4,6 +4,9 @@ import SlideMenu from './SlideMenu';
 import './Home.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import alertify from 'alertifyjs';
+import 'alertifyjs/build/css/alertify.min.css';
+import 'alertifyjs/build/css/themes/default.min.css';
 
 function Home() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -22,7 +25,8 @@ function Home() {
                 setUser(res.data);
                 setLoading(false); // Carga completada                
             } catch (error) {
-                console.error('Error al obtener el usuario:', error);
+                //console.error('Error al obtener el usuario:', error);
+                alertify.error("Error al obtener el usuario");
                 setLoading(false); // Carga completada (con error)
             }
         };
@@ -44,13 +48,15 @@ function Home() {
             localStorage.removeItem('token');
             navigate('/');
         } catch (error) {
-            console.error('Error al cerrar sesión:', error);
+            //console.error('Error al cerrar sesión:', error);
+            alertify.error("Error al cerrar sesión");
         }
     };
 
     const getFilteredLinks = () => {
         if (!user || !user.perfiles) {
-            console.log('Usuario o perfiles no definidos:', user);
+            //console.log('Usuario o perfiles no definidos:', user);
+            alertify.error("Usuario o perfiles no definidos");
             return [];
         }
 
@@ -74,6 +80,8 @@ function Home() {
                     links.push({ to: '/cotizaciones/crear', text: 'Registrar cotización' });
                 } else if (opcion.nombre === 'Consulta cotizaciones') {
                     links.push({ to: '/cotizaciones/lista', text: 'Consultar cotizaciones' });
+                }else if (opcion.nombre === 'Consulta cotizaciones costeo') {
+                    links.push({ to: '/costeocotizaciones/lista', text: 'Consultar cotizaciones para Costeo' });
                 }
                 // Agrega más opciones según tus permisos
             });

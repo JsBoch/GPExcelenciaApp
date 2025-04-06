@@ -15,6 +15,7 @@ import EditarContactoCliente from './components/ContactoClienteForm'; // Importa
 import RegistroCotizacion from './components/CotizacionForm';
 import ListaCotizaciones from './components/ListaCotizaciones';
 import EditarCotizacion from './components/CotizacionForm'; 
+import ListaCotizacionesCosteo from './components/ListaCotizacionesCoteo';
 
 
 
@@ -67,6 +68,7 @@ function App() {
                 <Route path="/cotizaciones/crear" element={<ProtectedRoute><RegistroCotizacion /></ProtectedRoute>} />
                 <Route path="/cotizaciones/lista" element={<ProtectedRoute><ListaCotizaciones /></ProtectedRoute>} />
                 <Route path="/cotizaciones/editar/:id" element={<ProtectedRoute><EditarCotizacion /></ProtectedRoute>} /> Agrega esta ruta
+                <Route path="/costeocotizaciones/lista" element={<ProtectedRoute><ListaCotizacionesCosteo /></ProtectedRoute>} />
             </Routes>
         </BrowserRouter>
     );

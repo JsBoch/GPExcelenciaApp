@@ -8,6 +8,10 @@ import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
 import Select from 'react-select'; //react-select para autocompletar
+//Para abrir el formulario de contactos de forma modal
+import ContactoClienteForm from './ContactoClienteForm'; // Importa el formulario
+import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap'; // Importa componentes de Reactstrap para el modal
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 DataTable.use(DT);
 
@@ -17,13 +21,17 @@ function CotizacionForm() {
     const navigate = useNavigate();
     const [tiposPago, setTiposPago] = useState([]);
     const [unidadesMedida, setUnidadesMedida] = useState([]);
-    const [clientes, setClientes] = useState([]);
     const [contactos, setContactos] = useState([]);
     const [clienteId, setClienteId] = useState(''); // Estado para el id del departamento seleccionado
     const [detalles, setDetalles] = useState([]); // Estado para almacenar los datos del datatable
     const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
-    const [clienteOptions, setClienteOptions] = useState([]); // Nuevo estado para opciones de react-select
+    const [clienteOptions, setClienteOptions] = useState([]); // Nuevo estado para opciones de react-select  
+    //Para abrir los contactos de forma modal
+    const [modalIsOpen, setModalIsOpen] = useState(false); // Estado para controlar la visibilidad del modal
+    const toggleModal = () => setModalIsOpen(!modalIsOpen); // Función para abrir/cerrar el modal  
 
+
+    //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
         idcotizacionoriginal: 0,
@@ -41,10 +49,10 @@ function CotizacionForm() {
         version: 1,
         idtipopago: '',
         direccion_entrega: '',
-        costear: '',
+        costear: 'N',
     });
 
-    //Detalle Cotización 2025-04-03
+    //Estado del detalle de la cotización
     const [detalle, setDetalle] = useState({
         unidad_medida: '',
         descripcion: '',
@@ -57,8 +65,24 @@ function CotizacionForm() {
         total: 0,
     });
 
-    //************************************* */
+    const loadContactos = () => {  // Función para cargar los contactos
+        if (clienteId) {
+            const token = localStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
+            axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers })
+                .then(res => setContactos(res.data))
+                .catch(error => console.error('Error al cargar contactos:', error));
+        } else {
+            setContactos([]);
+        }
+    };
 
+    const handleContactCreated = (newContact) => {  // Función llamada desde el modal
+        loadContactos();  // Recarga la lista
+    };
+
+    //Se utiliza para cargar los datos de la cotización y el detalle si es una edición, y se cargan las listas desplegables si es un nuevo empleado
+    //Si no es una edición, solo carga las listas de los select.
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
@@ -88,7 +112,7 @@ function CotizacionForm() {
                         version: data.version || 1,
                         idtipopago: data.idtipopago || '',
                         direccion_entrega: data.direccion_entrega || '',
-                        costear: data.costear || '',
+                        costear: data.costear || 'N',
                     });
 
                     // Cargar listas desplegables después de cargar los datos del empleado
@@ -110,26 +134,24 @@ function CotizacionForm() {
                 })
                 .catch(error => console.error('Error al cargar las cotizaciones:', error));
         } else {
-            // Cargar listas desplegables para crear un nuevo empleado
-            // axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
+            // Cargar listas desplegables para crear un nuevo empleado            
             axios.get('/api/lista_tipospago', { headers }).then(res => setTiposPago(res.data));
             axios.get('/api/lista_unidadesmedida', { headers }).then(res => setUnidadesMedida(res.data));
-            // if (clienteId) {
-            //     axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers }).then(res => setContactos(res.data));
-            // } else {
-            //     setContactos([]);
-            // }
             // No cargamos contactos aquí inicialmente, esperamos a que se seleccione un cliente
             setContactos([]); // Asegurarse que contactos esté vacío al crear
         }
-     },[id]); //solo depende de Id para la carga inicial //[id, clienteId]);
+    }, [id]); //solo depende de Id para la carga inicial
 
-     // useEffect para cargar contactos cuando cambia clienteId (ya lo tenías, solo ajustado)
+    useEffect(() => {
+        loadContactos(); // Carga la lista inicialmente y cuando cambia clienteId
+    }, [clienteId]);
+
+    // useEffect para cargar contactos cuando cambia clienteId
     useEffect(() => {
         if (clienteId) {
-             const token = localStorage.getItem('token');
-             const headers = { Authorization: `Bearer ${token}` };
-             axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers })
+            const token = localStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
+            axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers })
                 .then(res => setContactos(res.data))
                 .catch(error => console.error('Error al cargar contactos:', error));
         } else {
@@ -137,26 +159,24 @@ function CotizacionForm() {
         }
     }, [clienteId]); // Se ejecuta solo cuando cambia clienteId
 
-    
-    // --- NUEVO useEffect para calcular el total del detalle ---
+    //Calcular el total del detalle ---
     useEffect(() => {
         const cantidadNum = parseFloat(detalle.cantidad) || 0; // Convierte a número, si es inválido o vacío, usa 0
-        const precioNum = parseFloat(detalle.precio) || 0;   // Convierte a número, si es inválido o vacío, usa 0
+        const precioNum = parseFloat(detalle.precio) || 0;
 
-        const totalCalculado = (cantidadNum * precioNum).toFixed(2);
+        const totalCalculado = (cantidadNum * precioNum).toFixed(2); //2 decimales 
 
         // Actualiza el estado 'detalle' solo con el nuevo total
         // Usamos el callback para asegurar que no perdemos otros datos del detalle
         setDetalle(prevDetalle => ({
             ...prevDetalle,
-            // Puedes usar toFixed para limitar decimales si es necesario (ej: toFixed(2))
             total: totalCalculado
         }));
 
     }, [detalle.cantidad, detalle.precio]); // Se ejecuta cada vez que cantidad o precio cambien
     // --------------------------------------------------------
 
-    // --- NUEVO useEffect para calcular el m2 del detalle ---
+    // --- Calcula los m2 del detalle ---
     useEffect(() => {
         const anchoNum = parseFloat(detalle.ancho) || 0;
         const altoNum = parseFloat(detalle.alto) || 0;
@@ -170,23 +190,7 @@ function CotizacionForm() {
     }, [detalle.ancho, detalle.alto]); // Se ejecuta cuando ancho o alto cambian
     // ----------------------------------------------------
 
-    // Función para cargar el detalle seleccionado en los inputs
-    const cargarDetalleSeleccionado = () => {
-        if (detalleSeleccionado) {
-            setDetalle({
-                unidad_medida: detalleSeleccionado.unidad_medida,
-                descripcion: detalleSeleccionado.descripcion,
-                cantidad: detalleSeleccionado.cantidad,
-                ancho: detalleSeleccionado.ancho,
-                alto: detalleSeleccionado.alto,
-                m2: detalleSeleccionado.m2,
-                profundidad: detalleSeleccionado.profundidad,
-                precio: detalleSeleccionado.precio,
-                total: detalleSeleccionado.total,
-            });
-        }
-    };
-
+    //Carga el listado de clientes
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
@@ -205,82 +209,95 @@ function CotizacionForm() {
     const handleClienteChange = (selectedOption) => {
         setClienteId(selectedOption.value);
         setCotizacion({ ...cotizacion, idcliente: selectedOption.value, idcontacto: '' });
+        //cambio para el model de contactos
+        // Comprueba si el cliente tiene contactos y abre el modal si no tiene
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+        axios.get(`/api/lista_contactos?idcliente=${selectedOption.value}`, { headers })
+            .then(res => {
+                setContactos(res.data);
+                if (res.data.length === 0) {
+                    setModalIsOpen(true); // Abre el modal si no hay contactos
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar contactos:', error)
+                alertify.error("Error al cargar contactos");
+            });
     };
-    // const handleClienteChange = (e) => {
-    //     const nuevoClienteId = e.target.value;
-    //     setClienteId(nuevoClienteId);// Actualiza clienteId para disparar el useEffect de contactos
-    //     setCotizacion({ ...cotizacion, idcliente: nuevoClienteId, idcontacto: '' });// Resetea contacto al cambiar cliente
-    //     //setCotizacion({ ...cotizacion, idcotizacion: e.target.value, idcontacto: '' }); // Actualizar el estado del empleado
-    // };
+
+    //Actualiza el estado de la cotización con el valor de cada campo cuando estos cambian
     const handleChange = (e) => {
         setCotizacion({ ...cotizacion, [e.target.name]: e.target.value });
     };
 
+    //Envía los datos al back-end para registrar, en el método store.
     const handleSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+
+        // Determine 'costear' based on detalles
+        let shouldCostear = 'N';
+        for (const item of detalles) {
+            if (parseFloat(item.total) === 0) {
+                shouldCostear = 'S';
+                break;
+            }
+        }
+
         const dataToSend = {
             ...cotizacion,
             detalles: detalles, // Incluye los detalles aquí
+            costear: shouldCostear,
         };
 
         if (id) {
             // Editar cliente existente (solicitud PUT) cotizacion
             axios.put(`/api/cotizaciones/${id}`, dataToSend, { headers })
                 .then(res => {
-                    console.log('Cotización actualizada:', res.data);
+                    //console.log('Cotización actualizada:', res.data);
+                    alertify.success("Cotización actualizada correctamente");
                     navigate('/cotizaciones/lista'); // Redirige a la lista
                 })
-                .catch(error => console.error('Error al actualizar la cotización:', error));
+                .catch(error => {
+                    console.error('Error al actualizar la cotización:', error)
+                    alertify.error("Error al actualizar la cotización");
+                });
         } else {
             // Crear nuevo empleado (solicitud POST)cotizacion
             axios.post('/api/cotizaciones', dataToSend, { headers })
                 .then(res => {
-                    console.log('Cotización creada:', res.data);
+                    //console.log('Cotización creada:', res.data);
+                    alertify.success("Cotización creada correctamente");
                     navigate('/cotizaciones/lista'); // Redirige a la lista
                 })
-                .catch(error => console.error('Error al crear empleado:', error));
+                .catch(error => {
+                    console.error('Error al crear empleado:', error)
+                    alertify.error("Error al crear la cotización");
+                });
         }
     };
 
-    //Para cargar el detalle de la cotización 2025-04-03
+    //Para cargar el detalle de la cotización
     const handleDetalleChange = (e) => {
-        // Esta función solo actualiza el campo que cambió.
-        // El useEffect se encargará de calcular el total si cambia cantidad o precio.
         setDetalle({ ...detalle, [e.target.name]: e.target.value });
     };
 
-    // const handleAddDetalle = () => {
-    //     setDetalles([...detalles, detalle]);
-    //     setDetalle({
-    //         unidad_medida: '',
-    //         descripcion: '',
-    //         cantidad: 0,
-    //         ancho: 0,
-    //         alto: 0,
-    //         m2: 0,
-    //         profundidad: 0,
-    //         precio: 0,
-    //         total: 0,
-    //     });
-    // };
+    //Agregar los datos del detalle al DataTable
     const handleAddDetalle = () => {
         if (detalleSeleccionado) {
-            // Editar detalle existente
-            const index = detalles.findIndex(d => d === detalleSeleccionado);
+            const index = detalles.findIndex((d) => d === detalleSeleccionado);
             if (index !== -1) {
                 const nuevosDetalles = [...detalles];
-                nuevosDetalles[index] = detalle; // Reemplaza el detalle existente
+                nuevosDetalles[index] = detalle;
                 setDetalles(nuevosDetalles);
             }
-            setDetalleSeleccionado(null); // Resetea la selección
+            setDetalleSeleccionado(null);
         } else {
-            // Agregar nuevo detalle
             setDetalles([...detalles, detalle]);
         }
-    
-        // Resetea el formulario de detalle
+
         setDetalle({
             unidad_medida: '',
             descripcion: '',
@@ -294,6 +311,7 @@ function CotizacionForm() {
         });
     };
 
+    //Quitar el detalle seleccionado del DataTable
     const handleQuitarDetalle = () => {
         if (!detalleSeleccionado) {
             alertify.error("Por favor, selecciona un detalle para quitar.");
@@ -323,6 +341,7 @@ function CotizacionForm() {
         );
     };
 
+    //Ejecutan la función handleRowClick cuando se hace clic en una fila del DataTable
     const slots = {
         0: (data, row) => (
             <div onClick={() => handleRowClick(row)} style={{ cursor: 'pointer' }}>
@@ -371,9 +390,9 @@ function CotizacionForm() {
         ),
     };
 
+    //Carla los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
     const handleRowClick = (rowData) => {
         setDetalleSeleccionado(rowData);
-        // console.log("Fila seleccionada:", rowData);
         setDetalle({
             unidad_medida: rowData.unidad_medida,
             descripcion: rowData.descripcion,
@@ -387,6 +406,7 @@ function CotizacionForm() {
         });
     };
 
+    //Se establecen las columnas que se mostrarán en el DataTable
     const columns = [
         { title: 'Unidad Medida', data: 'unidad_medida' },
         { title: 'Descripción', data: 'descripcion' },
@@ -403,11 +423,11 @@ function CotizacionForm() {
         <div className='container mt-4'>
             <div className="card formulario-container">
                 <div className="card-header bg-primary text-white">
-                     {/* Cambia el título según si editas o creas */}
+                    {/* Cambia el título según si editas o creas */}
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
                 </div>
                 <div className="card-body">
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <div className='row g-2 mb-3'> {/* Añadido mb-3 para separar secciones */}
                             <div className='col-md-6'>
@@ -419,6 +439,9 @@ function CotizacionForm() {
                                     isSearchable={true} // Habilita la búsqueda
                                     placeholder="Seleccionar Cliente"
                                 />
+                                <button type="button" className="btn btn-link btn-sm" onClick={toggleModal}>
+                                    Agregar Contacto
+                                </button>
                             </div>
                             <div className='col-md-6'>
                                 <label className='form-label fw-bold'>Contacto</label>
@@ -432,8 +455,8 @@ function CotizacionForm() {
                                 </select>
                             </div>
                         </div>
-                         <div className='row g-2 mb-3'>
-                             <div className='col-md-4'>
+                        <div className='row g-2 mb-3'>
+                            <div className='col-md-4'>
                                 <label className='form-label fw-bold'>Forma pago</label>
                                 <select name="idtipopago" value={cotizacion.idtipopago} onChange={handleChange} className='form-select form-select-sm'>
                                     <option value="">Seleccionar forma de pago</option>
@@ -444,14 +467,14 @@ function CotizacionForm() {
                                     ))}
                                 </select>
                             </div>
-                             <div className='col-md-3'> {/* Ajustado tamaño */}
+                            <div className='col-md-3'> {/* Ajustado tamaño */}
                                 <label className='form-label fw-bold'>Fecha cotizacion</label>
-                                <input type="date" name="fecha_cotizacion" value={cotizacion.fecha_cotizacion} onChange={handleChange} placeholder="Fecha cotización" className='form-control form-control-sm' required/>
+                                <input type="date" name="fecha_cotizacion" value={cotizacion.fecha_cotizacion} onChange={handleChange} placeholder="Fecha cotización" className='form-control form-control-sm' required />
                             </div>
                             <div className='col-md-5'> {/* Ajustado tamaño */}
-                               <label className='form-label fw-bold'>Trabajo</label>
-                               <input type="text" name="trabajo" value={cotizacion.trabajo} onChange={handleChange} placeholder="Nombre del trabajo o proyecto" className='form-control form-control-sm' />
-                           </div>
+                                <label className='form-label fw-bold'>Trabajo</label>
+                                <input type="text" name="trabajo" value={cotizacion.trabajo} onChange={handleChange} placeholder="Nombre del trabajo o proyecto" className='form-control form-control-sm' />
+                            </div>
                         </div>
                         <div className='row g-2 mb-4'> {/* Añadido mb-4 para separar de la sección detalle */}
                             <div className='col-md-12'> {/* Ocupa todo el ancho */}
@@ -465,17 +488,17 @@ function CotizacionForm() {
 
                         {/* Fila 1: Unidad Medida, Cantidad, Descripción */}
                         <div className='row g-2 mb-2'>
-                             <div className='col-md-2'>
+                            <div className='col-md-2'>
                                 <label className='form-label fw-bold'>Unidad Medida</label>
                                 {/* Ejemplo usando un select si tienes la lista unidadesMedida */}
                                 <select name="unidad_medida" value={detalle.unidad_medida} onChange={handleDetalleChange} className='form-select form-select-sm'>
-                                     <option value="">Seleccionar</option>
-                                     {unidadesMedida.map(um => (
-                                         <option key={um.idunidadmedida} value={um.unidad}> {/* Asumiendo que quieres guardar la descripción */}
-                                             {um.unidad}
-                                         </option>
-                                     ))}
-                                 </select>
+                                    <option value="">Seleccionar</option>
+                                    {unidadesMedida.map(um => (
+                                        <option key={um.idunidadmedida} value={um.unidad}> {/* Asumiendo que quieres guardar la descripción */}
+                                            {um.unidad}
+                                        </option>
+                                    ))}
+                                </select>
                                 {/* O si prefieres input de texto:
                                 <input type="text" name="unidad_medida" value={detalle.unidad_medida} onChange={handleDetalleChange} className='form-control form-control-sm' />
                                 */}
@@ -492,7 +515,7 @@ function CotizacionForm() {
                                     min="0"    // Evita cantidades negativas
                                 />
                             </div>
-                             <div className='col-md-9'> {/* Ajusta el tamaño según necesites */}
+                            <div className='col-md-9'> {/* Ajusta el tamaño según necesites */}
                                 <label className='form-label fw-bold'>Descripción</label>
                                 {/* Usar textarea para descripciones más largas */}
                                 <textarea rows="1" name="descripcion" value={detalle.descripcion} onChange={handleDetalleChange} className='form-control form-control-sm'></textarea>
@@ -500,22 +523,22 @@ function CotizacionForm() {
                         </div>
 
                         {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
-                         <div className='row g-2 align-items-end mb-3'> {/* align-items-end para alinear el botón */}
-                             <div className='col'>
+                        <div className='row g-2 align-items-end mb-3'> {/* align-items-end para alinear el botón */}
+                            <div className='col'>
                                 <label className='form-label fw-bold'>Ancho</label>
-                                <input type="number" name="ancho" value={detalle.ancho} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0"/>
+                                <input type="number" name="ancho" value={detalle.ancho} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
                                 <label className='form-label fw-bold'>Alto</label>
-                                <input type="number" name="alto" value={detalle.alto} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0"/>
+                                <input type="number" name="alto" value={detalle.alto} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
                                 <label className='form-label fw-bold'>M2</label>
-                                <input type="number" name="m2" value={detalle.m2} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0"/>
+                                <input type="number" name="m2" value={detalle.m2} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
                                 <label className='form-label fw-bold'>Prof.</label> {/* Abreviado */}
-                                <input type="number" name="profundidad" value={detalle.profundidad} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0"/>
+                                <input type="number" name="profundidad" value={detalle.profundidad} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
                                 <label className='form-label fw-bold'>Precio</label>
@@ -527,7 +550,7 @@ function CotizacionForm() {
                                     className='form-control form-control-sm'
                                     step="0.01" // Para precios con centavos
                                     min="0"
-                                 />
+                                />
                             </div>
                             <div className='col'>
                                 <label className='form-label fw-bold'>Total</label>
@@ -541,7 +564,7 @@ function CotizacionForm() {
                                     step="0.01"
                                 />
                             </div>
-                             <div className='col-auto'> {/* col-auto para que ocupe solo el espacio necesario */}
+                            <div className='col-auto'> {/* col-auto para que ocupe solo el espacio necesario */}
                                 <button type="button" onClick={handleAddDetalle} className={detalleSeleccionado ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm'}>{detalleSeleccionado ? 'Actualizar Detalle' : 'Agregar Detalle'}</button>
                                 <button type="button" onClick={handleQuitarDetalle} className='btn btn-danger btn-sm ms-2'>Quitar</button>
                             </div>
@@ -549,8 +572,8 @@ function CotizacionForm() {
 
 
                         {/* --- Tabla de Detalles Agregados --- */}
-                         <h5 className="mt-4 mb-3 border-bottom pb-2">Detalles Agregados</h5>
-                         <div className="table-responsive mb-4"> {/* Añadido mb-4 */}
+                        <h5 className="mt-4 mb-3 border-bottom pb-2">Detalles Agregados</h5>
+                        <div className="table-responsive mb-4"> {/* Añadido mb-4 */}
                             <DataTable
                                 data={detalles}
                                 columns={columns}
@@ -588,7 +611,7 @@ function CotizacionForm() {
                                 <label className='form-label fw-bold'>Observaciones cliente</label>
                                 <textarea rows="3" name="observaciones_cliente" value={cotizacion.observaciones_cliente} onChange={handleChange} placeholder="Observaciones para cliente" className='form-control form-control-sm'></textarea>
                             </div>
-                             <div className='col-md-6'>
+                            <div className='col-md-6'>
                                 <label className='form-label fw-bold'>Observaciones costeo (Internas)</label>
                                 <textarea rows="3" name="observaciones_costeo" value={cotizacion.observaciones_costeo} onChange={handleChange} placeholder="Observaciones internas para costeo" className='form-control form-control-sm'></textarea>
                             </div>
@@ -605,6 +628,20 @@ function CotizacionForm() {
                             </div>
                         </div>
 
+                        {/* Modal para ContactoClienteForm */}
+                        <Modal isOpen={modalIsOpen} toggle={toggleModal} centered>
+                            <ModalHeader toggle={toggleModal}>
+                                Crear Nuevo Contacto
+                            </ModalHeader>
+                            <ModalBody>
+                                <ContactoClienteForm clienteId={clienteId} onClose={toggleModal} onContactCreated={handleContactCreated} />
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button color="secondary" onClick={toggleModal}>
+                                    Cerrar
+                                </Button>
+                            </ModalFooter>
+                        </Modal>
                     </form>
                 </div>
             </div>

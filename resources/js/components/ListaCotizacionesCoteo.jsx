@@ -5,10 +5,13 @@ import DT from 'datatables.net-bs5';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
 import { Link, useNavigate } from 'react-router-dom';
 import '../../css/ListaEmpleados.css';
+import alertify from 'alertifyjs';
+import 'alertifyjs/build/css/alertify.min.css';
+import 'alertifyjs/build/css/themes/default.min.css';
 
 DataTable.use(DT);
 
-function ListaCotizaciones() {
+function ListaCotizacionesCosteo() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
@@ -24,7 +27,7 @@ function ListaCotizaciones() {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            axios.get('/api/cotizaciones', {
+            axios.get('/api/costeocotizaciones', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -34,7 +37,8 @@ function ListaCotizaciones() {
                     setLoading(false);
                 })
                 .catch(error => {
-                    console.error('Error al obtener las cotizaciones:', error);
+                    //console.error('Error al obtener las cotizaciones:', error);     
+                    alertify.error("Error al obtener las cotizaciones");                    
                     setLoading(false);
                 });
         } else {
@@ -64,41 +68,24 @@ function ListaCotizaciones() {
         {
             data: 'idcotizacion',
             title: 'Acciones',
-            render: (data) => {
-                // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+            render: (data) => {                
                 return `
-            <button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-            <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>
+            <button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>            
             <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
             }
         }
     ];
 
-    useEffect(() => {
-        // Función para manejar los clics en los botones "Editar"
-        // const handleButtonClick = (event) => {
-        //     const id = event.target.getAttribute('data-id');
-        //     if (event.target.classList.contains('editar-btn')) {
-        //         navigate(`/cotizaciones/editar/${id}`);
-        //     } else if (event.target.classList.contains('desactivar-btn')) {
-        //         handleDesactivar(id);
-        //     }else if(event.target.classList.contains('pdf-btn')) {
-        //         window.open(`/api/cotizaciones/${id}/pdf`, '_blank');
-        //     }
-        // };
-
+    useEffect(() => {       
         const handleButtonClick = (event) => {
             const id = event.target.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
             if (event.target.classList.contains('editar-btn')) {
                 navigate(`/cotizaciones/editar/${id}`);
-            } else if (event.target.classList.contains('desactivar-btn')) {
-                handleDesactivar(id);
             } else if (event.target.classList.contains('pdf-btn')) {
                 if (token) {
-                    fetch(`/api/cotizaciones/${id}/pdf`, { // Usa fetch en lugar de window.open
+                    fetch(`/api/costeocotizaciones/${id}/pdf`, { // Usa fetch en lugar de window.open
                         headers: {
                             'Authorization': `Bearer ${token}` // Envía el token en la cabecera
                         }
@@ -137,34 +124,12 @@ function ListaCotizaciones() {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
         //console.log('Estado cotización actualizado:', cotizaciones);
     }, [cotizaciones]);
-    /*
-    Este handle se utiliza para cambiar el estado de 0 a 1 para los registros al eliminar
-    */
-    const handleDesactivar = (id) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.put(`/api/cotizaciones/desactivar/${id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
-                .then(() => {
-                    setCotizaciones(prevCotizaciones => {
-                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
-                        return prevCotizaciones.filter(cotizacion => Number(cotizacion.idcotizacion) !== Number(id)); //convertimos a numero
-                    });
-                })
-                .catch((error) => {
-                    console.error('Error al desactivar la cotizacion:', error);
-                });
-        }
-    };
-
+    
     return (
         <div className="container-fluid mt-4">
             <div className="card">
                 <div className="card-header bg-primary text-white">
-                    <h2 className="text-center mb-0">Lista de Cotizaciones</h2>
+                    <h2 className="text-center mb-0">Lista de Cotizaciones para Costeo</h2>
                 </div>
                 <div className="card-body">
                     {loading ? (
@@ -204,7 +169,7 @@ function ListaCotizaciones() {
                     )}
                 </div>
                 <div className="card-footer d-flex justify-content-center">
-                    <Link to="/cotizaciones/crear" className="btn btn-success me-2">Registrar</Link>
+                    {/* <Link to="/cotizaciones/crear" className="btn btn-success me-2">Registrar</Link> */}
                     <Link to="/Home" className="btn btn-outline-secondary">Volver a Inicio</Link>
                 </div>
             </div>
@@ -212,4 +177,4 @@ function ListaCotizaciones() {
     );
 }
 
-export default ListaCotizaciones;
+export default ListaCotizacionesCosteo;

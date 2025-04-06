@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\CotizacionController;
+use App\Http\Controllers\CotizacionCosteoController;
+
+//
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -89,3 +92,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);        
 });
 
+//COSTEO COTIZACIONES
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/costeocotizaciones', CotizacionCosteoController::class);
+    Route::get('/costeocotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);           
+});

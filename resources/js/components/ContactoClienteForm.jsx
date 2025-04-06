@@ -3,12 +3,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import alertify from 'alertifyjs';
+import 'alertifyjs/build/css/alertify.min.css';
+import 'alertifyjs/build/css/themes/default.min.css';
 
-function ContactoClienteForm() {
+function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Recibe clienteId como prop
     const { id } = useParams(); // Obtiene el id de la URL
     const navigate = useNavigate();
     const [clientes, setClientes] = useState([]);
-    const fechaActual = new Date().toISOString().split("T")[0];
+    //const fechaActual = new Date().toISOString().split("T")[0];
     //maneja el estado, en este caso un objeto con varios campos.
     //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
     const [contactoCliente, setContactoCliente] = useState({
@@ -48,12 +51,23 @@ function ContactoClienteForm() {
         }
     }, [id]);
 
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+        if (clienteId) {
+            setContactoCliente(prev => ({ ...prev, idcliente: clienteId })); //Actualiza idcliente con el clienteId
+        }
+
+        axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
+    }, [clienteId]);
+
     const handleChange = (e) => {
         setContactoCliente({ ...contactoCliente, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Detiene la propagación del evento submit
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
@@ -70,9 +84,15 @@ function ContactoClienteForm() {
             axios.post('/api/contacto_cliente', contactoCliente, { headers })
                 .then(res => {
                     console.log('Contacto creado:', res.data);
-                    navigate('/contacto_cliente/lista'); // Redirige a la lista
+                    alertify.success("Contacto creado correctamente");
+                    onContactCreated();
+                                        
+                    //navigate('/contacto_cliente/lista'); // Redirige a la lista
+                    onClose(); //Cierra el modal
                 })
-                .catch(error => console.error('Error al crear el contacto:', error));
+                .catch(error => {console.error('Error al crear el contacto:', error)
+                    alertify.error("Error al crear el contacto");
+                });
         }
     };
 
@@ -86,8 +106,8 @@ function ContactoClienteForm() {
                     <form onSubmit={handleSubmit}>
                         <div className='row g-2'>
                             <div className='col-md-4'>
-                                <label className='form-label'>Cliente</label>'
-                                <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-lg'>
+                                <label className='form-label'>Cliente</label>
+                                <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Cliente</option>
                                     {clientes.map(cliente => (
                                         <option key={cliente.idcliente} value={cliente.idcliente}>
@@ -100,23 +120,23 @@ function ContactoClienteForm() {
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Nombre</label>
-                                <input type="text" name="nombre" value={contactoCliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-lg' />
+                                <input type="text" name="nombre" value={contactoCliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Teléfono</label>
-                                <input type='text' name="telefono" value={contactoCliente.telefono} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-lg' />
+                                <input type='text' name="telefono" value={contactoCliente.telefono} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Correo</label>
-                                <input type='text' name='correo' value={contactoCliente.correo} onChange={handleChange} placeholder="Correo" className='form-control form-control-lg' />
+                                <input type='text' name='correo' value={contactoCliente.correo} onChange={handleChange} placeholder="Correo" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Puesto</label>
-                                <input type='text' name='puesto' value={contactoCliente.puesto} onChange={handleChange} placeholder="Puesto" className='form-control form-control-lg' />
+                                <input type='text' name='puesto' value={contactoCliente.puesto} onChange={handleChange} placeholder="Puesto" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>

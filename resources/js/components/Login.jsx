@@ -18,7 +18,7 @@ function Login() {
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/login`, { name, password });
             //console.log(response.data); // Imprime la respuesta del servidor en la consola
             localStorage.setItem('token', response.data.token);
-            console.log(localStorage);
+            //console.log(localStorage);
             navigate('/home'); // Redirige a /home en caso de éxito
         } catch (error) {
             console.error(error);
