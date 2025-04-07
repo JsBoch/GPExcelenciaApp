@@ -5,6 +5,9 @@ import DT from 'datatables.net-bs5';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
 import { Link, useNavigate } from 'react-router-dom';
 import '../../css/ListaEmpleados.css';
+//Funcionalidad para React PDF
+import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
+import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 
 DataTable.use(DT);
 
@@ -13,6 +16,8 @@ function ListaCotizaciones() {
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
     const navigate = useNavigate(); // Hook para la navegación
+    //20250407
+    const [pdfData, setPdfData] = useState(null); // Estado para almacenar los datos del PDF
 
     useEffect(() => {
         fetch('/i18n/Spanish.json')
@@ -44,7 +49,7 @@ function ListaCotizaciones() {
     }, []);
 
     const columns = [
-        { data: 'idcotizacion', title: 'ID', visible : false },
+        { data: 'idcotizacion', title: 'ID', visible: false },
         { data: 'nocotizacion', title: 'No.Cotizacion' },
         { data: 'fecha_cotizacion', title: 'Fecha' },
         { data: 'tipo_pago', title: 'Forma Pago' },
@@ -56,11 +61,11 @@ function ListaCotizaciones() {
         { data: 'observaciones_costeo', title: 'Obsv.Costeo' },
         { data: 'observaciones_cliente', title: 'Obsv.Cliente' },
         { data: 'costeo_observaciones', title: 'Obsv.Vendedor' },
-        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible : false },
-        { data: 'idcliente', title: 'ID Cliente', visible : false },        
-        { data: 'idcontacto', title: 'ID Contacto', visible : false },        
-        { data: 'trabajo', title: 'Trabajo' },        
-        { data: 'version', title: 'Version', visible:false },        
+        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
+        { data: 'idcliente', title: 'ID Cliente', visible: false },
+        { data: 'idcontacto', title: 'ID Contacto', visible: false },
+        { data: 'trabajo', title: 'Trabajo' },
+        { data: 'version', title: 'Version', visible: false },
         {
             data: 'idcotizacion',
             title: 'Acciones',
@@ -88,7 +93,7 @@ function ListaCotizaciones() {
         //     }
         // };
 
-        const handleButtonClick = (event) => {
+        const handleButtonClick = async (event) => {
             const id = event.target.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
@@ -98,20 +103,20 @@ function ListaCotizaciones() {
                 handleDesactivar(id);
             } else if (event.target.classList.contains('pdf-btn')) {
                 if (token) {
-                    fetch(`/api/cotizaciones/${id}/pdf`, { // Usa fetch en lugar de window.open
-                        headers: {
-                            'Authorization': `Bearer ${token}` // Envía el token en la cabecera
-                        }
-                    })
-                    .then(response => response.blob()) //Obtenemos la respuesta como blob
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob); //creamos una url para el objeto blob
-                        window.open(url, '_blank') //abrimos el pdf en una nueva ventana
-                    })
-                    .catch(error => console.error('Error al generar el PDF:', error));
+                    try {
+                        const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const data = await response.json(); // Obtener datos como JSON
+                        console.log("Datos de la API para el PDF:", data);
+                        setPdfData(data); // Establecer los datos del PDF en el estado
+                    } catch (error) {
+                        console.error('Error al generar el PDF:', error);
+                    }
                 } else {
                     console.error('Token no encontrado para generar PDF.');
-                    // Manejar la falta de token, por ejemplo, redirigiendo a la página de inicio de sesión
                 }
             }
         };
@@ -162,6 +167,16 @@ function ListaCotizaciones() {
 
     return (
         <div className="container-fluid mt-4">
+            {pdfData && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                    <div style={{ width: '80%', height: '80%' }}>
+                        <PDFViewer width="100%" height="100%">
+                            <CotizacionPDF cotizacion={pdfData.cotizacion} totalEnLetras={pdfData.totalEnLetras} logoSrc="/images/LogoGP.jpg" />
+                        </PDFViewer>
+                        <button className="btn btn-danger mt-3" onClick={() => setPdfData(null)}>Cerrar PDF</button>
+                    </div>
+                </div>
+            )}
             <div className="card">
                 <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Cotizaciones</h2>
@@ -184,7 +199,7 @@ function ListaCotizaciones() {
                                         <th>Fecha</th>
                                         <th>Forma Pago</th>
                                         <th>Total</th>
-                                        <th>Costear</th>                                        
+                                        <th>Costear</th>
                                         <th>Cliente</th>
                                         {/* <th>ID Cliente</th> */}
                                         <th>Contacto</th>
@@ -193,8 +208,8 @@ function ListaCotizaciones() {
                                         <th>Obsv. Cliente</th>
                                         <th>Obsv. Vendedor</th>
                                         {/* <th>ID Contacto</th>                                         */}
-                                        <th>Trabajo</th>                                        
-                                        <th>Versión</th>                                                                                
+                                        <th>Trabajo</th>
+                                        <th>Versión</th>
                                         {/* <th>ID Original</th> */}
                                         <th>Acciones</th>
                                     </tr>

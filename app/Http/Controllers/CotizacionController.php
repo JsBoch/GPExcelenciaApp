@@ -360,13 +360,18 @@ class CotizacionController extends Controller
 
         $detalles             = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
         $cotizacion->detalles = $detalles;
+        $cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
 
         // Convertir total a letras (usando kwn/number-to-words)
         $numberToWords     = new NumberToWords();
         $numberTransformer = $numberToWords->getNumberTransformer('es');
         $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
 
-        $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-        return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
+        // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
+        // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
+        return response()->json([
+            'cotizacion' => $cotizacion,
+            'totalEnLetras' => $totalEnLetras,
+        ]);
     }
 }
