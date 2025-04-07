@@ -16,6 +16,7 @@ import RegistroCotizacion from './components/CotizacionForm';
 import ListaCotizaciones from './components/ListaCotizaciones';
 import EditarCotizacion from './components/CotizacionForm'; 
 import ListaCotizacionesCosteo from './components/ListaCotizacionesCoteo';
+import CotizacionCosteo from './components/CotizacionCosteo';
 
 
 
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/cotizaciones/lista" element={<ProtectedRoute><ListaCotizaciones /></ProtectedRoute>} />
                 <Route path="/cotizaciones/editar/:id" element={<ProtectedRoute><EditarCotizacion /></ProtectedRoute>} /> Agrega esta ruta
                 <Route path="/costeocotizaciones/lista" element={<ProtectedRoute><ListaCotizacionesCosteo /></ProtectedRoute>} />
+                <Route path="/costeocotizaciones/costeo/:id" element={<ProtectedRoute><CotizacionCosteo /></ProtectedRoute>} />
             </Routes>
         </BrowserRouter>
     );

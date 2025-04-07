@@ -68,10 +68,15 @@ function ListaCotizacionesCosteo() {
         {
             data: 'idcotizacion',
             title: 'Acciones',
-            render: (data) => {                
+            render: (data,type,row) => {// 'row' contiene toda la fila de datos
                 return `
-            <button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>            
-            <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
+                    <button class="btn btn-primary costear-btn btn-fixed-width" 
+                            data-id="${data}" 
+                            data-obs-costeo="${row.observaciones_costeo}"
+                            data-obs-cliente="${row.observaciones_cliente}">
+                        Costear
+                    </button>
+                    <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
             }
         }
     ];
@@ -79,26 +84,32 @@ function ListaCotizacionesCosteo() {
     useEffect(() => {       
         const handleButtonClick = (event) => {
             const id = event.target.getAttribute('data-id');
-            const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
-            if (event.target.classList.contains('editar-btn')) {
-                navigate(`/cotizaciones/editar/${id}`);
+            if (event.target.classList.contains('costear-btn')) {
+                const obsCosteo = event.target.getAttribute('data-obs-costeo');
+                const obsCliente = event.target.getAttribute('data-obs-cliente');
+                navigate(`/costeocotizaciones/costeo/${id}`, {
+                    state: {
+                        observaciones_costeo: obsCosteo,
+                        observaciones_cliente: obsCliente
+                    }
+                });
             } else if (event.target.classList.contains('pdf-btn')) {
+                const token = localStorage.getItem('token');
                 if (token) {
-                    fetch(`/api/costeocotizaciones/${id}/pdf`, { // Usa fetch en lugar de window.open
+                    fetch(`/api/costeocotizaciones/${id}/pdf`, {
                         headers: {
-                            'Authorization': `Bearer ${token}` // Envía el token en la cabecera
+                            'Authorization': `Bearer ${token}`
                         }
                     })
-                    .then(response => response.blob()) //Obtenemos la respuesta como blob
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob); //creamos una url para el objeto blob
-                        window.open(url, '_blank') //abrimos el pdf en una nueva ventana
-                    })
-                    .catch(error => console.error('Error al generar el PDF:', error));
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            window.open(url, '_blank');
+                        })
+                        .catch(error => console.error('Error al generar el PDF:', error));
                 } else {
                     console.error('Token no encontrado para generar PDF.');
-                    // Manejar la falta de token, por ejemplo, redirigiendo a la página de inicio de sesión
                 }
             }
         };
@@ -114,11 +125,7 @@ function ListaCotizacionesCosteo() {
 
     const options = {
         language: spanishTranslation, // Agrega la traducción aquí        
-    };
-
-    const handleEditar = (id) => {
-        navigate(`/cotizaciones/editar/${id}`);
-    };
+    };    
 
     useEffect(() => {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
