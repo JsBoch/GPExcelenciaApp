@@ -7,7 +7,7 @@ import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
 
-function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Recibe clienteId como prop
+function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Recibe clienteId como prop
     const { id } = useParams(); // Obtiene el id de la URL
     const navigate = useNavigate();
     const [clientes, setClientes] = useState([]);
@@ -86,11 +86,12 @@ function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Rec
                     console.log('Contacto creado:', res.data);
                     alertify.success("Contacto creado correctamente");
                     onContactCreated();
-                                        
+
                     //navigate('/contacto_cliente/lista'); // Redirige a la lista
                     onClose(); //Cierra el modal
                 })
-                .catch(error => {console.error('Error al crear el contacto:', error)
+                .catch(error => {
+                    console.error('Error al crear el contacto:', error)
                     alertify.error("Error al crear el contacto");
                 });
         }
@@ -145,19 +146,13 @@ function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Rec
                                 <input type='text' name="observaciones" value={contactoCliente.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control form-contorl-lg' />
                             </div>
                         </div>
-                        <div className='d-flex justify-content-between mt-4'>
-
-                            <button type="submit" className='btn btn-primary btn-sm w-25'>GUARDAR</button>
-                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                                <div style={{ width: '50%' }}>
-                                <Link to="/contacto_cliente/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
-                                </div>
-                                <div style={{ width: '50%' }}>
-                                <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                                </div>
+                        <div className="d-flex justify-content-between mt-4 flex-wrap">
+                            <button type="submit" className="btn btn-primary btn-sm me-2 flex-grow-1">GUARDAR</button>
+                            <div className="d-flex gap-2 flex-grow-1">
+                                <Link to="/contacto_cliente/lista" className="btn btn-success btn-sm flex-grow-1">CONSULTA</Link>
+                                <Link to="/Home" className="btn btn-secondary btn-sm flex-grow-1">INICIO</Link>
                             </div>
                         </div>
-
                     </form>
                 </div>
             </div>

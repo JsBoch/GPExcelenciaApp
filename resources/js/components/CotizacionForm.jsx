@@ -50,6 +50,7 @@ function CotizacionForm() {
         idtipopago: '',
         direccion_entrega: '',
         costear: 'N',
+        total_general: 0,
     });
 
     //Estado del detalle de la cotización
@@ -189,6 +190,20 @@ function CotizacionForm() {
         }));
     }, [detalle.ancho, detalle.alto]); // Se ejecuta cuando ancho o alto cambian
     // ----------------------------------------------------
+
+    //-- función para calcular el total general de la cotización ---
+    const calcularTotalGeneral = () => {
+        let total = 0;
+        detalles.forEach(detalle => {
+            total += parseFloat(detalle.total) || 0;
+        });
+        setCotizacion({ ...cotizacion, total_general: total.toFixed(2) }); // Actualiza el estado con el total calculado
+    };
+
+    useEffect(() => {
+        calcularTotalGeneral(); // Llama a la función cada vez que detalles cambia
+    }, [detalles]);
+
 
     //Carga el listado de clientes
     useEffect(() => {
@@ -585,7 +600,7 @@ function CotizacionForm() {
                                 }}
                                 slots={slots}
                                 className="table table-striped table-bordered table-hover table-sm" // Añadido table-hover y table-sm
-                                id="tabla-detalles" // Añade un id por si necesitas referenciarla
+                                id="tabla-detalles" // Añade un id por si necesitas referenciarla                                
                             >
                                 {/* No es necesario definir thead aquí si usas 'columns' */}
                                 <thead>
@@ -604,7 +619,23 @@ function CotizacionForm() {
 
                             </DataTable>
                         </div>
-
+                        {/* Input del total general */}
+                        <div className="mb-3 d-flex justify-content-end">
+                            <label className="form-label fw-bold me-2" style={{ alignSelf: 'center' }}>Total General:</label>
+                            <input
+                                type="number"
+                                name="total_general"
+                                value={cotizacion.total_general}
+                                readOnly
+                                className="form-control"
+                                style={{
+                                    maxWidth: '150px',       // Más pequeño
+                                    textAlign: 'right',      // Texto a la derecha
+                                    fontWeight: 'bold',      // Negrita
+                                    fontSize: '1.1em',        // Más grande
+                                }}
+                            />
+                        </div>
                         {/* --- Sección Observaciones --- */}
                         <div className='row g-2 mb-3'>
                             <div className='col-md-6'>
@@ -620,7 +651,7 @@ function CotizacionForm() {
                         {/* --- Botones de Acción --- */}
                         <div className='d-flex justify-content-between mt-4'>
                             <button type="submit" className='btn btn-primary btn-sm w-25'>
-                                {id ? 'Actualizar Cotización' : 'Guardar Cotización'}
+                                {id ? 'ACTUALIZAR' : 'GUARDAR'}
                             </button>
                             <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
                                 <div style={{ width: '50%' }}>
