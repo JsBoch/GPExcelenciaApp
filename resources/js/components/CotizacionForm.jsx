@@ -421,7 +421,7 @@ function CotizacionForm() {
     /************************************************** */
     return (
         <div className='container mt-4'>
-            <div className="card formulario-container">
+            <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     {/* Cambia el título según si editas o creas */}
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
@@ -618,13 +618,17 @@ function CotizacionForm() {
                         </div>
 
                         {/* --- Botones de Acción --- */}
-                        <div className='d-flex justify-content-between mt-4 pt-3 border-top'> {/* Separador visual */}
-                            <button type="submit" className='btn btn-primary btn-lg'>
+                        <div className='d-flex justify-content-between mt-4'>
+                            <button type="submit" className='btn btn-primary btn-sm w-25'>
                                 {id ? 'Actualizar Cotización' : 'Guardar Cotización'}
                             </button>
-                            <div>
-                                <Link to="/cotizaciones/lista" className="btn btn-secondary btn-lg me-2">Consulta</Link>
-                                <Link to="/Home" className="btn btn-outline-secondary btn-lg">Volver a Inicio</Link> {/* Estilo diferente para volver */}
+                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                                <div style={{ width: '50%' }}>
+                                    <Link to="/cotizaciones/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
+                                </div>
+                                <div style={{ width: '50%' }}>
+                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link> {/* Estilo diferente para volver */}
+                                </div>
                             </div>
                         </div>
 

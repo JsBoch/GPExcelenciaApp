@@ -173,7 +173,7 @@ function EmpleadoForm() {
     //return JSX que representa el formulario, se utiliza para devolver elementos HTML o mejor dicho elementos de React desde un componente funcional
     return (
         <div className='container mt-4'>
-            <div className="card formulario-container">
+            <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de Empleado</h4>
                 </div>
@@ -182,21 +182,21 @@ function EmpleadoForm() {
                         <div className='row g-2'>
                             <div className='col-md-2'>
                                 <label className="form-label">Código</label>
-                                <input type="text" name="codigo" value={empleado.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-lg' />
+                                <input type="text" name="codigo" value={empleado.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-6'>
                                 <label className="form-label">Nombre</label>
-                                <input type="text" name="nombre" value={empleado.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-lg' />
+                                <input type="text" name="nombre" value={empleado.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>NIT</label>
-                                <input type="text" name="nit" value={empleado.nit} onChange={handleChange} placeholder="Nit" className='form-control form-control-lg' />
+                                <input type="text" name="nit" value={empleado.nit} onChange={handleChange} placeholder="Nit" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Tipo Identificación</label>'
-                                <select name="id_identificacion" value={empleado.id_identificacion} onChange={handleChange} className='form-control form-control-lg'>
+                                <select name="id_identificacion" value={empleado.id_identificacion} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Identificación</option>
                                     {identificaciones.map(identificacion => (
                                         <option key={identificacion.id_identificacion} value={identificacion.id_identificacion}>
@@ -207,31 +207,31 @@ function EmpleadoForm() {
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Número de identificación</label>
-                                <input type="text" name="numero_identificacion" value={empleado.numero_identificacion} onChange={handleChange} placeholder="Número de identificación" className='form-control form-control-lg' />
+                                <input type="text" name="numero_identificacion" value={empleado.numero_identificacion} onChange={handleChange} placeholder="Número de identificación" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Teléfono casa</label>
-                                <input type='text' name="telefono_casa" value={empleado.telefono_casa} onChange={handleChange} placeholder="Teléfono casa" className='form-control form-control-lg' />
+                                <input type='text' name="telefono_casa" value={empleado.telefono_casa} onChange={handleChange} placeholder="Teléfono casa" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Celular</label>
-                                <input type='text' name="movil" value={empleado.movil} onChange={handleChange} placeholder="Celular" className='form-control form-control-lg' />
+                                <input type='text' name="movil" value={empleado.movil} onChange={handleChange} placeholder="Celular" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Otro teléfono</label>
-                                <input type='text' name="otro_telefono" value={empleado.otro_telefono} onChange={handleChange} placeholder="Otro teléfono" className='form-control form-control-lg' />
+                                <input type='text' name="otro_telefono" value={empleado.otro_telefono} onChange={handleChange} placeholder="Otro teléfono" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-5'>
                                 <label className='form-label'>Correo personal</label>
-                                <input type='email' name='correo_personal' value={empleado.correo_personal} onChange={handleChange} placeholder="Correo personal" className='form-control form-control-lg' />
+                                <input type='email' name='correo_personal' value={empleado.correo_personal} onChange={handleChange} placeholder="Correo personal" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-5'>
                                 <label className='form-label'>Correo empresa</label>
-                                <input type='email' name='correo_empresa' value={empleado.correo_empresa} onChange={handleChange} placeholder="Correo empresa" className='form-control form-control-lg' />
+                                <input type='email' name='correo_empresa' value={empleado.correo_empresa} onChange={handleChange} placeholder="Correo empresa" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
@@ -241,17 +241,17 @@ function EmpleadoForm() {
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Contacto emergencia</label>
-                                <input type='text' name="contacto_emergencia" value={empleado.contacto_emergencia} onChange={handleChange} placeholder="Contacto emergencia" className='form-control form-control-lg' />
+                                <input type='text' name="contacto_emergencia" value={empleado.contacto_emergencia} onChange={handleChange} placeholder="Contacto emergencia" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Teléfono emergencia</label>
-                                <input type='text' name="telefono_emergencia" value={empleado.telefono_emergencia} onChange={handleChange} placeholder="Teléfono emergencia" className='form-control form-control-lg' />
+                                <input type='text' name="telefono_emergencia" value={empleado.telefono_emergencia} onChange={handleChange} placeholder="Teléfono emergencia" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-6'>
                                 <label className='form-label'>Área</label>
-                                <select name="id_departamento" value={empleado.id_departamento} onChange={handleDepartamentoChange} className='form-control form-control-lg'>
+                                <select name="id_departamento" value={empleado.id_departamento} onChange={handleDepartamentoChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Área</option>
                                     {departamentos.map(departamento => (
                                         <option key={departamento.id_departamento} value={departamento.id_departamento}>
@@ -262,7 +262,7 @@ function EmpleadoForm() {
                             </div>
                             <div className='col-md-6'>
                                 <label className='form-label'>Puesto</label>
-                                <select name="id_puesto" value={empleado.id_puesto} onChange={handleChange} className='form-control form-control-lg'>
+                                <select name="id_puesto" value={empleado.id_puesto} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Puesto</option>
                                     {puestos.map(puesto => (
                                         <option key={puesto.id_puesto} value={puesto.id_puesto}>
@@ -275,25 +275,25 @@ function EmpleadoForm() {
                         <div className='row g-2'>
                             <div className='col-md-2'>
                                 <label className='form-label'>Fecha nacimiento</label>
-                                <input type="date" name="fecha_nacimiento" value={empleado.fecha_nacimiento} onChange={handleChange} placeholder="Fecha nacimiento" className='form-control form-control-lg' />
+                                <input type="date" name="fecha_nacimiento" value={empleado.fecha_nacimiento} onChange={handleChange} placeholder="Fecha nacimiento" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-2'>
                                 <label className='form-label'>Fecha ingreso</label>
-                                <input type="date" name="fecha_ingreso" value={empleado.fecha_ingreso} onChange={handleChange} placeholder="Fecha ingreso" className='form-control form-control-lg' />
+                                <input type="date" name="fecha_ingreso" value={empleado.fecha_ingreso} onChange={handleChange} placeholder="Fecha ingreso" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-2'>
                                 <label className='form-label'>Género</label>
-                                <input type="text" name="genero" value={empleado.genero} onChange={handleChange} placeholder="Género" className='form-control form-control-lg' />
+                                <input type="text" name="genero" value={empleado.genero} onChange={handleChange} placeholder="Género" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-6'>
                                 <label className='form-label'>Dirección</label>
-                                <input type="text" name="direccion" value={empleado.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-lg' />
+                                <input type="text" name="direccion" value={empleado.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Departamento</label>
-                                <select name="id_departamentopais" value={empleado.id_departamentopais} onChange={handleChange} className='form-control form-control-lg'>
+                                <select name="id_departamentopais" value={empleado.id_departamentopais} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Departamento</option>
                                     {departamentosPais.map(departamentoPais => (
                                         <option key={departamentoPais.iddepartamentopais} value={departamentoPais.iddepartamentopais}>
@@ -304,17 +304,21 @@ function EmpleadoForm() {
                             </div>
                             <div className='col-md-8'>
                                 <label className='form-label'>Observaciones</label>
-                                <input type="text" name="observaciones" value={empleado.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control form-control-lg' />
+                                <input type="text" name="observaciones" value={empleado.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control form-control-sm' />
                             </div>
                         </div>
 
                         {/* ... otros campos y listas desplegables */}
                         <div className='d-flex justify-content-between mt-4'>
 
-                            <button type="submit" className='btn btn-primary btn-lg'>Guardar</button>
-                            <div>
-                                <Link to="/empleados/lista" className="btn btn-secondary btn-lg me-2">Consulta</Link>
-                                <Link to="/Home" className="btn btn-secondary btn-lg">Volver a Inicio</Link>
+                            <button type="submit" className='btn btn-primary btn-sm w-25'>GUARDAR</button>
+                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                            <div style={{ width: '50%' }}>
+                                <Link to="/empleados/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
+                                </div>
+                                <div style={{ width: '50%' }}>
+                                <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                                </div>
                             </div>
                         </div>
 

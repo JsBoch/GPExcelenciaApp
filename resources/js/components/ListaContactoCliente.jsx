@@ -112,8 +112,8 @@ function ListaContactoCliente() {
             data: 'id_contactocliente',
             title: 'Acciones',
             render: (data) => {
-                return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                return `<button class="btn btn-primary btn-sm editar-btn btn-fixed-width" data-id="${data}">Editar</button>
+                <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Eliminar</button>`;
             }
         }
     ];
@@ -213,9 +213,15 @@ function ListaContactoCliente() {
                     </DataTable>
                 </div>
             )}
-            <div className="d-flex justify-content-center mt-3"> {/* Contenedor para los botones */}
-                <Link to="/contacto_cliente/crear" className="btn btn-secondary me-2">Registro</Link>
-                <Link to="/Home" className="btn btn-secondary">Volver a Inicio</Link>
+            <div className="d-flex justify-content-end mt-3"> {/* Contenedor para los botones */}
+            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+            <div style={{ width: '50%' }}>
+                <Link to="/contacto_cliente/crear" className="btn btn-primary btn-sm" style={{ width: '100%' }}>REGISTRO</Link>
+                </div>
+                <div style={{ width: '50%' }}>
+                <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                </div>
+                </div>
             </div>
         </div>
     );

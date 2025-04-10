@@ -1,0 +1,85 @@
+.data-table-container {
+    padding: 20px;
+}
+
+.data-table-container h2 {
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.table th {
+    background-color: #d5dee2;
+    color: black;
+    font-weight: bold;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.table tbody tr:hover {
+    background-color: #e0f7fa;
+}
+
+/* Opcional: Estilo para el encabezado fijo */
+.table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f2f2f2;
+    z-index: 1; /* Para asegurarse de que esté encima del resto de la tabla */
+}
+
+/* Estilo para mensajes de carga */
+
+.loading-message{
+    text-align: center;
+    font-style: italic;
+    color: #666;
+    margin: 20px 0;
+}
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}

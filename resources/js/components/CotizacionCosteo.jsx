@@ -254,7 +254,7 @@ function CotizacionCosteo() {
     /************************************************** */
     return (
         <div className='container mt-4'>
-            <div className="card formulario-container">
+            <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     {/* Cambia el título según si editas o creas */}
                     <h4 className="mb-0">Costeo de Cotización</h4>
@@ -337,12 +337,12 @@ function CotizacionCosteo() {
 
                         {/* --- Botones de Acción --- */}
                         <div className='d-flex justify-content-between mt-4 pt-3 border-top'> {/* Separador visual */}
-                            <button type="submit" className='btn btn-primary btn-lg'>
+                            <button type="submit" className='btn btn-primary btn-sm'>
                                 GUARDAR
                             </button>
                             <div>
-                                <Link to="/costeocotizaciones/lista" className="btn btn-secondary btn-lg me-2">Consulta de cotizaciones</Link>
-                                <Link to="/Home" className="btn btn-outline-secondary btn-lg">Volver a Inicio</Link> {/* Estilo diferente para volver */}
+                                <Link to="/costeocotizaciones/lista" className="btn btn-secondary btn-sm me-2">CONSULTA</Link>
+                                <Link to="/Home" className="btn btn-outline-secondary btn-sm">INICIO</Link> {/* Estilo diferente para volver */}
                             </div>
                         </div>
                     </form>

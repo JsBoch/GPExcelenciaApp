@@ -73,9 +73,9 @@ function ListaCotizaciones() {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
                 //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
                 return `
-            <button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-            <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>
-            <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
+            <button class="btn btn-primary btn-sm  editar-btn btn-fixed-width" data-id="${data}">Editar</button>
+            <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Eliminar</button>
+            <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
             }
         }
     ];
@@ -218,9 +218,15 @@ function ListaCotizaciones() {
                         </div>
                     )}
                 </div>
-                <div className="card-footer d-flex justify-content-center">
-                    <Link to="/cotizaciones/crear" className="btn btn-success me-2">Registrar</Link>
-                    <Link to="/Home" className="btn btn-outline-secondary">Volver a Inicio</Link>
+                <div className="card-footer d-flex justify-content-end">
+                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                        <div style={{ width: '50%' }}>
+                            <Link to="/cotizaciones/crear" className="btn btn-success btn-sm" style={{ width: '100%' }}>REGISTRAR</Link>
+                        </div>
+                        <div style={{ width: '50%' }}>
+                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

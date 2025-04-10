@@ -98,10 +98,10 @@ function ClienteRegistro() {
 
         const clienteData = { ...cliente };
 
-    // Verifica si el campo 'cui' está presente
-    if (!clienteData.cui) {
-        clienteData.cui = '0'; // O clienteData.cui = 'valor_predeterminado';
-    }
+        // Verifica si el campo 'cui' está presente
+        if (!clienteData.cui) {
+            clienteData.cui = '0'; // O clienteData.cui = 'valor_predeterminado';
+        }
 
         if (id) {
             // Editar cliente existente (solicitud PUT)
@@ -124,7 +124,7 @@ function ClienteRegistro() {
 
     return (
         <div className='container mt-4'>
-            <div className="card formulario-container">
+            <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de Cliente</h4>
                 </div>
@@ -133,55 +133,55 @@ function ClienteRegistro() {
                         <div className='row g-2'>
                             <div className='col-md-2'>
                                 <label className='form-label'>Código</label>
-                                <input type="text" name="codigo" value={cliente.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-lg' />
+                                <input type="text" name="codigo" value={cliente.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">NIT</label>
-                                <input type="text" name="nit" value={cliente.nit} onChange={handleChange} placeholder="NIT" className='form-control form-control-lg' />
+                                <input type="text" name="nit" value={cliente.nit} onChange={handleChange} placeholder="NIT" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">CUI</label>
-                                <input type="text" name="cui" value={cliente.cui} onChange={handleChange} placeholder="CUI" className='form-control form-control-lg' />
+                                <input type="text" name="cui" value={cliente.cui} onChange={handleChange} placeholder="CUI" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-6'>
                                 <label className="form-label">Nombre</label>
-                                <input type="text" name="nombre" value={cliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-lg' />
+                                <input type="text" name="nombre" value={cliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-6'>
                                 <label className="form-label">Razón Social</label>
-                                <input type="text" name="razonsocial" value={cliente.razonsocial} onChange={handleChange} placeholder="Razón social" className='form-control form-control-lg' />
+                                <input type="text" name="razonsocial" value={cliente.razonsocial} onChange={handleChange} placeholder="Razón social" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-8'>
                                 <label className="form-label">Dirección</label>
-                                <input type="text" name="direccion" value={cliente.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-lg' />
+                                <input type="text" name="direccion" value={cliente.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Correo</label>
-                                <input type="text" name="email" value={cliente.email} onChange={handleChange} placeholder="Correo" className='form-control form-control-lg' />
+                                <input type="text" name="email" value={cliente.email} onChange={handleChange} placeholder="Correo" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className="form-label">Telefono uno</label>
-                                <input type="text" name="telefono_uno" value={cliente.telefono_uno} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-lg' />
+                                <input type="text" name="telefono_uno" value={cliente.telefono_uno} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Telefono dos</label>
-                                <input type="text" name="telefono_dos" value={cliente.telefono_dos} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-lg' />
+                                <input type="text" name="telefono_dos" value={cliente.telefono_dos} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Telefono tres</label>
-                                <input type="text" name="telefono_tres" value={cliente.telefono_tres} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-lg' />
+                                <input type="text" name="telefono_tres" value={cliente.telefono_tres} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Departamento</label>
-                                <select name="iddepartamento" value={cliente.iddepartamento} onChange={handleChange} className='form-control form-control-lg'>
+                                <select name="iddepartamento" value={cliente.iddepartamento} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar Departamento</option>
                                     {departamentosPais.map(departamentoPais => (
                                         <option key={departamentoPais.iddepartamentopais} value={departamentoPais.iddepartamentopais}>
@@ -194,17 +194,17 @@ function ClienteRegistro() {
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className="form-label">Monto crédito</label>
-                                <input type="text" name="monto_credito" value={cliente.monto_credito} onChange={handleChange} placeholder="Monto crédito" className='form-control form-control-lg' />
+                                <input type="text" name="monto_credito" value={cliente.monto_credito} onChange={handleChange} placeholder="Monto crédito" className='form-control form-control-sm' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Días crédito</label>
-                                <input type="text" name="dias_credito" value={cliente.dias_credito} onChange={handleChange} placeholder="Días crédito" className='form-control form-control-lg' />
+                                <input type="text" name="dias_credito" value={cliente.dias_credito} onChange={handleChange} placeholder="Días crédito" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-6'>
                                 <label className='form-label'>Vendedor asociado</label>
-                                <select name="id_empleado" value={cliente.id_empleado} onChange={handleChange} className='form-control form-control-lg'>
+                                <select name="id_empleado" value={cliente.id_empleado} onChange={handleChange} className='form-control form-control-sm'>
                                     <option value="">Seleccionar vendedor</option>
                                     {vendedores.map(vendedor => (
                                         <option key={vendedor.id_empleado} value={vendedor.id_empleado}>
@@ -217,14 +217,18 @@ function ClienteRegistro() {
                         <div className='row g-2'>
                             <div className='col-md-8'>
                                 <label className="form-label">Observaciones</label>
-                                <input type="text" name="comentario" value={cliente.comentario} onChange={handleChange} placeholder="Observaciones" className='form-control form-control-lg' />
+                                <input type="text" name="comentario" value={cliente.comentario} onChange={handleChange} placeholder="Observaciones" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='d-flex justify-content-between mt-4'>
-                            <button type="submit" className='btn btn-primary btn-lg'>Guardar</button>
-                            <div>
-                                <Link to="/clientes/lista" className="btn btn-secondary btn-lg me-2">Consulta</Link>
-                                <Link to="/Home" className="btn btn-secondary btn-lg">Volver a Inicio</Link>
+                            <button type="submit" className='btn btn-primary btn-sm w-25'>GUARDAR</button>
+                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                                <div style={{ width: '50%' }}>
+                                    <Link to="/clientes/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
+                                </div>
+                                <div style={{ width: '50%' }}>
+                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                                </div>
                             </div>
                         </div>
                     </form>

@@ -98,7 +98,7 @@ function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Rec
 
     return (
         <div className='container mt-4'>
-            <div className="card formulario-container">
+            <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de contactos</h4>
                 </div>
@@ -147,10 +147,14 @@ function ContactoClienteForm({ clienteId, onClose,onContactCreated })  {  // Rec
                         </div>
                         <div className='d-flex justify-content-between mt-4'>
 
-                            <button type="submit" className='btn btn-primary btn-lg'>Guardar</button>
-                            <div>
-                                <Link to="/contacto_cliente/lista" className="btn btn-secondary btn-lg me-2">Consulta</Link>
-                                <Link to="/Home" className="btn btn-secondary btn-lg">Volver a Inicio</Link>
+                            <button type="submit" className='btn btn-primary btn-sm w-25'>GUARDAR</button>
+                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                                <div style={{ width: '50%' }}>
+                                <Link to="/contacto_cliente/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
+                                </div>
+                                <div style={{ width: '50%' }}>
+                                <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                                </div>
                             </div>
                         </div>
 

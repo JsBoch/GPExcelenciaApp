@@ -198,9 +198,16 @@ function ListaEmpleados() {
                     </DataTable>
                 </div>
             )}
-            <div className="d-flex justify-content-center mt-3"> {/* Contenedor para los botones */}
-                <Link to="/empleados/crear" className="btn btn-secondary me-2">Registro</Link>
-                <Link to="/Home" className="btn btn-secondary">Volver a Inicio</Link>
+
+            <div className='d-flex justify-content-end mt-4'>
+                <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                    <div style={{ width: '50%' }}>
+                        <Link to="/empleados/crear" className="btn btn-primary btn-sm" style={{ width: '100%' }}>REGISTRO</Link>
+                    </div>
+                    <div style={{ width: '50%' }}>
+                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>                    
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -38,7 +38,7 @@ function ListaCotizacionesCosteo() {
                 })
                 .catch(error => {
                     //console.error('Error al obtener las cotizaciones:', error);     
-                    alertify.error("Error al obtener las cotizaciones");                    
+                    alertify.error("Error al obtener las cotizaciones");
                     setLoading(false);
                 });
         } else {
@@ -48,7 +48,7 @@ function ListaCotizacionesCosteo() {
     }, []);
 
     const columns = [
-        { data: 'idcotizacion', title: 'ID', visible : false },
+        { data: 'idcotizacion', title: 'ID', visible: false },
         { data: 'nocotizacion', title: 'No.Cotizacion' },
         { data: 'fecha_cotizacion', title: 'Fecha' },
         { data: 'tipo_pago', title: 'Forma Pago' },
@@ -60,15 +60,15 @@ function ListaCotizacionesCosteo() {
         { data: 'observaciones_costeo', title: 'Obsv.Costeo' },
         { data: 'observaciones_cliente', title: 'Obsv.Cliente' },
         { data: 'costeo_observaciones', title: 'Obsv.Vendedor' },
-        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible : false },
-        { data: 'idcliente', title: 'ID Cliente', visible : false },        
-        { data: 'idcontacto', title: 'ID Contacto', visible : false },        
-        { data: 'trabajo', title: 'Trabajo' },        
-        { data: 'version', title: 'Version', visible:false },        
+        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
+        { data: 'idcliente', title: 'ID Cliente', visible: false },
+        { data: 'idcontacto', title: 'ID Contacto', visible: false },
+        { data: 'trabajo', title: 'Trabajo' },
+        { data: 'version', title: 'Version', visible: false },
         {
             data: 'idcotizacion',
             title: 'Acciones',
-            render: (data,type,row) => {// 'row' contiene toda la fila de datos
+            render: (data, type, row) => {// 'row' contiene toda la fila de datos
                 return `
                     <button class="btn btn-primary costear-btn btn-fixed-width" 
                             data-id="${data}" 
@@ -81,7 +81,7 @@ function ListaCotizacionesCosteo() {
         }
     ];
 
-    useEffect(() => {       
+    useEffect(() => {
         const handleButtonClick = (event) => {
             const id = event.target.getAttribute('data-id');
 
@@ -125,13 +125,13 @@ function ListaCotizacionesCosteo() {
 
     const options = {
         language: spanishTranslation, // Agrega la traducción aquí        
-    };    
+    };
 
     useEffect(() => {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
         //console.log('Estado cotización actualizado:', cotizaciones);
     }, [cotizaciones]);
-    
+
     return (
         <div className="container-fluid mt-4">
             <div className="card">
@@ -156,7 +156,7 @@ function ListaCotizacionesCosteo() {
                                         <th>Fecha</th>
                                         <th>Forma Pago</th>
                                         <th>Total</th>
-                                        <th>Costear</th>                                        
+                                        <th>Costear</th>
                                         <th>Cliente</th>
                                         {/* <th>ID Cliente</th> */}
                                         <th>Contacto</th>
@@ -165,8 +165,8 @@ function ListaCotizacionesCosteo() {
                                         <th>Obsv. Cliente</th>
                                         <th>Obsv. Vendedor</th>
                                         {/* <th>ID Contacto</th>                                         */}
-                                        <th>Trabajo</th>                                        
-                                        <th>Versión</th>                                                                                
+                                        <th>Trabajo</th>
+                                        <th>Versión</th>
                                         {/* <th>ID Original</th> */}
                                         <th>Acciones</th>
                                     </tr>
@@ -175,9 +175,12 @@ function ListaCotizacionesCosteo() {
                         </div>
                     )}
                 </div>
-                <div className="card-footer d-flex justify-content-center">
-                    {/* <Link to="/cotizaciones/crear" className="btn btn-success me-2">Registrar</Link> */}
-                    <Link to="/Home" className="btn btn-outline-secondary">Volver a Inicio</Link>
+                <div className='d-flex justify-content-end mt-4 mb-4'>
+                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
+                        <div style={{ width: '100%' }}>
+                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '75%' }}>INICIO</Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
