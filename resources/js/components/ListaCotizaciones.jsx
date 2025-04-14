@@ -8,6 +8,7 @@ import '../../css/ListaEmpleados.css';
 //Funcionalidad para React PDF
 import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
+import alertify from 'alertifyjs';
 
 DataTable.use(DT);
 
@@ -39,11 +40,13 @@ function ListaCotizaciones() {
                     setLoading(false);
                 })
                 .catch(error => {
-                    console.error('Error al obtener las cotizaciones:', error);
+                    //console.error('Error al obtener las cotizaciones:', error);
+                    alertify.error('Error al obtener las cotizaciones.');
                     setLoading(false);
                 });
         } else {
-            console.error('Token de autenticación no encontrado');
+            //console.error('Token de autenticación no encontrado');
+            alertify.error('Token de autenticación no encontrado');
             setLoading(false);
         }
     }, []);
@@ -80,19 +83,7 @@ function ListaCotizaciones() {
         }
     ];
 
-    useEffect(() => {
-        // Función para manejar los clics en los botones "Editar"
-        // const handleButtonClick = (event) => {
-        //     const id = event.target.getAttribute('data-id');
-        //     if (event.target.classList.contains('editar-btn')) {
-        //         navigate(`/cotizaciones/editar/${id}`);
-        //     } else if (event.target.classList.contains('desactivar-btn')) {
-        //         handleDesactivar(id);
-        //     }else if(event.target.classList.contains('pdf-btn')) {
-        //         window.open(`/api/cotizaciones/${id}/pdf`, '_blank');
-        //     }
-        // };
-
+    useEffect(() => {       
         const handleButtonClick = async (event) => {
             const id = event.target.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
@@ -110,13 +101,15 @@ function ListaCotizaciones() {
                             }
                         });
                         const data = await response.json(); // Obtener datos como JSON
-                        console.log("Datos de la API para el PDF:", data);
+                        //console.log("Datos de la API para el PDF:", data);
                         setPdfData(data); // Establecer los datos del PDF en el estado
                     } catch (error) {
-                        console.error('Error al generar el PDF:', error);
+                        //console.error('Error al generar el PDF:', error);
+                        alertify.error('Error al generar el PDF.');
                     }
                 } else {
-                    console.error('Token no encontrado para generar PDF.');
+                    //console.error('Token no encontrado para generar PDF.');
+                    alertify.error('Token no encontrado para generar PDF.');
                 }
             }
         };
@@ -160,7 +153,8 @@ function ListaCotizaciones() {
                     });
                 })
                 .catch((error) => {
-                    console.error('Error al desactivar la cotizacion:', error);
+                    //console.error('Error al desactivar la cotizacion:', error);
+                    alertify.error('Error al desactivar la cotizacion.');
                 });
         }
     };

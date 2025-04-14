@@ -82,6 +82,10 @@ function Home() {
                     links.push({ to: '/cotizaciones/lista', text: 'Consultar cotizaciones' });
                 }else if (opcion.nombre === 'Consulta cotizaciones costeo') {
                     links.push({ to: '/costeocotizaciones/lista', text: 'Consultar cotizaciones para Costeo' });
+                }else if (opcion.nombre === 'Productos Predefinidos') {
+                    links.push({ to: '/productospredefinidos/crear', text: 'Productos Predefinidos' });
+                }else if (opcion.nombre === 'Consulta productos predefinidos') {
+                    links.push({ to: '/productospredefinidos/lista', text: 'Consultar productos predefinidos' });
                 }
                 // Agrega más opciones según tus permisos
             });

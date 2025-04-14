@@ -8,16 +8,20 @@ use App\Models\AdmUnidadMedida;
 use App\Models\Clientes;
 use App\Models\ContactoCliente;
 use App\Models\Correlativo;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // <-- Importar Log si quieres registrar errores detallados
+use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar errores detallados
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
+
 class CotizacionController extends Controller
 {
     public function index()
     {
-        $cotizaciones = AdmCotizacion::where('c.estado', 1)
+        $user              = Auth::user();              // Obtiene el usuario autenticado
+        $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
+
+        $query = AdmCotizacion::where('c.estado', 1)
             ->select(
                 'c.idcotizacion',
                 DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
@@ -41,13 +45,18 @@ class CotizacionController extends Controller
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-            ->get();
-        return response()->json($cotizaciones);
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+        // Aplica el filtro condicional basado en cotizaciones_todas
+        if ($cotizacionesTodas == 'N') {
+            $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
+        }
+
+        $cotizaciones = $query->get();
+        return response()->json($cotizaciones);        
     }
 
     public function store(Request $request)
-    {        
+    {
         try {
             DB::beginTransaction();
 
@@ -66,10 +75,10 @@ class CotizacionController extends Controller
                 return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
             }
 
-            $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
+            $nocotizacion                         = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
             $correlativonocotizacion->correlativo = $nocotizacion;
             $correlativonocotizacion->save();
-            
+
             $datosCotizacion                     = $request->all();
             $datosCotizacion['idcotizacion']     = $idCotizacion;
             $datosCotizacion['nocotizacion']     = $nocotizacion;
@@ -358,8 +367,8 @@ class CotizacionController extends Controller
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        $detalles             = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-        $cotizacion->detalles = $detalles;
+        $detalles                     = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+        $cotizacion->detalles         = $detalles;
         $cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
 
         // Convertir total a letras (usando kwn/number-to-words)
@@ -370,7 +379,7 @@ class CotizacionController extends Controller
         // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
         // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
         return response()->json([
-            'cotizacion' => $cotizacion,
+            'cotizacion'    => $cotizacion,
             'totalEnLetras' => $totalEnLetras,
         ]);
     }

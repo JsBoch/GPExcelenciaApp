@@ -7,11 +7,10 @@ import DT from 'datatables.net-bs5';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
-import Select from 'react-select'; //react-select para autocompletar
-//Para abrir el formulario de contactos de forma modal
-import ContactoClienteForm from './ContactoClienteForm'; // Importa el formulario
-import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap'; // Importa componentes de Reactstrap para el modal
-import 'bootstrap/dist/css/bootstrap.min.css';
+import Select from 'react-select';
+import ContactoClienteForm from './ContactoClienteForm';
+import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap';
+import ProductoPredefinidoModal from './ProductoPredefinidoModal';
 
 DataTable.use(DT);
 
@@ -22,14 +21,14 @@ function CotizacionForm() {
     const [tiposPago, setTiposPago] = useState([]);
     const [unidadesMedida, setUnidadesMedida] = useState([]);
     const [contactos, setContactos] = useState([]);
-    const [clienteId, setClienteId] = useState(''); // Estado para el id del departamento seleccionado
-    const [detalles, setDetalles] = useState([]); // Estado para almacenar los datos del datatable
+    const [clienteId, setClienteId] = useState('');
+    const [detalles, setDetalles] = useState([]);
     const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
-    const [clienteOptions, setClienteOptions] = useState([]); // Nuevo estado para opciones de react-select  
-    //Para abrir los contactos de forma modal
-    const [modalIsOpen, setModalIsOpen] = useState(false); // Estado para controlar la visibilidad del modal
-    const toggleModal = () => setModalIsOpen(!modalIsOpen); // Función para abrir/cerrar el modal  
-
+    const [clienteOptions, setClienteOptions] = useState([]);
+    const [modalIsOpen, setModalIsOpen] = useState(false);
+    const toggleModal = () => setModalIsOpen(!modalIsOpen);
+    const [productoPredefinidoModalIsOpen, setProductoPredefinidoModalIsOpen] = useState(false);
+    const toggleProductoPredefinidoModal = () => setProductoPredefinidoModalIsOpen(!productoPredefinidoModalIsOpen);
 
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
@@ -50,7 +49,6 @@ function CotizacionForm() {
         idtipopago: '',
         direccion_entrega: '',
         costear: 'N',
-        total_general: 0,
     });
 
     //Estado del detalle de la cotización
@@ -66,130 +64,144 @@ function CotizacionForm() {
         total: 0,
     });
 
-    const loadContactos = () => {  // Función para cargar los contactos
+    //CAMBIO: Estados para almacenar precios y cantidades del modal
+    const [productoPredefinido, setProductoPredefinido] = useState({
+        variacion: '0',
+        precio: 0,
+        cantidad_uno: 0,
+        precio_uno: 0,
+        cantidad_dos: 0,
+        precio_dos: 0,
+        cantidad_tres: 0,
+        precio_tres: 0,
+        cantidad_cuatro: 0,
+        precio_cuatro: 0,
+    });
+
+    // const [cantidadDetalle, setCantidadDetalle] = useState(0); //No se usa directamente
+
+    const loadContactos = () => {
         if (clienteId) {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
             axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers })
                 .then(res => setContactos(res.data))
-                .catch(error => console.error('Error al cargar contactos:', error));
+                .catch(error => {
+                    //console.error('Error al cargar contactos:', error);
+                    alertify.error('Error al cargar contactos');
+                });
         } else {
             setContactos([]);
         }
     };
 
-    const handleContactCreated = (newContact) => {  // Función llamada desde el modal
-        loadContactos();  // Recarga la lista
+    const handleContactCreated = (newContact) => {
+        loadContactos();
     };
 
-    //Se utiliza para cargar los datos de la cotización y el detalle si es una edición, y se cargan las listas desplegables si es un nuevo empleado
-    //Si no es una edición, solo carga las listas de los select.
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        if (id) {
-            axios.get(`/api/cotizaciones/${id}`, { headers })
-                .then(res => {
-                    const data = res.data;
-                    let formattedDate = '';
-                    if (data.fecha_cotizacion) {
-                        formattedDate = data.fecha_cotizacion.split(' ')[0]; // Obtiene solo la parte de la fecha
-                    }
-                    setCotizacion({
-                        idcotizacionoriginal: data.idcotizacionoriginal || 0,
-                        idcotizacion: data.idcotizacion || 0,
-                        idcliente: data.idcliente || 0,
-                        cliente: data.cliente || '',
-                        idcontacto: data.idcontacto || 0,
-                        contacto: data.contacto || '',
-                        fecha_cotizacion: formattedDate || fechaActual,
-                        trabajo: data.trabajo || '',
-                        observaciones_costeo: data.observaciones_costeo || '',
-                        observaciones_cliente: data.observaciones_cliente || '',
-                        total_general: data.total_general || 0,
-                        costeo_observaciones: data.costeo_observaciones || '',
-                        nocotizacion: data.nocotizacion || '',
-                        version: data.version || 1,
-                        idtipopago: data.idtipopago || '',
-                        direccion_entrega: data.direccion_entrega || '',
-                        costear: data.costear || 'N',
-                    });
+        const fetchData = async () => {
+            try {
+                let requests = [
+                    axios.get('/api/lista_tipospago', { headers }).then(res => setTiposPago(res.data)),
+                    axios.get('/api/lista_unidadesmedida', { headers }).then(res => setUnidadesMedida(res.data))
+                ];
 
-                    // Cargar listas desplegables después de cargar los datos del empleado
-                    // axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
-                    axios.get('/api/lista_tipospago', { headers }).then(res => setTiposPago(res.data));
-                    axios.get('/api/lista_unidadesmedida', { headers }).then(res => setUnidadesMedida(res.data));
-                    if (data.idcliente) {
-                        // Setea el clienteId también para que el segundo useEffect se dispare correctamente al editar
-                        setClienteId(data.idcliente);
-                        axios.get(`/api/lista_contactos?idcliente=${data.idcliente}`, { headers }).then(res => setContactos(res.data));
-                    } else {
-                        setContactos([]);
-                    }
+                if (id) {
+                    requests.push(axios.get(`/api/cotizaciones/${id}`, { headers })
+                        .then(res => {
+                            const data = res.data;
+                            let formattedDate = '';
+                            if (data.fecha_cotizacion) {
+                                formattedDate = data.fecha_cotizacion.split(' ')[0];
+                            }
+                            setCotizacion({
+                                idcotizacionoriginal: data.idcotizacionoriginal || 0,
+                                idcotizacion: data.idcotizacion || 0,
+                                idcliente: data.idcliente || 0,
+                                cliente: data.cliente || '',
+                                idcontacto: data.idcontacto || 0,
+                                contacto: data.contacto || '',
+                                fecha_cotizacion: formattedDate || fechaActual,
+                                trabajo: data.trabajo || '',
+                                observaciones_costeo: data.observaciones_costeo || '',
+                                observaciones_cliente: data.observaciones_cliente || '',
+                                total_general: data.total_general || 0,
+                                costeo_observaciones: data.costeo_observaciones || '',
+                                nocotizacion: data.nocotizacion || '',
+                                version: data.version || 1,
+                                idtipopago: data.idtipopago || '',
+                                direccion_entrega: data.direccion_entrega || '',
+                                costear: data.costear || 'N',
+                            });
 
-                    // Cargar detalles de la cotización
-                    if (data.detalles) {
-                        setDetalles(data.detalles);
-                    }
-                })
-                .catch(error => console.error('Error al cargar las cotizaciones:', error));
-        } else {
-            // Cargar listas desplegables para crear un nuevo empleado            
-            axios.get('/api/lista_tipospago', { headers }).then(res => setTiposPago(res.data));
-            axios.get('/api/lista_unidadesmedida', { headers }).then(res => setUnidadesMedida(res.data));
-            // No cargamos contactos aquí inicialmente, esperamos a que se seleccione un cliente
-            setContactos([]); // Asegurarse que contactos esté vacío al crear
-        }
-    }, [id]); //solo depende de Id para la carga inicial
+                            if (data.idcliente) {
+                                setClienteId(data.idcliente);
+                                axios.get(`/api/lista_contactos?idcliente=${data.idcliente}`, { headers }).then(res => setContactos(res.data));
+                            } else {
+                                setContactos([]);
+                            }
+
+                            if (data.detalles) {
+                                setDetalles(data.detalles);
+                            }
+                        }));
+                }
+
+                await Promise.all(requests); // Wait for all requests to finish
+
+            } catch (error) {
+                //console.error('Error al cargar datos:', error);
+                alertify.error('Error al cargar datos');
+            }
+        };
+
+        fetchData();
+    }, [id]);
 
     useEffect(() => {
-        loadContactos(); // Carga la lista inicialmente y cuando cambia clienteId
+        loadContactos();
     }, [clienteId]);
 
-    // useEffect para cargar contactos cuando cambia clienteId
     useEffect(() => {
         if (clienteId) {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
             axios.get(`/api/lista_contactos?idcliente=${clienteId}`, { headers })
                 .then(res => setContactos(res.data))
-                .catch(error => console.error('Error al cargar contactos:', error));
+                .catch(error => {
+                    //console.error('Error al cargar contactos:', error);
+                    alertify.error('Error al cargar contactos');
+                });
         } else {
-            setContactos([]); // Limpia contactos si no hay cliente seleccionado
+            setContactos([]);
         }
-    }, [clienteId]); // Se ejecuta solo cuando cambia clienteId
+    }, [clienteId]);
 
     //Calcular el total del detalle ---
     useEffect(() => {
-        const cantidadNum = parseFloat(detalle.cantidad) || 0; // Convierte a número, si es inválido o vacío, usa 0
+        const cantidadNum = parseFloat(detalle.cantidad) || 0;
         const precioNum = parseFloat(detalle.precio) || 0;
-
-        const totalCalculado = (cantidadNum * precioNum).toFixed(2); //2 decimales 
-
-        // Actualiza el estado 'detalle' solo con el nuevo total
-        // Usamos el callback para asegurar que no perdemos otros datos del detalle
+        const totalCalculado = (cantidadNum * precioNum).toFixed(2);
         setDetalle(prevDetalle => ({
             ...prevDetalle,
             total: totalCalculado
         }));
-
-    }, [detalle.cantidad, detalle.precio]); // Se ejecuta cada vez que cantidad o precio cambien
-    // --------------------------------------------------------
+    }, [detalle.cantidad, detalle.precio]);
 
     // --- Calcula los m2 del detalle ---
     useEffect(() => {
         const anchoNum = parseFloat(detalle.ancho) || 0;
         const altoNum = parseFloat(detalle.alto) || 0;
-
         const m2Calculado = (anchoNum * altoNum).toFixed(2);
-
         setDetalle(prevDetalle => ({
             ...prevDetalle,
             m2: m2Calculado
         }));
-    }, [detalle.ancho, detalle.alto]); // Se ejecuta cuando ancho o alto cambian
-    // ----------------------------------------------------
+    }, [detalle.ancho, detalle.alto]);
 
     //-- función para calcular el total general de la cotización ---
     const calcularTotalGeneral = () => {
@@ -197,13 +209,12 @@ function CotizacionForm() {
         detalles.forEach(detalle => {
             total += parseFloat(detalle.total) || 0;
         });
-        setCotizacion({ ...cotizacion, total_general: total.toFixed(2) }); // Actualiza el estado con el total calculado
+        setCotizacion({ ...cotizacion, total_general: total.toFixed(2) });
     };
 
     useEffect(() => {
-        calcularTotalGeneral(); // Llama a la función cada vez que detalles cambia
+        calcularTotalGeneral();
     }, [detalles]);
-
 
     //Carga el listado de clientes
     useEffect(() => {
@@ -218,25 +229,26 @@ function CotizacionForm() {
                 }));
                 setClienteOptions(options);
             })
-            .catch(error => console.error('Error al cargar clientes:', error));
+            .catch(error => {
+                //console.error('Error al cargar clientes:', error);
+                alertify.error('Error al cargar clientes');
+            });
     }, []);
 
     const handleClienteChange = (selectedOption) => {
         setClienteId(selectedOption.value);
         setCotizacion({ ...cotizacion, idcliente: selectedOption.value, idcontacto: '' });
-        //cambio para el model de contactos
-        // Comprueba si el cliente tiene contactos y abre el modal si no tiene
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
         axios.get(`/api/lista_contactos?idcliente=${selectedOption.value}`, { headers })
             .then(res => {
                 setContactos(res.data);
                 if (res.data.length === 0) {
-                    setModalIsOpen(true); // Abre el modal si no hay contactos
+                    setModalIsOpen(true);
                 }
             })
             .catch(error => {
-                console.error('Error al cargar contactos:', error)
+                //console.error('Error al cargar contactos:', error);
                 alertify.error("Error al cargar contactos");
             });
     };
@@ -247,12 +259,42 @@ function CotizacionForm() {
     };
 
     //Envía los datos al back-end para registrar, en el método store.
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => { // Make handleSubmit async
         e.preventDefault();
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Determine 'costear' based on detalles
+        // Validaciones
+        if (!cotizacion.idcliente || cotizacion.idcliente === '') {
+            alertify.error("Debe seleccionar un cliente.");
+            return;
+        }
+
+        if (!cotizacion.idcontacto || cotizacion.idcontacto === '') {
+            alertify.error("Debe seleccionar un contacto.");
+            return;
+        }
+
+        if (!cotizacion.idtipopago || cotizacion.idtipopago === '') {
+            alertify.error("Debe seleccionar una forma de pago.");
+            return;
+        }
+
+        if (!detalles || detalles.length === 0) {
+            alertify.error("Debe asignar registros en el detalle de la cotización.");
+            return;
+        }
+
+        if (!cotizacion.direccion_entrega || cotizacion.direccion_entrega.trim() === '') {
+            alertify.error("Debe ingresar la dirección de entrega.");
+            return;
+        }
+
+        if (!cotizacion.observaciones_cliente || cotizacion.observaciones_cliente.trim() === '') {
+            alertify.error("Debe ingresar las observaciones para el cliente.");
+            return;
+        }
+
         let shouldCostear = 'N';
         for (const item of detalles) {
             if (parseFloat(item.total) === 0) {
@@ -263,34 +305,23 @@ function CotizacionForm() {
 
         const dataToSend = {
             ...cotizacion,
-            detalles: detalles, // Incluye los detalles aquí
+            detalles: detalles,
             costear: shouldCostear,
         };
 
-        if (id) {
-            // Editar cliente existente (solicitud PUT) cotizacion
-            axios.put(`/api/cotizaciones/${id}`, dataToSend, { headers })
-                .then(res => {
-                    //console.log('Cotización actualizada:', res.data);
-                    alertify.success("Cotización actualizada correctamente");
-                    navigate('/cotizaciones/lista'); // Redirige a la lista
-                })
-                .catch(error => {
-                    console.error('Error al actualizar la cotización:', error)
-                    alertify.error("Error al actualizar la cotización");
-                });
-        } else {
-            // Crear nuevo empleado (solicitud POST)cotizacion
-            axios.post('/api/cotizaciones', dataToSend, { headers })
-                .then(res => {
-                    //console.log('Cotización creada:', res.data);
-                    alertify.success("Cotización creada correctamente");
-                    navigate('/cotizaciones/lista'); // Redirige a la lista
-                })
-                .catch(error => {
-                    console.error('Error al crear empleado:', error)
-                    alertify.error("Error al crear la cotización");
-                });
+        try {
+            let res;
+            if (id) {
+                res = await axios.put(`/api/cotizaciones/${id}`, dataToSend, { headers });
+                alertify.success("Cotización actualizada correctamente");
+            } else {
+                res = await axios.post('/api/cotizaciones', dataToSend, { headers });
+                alertify.success("Cotización creada correctamente");
+            }
+            navigate('/cotizaciones/lista');
+        } catch (error) {
+            //console.error('Error al guardar la cotización:', error);
+            alertify.error("Error al guardar la cotización");
         }
     };
 
@@ -326,6 +357,14 @@ function CotizacionForm() {
         });
     };
 
+    const handleAgregarContacto = () => {
+        if (!cotizacion.idcliente || cotizacion.idcliente === '') {
+            alertify.error("Debe seleccionar un cliente antes de agregar un contacto.");
+            return;
+        }
+        toggleModal();
+    };
+
     //Quitar el detalle seleccionado del DataTable
     const handleQuitarDetalle = () => {
         if (!detalleSeleccionado) {
@@ -334,7 +373,7 @@ function CotizacionForm() {
         }
 
         alertify.confirm("¿Estás seguro de que deseas quitar este detalle?",
-            () => { // Función para "Aceptar"
+            () => {
                 setDetalles(detalles.filter(detalle => detalle !== detalleSeleccionado));
                 setDetalleSeleccionado(null);
                 setDetalle({
@@ -350,7 +389,7 @@ function CotizacionForm() {
                 });
                 alertify.success("Detalle eliminado.");
             },
-            () => { // Función para "Cancelar"
+            () => {
                 alertify.error("Cancelado");
             }
         );
@@ -433,34 +472,89 @@ function CotizacionForm() {
         { title: 'Precio', data: 'precio' },
         { title: 'Total', data: 'total' },
     ];
-    /************************************************** */
+
+    const handleProductoPredefinidoSeleccionado = (producto) => {
+        setProductoPredefinido(producto);
+        setDetalle(prevDetalle => ({ // Update precio here too, use callback
+            ...prevDetalle,
+            unidad_medida: producto.unidad_medida,
+            descripcion: producto.titulo,
+            ancho: producto.ancho,
+            alto: producto.alto,
+            profundidad: producto.profundidad,
+            precio: producto.precio || 0, // Ensure a numeric fallback
+            cantidad: 0 
+        }));
+        toggleProductoPredefinidoModal();
+    };
+
+    const handleCantidadDetalleChange = (e) => {
+        const value = parseInt(e.target.value, 10) || 0;
+        // setCantidadDetalle(value); // This is unnecessary in this setup!
+        setDetalle(prevDetalle => ({
+            ...prevDetalle,
+            cantidad: value,
+        }));
+        calcularPrecioDetalle(value); // This calls calcularPrecioDetalle with new quantity
+    };
+
+    const calcularPrecioDetalle = (cantidad) => {
+        let nuevoPrecio = 0;
+
+        if (!productoPredefinido) {
+            return; // Prevent errors if productoPredefinido is not yet loaded
+        }
+
+        if (productoPredefinido.variacion === '0' || productoPredefinido.variacion === false) { // Handle string '0' or boolean
+            nuevoPrecio = parseFloat(productoPredefinido.precio) || 0;
+        } else if (productoPredefinido.variacion === '1' || productoPredefinido.variacion === true) { // Handle string '1' or boolean
+            if (cantidad > 0 && cantidad <= productoPredefinido.cantidad_uno) {
+                nuevoPrecio = parseFloat(productoPredefinido.precio_uno) || 0;
+            } else if (productoPredefinido.cantidad_dos > 0 && cantidad > productoPredefinido.cantidad_uno && cantidad <= productoPredefinido.cantidad_dos) {
+                nuevoPrecio = parseFloat(productoPredefinido.precio_dos) || 0;
+            } else if (productoPredefinido.cantidad_tres > 0 && cantidad > productoPredefinido.cantidad_dos && cantidad <= productoPredefinido.cantidad_tres) {
+                nuevoPrecio = parseFloat(productoPredefinido.precio_tres) || 0;
+            } else if (productoPredefinido.cantidad_cuatro > 0 && cantidad > productoPredefinido.cantidad_tres) {
+                nuevoPrecio = parseFloat(productoPredefinido.precio_cuatro) || 0;
+            } else {
+              nuevoPrecio = cantidad * parseFloat(productoPredefinido.precio) || 0;  // Default price when no range matches 
+            }
+        }
+
+        // Check if the calculated price is valid, else fallback to a default (0)
+        if (isNaN(nuevoPrecio)) {
+            nuevoPrecio = 0;
+        }
+
+        setDetalle(prevDetalle => ({
+            ...prevDetalle,
+            precio: parseFloat(nuevoPrecio.toFixed(2)) || 0, // Ensure valid number
+        }));
+    };
+
     return (
         <div className='container mt-4'>
             <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
-                    {/* Cambia el título según si editas o creas */}
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
                 </div>
                 <div className="card-body">
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
-                        <div className='row g-2 mb-3'> {/* Añadido mb-3 para separar secciones */}
+                        <div className='row g-2 mb-3'>
                             <div className='col-md-6'>
                                 <label className='form-label fw-bold'>Cliente</label>
                                 <Select
                                     value={clienteOptions.find(option => option.value === cotizacion.idcliente)}
                                     onChange={handleClienteChange}
                                     options={clienteOptions}
-                                    isSearchable={true} // Habilita la búsqueda
+                                    isSearchable={true}
                                     placeholder="Seleccionar Cliente"
                                 />
-                                <button type="button" className="btn btn-link btn-sm" onClick={toggleModal}>
-                                    Agregar Contacto
-                                </button>
                             </div>
                             <div className='col-md-6'>
                                 <label className='form-label fw-bold'>Contacto</label>
-                                <select name="idcontacto" value={cotizacion.idcontacto} onChange={handleChange} className='form-select form-select-sm' disabled={!clienteId}> {/* Deshabilitado si no hay cliente */}
+                                <select name="idcontacto" value={cotizacion.idcontacto} onChange={handleChange} className='form-select form-select-sm' disabled={!clienteId}>
                                     <option value="">Seleccionar Contacto</option>
                                     {contactos.map(contacto => (
                                         <option key={contacto.id_contactocliente} value={contacto.id_contactocliente}>
@@ -468,6 +562,14 @@ function CotizacionForm() {
                                         </option>
                                     ))}
                                 </select>
+                                <button type="button" className="btn btn-link btn-sm" onClick={handleAgregarContacto}
+                                    style={{
+                                        textDecoration: 'none',
+                                        color: '#007bff',
+                                        cursor: 'pointer',
+                                    }}>
+                                    Agregar Contacto
+                                </button>
                             </div>
                         </div>
                         <div className='row g-2 mb-3'>
@@ -482,63 +584,66 @@ function CotizacionForm() {
                                     ))}
                                 </select>
                             </div>
-                            <div className='col-md-3'> {/* Ajustado tamaño */}
+                            <div className='col-md-3'>
                                 <label className='form-label fw-bold'>Fecha cotizacion</label>
                                 <input type="date" name="fecha_cotizacion" value={cotizacion.fecha_cotizacion} onChange={handleChange} placeholder="Fecha cotización" className='form-control form-control-sm' required />
                             </div>
-                            <div className='col-md-5'> {/* Ajustado tamaño */}
+                            <div className='col-md-5'>
                                 <label className='form-label fw-bold'>Trabajo</label>
                                 <input type="text" name="trabajo" value={cotizacion.trabajo} onChange={handleChange} placeholder="Nombre del trabajo o proyecto" className='form-control form-control-sm' />
                             </div>
                         </div>
-                        <div className='row g-2 mb-4'> {/* Añadido mb-4 para separar de la sección detalle */}
-                            <div className='col-md-12'> {/* Ocupa todo el ancho */}
+                        <div className='row g-2 mb-4'>
+                            <div className='col-md-12'>
                                 <label className='form-label fw-bold'>Dirección entrega</label>
                                 <input type="text" name="direccion_entrega" value={cotizacion.direccion_entrega} onChange={handleChange} placeholder="Dirección de entrega" className='form-control form-control-sm' />
                             </div>
                         </div>
 
                         {/* --- Sección Detalle de Cotización --- */}
-                        <h5 className="mt-4 mb-3 border-bottom pb-2">Agregar Detalle</h5> {/* Título para la sección */}
+                        <h5 className="mt-4 mb-3 border-bottom pb-2">Agregar Detalle</h5>
 
-                        {/* Fila 1: Unidad Medida, Cantidad, Descripción */}
-                        <div className='row g-2 mb-2'>
+                        <div className='row g-1 mb-2'>
+                            <div className='col-md-4'>
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={toggleProductoPredefinidoModal}>
+                                    Seleccionar Producto Predefinido
+                                </button>
+                            </div>
+                        </div>
+                        <div className='row g-3 mb-2'>
+                            {/* Este bloque va aquí, después del botón */}
                             <div className='col-md-2'>
                                 <label className='form-label fw-bold'>Unidad Medida</label>
-                                {/* Ejemplo usando un select si tienes la lista unidadesMedida */}
                                 <select name="unidad_medida" value={detalle.unidad_medida} onChange={handleDetalleChange} className='form-select form-select-sm'>
                                     <option value="">Seleccionar</option>
                                     {unidadesMedida.map(um => (
-                                        <option key={um.idunidadmedida} value={um.unidad}> {/* Asumiendo que quieres guardar la descripción */}
+                                        <option key={um.idunidadmedida} value={um.unidad}>
                                             {um.unidad}
                                         </option>
                                     ))}
                                 </select>
-                                {/* O si prefieres input de texto:
-                                <input type="text" name="unidad_medida" value={detalle.unidad_medida} onChange={handleDetalleChange} className='form-control form-control-sm' />
-                                */}
                             </div>
+
                             <div className='col-md-1'>
                                 <label className='form-label fw-bold'>Cantidad</label>
                                 <input
                                     type="number"
                                     name="cantidad"
                                     value={detalle.cantidad}
-                                    onChange={handleDetalleChange}
+                                    onChange={handleCantidadDetalleChange} // <-- Use this!!!
                                     className='form-control form-control-sm'
-                                    step="any" // Permite decimales si es necesario
-                                    min="0"    // Evita cantidades negativas
+                                    step="1"
+                                    min="0"
                                 />
                             </div>
-                            <div className='col-md-9'> {/* Ajusta el tamaño según necesites */}
+                            <div className='col-md-9'>
                                 <label className='form-label fw-bold'>Descripción</label>
-                                {/* Usar textarea para descripciones más largas */}
                                 <textarea rows="1" name="descripcion" value={detalle.descripcion} onChange={handleDetalleChange} className='form-control form-control-sm'></textarea>
                             </div>
                         </div>
 
                         {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
-                        <div className='row g-2 align-items-end mb-3'> {/* align-items-end para alinear el botón */}
+                        <div className='row g-2 align-items-end mb-3'>
                             <div className='col'>
                                 <label className='form-label fw-bold'>Ancho</label>
                                 <input type="number" name="ancho" value={detalle.ancho} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
@@ -552,7 +657,7 @@ function CotizacionForm() {
                                 <input type="number" name="m2" value={detalle.m2} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Prof.</label> {/* Abreviado */}
+                                <label className='form-label fw-bold'>Prof.</label>
                                 <input type="number" name="profundidad" value={detalle.profundidad} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
@@ -563,7 +668,7 @@ function CotizacionForm() {
                                     value={detalle.precio}
                                     onChange={handleDetalleChange}
                                     className='form-control form-control-sm'
-                                    step="0.01" // Para precios con centavos
+                                    step="0.01"
                                     min="0"
                                 />
                             </div>
@@ -572,37 +677,36 @@ function CotizacionForm() {
                                 <input
                                     type="number"
                                     name="total"
-                                    value={detalle.total} // Muestra el total calculado
-                                    // onChange={handleDetalleChange} // Quita el onChange si es de solo lectura
+                                    value={detalle.total}
                                     className='form-control form-control-sm'
-                                    readOnly // Hace el campo no editable por el usuario
+                                    readOnly
                                     step="0.01"
                                 />
                             </div>
-                            <div className='col-auto'> {/* col-auto para que ocupe solo el espacio necesario */}
-                                <button type="button" onClick={handleAddDetalle} className={detalleSeleccionado ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm'}>{detalleSeleccionado ? 'Actualizar Detalle' : 'Agregar Detalle'}</button>
+                            <div className='col-auto'>
+                                <button type="button" onClick={handleAddDetalle} className={detalleSeleccionado ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm'}>
+                                    {detalleSeleccionado ? 'Actualizar Detalle' : 'Agregar Detalle'}
+                                </button>
                                 <button type="button" onClick={handleQuitarDetalle} className='btn btn-danger btn-sm ms-2'>Quitar</button>
                             </div>
                         </div>
 
-
                         {/* --- Tabla de Detalles Agregados --- */}
                         <h5 className="mt-4 mb-3 border-bottom pb-2">Detalles Agregados</h5>
-                        <div className="table-responsive mb-4"> {/* Añadido mb-4 */}
+                        <div className="table-responsive mb-4">
                             <DataTable
                                 data={detalles}
                                 columns={columns}
                                 options={{
                                     paging: false,
                                     searching: false,
-                                    info: false, // Oculta "Showing 1 to X of Y entries"
-                                    ordering: true, // Deshabilita el ordenamiento si no lo necesitas
+                                    info: false,
+                                    ordering: true,
                                 }}
                                 slots={slots}
-                                className="table table-striped table-bordered table-hover table-sm" // Añadido table-hover y table-sm
-                                id="tabla-detalles" // Añade un id por si necesitas referenciarla                                
+                                className="table table-striped table-bordered table-hover table-sm"
+                                id="tabla-detalles"
                             >
-                                {/* No es necesario definir thead aquí si usas 'columns' */}
                                 <thead>
                                     <tr>
                                         <th>Unidad Medida</th>
@@ -616,7 +720,6 @@ function CotizacionForm() {
                                         <th>Total</th>
                                     </tr>
                                 </thead>
-
                             </DataTable>
                         </div>
                         {/* Input del total general */}
@@ -629,10 +732,10 @@ function CotizacionForm() {
                                 readOnly
                                 className="form-control"
                                 style={{
-                                    maxWidth: '150px',       // Más pequeño
-                                    textAlign: 'right',      // Texto a la derecha
-                                    fontWeight: 'bold',      // Negrita
-                                    fontSize: '1.1em',        // Más grande
+                                    maxWidth: '150px',
+                                    textAlign: 'right',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1em',
                                 }}
                             />
                         </div>
@@ -658,13 +761,13 @@ function CotizacionForm() {
                                     <Link to="/cotizaciones/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
                                 </div>
                                 <div style={{ width: '50%' }}>
-                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link> {/* Estilo diferente para volver */}
+                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
                                 </div>
                             </div>
                         </div>
 
                         {/* Modal para ContactoClienteForm */}
-                        <Modal isOpen={modalIsOpen} toggle={toggleModal} centered>
+                        <Modal isOpen={modalIsOpen} toggle={toggleModal} centered size='xl'>
                             <ModalHeader toggle={toggleModal}>
                                 Crear Nuevo Contacto
                             </ModalHeader>
@@ -677,6 +780,13 @@ function CotizacionForm() {
                                 </Button>
                             </ModalFooter>
                         </Modal>
+                        {/* Modal para ProductoPredefinidoForm */}
+                        <ProductoPredefinidoModal
+                            isOpen={productoPredefinidoModalIsOpen}
+                            onClose={toggleProductoPredefinidoModal}
+                            onProductoSeleccionado={handleProductoPredefinidoSeleccionado}
+                        />
+
                     </form>
                 </div>
             </div>

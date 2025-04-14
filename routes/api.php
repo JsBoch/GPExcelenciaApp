@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionCosteoController;
+use App\Http\Controllers\ProductoPredefinidoController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -96,4 +97,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/costeocotizaciones', CotizacionCosteoController::class);
     Route::get('/costeocotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);           
+});
+
+//PRODUCTO PREDEFINIDO
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/productopredefinido', ProductoPredefinidoController::class);
+    Route::put('/productopredefinido/desactivar/{id}', [ProductoPredefinidoController::class, 'desactivar']);
+    
+    // Rutas adicionales para las listas desplegables    
+    Route::get('/lista_unidadesmedidapp', [ProductoPredefinidoController::class, 'listarUnidadesMedida']);        
 });

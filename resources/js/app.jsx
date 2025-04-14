@@ -17,6 +17,10 @@ import ListaCotizaciones from './components/ListaCotizaciones';
 import EditarCotizacion from './components/CotizacionForm'; 
 import ListaCotizacionesCosteo from './components/ListaCotizacionesCoteo';
 import CotizacionCosteo from './components/CotizacionCosteo';
+import RegistroProductoPredefinido from './components/ProductoPredefinidoForm';
+import ListaProductoPredefinido from './components/ListaProductosPredefinidos';
+import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
+
 
 
 
@@ -71,6 +75,10 @@ function App() {
                 <Route path="/cotizaciones/editar/:id" element={<ProtectedRoute><EditarCotizacion /></ProtectedRoute>} /> Agrega esta ruta
                 <Route path="/costeocotizaciones/lista" element={<ProtectedRoute><ListaCotizacionesCosteo /></ProtectedRoute>} />
                 <Route path="/costeocotizaciones/costeo/:id" element={<ProtectedRoute><CotizacionCosteo /></ProtectedRoute>} />
+                <Route path="/productospredefinidos/crear" element={<ProtectedRoute><RegistroProductoPredefinido /></ProtectedRoute>} />
+                <Route path="/productospredefinidos/lista" element={<ProtectedRoute><ListaProductoPredefinido /></ProtectedRoute>} /> 
+                <Route path="/productospredefinidos/editar/:id" element={<ProtectedRoute><EditarProductoPredefinido /></ProtectedRoute>} />
+
             </Routes>
         </BrowserRouter>
     );
