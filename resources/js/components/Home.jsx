@@ -98,7 +98,7 @@ function Home() {
     }
 
     return (
-        <div className="home-container">
+        <div className="home-container">            
             <SlideMenu
                 isOpen={menuOpen}
                 onStateChange={handleStateChange}
@@ -107,7 +107,7 @@ function Home() {
             />
             <div className="content">
                 <h1>Página de Inicio</h1>
-                <p>¡Bienvenido!</p>
+                <p>¡Bienvenido a GP Excelencia App!</p>
             </div>
         </div>
     );
