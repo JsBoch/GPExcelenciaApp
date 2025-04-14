@@ -1,0 +1,25 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H your.server.ip >> ~/.ssh/known_hosts
+
+      - name: Ejecutar script de despliegue
+        run: ssh admon@181.114.25.86 -p 5222 "cd /var/www/gpexcelencia && ./deploy.sh"
