@@ -19,7 +19,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 181.114.25.86 >> ~/.ssh/known_hosts
+          ssh-keyscan -p 5222 -H 181.114.25.86 >> ~/.ssh/known_hosts
 
       - name: Ejecutar script de despliegue
-        run: ssh admon@181.114.25.86 -p 5222 "cd /var/www/gpexcelencia && ./deploy.sh"
+        run: ssh -p 5222 admon@181.114.25.86 "cd /var/www/gpexcelencia && ./deploy.sh"
