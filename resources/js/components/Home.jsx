@@ -107,7 +107,7 @@ function Home() {
             />
             <div className="content">
                 <h1>Página de Inicio</h1>
-                <p>¡Bienvenido a GP Excelencia App!</p>
+                <p>¡Bienvenido Sistema de Gestión!</p>
             </div>
         </div>
     );
