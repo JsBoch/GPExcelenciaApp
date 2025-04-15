@@ -107,7 +107,7 @@ function Home() {
             />
             <div className="content">
                 <h1>Página de Inicio</h1>
-                <p>¡Sistema GP!</p>
+                <p>¡Sistema GP Excelencia!</p>
             </div>
         </div>
     );
