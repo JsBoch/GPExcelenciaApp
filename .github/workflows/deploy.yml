@@ -23,4 +23,6 @@ jobs:
 
       - name: Ejecutar script de despliegue
         run: |
-          ssh -i ~/.ssh/id_ed25519 -p 5222 admon@181.114.25.86 "cd /var/www/gpexcelencia && ./deploy.sh"
+          eval "$(ssh-agent -a $SSH_AUTH_SOCK)"
+          ssh-add ~/.ssh/id_ed25519
+          ssh -o StrictHostKeyChecking=no -p 5222 admon@181.114.25.86 "cd /var/www/gpexcelencia && ./deploy.sh"
