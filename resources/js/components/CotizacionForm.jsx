@@ -29,7 +29,9 @@ function CotizacionForm() {
     const toggleModal = () => setModalIsOpen(!modalIsOpen);
     const [productoPredefinidoModalIsOpen, setProductoPredefinidoModalIsOpen] = useState(false);
     const toggleProductoPredefinidoModal = () => setProductoPredefinidoModalIsOpen(!productoPredefinidoModalIsOpen);
-
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+    const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -62,6 +64,8 @@ function CotizacionForm() {
         profundidad: 0,
         precio: 0,
         total: 0,
+        imagen: null, //nuevo estado para el archivo de imagen
+        imagen_preview: null, //para mostrar una vista previa de la imágen
     });
 
     //CAMBIO: Estados para almacenar precios y cantidades del modal
@@ -263,6 +267,7 @@ function CotizacionForm() {
         e.preventDefault();
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+        const formData = new FormData();
 
         // Validaciones
         if (!cotizacion.idcliente || cotizacion.idcliente === '') {
@@ -295,34 +300,50 @@ function CotizacionForm() {
             return;
         }
 
-        let shouldCostear = 'N';
-        for (const item of detalles) {
-            if (parseFloat(item.total) === 0) {
-                shouldCostear = 'S';
-                break;
-            }
-        }
+        formData.append('idcliente', cotizacion.idcliente);
+        formData.append('idcontacto', cotizacion.idcontacto);
+        formData.append('idtipopago', cotizacion.idtipopago);
+        formData.append('fecha_cotizacion', cotizacion.fecha_cotizacion);
+        formData.append('trabajo', cotizacion.trabajo);
+        formData.append('observaciones_costeo', cotizacion.observaciones_costeo);
+        formData.append('observaciones_cliente', cotizacion.observaciones_cliente);
+        formData.append('direccion_entrega', cotizacion.direccion_entrega);
+        formData.append('costear', cotizacion.costear);
+        formData.append('idcotizacionoriginal', cotizacion.idcotizacionoriginal);
+        formData.append('version', cotizacion.version);
+        formData.append('total_general', cotizacion.total_general);
 
-        const dataToSend = {
-            ...cotizacion,
-            detalles: detalles,
-            costear: shouldCostear,
-        };
+
+        detalles.forEach((detalle, index) => {
+            formData.append(`detalles[${index}][unidad_medida]`, detalle.unidad_medida);
+            formData.append(`detalles[${index}][descripcion]`, detalle.descripcion);
+            formData.append(`detalles[${index}][cantidad]`, detalle.cantidad);
+            formData.append(`detalles[${index}][ancho]`, detalle.ancho);
+            formData.append(`detalles[${index}][alto]`, detalle.alto);
+            formData.append(`detalles[${index}][m2]`, detalle.m2);
+            formData.append(`detalles[${index}][profundidad]`, detalle.profundidad);
+            formData.append(`detalles[${index}][precio]`, detalle.precio);
+            formData.append(`detalles[${index}][total]`, detalle.total);
+            if (detalle.imagen) {
+                formData.append(`detalles[${index}][imagen]`, detalle.imagen);
+            }
+        });
 
         try {
             let res;
             if (id) {
-                res = await axios.put(`/api/cotizaciones/${id}`, dataToSend, { headers });
+                formData.append('_method', 'PUT'); // Para indicar que es una actualización
+                res = await axios.post(`/api/cotizaciones/${id}`, formData, { headers });
                 alertify.success("Cotización actualizada correctamente");
             } else {
-                res = await axios.post('/api/cotizaciones', dataToSend, { headers });
+                res = await axios.post('/api/cotizaciones', formData, { headers });
                 alertify.success("Cotización creada correctamente");
             }
             navigate('/cotizaciones/lista');
         } catch (error) {
             //console.error('Error al guardar la cotización:', error);
-            alertify.error("Error al guardar la cotización");
-        }
+            alertify.error("Error al guardar la cotización", error);
+        }    
     };
 
     //Para cargar el detalle de la cotización
@@ -330,18 +351,35 @@ function CotizacionForm() {
         setDetalle({ ...detalle, [e.target.name]: e.target.value });
     };
 
+    //Para gestionar la imagen del detalle
+    const handleImagenChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setDetalle({
+                ...detalle,
+                imagen: e.target.files[0],
+                imagen_preview: URL.createObjectURL(e.target.files[0]),
+            });
+        } else {
+            setDetalle({ ...detalle, imagen: null, imagen_preview: null });
+        }
+    };
+
     //Agregar los datos del detalle al DataTable
     const handleAddDetalle = () => {
+        const nuevoDetalle = { ...detalle };
+
         if (detalleSeleccionado) {
             const index = detalles.findIndex((d) => d === detalleSeleccionado);
             if (index !== -1) {
                 const nuevosDetalles = [...detalles];
-                nuevosDetalles[index] = detalle;
+                nuevosDetalles[index] = nuevoDetalle; //detalle;
                 setDetalles(nuevosDetalles);
             }
             setDetalleSeleccionado(null);
         } else {
-            setDetalles([...detalles, detalle]);
+            setDetalles([...detalles, nuevoDetalle]);
+            // Llama a calcularPrecioDetalle solo cuando se agrega un nuevo detalle
+            calcularPrecioDetalle(nuevoDetalle.cantidad);
         }
 
         setDetalle({
@@ -354,6 +392,8 @@ function CotizacionForm() {
             profundidad: 0,
             precio: 0,
             total: 0,
+            imagen: null,
+            imagen_preview: null,
         });
     };
 
@@ -386,6 +426,8 @@ function CotizacionForm() {
                     profundidad: 0,
                     precio: 0,
                     total: 0,
+                    imagen: null,
+                    imagen_preview: null,
                 });
                 alertify.success("Detalle eliminado.");
             },
@@ -444,7 +486,7 @@ function CotizacionForm() {
         ),
     };
 
-    //Carla los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
+    //Carga los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
     const handleRowClick = (rowData) => {
         setDetalleSeleccionado(rowData);
         setDetalle({
@@ -457,7 +499,18 @@ function CotizacionForm() {
             profundidad: rowData.profundidad,
             precio: rowData.precio,
             total: rowData.total,
+            imagen: null, // Cuando se edita, la imagen ya está guardada, no se "carga" aquí
+            imagen_preview: rowData.imagen_ruta ? `/images_cotizaciones/${rowData.imagen_ruta}` : null,
         });
+
+        if (rowData.imagen_ruta) {
+            setSelectedImageUrl(`/images_cotizaciones/${rowData.imagen_ruta}`);
+            setIsImageModalOpen(true);
+        } else {
+            alertify.error("No hay imagen para mostrar");
+            setSelectedImageUrl(null);
+            setIsImageModalOpen(false); // Asegurarse de que el modal esté cerrado si no hay imagen
+        }
     };
 
     //Se establecen las columnas que se mostrarán en el DataTable
@@ -471,6 +524,13 @@ function CotizacionForm() {
         { title: 'Profundidad', data: 'profundidad' },
         { title: 'Precio', data: 'precio' },
         { title: 'Total', data: 'total' },
+        {
+            title: 'Imagen',
+            data: 'imagen_ruta',
+            render: (imagen_ruta) => (
+                imagen_ruta ? <img src={`/images_cotizaciones/${imagen_ruta}`} alt="Imagen Detalle" style={{ maxWidth: '50px' }} /> : 'Sin imagen'
+            ),
+        },
     ];
 
     const handleProductoPredefinidoSeleccionado = (producto) => {
@@ -483,8 +543,9 @@ function CotizacionForm() {
             alto: producto.alto,
             profundidad: producto.profundidad,
             precio: producto.precio || 0, // Ensure a numeric fallback
-            cantidad: 0 
+            cantidad: 0
         }));
+        calcularPrecioDetalle(0); // Calcular el precio inicial al seleccionar el producto
         toggleProductoPredefinidoModal();
     };
 
@@ -495,7 +556,7 @@ function CotizacionForm() {
             ...prevDetalle,
             cantidad: value,
         }));
-        calcularPrecioDetalle(value); // This calls calcularPrecioDetalle with new quantity
+        //calcularPrecioDetalle(value); // This calls calcularPrecioDetalle with new quantity
     };
 
     const calcularPrecioDetalle = (cantidad) => {
@@ -517,7 +578,7 @@ function CotizacionForm() {
             } else if (productoPredefinido.cantidad_cuatro > 0 && cantidad > productoPredefinido.cantidad_tres) {
                 nuevoPrecio = parseFloat(productoPredefinido.precio_cuatro) || 0;
             } else {
-              nuevoPrecio = cantidad * parseFloat(productoPredefinido.precio) || 0;  // Default price when no range matches 
+                nuevoPrecio = cantidad * parseFloat(productoPredefinido.precio) || 0;  // Default price when no range matches 
             }
         }
 
@@ -683,6 +744,13 @@ function CotizacionForm() {
                                     step="0.01"
                                 />
                             </div>
+                            <div className='col-md-3'>
+                                <label className='form-label fw-bold'>Imagen (Opcional)</label>
+                                <input type="file" name="imagen" className='form-control form-control-sm' onChange={handleImagenChange} />
+                                {detalle.imagen_preview && (
+                                    <img src={detalle.imagen_preview} alt="Vista previa" style={{ maxWidth: '50px', marginTop: '5px' }} />
+                                )}
+                            </div>
                             <div className='col-auto'>
                                 <button type="button" onClick={handleAddDetalle} className={detalleSeleccionado ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm'}>
                                     {detalleSeleccionado ? 'Actualizar Detalle' : 'Agregar Detalle'}
@@ -786,7 +854,22 @@ function CotizacionForm() {
                             onClose={toggleProductoPredefinidoModal}
                             onProductoSeleccionado={handleProductoPredefinidoSeleccionado}
                         />
-
+                        {/* Modal para mostrar la imagen del detalle */}
+                        <Modal isOpen={isImageModalOpen} toggle={toggleImageModal} centered size="lg">
+                            <ModalHeader toggle={toggleImageModal}>
+                                Imagen del Detalle
+                            </ModalHeader>
+                            <ModalBody>
+                                {selectedImageUrl ? (
+                                    <img src={selectedImageUrl} alt="Imagen del Detalle" style={{ maxWidth: '100%', height: 'auto' }} />
+                                ) : (
+                                    <p>Este detalle no tiene una imagen asociada.</p>
+                                )}
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button color="secondary" onClick={toggleImageModal}>Cerrar</Button>
+                            </ModalFooter>
+                        </Modal>
                     </form>
                 </div>
             </div>

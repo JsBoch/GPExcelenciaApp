@@ -33,7 +33,8 @@ class AdmDetalleCotizacion extends Model
         'estado',
         'incluye_foto',        
         'unidad_medida',
-        'm2',
+        'm2',    
+        'imagen',    
     ];
 
     public function cotizacion()

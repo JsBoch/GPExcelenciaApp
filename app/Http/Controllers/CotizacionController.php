@@ -52,7 +52,7 @@ class CotizacionController extends Controller
         }
 
         $cotizaciones = $query->get();
-        return response()->json($cotizaciones);        
+        return response()->json($cotizaciones);
     }
 
     public function store(Request $request)
@@ -106,27 +106,35 @@ class CotizacionController extends Controller
 
             $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
 
-            foreach ($detalles as $detalle) {
+            foreach ($detalles as $index => $detalleData) {
+                $imagenRuta = null;
+                if ($request->hasFile("detalles.{$index}.imagen")) {
+                    $imagen       = $request->file("detalles.{$index}.imagen");
+                    $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
+                    $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+                    $imagenRuta = $nombreImagen;
+                }
                 AdmDetalleCotizacion::create([
                     'iddetallecotizacion' => $idDetalleCotizacion,
                     'idcotizacion'        => $idCotizacion,
                     'idproducto'          => 0,
-                    'producto'            => $detalle['descripcion'], // Asegúrate de que el nombre del campo coincida
+                    'producto'            => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
                     'titulo'              => '',
-                    'descripcion'         => $detalle['descripcion'],
-                    'cantidad'            => $detalle['cantidad'],
-                    'ancho'               => $detalle['ancho'],
-                    'alto'                => $detalle['alto'],
-                    'profundidad'         => $detalle['profundidad'],
-                    'precio'              => $detalle['precio'],
-                    'total'               => $detalle['total'],
+                    'descripcion'         => $detalleData['descripcion'],
+                    'cantidad'            => $detalleData['cantidad'],
+                    'ancho'               => $detalleData['ancho'],
+                    'alto'                => $detalleData['alto'],
+                    'profundidad'         => $detalleData['profundidad'],
+                    'precio'              => $detalleData['precio'],
+                    'total'               => $detalleData['total'],
                     'fecha_registro'      => date('Y-m-d H:i:s'),
                     'usuario_registro'    => auth()->user()->name,
                     'costeado'            => 'N',
-                    'incluyefoto'         => 'N',
+                    'incluyefoto'         => $imagenRuta ? 'S' : 'N',
                     'estado'              => 1,
-                    'unidad_medida'       => $detalle['unidad_medida'],
-                    'm2'                  => $detalle['m2'],
+                    'unidad_medida'       => $detalleData['unidad_medida'],
+                    'm2'                  => $detalleData['m2'],
+                    'imagen'              => $imagenRuta,
                 ]);
 
                 $idDetalleCotizacion += 1;
@@ -177,7 +185,34 @@ class CotizacionController extends Controller
             return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
         }
         // Obtener los detalles de la cotización
-        $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+        $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
+        ->select(
+            'd.iddetallecotizacion',
+            'idcotizacion',
+            'idproducto',
+            'producto',
+            'titulo',
+            'descripcion',
+            'cantidad',
+            'ancho',
+            'alto',
+            'profundidad',
+            'precio',
+            'total',
+            'fecha_registro',
+            'usuario_registro',
+            'costeado',
+            'fecha_costeo',
+            'usuario_costeo',
+            'estado',
+            'incluye_foto',
+            'unidad_medida',
+            'm2',
+            'imagen',
+            'imagen as imagen_ruta',
+        )
+        ->from('adm_detalle_cotizacion as d')
+        ->get();
 
         // Agregar los detalles a la respuesta
         $cotizaciones->detalles = $detalles;
@@ -232,28 +267,39 @@ class CotizacionController extends Controller
                 $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
                 $ultimoIdUsado       = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
 
-                foreach ($detalles as $detalle) {
+                foreach ($detalles as $index => $detalleData) {
+                    $imagenRuta = null;
+                    if ($request->hasFile("detalles.{$index}.imagen")) {
+                        $imagen       = $request->file("detalles.{$index}.imagen");
+                        $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
+                        $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+                        $imagenRuta = $nombreImagen;
+                    } elseif (isset($detalleData['imagen']) && $detalleData['imagen']) {
+                        // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
+                        $imagenRuta = $detalleData['imagen'];
+                    }
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
                     AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $idDetalleCotizacion,
                         'idcotizacion'        => $id,                                                        // Usar el $id de la cotización que estamos actualizando
-                        'idproducto'          => $detalle['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
-                        'producto'            => $detalle['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
-                        'titulo'              => $detalle['titulo'] ?? '',
-                        'descripcion'         => $detalle['descripcion'] ?? '',
-                        'cantidad'            => $detalle['cantidad'] ?? 0,
-                        'ancho'               => $detalle['ancho'] ?? 0,
-                        'alto'                => $detalle['alto'] ?? 0,
-                        'profundidad'         => $detalle['profundidad'] ?? 0,
-                        'precio'              => $detalle['precio'] ?? 0,
-                        'total'               => $detalle['total'] ?? 0,
+                        'idproducto'          => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
+                        'producto'            => $detalleData['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
+                        'titulo'              => $detalleData['titulo'] ?? '',
+                        'descripcion'         => $detalleData['descripcion'] ?? '',
+                        'cantidad'            => $detalleData['cantidad'] ?? 0,
+                        'ancho'               => $detalleData['ancho'] ?? 0,
+                        'alto'                => $detalleData['alto'] ?? 0,
+                        'profundidad'         => $detalleData['profundidad'] ?? 0,
+                        'precio'              => $detalleData['precio'] ?? 0,
+                        'total'               => $detalleData['total'] ?? 0,
                         'fecha_registro'      => now(), // Usar now() para la fecha actual
                         'usuario_registro'    => auth()->user()->name,
-                        'costeado'            => $detalle['costeado'] ?? 'N',
-                        'incluyefoto'         => $detalle['incluyefoto'] ?? 'N',
-                        'estado'              => $detalle['estado'] ?? 1,
-                        'unidad_medida'       => $detalle['unidad_medida'] ?? null,
-                        'm2'                  => $detalle['m2'] ?? 0,
+                        'costeado'            => $detalleData['costeado'] ?? 'N',
+                        'incluyefoto'         => $imagenRuta ? 'S' : 'N',
+                        'estado'              => $detalleData['estado'] ?? 1,
+                        'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
+                        'm2'                  => $detalleData['m2'] ?? 0,
+                        'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
                     ]);
 
                     $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
@@ -263,14 +309,13 @@ class CotizacionController extends Controller
                 // Actualizar el correlativo con el ÚLTIMO ID que se usó
                 $correlativoDetalle->correlativo = $ultimoIdUsado;
                 $correlativoDetalle->save();
-            }
-
-            // Si todo fue bien, confirmar la transacción
-            DB::commit();
+            }           
 
                                            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
                                            // Para devolverla con detalles, necesitas volver a cargar la relación
             $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
+             // Si todo fue bien, confirmar la transacción
+             DB::commit();
 
             return response()->json($cotizacion);
 
