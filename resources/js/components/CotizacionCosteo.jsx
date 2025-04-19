@@ -7,22 +7,22 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
-
+import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap'; // Importa los componentes de reactstrap
 
 DataTable.use(DT);
 
 function CotizacionCosteo() {
     const fechaActual = new Date().toISOString().split("T")[0];
     const { id } = useParams();
-    const navigate = useNavigate();  
+    const navigate = useNavigate();
     const location = useLocation(); // Obtiene la información de la ruta actual     
     const [detalles, setDetalles] = useState([]); // Estado para almacenar los datos del datatable
-    const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);   
-   
+    const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
+
     // Obtén los valores de location.state ANTES de declarar el estado
     const initialObservacionesCliente = location.state?.observaciones_cliente || '';
     const initialObservacionesCosteo = location.state?.observaciones_costeo || '';
-   
+
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -57,16 +57,21 @@ function CotizacionCosteo() {
         total: 0,
     });
 
+    // Estados para controlar el modal de la imagen
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+
+    const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
     //Actualiza el estado de la cotización con el valor de cada campo cuando estos cambian
-    const handleChange = (e) => {        
-        setCotizacion({ ...cotizacion, [e.target.name]: e.target.value });        
+    const handleChange = (e) => {
+        setCotizacion({ ...cotizacion, [e.target.name]: e.target.value });
     };
 
     //Envía los datos al back-end para registrar, en el método store.
     const handleSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };        
+        const headers = { Authorization: `Bearer ${token}` };
 
         const dataToSend = {
             ...cotizacion,
@@ -106,21 +111,21 @@ function CotizacionCosteo() {
     };
 
     //Calcular el total del detalle ---
-        useEffect(() => {
-            const cantidadNum = parseFloat(detalle.cantidad) || 0; // Convierte a número, si es inválido o vacío, usa 0
-            const precioNum = parseFloat(detalle.precio) || 0;
-    
-            const totalCalculado = (cantidadNum * precioNum).toFixed(2); //2 decimales 
-    
-            // Actualiza el estado 'detalle' solo con el nuevo total
-            // Usamos el callback para asegurar que no perdemos otros datos del detalle
-            setDetalle(prevDetalle => ({
-                ...prevDetalle,
-                total: totalCalculado
-            }));
-    
-        }, [detalle.precio]); // Se ejecuta cada vez que cantidad o precio cambien
-        // --------------------------------------------------------
+    useEffect(() => {
+        const cantidadNum = parseFloat(detalle.cantidad) || 0; // Convierte a número, si es inválido o vacío, usa 0
+        const precioNum = parseFloat(detalle.precio) || 0;
+
+        const totalCalculado = (cantidadNum * precioNum).toFixed(2); //2 decimales 
+
+        // Actualiza el estado 'detalle' solo con el nuevo total
+        // Usamos el callback para asegurar que no perdemos otros datos del detalle
+        setDetalle(prevDetalle => ({
+            ...prevDetalle,
+            total: totalCalculado
+        }));
+
+    }, [detalle.precio]); // Se ejecuta cada vez que cantidad o precio cambien
+    // --------------------------------------------------------
     //Agregar los datos del detalle al DataTable
     const handleAddDetalle = () => {
         if (detalleSeleccionado) {
@@ -159,24 +164,32 @@ function CotizacionCosteo() {
         { title: 'Profundidad', data: 'profundidad' },
         { title: 'Precio', data: 'precio' },
         { title: 'Total', data: 'total' },
+        {
+            title: 'Imagen',
+            data: 'imagen_ruta',
+            render: (imagen_ruta) => (
+                imagen_ruta ? <img src={`/images_cotizaciones/${imagen_ruta}`} alt="Imagen Detalle" style={{ maxWidth: '50px' }} /> : 'Sin imagen'
+            ),
+        },
     ];
 
     //agregado 20250406
     useEffect(() => {
         const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` }; 
+        const headers = { Authorization: `Bearer ${token}` };
         if (id) {
             axios.get(`/api/costeocotizaciones/${id}`, { headers })
                 .then(res => {
                     const cotizacionData = res.data;
                     setCotizacion({
                         ...cotizacionData,
-                        observaciones_cliente: cotizacionData.observaciones_cliente,
-                        observaciones_costeo: cotizacionData.observaciones_costeo,
-                        costeo_observaciones: cotizacionData.costeo_observaciones,
+                        observaciones_cliente: cotizacionData.observaciones_cliente || '',
+                        observaciones_costeo: cotizacionData.observaciones_costeo || '',
+                        costeo_observaciones: cotizacionData.costeo_observaciones || '',
                     });
                     //Carga detalles desde la cotización existente
                     setDetalles(cotizacionData.detalles);
+                    console.log('Datos de detalles:', cotizacionData.detalles); // <--- Aquí
                 })
                 .catch(error => {
                     console.error('Error al obtener la cotización:', error);
@@ -238,19 +251,40 @@ function CotizacionCosteo() {
     const handleRowClick = (rowData) => {
         setDetalleSeleccionado(rowData);
         setDetalle({
-            unidad_medida: rowData.unidad_medida,
-            descripcion: rowData.descripcion,
-            cantidad: rowData.cantidad,
-            ancho: rowData.ancho,
-            alto: rowData.alto,
-            m2: rowData.m2,
-            profundidad: rowData.profundidad,
-            precio: rowData.precio,
-            total: rowData.total,
+            unidad_medida: rowData.unidad_medida || '', // Usar cadena vacía si es null
+            descripcion: rowData.descripcion || '',
+            cantidad: rowData.cantidad || 0, // Usar 0 si es null (si aplica)
+            ancho: rowData.ancho || 0,
+            alto: rowData.alto || 0,
+            m2: rowData.m2 || 0,
+            profundidad: rowData.profundidad || 0,
+            precio: rowData.precio || 0,
+            total: rowData.total || 0,
         });
+
+        if (rowData.imagen_ruta) {
+            setSelectedImageUrl(`/images_cotizaciones/${rowData.imagen_ruta}`);
+            setIsImageModalOpen(true);
+        } else {
+            alertify.error("No hay imagen para mostrar");
+            setSelectedImageUrl(null);
+            setIsImageModalOpen(false); // Asegurarse de que el modal esté cerrado si no hay imagen
+        }
     };
 
-    
+    // Función para abrir el modal y mostrar la imagen
+    // const handleVerImagen = (detalle) => {
+    //     console.log('Detalle en handleVerImagen:', detalle); // <--- Aquí
+    //     if (detalle.imagen_ruta) {
+    //         setSelectedImageUrl(`/images_cotizaciones/${detalle.imagen_ruta}`);
+    //         setIsImageModalOpen(true);
+    //     } else {
+    //         setSelectedImageUrl(null);
+    //         setIsImageModalOpen(false);
+    //         alertify.warning('Este detalle no tiene una imagen asociada.');
+    //     }
+    // };
+
     /************************************************** */
     return (
         <div className='container mt-4'>
@@ -321,6 +355,7 @@ function CotizacionCosteo() {
                                         <th>Profundidad</th>
                                         <th>Precio</th>
                                         <th>Total</th>
+                                        <th>Imagen</th>
                                     </tr>
                                 </thead>
 
@@ -348,6 +383,22 @@ function CotizacionCosteo() {
                     </form>
                 </div>
             </div>
+            {/* Modal para mostrar la imagen */}
+            <Modal isOpen={isImageModalOpen} toggle={toggleImageModal} centered size="lg">
+                <ModalHeader toggle={toggleImageModal}>
+                    Imagen del Detalle
+                </ModalHeader>
+                <ModalBody>
+                    {selectedImageUrl ? (
+                        <img src={selectedImageUrl} alt="Imagen del Detalle" style={{ maxWidth: '100%', height: 'auto' }} />
+                    ) : (
+                        <p>Este detalle no tiene una imagen asociada.</p>
+                    )}
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="secondary" onClick={toggleImageModal}>Cerrar</Button>
+                </ModalFooter>
+            </Modal>
         </div>
     );
 }

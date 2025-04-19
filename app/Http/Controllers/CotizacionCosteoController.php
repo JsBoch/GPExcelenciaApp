@@ -1,26 +1,21 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\AdmCotizacion;
 use App\Models\AdmDetalleCotizacion;
-use App\Models\AdmTipoPago;
-use App\Models\AdmUnidadMedida;
-use App\Models\Clientes;
-use App\Models\ContactoCliente;
 use App\Models\Correlativo;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
-use Illuminate\Http\Request;
 
 class CotizacionCosteoController extends Controller
 {
     public function index()
     {
         $cotizaciones = AdmCotizacion::where('c.estado', 1)
-        ->where('c.costear','S')
+            ->where('c.costear', 'S')
             ->select(
                 'c.idcotizacion',
                 DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
@@ -51,13 +46,82 @@ class CotizacionCosteoController extends Controller
 
     public function show($id)
     {
+
         try {
-            $cotizacion = AdmCotizacion::with('detalles')->findOrFail($id);
-            return response()->json($cotizacion, 200);
+            //     $cotizacion = AdmCotizacion::with('detalles')->findOrFail($id);
+            //     return response()->json($cotizacion, 200);
+            // } catch (\Exception $e) {
+            //     Log::error('Error al obtener la cotización: ' . $e->getMessage());
+            //     return response()->json(['message' => 'Error al obtener la cotización'], 500);
+            // }
+            $cotizaciones = AdmCotizacion::where('c.idcotizacion', $id)
+            ->select(
+                'c.idcotizacionoriginal',
+                'c.idcotizacion',
+                'c.idcliente',
+                'cl.nombre as cliente',
+                'c.idcontacto',
+                'ct.nombre as contacto',
+                'c.fecha_cotizacion',
+                'c.trabajo',
+                'c.observaciones_costeo',
+                'c.observaciones_cliente',
+                'c.total_general',
+                'c.costeo_observaciones',
+                'c.nocotizacion',
+                'c.version',
+                'c.idtipopago',
+                't.tipo as tipo_pago',
+                'c.direccion_entrega',
+                'c.costear',
+                'c.total_general',
+            )
+            ->from('adm_cotizacion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->first();
+        if (! $cotizaciones) {
+            return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
+        }
+        // Obtener los detalles de la cotización
+        $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
+        ->select(
+            'd.iddetallecotizacion',
+            'idcotizacion',
+            'idproducto',
+            'producto',
+            'titulo',
+            'descripcion',
+            'cantidad',
+            'ancho',
+            'alto',
+            'profundidad',
+            'precio',
+            'total',
+            'fecha_registro',
+            'usuario_registro',
+            'costeado',
+            'fecha_costeo',
+            'usuario_costeo',
+            'estado',
+            'incluye_foto',
+            'unidad_medida',
+            'm2',
+            'imagen',
+            'imagen as imagen_ruta',
+        )
+        ->from('adm_detalle_cotizacion as d')
+        ->get();
+
+        // Agregar los detalles a la respuesta
+        $cotizaciones->detalles = $detalles;
+
+            return response()->json($cotizaciones, 200);
         } catch (\Exception $e) {
             Log::error('Error al obtener la cotización: ' . $e->getMessage());
             return response()->json(['message' => 'Error al obtener la cotización'], 500);
-        }     
+        }
     }
 
     public function update(Request $request, $id)
@@ -81,8 +145,8 @@ class CotizacionCosteoController extends Controller
             // Añadir campos de auditoría para la cabecera
             $datosCabecera['usuario_costeo'] = auth()->user()->name;
             $datosCabecera['fecha_costeo']   = now(); // Usar now() es más conveniente
-                                                            // Quitar la línea de estado si no la envías o quieres mantener la existente
-                                                            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+                                                      // Quitar la línea de estado si no la envías o quieres mantener la existente
+                                                      // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
             $datosCabecera['estado'] = 2;
             $cotizacion->update($datosCabecera);
 
