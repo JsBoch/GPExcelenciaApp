@@ -16,12 +16,46 @@ use NumberToWords\NumberToWords;
 
 class CotizacionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user              = Auth::user();              // Obtiene el usuario autenticado
         $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
 
-        $query = AdmCotizacion::where('c.estado', 1)
+        // $query = AdmCotizacion::where('c.estado', 1)
+        //     ->select(
+        //         'c.idcotizacion',
+        //         DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
+        //         'c.fecha_cotizacion',
+        //         't.tipo as tipo_pago',
+        //         'c.total_general',
+        //         'c.costear',
+        //         'cl.nombre as cliente',
+        //         'ct.nombre as contacto',
+        //         'c.direccion_entrega',
+        //         'c.observaciones_costeo',
+        //         'c.observaciones_cliente',
+        //         'c.costeo_observaciones',
+        //         'c.idcotizacionoriginal',
+        //         'c.idcliente',
+        //         'c.idcontacto',
+        //         'c.trabajo',
+        //         'c.version',
+        //         'c.idtipopago',
+        //     )
+        //     ->from('adm_cotizacion as c')
+        //     ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+        //     ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+        //     ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+
+        // // Aplica el filtro condicional basado en cotizaciones_todas
+        // if ($cotizacionesTodas == 'N') {
+        //     $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
+        // }
+
+        // $cotizaciones = $query->get();
+        // return response()->json($cotizaciones);
+
+        $query = AdmCotizacion::query()
             ->select(
                 'c.idcotizacion',
                 DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
@@ -41,11 +75,29 @@ class CotizacionController extends Controller
                 'c.trabajo',
                 'c.version',
                 'c.idtipopago',
+                'c.estado',
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+
+                                            // Filtro por estado diferente de 0
+                                            // if ($request->has('estado') && $request->estado != 0) {
+                                            //     $query->where('c.estado', $request->estado);
+                                            // } else {
+        $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
+                                            //}
+
+        // Filtro por rango de fechas
+        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
+            $query->whereBetween('c.fecha_cotizacion', [$request->fecha_inicio, $request->fecha_fin]);
+        } elseif ($request->has('fecha_inicio')) {
+            $query->where('c.fecha_cotizacion', '>=', $request->fecha_inicio);
+        } elseif ($request->has('fecha_fin')) {
+            $query->where('c.fecha_cotizacion', '<=', $request->fecha_fin);
+        }
+
         // Aplica el filtro condicional basado en cotizaciones_todas
         if ($cotizacionesTodas == 'N') {
             $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
@@ -186,33 +238,33 @@ class CotizacionController extends Controller
         }
         // Obtener los detalles de la cotización
         $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
-        ->select(
-            'd.iddetallecotizacion',
-            'idcotizacion',
-            'idproducto',
-            'producto',
-            'titulo',
-            'descripcion',
-            'cantidad',
-            'ancho',
-            'alto',
-            'profundidad',
-            'precio',
-            'total',
-            'fecha_registro',
-            'usuario_registro',
-            'costeado',
-            'fecha_costeo',
-            'usuario_costeo',
-            'estado',
-            'incluye_foto',
-            'unidad_medida',
-            'm2',
-            'imagen',
-            'imagen as imagen_ruta',
-        )
-        ->from('adm_detalle_cotizacion as d')
-        ->get();
+            ->select(
+                'd.iddetallecotizacion',
+                'idcotizacion',
+                'idproducto',
+                'producto',
+                'titulo',
+                'descripcion',
+                'cantidad',
+                'ancho',
+                'alto',
+                'profundidad',
+                'precio',
+                'total',
+                'fecha_registro',
+                'usuario_registro',
+                'costeado',
+                'fecha_costeo',
+                'usuario_costeo',
+                'estado',
+                'incluye_foto',
+                'unidad_medida',
+                'm2',
+                'imagen',
+                'imagen as imagen_ruta',
+            )
+            ->from('adm_detalle_cotizacion as d')
+            ->get();
 
         // Agregar los detalles a la respuesta
         $cotizaciones->detalles = $detalles;
@@ -281,7 +333,7 @@ class CotizacionController extends Controller
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
                     AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $idDetalleCotizacion,
-                        'idcotizacion'        => $id,                                                        // Usar el $id de la cotización que estamos actualizando
+                        'idcotizacion'        => $id,                                                            // Usar el $id de la cotización que estamos actualizando
                         'idproducto'          => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
                         'producto'            => $detalleData['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
                         'titulo'              => $detalleData['titulo'] ?? '',
@@ -299,7 +351,7 @@ class CotizacionController extends Controller
                         'estado'              => $detalleData['estado'] ?? 1,
                         'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
                         'm2'                  => $detalleData['m2'] ?? 0,
-                        'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
+                        'imagen'              => $imagenRuta, // Guardar o mantener la ruta de la imagen
                     ]);
 
                     $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
@@ -309,13 +361,13 @@ class CotizacionController extends Controller
                 // Actualizar el correlativo con el ÚLTIMO ID que se usó
                 $correlativoDetalle->correlativo = $ultimoIdUsado;
                 $correlativoDetalle->save();
-            }           
+            }
 
                                            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
                                            // Para devolverla con detalles, necesitas volver a cargar la relación
             $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
-             // Si todo fue bien, confirmar la transacción
-             DB::commit();
+                                           // Si todo fue bien, confirmar la transacción
+            DB::commit();
 
             return response()->json($cotizacion);
 
@@ -351,6 +403,19 @@ class CotizacionController extends Controller
         $cotizacion->save();
 
         return response()->json(['message' => 'Cotización desactivada']);
+    }
+
+    public function activarFacturacion($id)
+    {
+        $cotizacion = AdmCotizacion::find($id);
+        if (! $cotizacion) {
+            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        }
+
+        $cotizacion->estado = 3;
+        $cotizacion->save();
+
+        return response()->json(['message' => 'Cotización enviada a facturación']);
     }
 
     public function listarClientes()

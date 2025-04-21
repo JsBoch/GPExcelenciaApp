@@ -12,12 +12,13 @@ use App\Models\User;
 use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionCosteoController;
 use App\Http\Controllers\ProductoPredefinidoController;
+use App\Http\Controllers\MonitorFacturacionController;
 
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {    
+Route::middleware('auth:sanctum')->get('/user', function(Request $request) {    
     // Obtener el usuario autenticado con sus perfiles y opciones
     $user = User::with('perfiles.opciones')->find($request->user()->id);    
     // Devolver el usuario con sus relaciones
@@ -85,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizaciones', CotizacionController::class);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
     Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
+    Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
@@ -107,3 +109,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rutas adicionales para las listas desplegables    
     Route::get('/lista_unidadesmedidapp', [ProductoPredefinidoController::class, 'listarUnidadesMedida']);        
 });
+
+//MONITOR FACTURACION
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/monitorfacturacion', MonitorFacturacionController::class);    
+    Route::put('/monitorfacturacion/desactivar/{id}', [MonitorFacturacionController::class, 'desactivar']);
+    Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);          
+});
+

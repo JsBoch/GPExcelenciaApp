@@ -20,12 +20,7 @@ import CotizacionCosteo from './components/CotizacionCosteo';
 import RegistroProductoPredefinido from './components/ProductoPredefinidoForm';
 import ListaProductoPredefinido from './components/ListaProductosPredefinidos';
 import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
-
-
-
-
-
-
+import MonitorFacturacion from './components/MonitorFacturacion';
 
 // const root = ReactDOM.createRoot(document.getElementById('root'));
 // root.render(
@@ -78,7 +73,7 @@ function App() {
                 <Route path="/productospredefinidos/crear" element={<ProtectedRoute><RegistroProductoPredefinido /></ProtectedRoute>} />
                 <Route path="/productospredefinidos/lista" element={<ProtectedRoute><ListaProductoPredefinido /></ProtectedRoute>} /> 
                 <Route path="/productospredefinidos/editar/:id" element={<ProtectedRoute><EditarProductoPredefinido /></ProtectedRoute>} />
-
+                <Route path="/monitorfacturacion/lista" element={<ProtectedRoute><MonitorFacturacion /></ProtectedRoute>} />
             </Routes>
         </BrowserRouter>
     );
