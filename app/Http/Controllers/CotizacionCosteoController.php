@@ -75,6 +75,7 @@ class CotizacionCosteoController extends Controller
                 'c.direccion_entrega',
                 'c.costear',
                 'c.total_general',
+                'c.archivo_costeo',
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -126,6 +127,8 @@ class CotizacionCosteoController extends Controller
 
     public function update(Request $request, $id)
     {
+        Log::info('ID de cotización:', ['id' => $id]);
+        
         // Iniciar transacción para asegurar atomicidad
         DB::beginTransaction();
         try {
@@ -138,7 +141,7 @@ class CotizacionCosteoController extends Controller
 
             // Obtener todos los datos, incluyendo los detalles
             $datosCotizacion = $request->all();
-
+            Log::info('Datos de la cotización:', $cotizacion->toArray());
             // Excluir 'detalles' del array para la actualización de la cabecera
             $datosCabecera = $request->except('detalles');
 
@@ -150,14 +153,32 @@ class CotizacionCosteoController extends Controller
             $datosCabecera['estado'] = 2;
             $cotizacion->update($datosCabecera);
 
+            // Guardar el archivo de costeo si se proporciona
+        if ($request->hasFile('archivo_costeo')) {
+            // Eliminar el archivo anterior si existe
+            if ($cotizacion->archivo_costeo && file_exists(public_path($cotizacion->archivo_costeo))) {
+                unlink(public_path($cotizacion->archivo_costeo));
+            }
+
+            $archivo = $request->file('archivo_costeo');
+            $nombreArchivo = 'costeo_' . $cotizacion->idcotizacion . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+            $rutaArchivo = $archivo->move(public_path('archivos_costeo'), $nombreArchivo);
+
+            $cotizacion->archivo_costeo = 'archivos_costeo/' . $nombreArchivo;
+            $cotizacion->save();
+        }
+
+        // Decodificar la cadena JSON de detalles a un array PHP
+        $detallesJson = $request->input('detalles');
+        $detalles = json_decode($detallesJson, true); // El segundo parámetro 'true' lo convierte a un array asociativo
             // 2. Eliminar los detalles existentes para esta cotización
             // Es importante hacer esto DENTRO de la transacción
             AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
 
                                                          // 3. Obtener y procesar los nuevos detalles (como en store)
-            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
+            //$detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
 
-            if (! empty($detalles)) { // Solo procesar si hay detalles
+            if (! empty($detalles)  && is_array($detalles)) { // Solo procesar si hay detalles
                                          // Obtener el correlativo para los detalles (igual que en store)
                 $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
                 if (! $correlativoDetalle) {

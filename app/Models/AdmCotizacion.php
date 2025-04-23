@@ -37,6 +37,7 @@ class AdmCotizacion extends Model
         'idusuario',
         'fecha_costeo',
         'usuario_costeo',
+        'archivo_costeo',
     ];
 
     public function tipoPago()

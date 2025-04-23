@@ -21,40 +21,6 @@ class CotizacionController extends Controller
         $user              = Auth::user();              // Obtiene el usuario autenticado
         $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
 
-        // $query = AdmCotizacion::where('c.estado', 1)
-        //     ->select(
-        //         'c.idcotizacion',
-        //         DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
-        //         'c.fecha_cotizacion',
-        //         't.tipo as tipo_pago',
-        //         'c.total_general',
-        //         'c.costear',
-        //         'cl.nombre as cliente',
-        //         'ct.nombre as contacto',
-        //         'c.direccion_entrega',
-        //         'c.observaciones_costeo',
-        //         'c.observaciones_cliente',
-        //         'c.costeo_observaciones',
-        //         'c.idcotizacionoriginal',
-        //         'c.idcliente',
-        //         'c.idcontacto',
-        //         'c.trabajo',
-        //         'c.version',
-        //         'c.idtipopago',
-        //     )
-        //     ->from('adm_cotizacion as c')
-        //     ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-        //     ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-        //     ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
-
-        // // Aplica el filtro condicional basado en cotizaciones_todas
-        // if ($cotizacionesTodas == 'N') {
-        //     $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
-        // }
-
-        // $cotizaciones = $query->get();
-        // return response()->json($cotizaciones);
-
         $query = AdmCotizacion::query()
             ->select(
                 'c.idcotizacion',
@@ -80,12 +46,8 @@ class CotizacionController extends Controller
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
-
-                                            // Filtro por estado diferente de 0
-                                            // if ($request->has('estado') && $request->estado != 0) {
-                                            //     $query->where('c.estado', $request->estado);
-                                            // } else {
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');            
+                                            
         $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
                                             //}
 
@@ -103,7 +65,8 @@ class CotizacionController extends Controller
             $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
         }
 
-        $cotizaciones = $query->get();
+        $cotizaciones = $query->orderBy('c.nocotizacion', 'desc')->get();
+        //$cotizaciones = $query->get();
         return response()->json($cotizaciones);
     }
 

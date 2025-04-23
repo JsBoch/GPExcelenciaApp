@@ -88,6 +88,8 @@ function Home() {
                     links.push({ to: '/productospredefinidos/lista', text: 'Consultar productos predefinidos' });
                 }else if (opcion.nombre === 'Monitor de Cotizaciones') {
                     links.push({ to: '/monitorfacturacion/lista', text: 'Consultar cotizaciones para facturar' });
+                }else if (opcion.nombre === 'Lista de cotizaciones costeo') {
+                    links.push({ to: '/cotizacionescosteo/lista', text: 'Consultar listado de cotizaciones' });
                 }
                 // Agrega más opciones según tus permisos
             });

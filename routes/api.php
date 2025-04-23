@@ -13,6 +13,8 @@ use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionCosteoController;
 use App\Http\Controllers\ProductoPredefinidoController;
 use App\Http\Controllers\MonitorFacturacionController;
+use App\Http\Controllers\CosteoCotizacionesController;
+
 
 //
 // Route::get('/user', function (Request $request) {
@@ -117,3 +119,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);          
 });
 
+//CONSULTA COTIZACIONES COSTEO
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/cotizacionescosteo', CosteoCotizacionesController::class);        
+    Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);          
+});

@@ -12,16 +12,14 @@ import alertify from 'alertifyjs';
 
 DataTable.use(DT);
 
-function ListaCotizaciones() {
+function ListaCotizacionesCosteo() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
-    const navigate = useNavigate(); // Hook para la navegación
-    //20250407
+    const navigate = useNavigate(); // Hook para la navegación    
     const [pdfData, setPdfData] = useState(null); // Estado para almacenar los datos del PDF
     const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
-    const [fechaHoy, setFechaHoy] = useState('');
+    const [fechaFin, setFechaFin] = useState('');    
     const dtRef = useRef(null); // Referencia al componente DataTable
 
     useEffect(() => {
@@ -29,16 +27,14 @@ function ListaCotizaciones() {
             .then(response => response.json())
             .then(data => setSpanishTranslation(data))
             .catch(error => console.error('Error al cargar la traducción:', error));
-
-            // Establecer la fecha de hoy en el formato YYYY-MM-DD
+            
         const hoy = new Date();
         const año = hoy.getFullYear();
         const mes = String(hoy.getMonth() + 1).padStart(2, '0');
         const dia = String(hoy.getDate()).padStart(2, '0');
         const fechaActual = `${año}-${mes}-${dia}`;
         setFechaInicio(fechaActual);
-        setFechaFin(fechaActual);
-        //setFechaHoy(fechaActual); // Guarda la fecha de hoy para la lógica inicial
+        setFechaFin(fechaActual);        
         fetchCotizaciones(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
     }, []);
 
@@ -56,7 +52,7 @@ function ListaCotizaciones() {
         }
 
         if (token && startDate && endDate) {
-            axios.get(`/api/cotizaciones?${params.toString()}`, {
+            axios.get(`/api/cotizacionescosteo?${params.toString()}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -105,16 +101,20 @@ function ListaCotizaciones() {
         { data: 'version', title: 'Version', visible: false },
         { data: 'estado', title: 'Estado'},
         {
+            data: 'archivo_costeo',
+            title: 'Archivo Costeo',
+            render: (data) => {
+                return data ? `<a href="/${data}" target="_blank" rel="noopener noreferrer">Ver/Descargar</a>` : 'No hay archivo';
+            }
+        },
+        {
             data: 'idcotizacion',
             title: 'Acciones',
             render: (data) => {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
                 //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `
-            <button class="btn btn-primary btn-sm  editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-            <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Eliminar</button>
-            <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}">PDF</button>
-            <button class="btn btn-warning btn-sm facturar-btn btn-fixed-width" data-id="${data}">Facturar</button>`;
+                return `                        
+            <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;            
             }
         }
     ];
@@ -124,17 +124,10 @@ function ListaCotizaciones() {
             const id = event.target.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
-            if (event.target.classList.contains('editar-btn')) {
-                navigate(`/cotizaciones/editar/${id}`);
-            } else if (event.target.classList.contains('desactivar-btn')) {
-                handleDesactivar(id);
-            } else if (event.target.classList.contains('facturar-btn')) {
-                handleFacturar(id);
-            }
-            else if (event.target.classList.contains('pdf-btn')) {
+            if (event.target.classList.contains('pdf-btn')) {
                 if (token) {
                     try {
-                        const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
+                        const response = await fetch(`/api/cotizacionescosteo/${id}/pdf`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
                             }
@@ -164,7 +157,7 @@ function ListaCotizaciones() {
 
     const options = {
         language: spanishTranslation, // Agrega la traducción aquí        
-        order: [[1, 'desc']], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
+        //order: [[1, 'desc']], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {
             if (data.estado === 1 && data.costear === 'S') {
                 row.style.backgroundColor = '#d5d8dc';
@@ -174,58 +167,11 @@ function ListaCotizaciones() {
         },
     };
 
-    // const handleEditar = (id) => {
-    //     navigate(`/cotizaciones/editar/${id}`);
-    // };
-
     useEffect(() => {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
         //console.log('Estado cotización actualizado:', cotizaciones);
     }, [cotizaciones]);
-    /*
-    Este handle se utiliza para cambiar el estado de 0 a 1 para los registros al eliminar
-    */
-    const handleDesactivar = (id) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.put(`/api/cotizaciones/desactivar/${id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
-                .then(() => {
-                    setCotizaciones(prevCotizaciones => {
-                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
-                        return prevCotizaciones.filter(cotizacion => Number(cotizacion.idcotizacion) !== Number(id)); //convertimos a numero
-                    });
-                })
-                .catch((error) => {
-                    //console.error('Error al desactivar la cotizacion:', error);
-                    alertify.error('Error al desactivar la cotizacion.');
-                });
-        }
-    };
-
-    const handleFacturar = (id) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.put(`/api/cotizaciones/activarfacturacion/${id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
-                .then(() => {
-                    setCotizaciones(prevCotizaciones => {
-                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
-                        return prevCotizaciones.filter(cotizacion => Number(cotizacion.idcotizacion) !== Number(id)); //convertimos a numero
-                    });
-                })
-                .catch((error) => {
-                    //console.error('Error al desactivar la cotizacion:', error);
-                    alertify.error('Error al enviar la cotización a facturación.');
-                });
-        }
-    };
+    
 
     return (
         <div className="container-fluid mt-4">
@@ -301,7 +247,8 @@ function ListaCotizaciones() {
                                         <th>Obsv. Vendedor</th>
                                         <th>Trabajo</th>
                                         <th>Versión</th>
-                                        <th>Estado</th>                                        
+                                        <th>Estado</th>   
+                                        <th>Archivo Costeo</th>                                     
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -310,10 +257,7 @@ function ListaCotizaciones() {
                     )}
                 </div>
                 <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/cotizaciones/crear" className="btn btn-success btn-sm" style={{ width: '100%' }}>REGISTRAR</Link>
-                        </div>
+                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>                        
                         <div style={{ width: '50%' }}>
                             <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
                         </div>
@@ -324,4 +268,4 @@ function ListaCotizaciones() {
     );
 }
 
-export default ListaCotizaciones;
+export default ListaCotizacionesCosteo;

@@ -295,10 +295,13 @@ function CotizacionForm() {
             return;
         }
 
-        if (!cotizacion.observaciones_cliente || cotizacion.observaciones_cliente.trim() === '') {
-            alertify.error("Debe ingresar las observaciones para el cliente.");
-            return;
-        }
+        // --- VALIDACIÓN DEL DETALLE PARA COSTEAR ---
+        const tieneTotalCero = detalles.some(detalle => parseFloat(detalle.total) === 0);
+        const costearValue = tieneTotalCero ? 'S' : 'N'; // Guardamos el valor en una constante
+        setCotizacion(prevState => ({
+            ...prevState,
+            costear: costearValue,
+        }));
 
         formData.append('idcliente', cotizacion.idcliente);
         formData.append('idcontacto', cotizacion.idcontacto);
@@ -308,7 +311,7 @@ function CotizacionForm() {
         formData.append('observaciones_costeo', cotizacion.observaciones_costeo);
         formData.append('observaciones_cliente', cotizacion.observaciones_cliente);
         formData.append('direccion_entrega', cotizacion.direccion_entrega);
-        formData.append('costear', cotizacion.costear);
+        formData.append('costear', costearValue);
         formData.append('idcotizacionoriginal', cotizacion.idcotizacionoriginal);
         formData.append('version', cotizacion.version);
         formData.append('total_general', cotizacion.total_general);
@@ -343,7 +346,7 @@ function CotizacionForm() {
         } catch (error) {
             //console.error('Error al guardar la cotización:', error);
             alertify.error("Error al guardar la cotización", error);
-        }    
+        }
     };
 
     //Para cargar el detalle de la cotización

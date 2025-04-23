@@ -23,6 +23,8 @@ function CotizacionCosteo() {
     const initialObservacionesCliente = location.state?.observaciones_cliente || '';
     const initialObservacionesCosteo = location.state?.observaciones_costeo || '';
 
+    const [archivoExcel, setArchivoExcel] = useState(null);
+
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -72,37 +74,48 @@ function CotizacionCosteo() {
         e.preventDefault();
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+        const formData = new FormData();
 
-        const dataToSend = {
-            ...cotizacion,
-            detalles: detalles, // Incluye los detalles aquí            
-        };
+        // const dataToSend = {
+        //     ...cotizacion,
+        //     detalles: detalles, // Incluye los detalles aquí            
+        // };
+        // Agrega los datos de la cotización al FormData
+    for (const key in cotizacion) {
+        formData.append(key, cotizacion[key]);
+    }
 
-        if (id) {
-            // Editar cliente existente (solicitud PUT) cotizacion
-            axios.put(`/api/costeocotizaciones/${id}`, dataToSend, { headers })
-                .then(res => {
-                    //console.log('Cotización actualizada:', res.data);
-                    alertify.success("Cotización actualizada correctamente");
-                    navigate('/costeocotizaciones/lista'); // Redirige a la lista
-                })
-                .catch(error => {
-                    console.error('Error al actualizar la cotización:', error)
-                    alertify.error("Error al actualizar la cotización");
-                });
-        } else {
-            // Crear nuevo empleado (solicitud POST)cotizacion
-            axios.post('/api/cotizaciones', dataToSend, { headers })
-                .then(res => {
-                    //console.log('Cotización creada:', res.data);
-                    alertify.success("Cotización creada correctamente");
-                    navigate('/cotizaciones/lista'); // Redirige a la lista
-                })
-                .catch(error => {
-                    console.error('Error al crear empleado:', error)
-                    alertify.error("Error al crear la cotización");
-                });
-        }
+    // Agrega los detalles como un string JSON
+    formData.append('detalles', JSON.stringify(detalles));
+
+    // Agrega el archivo Excel si existe
+    if (archivoExcel) {
+        formData.append('archivo_costeo', archivoExcel);
+    }
+
+    if (id) {
+        // Editar cotización (usando FormData para enviar archivos)
+        axios.post(`/api/costeocotizaciones/${id}?_method=PUT`, formData, { headers, 'Content-Type': 'multipart/form-data' })
+            .then(res => {
+                alertify.success("Cotización actualizada correctamente");
+                navigate('/costeocotizaciones/lista');
+            })
+            .catch(error => {
+                console.error('Error al actualizar la cotización:', error);
+                alertify.error("Error al actualizar la cotización");
+            });
+    } else {
+        // Crear nueva cotización (usando FormData para enviar archivos)
+        axios.post('/api/cotizaciones', formData, { headers, 'Content-Type': 'multipart/form-data' })
+            .then(res => {
+                alertify.success("Cotización creada correctamente");
+                navigate('/cotizaciones/lista');
+            })
+            .catch(error => {
+                console.error('Error al crear la cotización:', error);
+                alertify.error("Error al crear la cotización");
+            });
+    }        
     };
 
     //Para cargar el detalle de la cotización
@@ -189,7 +202,7 @@ function CotizacionCosteo() {
                     });
                     //Carga detalles desde la cotización existente
                     setDetalles(cotizacionData.detalles);
-                    console.log('Datos de detalles:', cotizacionData.detalles); // <--- Aquí
+                    //console.log('Datos de detalles:', cotizacionData.detalles); // <--- Aquí
                 })
                 .catch(error => {
                     console.error('Error al obtener la cotización:', error);
@@ -362,6 +375,16 @@ function CotizacionCosteo() {
                             </DataTable>
                         </div>
 
+                        <div className='mb-3'>
+                            <label htmlFor="archivo_excel" className='form-label fw-bold'>Subir Archivo de Costeo (Excel)</label>
+                            <input
+                                className="form-control form-control-sm"
+                                type="file"
+                                id="archivo_excel"
+                                accept=".xlsx, .xls" // Acepta solo archivos Excel
+                                onChange={(e) => setArchivoExcel(e.target.files[0])}
+                            />
+                        </div>
                         {/* --- Sección Observaciones --- */}
                         <div className='row g-2 mb-3'>
                             <div className='col-md-6'>
