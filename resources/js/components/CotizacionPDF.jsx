@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
     },
     headerText: {
         fontSize: 12,
+        textAlign: 'center',
     },
     customerInfo: {
         marginBottom: 20,
@@ -41,8 +42,8 @@ const styles = StyleSheet.create({
     table: {
         display: 'table',
         width: 'auto',
-        borderStyle: 'solid',
-        borderWidth: 1,
+        //borderStyle: 'none',
+        //borderWidth: 1,
         borderRightWidth: 0,
         borderBottomWidth: 0,
     },
@@ -57,9 +58,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     tableCol: {
-        width: '25%',
-        borderStyle: 'solid',
-        borderWidth: 1,
+        // width: '25%',
+        //borderStyle: 'none',
+        //borderWidth: 1,
         borderLeftWidth: 0,
         borderTopWidth: 0,
         padding: 5,
@@ -74,6 +75,11 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
 });
+
+const formatoMoneda = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
     <Document>
@@ -90,9 +96,9 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     <Text>www.gpexcelencia.com</Text>
                 </View>
                 <View style={{ position: 'absolute', top: 30, right: 30, width: 100, paddingLeft: 5, alignItems: 'flex-start' }}>
-                    <Text style={{fontSize:10}}>COTIZACION: {cotizacion.nocotizacion}</Text>
+                    <Text style={{ fontSize: 10 }}>COTIZACION: {cotizacion.nocotizacion}</Text>
                     <View style={{
-                        marginTop:4,
+                        marginTop: 4,
                         backgroundColor: 'rgb(39,50,56)',
                         color: 'white',
                         padding: 2,  // Ajusta el padding según necesites
@@ -125,22 +131,22 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
 
             <View style={styles.table}>
                 <View style={styles.tableRow}>
-                    <View style={[styles.tableCol, { fontWeight: 700 }]}><Text style={styles.tableCell}>CANTIDAD</Text></View>
-                    <View style={[styles.tableCol, { fontWeight: 700 }]}><Text style={styles.tableCell}>DESCRIPCIÓN</Text></View>
-                    <View style={[styles.tableCol, { fontWeight: 700 }]}><Text style={styles.tableCell}>PRECIO</Text></View>
-                    <View style={[styles.tableCol, { fontWeight: 700 }]}><Text style={styles.tableCell}>TOTAL</Text></View>
+                    <View style={[styles.tableCol, {width: '8%', fontWeight: 700 }]}><Text style={styles.tableCell}>CANT.</Text></View>
+                    <View style={[styles.tableCol, {width: '62%',fontWeight: 700 }]}><Text style={styles.tableCell}>DESCRIPCIÓN</Text></View>
+                    <View style={[styles.tableCol, {width: '15%',fontWeight: 700 }]}><Text style={styles.tableCell}>PRECIO</Text></View>
+                    <View style={[styles.tableCol, {width: '15%',fontWeight: 700 }]}><Text style={styles.tableCell}>TOTAL</Text></View>
                 </View>
-                {cotizacion.detalles.map((detalle, index) => (
+                {cotizacion.detalles.map((detalle, index) => (                    
                     <View style={styles.tableRowData} key={index}>
-                        <View style={styles.tableCol}><Text style={styles.tableCell}>{detalle.cantidad}</Text></View>
-                        <View style={styles.tableCol}><Text style={styles.tableCell}>{detalle.descripcion}</Text></View>
-                        <View style={styles.tableCol}><Text style={styles.tableCell}>{detalle.precio}</Text></View>
-                        <View style={styles.tableCol}><Text style={styles.tableCell}>{detalle.total}</Text></View>
+                        <View style={[styles.tableCol,{width: '8%'}]}><Text style={styles.tableCell}>{detalle.cantidad}</Text></View>
+                        <View style={[styles.tableCol,{width: '65%'}]}><Text style={styles.tableCell}>{detalle.descripcion}</Text></View>
+                        <View style={[styles.tableCol,{width: '12%'}]}><Text style={styles.tableCell}>{detalle.precio}</Text></View>
+                        <View style={[styles.tableCol,{width: '15%'}]}><Text style={styles.tableCell}>{formatoMoneda.format(detalle.total)}</Text></View>
                     </View>
                 ))}
             </View>
             <View style={{
-                marginTop:40,
+                marginTop: 40,
                 backgroundColor: 'rgb(39,50,56)',
                 color: 'white',
                 padding: 2,
@@ -156,7 +162,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     {totalEnLetras && <Text style={{ fontSize: 12 }}>Total en Letras: {totalEnLetras}</Text>}
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontSize: 14, marginRight: 10 }}>Total: {cotizacion.total_general}</Text>
+                    <Text style={{ fontSize: 14, marginRight: 10 }}>Total: {formatoMoneda.format(cotizacion.total_general)}</Text>
                 </View>
             </View>
         </Page>
