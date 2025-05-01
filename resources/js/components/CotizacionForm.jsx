@@ -597,7 +597,7 @@ function CotizacionForm() {
     };
 
     return (
-        <div className='container mt-4'>
+        <div className='container-fluid mt-4 mb-4'>
             <div className="card shadow p-4">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
@@ -823,16 +823,16 @@ function CotizacionForm() {
                         </div>
 
                         {/* --- Botones de Acción --- */}
-                        <div className='d-flex justify-content-between mt-4'>
-                            <button type="submit" className='btn btn-primary btn-sm w-25'>
+                        <div className='d-flex justify-content-between mt-4 flex-wrap'>
+                            <button type="submit" className='btn btn-primary btn-sm w-auto me-2 mb-2'>
                                 {id ? 'ACTUALIZAR' : 'GUARDAR'}
                             </button>
-                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                                <div style={{ width: '50%' }}>
-                                    <Link to="/cotizaciones/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
+                            <div className='d-flex gap-2'>
+                                <div>
+                                    <Link to="/cotizaciones/lista" className="btn btn-success btn-sm w-100 mb-2">CONSULTA</Link>
                                 </div>
-                                <div style={{ width: '50%' }}>
-                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
+                                <div>
+                                    <Link to="/Home" className="btn btn-secondary btn-sm w-100 mb-2">INICIO</Link>
                                 </div>
                             </div>
                         </div>
