@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
@@ -9,6 +9,8 @@ import '../../css/ListaEmpleados.css';
 import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 import alertify from 'alertifyjs';
+// import * as moment from 'moment';
+import { format } from 'date-fns';
 
 DataTable.use(DT);
 
@@ -30,7 +32,7 @@ function ListaCotizaciones() {
             .then(data => setSpanishTranslation(data))
             .catch(error => console.error('Error al cargar la traducción:', error));
 
-            // Establecer la fecha de hoy en el formato YYYY-MM-DD
+        // Establecer la fecha de hoy en el formato YYYY-MM-DD
         const hoy = new Date();
         const año = hoy.getFullYear();
         const mes = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -77,61 +79,114 @@ function ListaCotizaciones() {
             } else {
                 // Opcional: Mostrar un mensaje indicando que se deben seleccionar las fechas
                 // alertify.warning('Por favor, seleccione un rango de fechas.');
-            }            
+            }
         }
-    };    
+    };
 
     const handleFiltrar = () => {
         fetchCotizaciones(fechaInicio, fechaFin);
-    };    
+    };
 
     const columns = [
-        { data: 'idcotizacion', title: 'ID', visible: false },
-        { data: 'nocotizacion', title: 'No.Cotizacion' },
-        { data: 'fecha_cotizacion', title: 'Fecha' },
-        { data: 'tipo_pago', title: 'Forma Pago' },
-        { data: 'total_general', title: 'Total' },
-        { data: 'costear', title: 'Costear' },
-        { data: 'cliente', title: 'Cliente' },
-        { data: 'contacto', title: 'Contacto' },
-        { data: 'direccion_entrega', title: 'Dirección entrega' },
-        { data: 'observaciones_costeo', title: 'Obsv.Costeo' },
-        { data: 'observaciones_cliente', title: 'Obsv.Cliente' },
-        { data: 'costeo_observaciones', title: 'Obsv.Vendedor' },
-        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
-        { data: 'idcliente', title: 'ID Cliente', visible: false },
-        { data: 'idcontacto', title: 'ID Contacto', visible: false },
-        { data: 'trabajo', title: 'Trabajo' },
-        { data: 'version', title: 'Version', visible: false },
-        { data: 'estado', title: 'Estado'},
         {
             data: 'idcotizacion',
             title: 'Acciones',
             render: (data) => {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
                 //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `
-            <button class="btn btn-primary btn-sm  editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-            <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Eliminar</button>
-            <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}">PDF</button>
-            <button class="btn btn-warning btn-sm facturar-btn btn-fixed-width" data-id="${data}">Facturar</button>`;
+                return `        
+            <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
+                <i class="fas fa-file-pdf"></i>
+            </button>
+            <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </button>        
+    `;
             }
-        }
+        },
+        { data: 'idcotizacion', title: 'ID', visible: false },
+        { data: 'nocotizacion', title: 'No.Cotizacion' },
+        {
+            data: 'fecha_cotizacion',
+            title: 'Fecha',
+            render: (data) => {
+                if (data) {
+                    try {
+                        const date = new Date(data);
+                        return format(date, 'dd-MM-yyyy'); // Formatea la fecha al formato AAAA-MM-DD
+                        // Otros formatos que podrías usar:
+                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
+                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
+                    } catch (error) {
+                        console.error("Error al formatear la fecha:", error);
+                        return ''; // Devuelve una cadena vacía o algún otro valor en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si la fecha es nula
+            },
+        },
+        { data: 'tipo_pago', title: 'Forma Pago', visible: false },
+        // { data: 'total_general', title: 'Total' },
+        {
+            data: 'total_general',
+            title: 'Total',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        { data: 'costear', title: 'Costear' },
+        { data: 'cliente', title: 'Cliente' },
+        { data: 'contacto', title: 'Contacto', visible: false },
+        { data: 'direccion_entrega', title: 'Dirección entrega', visible: false },
+        { data: 'observaciones_costeo', title: 'Obsv.Costeo' },
+        { data: 'observaciones_cliente', title: 'Obsv.Cliente', visible: false },
+        { data: 'costeo_observaciones', title: 'Obsv.Vendedor' },
+        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
+        { data: 'idcliente', title: 'ID Cliente', visible: false },
+        { data: 'idcontacto', title: 'ID Contacto', visible: false },
+        { data: 'trabajo', title: 'Trabajo', visible: false },
+        { data: 'version', title: 'Version', visible: false },
+        { data: 'estado', title: 'Estado', visible: false },
     ];
 
     useEffect(() => {
         const handleButtonClick = async (event) => {
-            const id = event.target.getAttribute('data-id');
-            const token = localStorage.getItem('token'); // Recupera el token del localStorage
-
-            if (event.target.classList.contains('editar-btn')) {
+            const button = event.target.closest('button');
+            if (!button) return; // Salir si no se hizo clic en un botón
+    
+            const id = button.getAttribute('data-id');
+            const token = localStorage.getItem('token');
+    
+            if (button.classList.contains('editar-btn')) {
                 navigate(`/cotizaciones/editar/${id}`);
-            } else if (event.target.classList.contains('desactivar-btn')) {
+            } else if (button.classList.contains('desactivar-btn')) {
                 handleDesactivar(id);
-            } else if (event.target.classList.contains('facturar-btn')) {
+            } else if (button.classList.contains('facturar-btn')) {
                 handleFacturar(id);
-            }
-            else if (event.target.classList.contains('pdf-btn')) {
+            } else if (button.classList.contains('pdf-btn')) {
                 if (token) {
                     try {
                         const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
@@ -139,30 +194,27 @@ function ListaCotizaciones() {
                                 'Authorization': `Bearer ${token}`
                             }
                         });
-                        const data = await response.json(); // Obtener datos como JSON
-                        //console.log("Datos de la API para el PDF:", data);
-                        setPdfData(data); // Establecer los datos del PDF en el estado
+                        const data = await response.json();
+                        setPdfData(data);
                     } catch (error) {
-                        //console.error('Error al generar el PDF:', error);
                         alertify.error('Error al generar el PDF.');
                     }
                 } else {
-                    //console.error('Token no encontrado para generar PDF.');
                     alertify.error('Token no encontrado para generar PDF.');
                 }
             }
         };
-
-        // Agregar el evento al documento
+    
         document.addEventListener('click', handleButtonClick);
-
-        // Limpiar el evento cuando el componente se desmonte
-        return () => {
-            document.removeEventListener('click', handleButtonClick);
-        };
-    }, [navigate]); // Dependencia 'navigate' para evitar problemas con la navegación
+        return () => document.removeEventListener('click', handleButtonClick);
+    }, []);
+    
 
     const options = {
+        autoWidth: false, // Desactiva el autoajuste
+        columnDefs: [
+            { targets: 0, width: '100px' } // Ajusta la columna de acciones manualmente (índice 0 si es la primera visible)
+        ],
         language: spanishTranslation, // Agrega la traducción aquí        
         order: [[1, 'desc']], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {
@@ -275,19 +327,19 @@ function ListaCotizaciones() {
                             </div>
                         </div>
                     </div>
-                    {loading ? (
+                    {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
                     ) : (
                         <div className="table-responsive">
                             <DataTable
                                 data={cotizaciones}
                                 columns={columns}
-                                options={options}
+                                options={{ ...options, language: spanishTranslation }}
                                 className="table table-striped table-bordered table-hover table-sm"
                                 ref={dtRef} // Asigna la referencia al componente DataTable
                             >
                                 <thead>
-                                    <tr>                                        
+                                    <tr>
                                         <th>No. Cotización</th>
                                         <th>Fecha</th>
                                         <th>Forma Pago</th>
@@ -301,7 +353,7 @@ function ListaCotizaciones() {
                                         <th>Obsv. Vendedor</th>
                                         <th>Trabajo</th>
                                         <th>Versión</th>
-                                        <th>Estado</th>                                        
+                                        <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>

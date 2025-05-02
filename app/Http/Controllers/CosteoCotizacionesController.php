@@ -8,6 +8,8 @@ use App\Models\AdmDetalleCotizacion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar errores detallados
 use NumberToWords\NumberToWords;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\CotizacionDetallesExport; // Debes crear esta clase
 
 class CosteoCotizacionesController extends Controller
 {
@@ -115,5 +117,13 @@ class CosteoCotizacionesController extends Controller
             'cotizacion'    => $cotizacion,
             'totalEnLetras' => $totalEnLetras,
         ]);
+    }
+
+    public function exportarExcel($id)
+    {
+        $cotizacion = AdmCotizacion::findOrFail($id);
+        $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+
+        return Excel::download(new CotizacionDetallesExport($detalles), 'cotizacion_' . $cotizacion->nocotizacion . '_detalles.xlsx');
     }
 }

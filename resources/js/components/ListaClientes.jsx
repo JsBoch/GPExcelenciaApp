@@ -164,7 +164,7 @@ function ListaClientes() {
     return (
         <div className="container data-table-container mt-4">
             <h2 className="text-center mb-4">Lista de Clientes</h2> {/* Título centrado */}
-            {loading ? (
+            {loading || !spanishTranslation ? (
                 <p className='loading-message'>Cargando clientes...</p>
             ) : (
                 <div className="table-responsive"> {/* Contenedor para hacer la tabla responsive */}
@@ -172,7 +172,7 @@ function ListaClientes() {
                         key={clientes.length} // Agrega una clave que cambia con la longitud de clientes
                         data={clientes}
                         columns={columns}
-                        options={options}
+                        options={{ ...options, language: spanishTranslation }}
                         className="table" // Clases de Bootstrap mejoradas
                         customStyles={customStyles} // Agrega los estilos personalizados
                     >

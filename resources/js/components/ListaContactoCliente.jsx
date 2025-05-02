@@ -189,14 +189,14 @@ function ListaContactoCliente() {
                     </option>
                 ))}
             </select>
-            {loading ? (
+            {loading || !spanishTranslation ? (
                 <p>Cargando contactos...</p>
             ) : (
                 <div className="table-responsive"> {/* Contenedor para hacer la tabla responsive */}
                     <DataTable
                         data={contactoCliente}
                         columns={columns}
-                        options={options}
+                        options={{ ...options, language: spanishTranslation }}
                         className="table table-striped table-bordered table-hover" // Clases de Bootstrap mejoradas
                     >
                         <thead>

@@ -122,5 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
 //CONSULTA COTIZACIONES COSTEO
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizacionescosteo', CosteoCotizacionesController::class);        
-    Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);          
+    Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);    
+    Route::get('/exportar/cotizacion/{id}', [CosteoCotizacionesController::class, 'exportarExcel'])->name('cotizaciones.exportar');      
 });

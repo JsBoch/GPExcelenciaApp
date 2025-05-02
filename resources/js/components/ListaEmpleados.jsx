@@ -159,14 +159,14 @@ function ListaEmpleados() {
     return (
         <div className="container mt-4">
             <h2 className="text-center mb-4">Lista de Empleados</h2> {/* Título centrado */}
-            {loading ? (
+            {loading || !spanishTranslation ? (
                 <p>Cargando empleados...</p>
             ) : (
                 <div className="table-responsive"> {/* Contenedor para hacer la tabla responsive */}
                     <DataTable
                         data={empleados}
                         columns={columns}
-                        options={options}
+                        options={{ ...options, language: spanishTranslation }}
                         className="table table-striped table-bordered table-hover" // Clases de Bootstrap mejoradas
                     >
                         <thead>

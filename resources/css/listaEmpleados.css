@@ -1,3 +1,47 @@
 .btn-fixed-width {
     width: 100px; /* Ajusta el ancho según tus necesidades */
 }
+.editar-btn,
+.desactivar-btn,
+.pdf-btn,
+.facturar-btn,
+.costear-btn {
+    padding: 0.25rem 0.5rem !important; /* Reduce el padding vertical y horizontal */
+    line-height: 1; /* Ajusta la altura de la línea para que no haya espacio extra */
+}
+
+.editar-btn i,
+.desactivar-btn i,
+.pdf-btn i,
+.facturar-btn i,
+.costear-btn i {
+    font-size: 1rem; /* Ajusta el tamaño del icono si es necesario */
+}
+
+.btn-fixed-width {
+    width: auto !important; /* Permite que el ancho se ajuste al contenido */
+}
+
+.acciones-wrapper {
+    display: flex;
+    gap: 0px; 
+    justify-content: center; 
+}
+
+td:nth-child(1) {
+    white-space: nowrap;
+    width: 1%;
+}
+
+td.col-descripcion {
+    max-width: 200px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  td.col-descripcion:hover {
+    background-color: #f8f9fa;
+  }

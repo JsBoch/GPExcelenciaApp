@@ -9,6 +9,7 @@ import '../../css/ListaEmpleados.css';
 import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 import alertify from 'alertifyjs';
+import { format } from 'date-fns';
 
 DataTable.use(DT);
 
@@ -52,42 +53,90 @@ function MonitorFacturacion() {
     }, []);
 
     const columns = [
-        { data: 'idcotizacion', title: 'ID', visible: false },
-        { data: 'nocotizacion', title: 'No.Cotizacion' },
-        { data: 'fecha_cotizacion', title: 'Fecha' },
-        { data: 'tipo_pago', title: 'Forma Pago' },
-        { data: 'total_general', title: 'Total' },
-        { data: 'costear', title: 'Costear', visible: false },
-        { data: 'cliente', title: 'Cliente' },
-        { data: 'contacto', title: 'Contacto' },
-        { data: 'direccion_entrega', title: 'Dirección entrega' },
-        { data: 'observaciones_costeo', title: 'Obsv.Costeo', visible:false },
-        { data: 'observaciones_cliente', title: 'Obsv.Cliente' },
-        { data: 'costeo_observaciones', title: 'Obsv.Vendedor', visible:false },
-        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
-        { data: 'idcliente', title: 'ID Cliente', visible: false },
-        { data: 'idcontacto', title: 'ID Contacto', visible: false },
-        { data: 'trabajo', title: 'Trabajo' },
-        { data: 'version', title: 'Version', visible: false },
         {
             data: 'idcotizacion',
             title: 'Acciones',
-            render: (data) => {                
+            render: (data) => {
                 return `            
-            <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Volver a vendedor</button>
-            <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}">PDF</button>`;
+            <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Regresar a venta">
+            <i class="fas fa-file-invoice-dollar"></i>
+            </button>
+            <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
+            <i class="fas fa-file-pdf"></i>
+            </button>`;
             }
-        }
+        },
+        { data: 'idcotizacion', title: 'ID', visible: false },
+        { data: 'nocotizacion', title: 'No.Cotizacion' },
+        {
+            data: 'fecha_cotizacion',
+            title: 'Fecha',
+            render: (data) => {
+                if (data) {
+                    try {
+                        const date = new Date(data);
+                        return format(date, 'dd-MM-yyyy'); // Formatea la fecha al formato AAAA-MM-DD
+                        // Otros formatos que podrías usar:
+                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
+                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
+                    } catch (error) {
+                        console.error("Error al formatear la fecha:", error);
+                        return ''; // Devuelve una cadena vacía o algún otro valor en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si la fecha es nula
+            },
+        },
+        { data: 'tipo_pago', title: 'Forma Pago' },
+        {
+            data: 'total_general',
+            title: 'Total',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        { data: 'costear', title: 'Costear', visible: false },
+        { data: 'cliente', title: 'Cliente' },
+        { data: 'contacto', title: 'Contacto', visible: false },
+        { data: 'direccion_entrega', title: 'Dirección entrega', visible: false },
+        { data: 'observaciones_costeo', title: 'Obsv.Costeo', visible: false },
+        { data: 'observaciones_cliente', title: 'Obsv.Cliente', visible: false },
+        { data: 'costeo_observaciones', title: 'Obsv.Vendedor', visible: false },
+        { data: 'idcotizacionoriginal', title: 'ID CotizacionOriginal', visible: false },
+        { data: 'idcliente', title: 'ID Cliente', visible: false },
+        { data: 'idcontacto', title: 'ID Contacto', visible: false },
+        { data: 'trabajo', title: 'Trabajo', visible: false },
+        { data: 'version', title: 'Version', visible: false },
     ];
 
-    useEffect(() => {       
+    useEffect(() => {
         const handleButtonClick = async (event) => {
-            const id = event.target.getAttribute('data-id');
+            const button = event.target.closest('button');
+            if (!button) return; // Salir si no se hizo clic en un botón
+
+            const id = button.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
-            if (event.target.classList.contains('desactivar-btn')) {
+            if (button.classList.contains('desactivar-btn')) {
                 handleDesactivar(id);
-            } else if (event.target.classList.contains('pdf-btn')) {
+            } else if (button.classList.contains('pdf-btn')) {
                 if (token) {
                     try {
                         const response = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
@@ -96,10 +145,10 @@ function MonitorFacturacion() {
                             }
                         });
                         const data = await response.json(); // Obtener datos como JSON
-                        console.log("Datos de la API para el PDF:", data);
+                        //console.log("Datos de la API para el PDF:", data);
                         setPdfData(data); // Establecer los datos del PDF en el estado
                     } catch (error) {
-                        console.error('Error al generar el PDF:', error);
+                        //console.error('Error al generar el PDF:', error);
                         alertify.error('Error al generar el PDF.');
                     }
                 } else {
@@ -121,7 +170,7 @@ function MonitorFacturacion() {
     const options = {
         language: spanishTranslation, // Agrega la traducción aquí        
     };
-   
+
     // useEffect(() => {
     //     // Este useEffect se ejecutará después de que el estado cotizacion cambie.
     //     //console.log('Estado cotización actualizado:', cotizaciones);
@@ -167,14 +216,14 @@ function MonitorFacturacion() {
                     <h2 className="text-center mb-0">Lista de Cotizaciones para facturar</h2>
                 </div>
                 <div className="card-body">
-                    {loading ? (
+                    {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
                     ) : (
                         <div className="table-responsive">
                             <DataTable
                                 data={cotizaciones}
                                 columns={columns}
-                                options={options}
+                                options={{ ...options, language: spanishTranslation }}
                                 className="table table-striped table-bordered table-hover table-sm"
                             >
                                 <thead>
@@ -204,7 +253,7 @@ function MonitorFacturacion() {
                     )}
                 </div>
                 <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>                        
+                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
                         <div style={{ width: '50%' }}>
                             <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
                         </div>

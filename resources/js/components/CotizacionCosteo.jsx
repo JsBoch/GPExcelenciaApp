@@ -8,6 +8,7 @@ import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap'; // Importa los componentes de reactstrap
+//import * as XLSX from 'xlsx';
 
 DataTable.use(DT);
 
@@ -81,41 +82,41 @@ function CotizacionCosteo() {
         //     detalles: detalles, // Incluye los detalles aquí            
         // };
         // Agrega los datos de la cotización al FormData
-    for (const key in cotizacion) {
-        formData.append(key, cotizacion[key]);
-    }
+        for (const key in cotizacion) {
+            formData.append(key, cotizacion[key]);
+        }
 
-    // Agrega los detalles como un string JSON
-    formData.append('detalles', JSON.stringify(detalles));
+        // Agrega los detalles como un string JSON
+        formData.append('detalles', JSON.stringify(detalles));
 
-    // Agrega el archivo Excel si existe
-    if (archivoExcel) {
-        formData.append('archivo_costeo', archivoExcel);
-    }
+        // Agrega el archivo Excel si existe
+        if (archivoExcel) {
+            formData.append('archivo_costeo', archivoExcel);
+        }
 
-    if (id) {
-        // Editar cotización (usando FormData para enviar archivos)
-        axios.post(`/api/costeocotizaciones/${id}?_method=PUT`, formData, { headers, 'Content-Type': 'multipart/form-data' })
-            .then(res => {
-                alertify.success("Cotización actualizada correctamente");
-                navigate('/costeocotizaciones/lista');
-            })
-            .catch(error => {
-                console.error('Error al actualizar la cotización:', error);
-                alertify.error("Error al actualizar la cotización");
-            });
-    } else {
-        // Crear nueva cotización (usando FormData para enviar archivos)
-        axios.post('/api/cotizaciones', formData, { headers, 'Content-Type': 'multipart/form-data' })
-            .then(res => {
-                alertify.success("Cotización creada correctamente");
-                navigate('/cotizaciones/lista');
-            })
-            .catch(error => {
-                console.error('Error al crear la cotización:', error);
-                alertify.error("Error al crear la cotización");
-            });
-    }        
+        if (id) {
+            // Editar cotización (usando FormData para enviar archivos)
+            axios.post(`/api/costeocotizaciones/${id}?_method=PUT`, formData, { headers, 'Content-Type': 'multipart/form-data' })
+                .then(res => {
+                    alertify.success("Cotización actualizada correctamente");
+                    navigate('/costeocotizaciones/lista');
+                })
+                .catch(error => {
+                    console.error('Error al actualizar la cotización:', error);
+                    alertify.error("Error al actualizar la cotización");
+                });
+        } else {
+            // Crear nueva cotización (usando FormData para enviar archivos)
+            axios.post('/api/cotizaciones', formData, { headers, 'Content-Type': 'multipart/form-data' })
+                .then(res => {
+                    alertify.success("Cotización creada correctamente");
+                    navigate('/cotizaciones/lista');
+                })
+                .catch(error => {
+                    console.error('Error al crear la cotización:', error);
+                    alertify.error("Error al crear la cotización");
+                });
+        }
     };
 
     //Para cargar el detalle de la cotización
@@ -285,20 +286,56 @@ function CotizacionCosteo() {
         }
     };
 
-    // Función para abrir el modal y mostrar la imagen
-    // const handleVerImagen = (detalle) => {
-    //     console.log('Detalle en handleVerImagen:', detalle); // <--- Aquí
-    //     if (detalle.imagen_ruta) {
-    //         setSelectedImageUrl(`/images_cotizaciones/${detalle.imagen_ruta}`);
-    //         setIsImageModalOpen(true);
-    //     } else {
-    //         setSelectedImageUrl(null);
-    //         setIsImageModalOpen(false);
-    //         alertify.warning('Este detalle no tiene una imagen asociada.');
-    //     }
-    // };
+    // const handleExportarExcel = () => {
+    //     // Crear una nueva hoja de cálculo
+    //     const libro = XLSX.utils.book_new();
+    //     const nombreHoja = "Detalles Cotización";
 
+    //     // Convertir el array de objetos 'detalles' a formato de hoja de cálculo
+    //     const hoja = XLSX.utils.json_to_sheet(detalles);
+
+    //     // Agregar la hoja al libro
+    //     XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+
+    //     // Generar el archivo Excel y forzar la descarga
+    //     XLSX.writeFile(libro, `cotizacion_${cotizacion.nocotizacion || 'sin_numero'}_detalles.xlsx`);
+    // };
     /************************************************** */
+    const handleExportarExcel = () => {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+        axios.get(`/api/exportar/cotizacion/${id}`, { headers, responseType: 'blob' })
+            .then(response => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `cotizacion_${cotizacion.nocotizacion || 'sin_numero'}_detalles.xlsx`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                //console.error('Error al exportar a Excel:', error);
+                if (error.response && error.response.data instanceof Blob) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        try {
+                            const errorData = JSON.parse(reader.result);
+                            //console.error('Error del servidor (JSON):', errorData);
+                            alertify.error(errorData.message || "Error al exportar el archivo Excel");
+                        } catch (e) {
+                            //console.error('Error al parsear la respuesta JSON:', reader.result);
+                            alertify.error("Error al exportar el archivo Excel (error desconocido)");
+                        }
+                    };
+                    reader.readAsText(error.response.data);
+                } else {
+                    alertify.error("Error al exportar el archivo Excel");
+                }
+            });
+    };
+
     return (
         <div className='container mt-4'>
             <div className="card shadow p-4">
@@ -371,10 +408,13 @@ function CotizacionCosteo() {
                                         <th>Imagen</th>
                                     </tr>
                                 </thead>
-
                             </DataTable>
                         </div>
-
+                        <div className='mt-3'>
+                            <button type="button" className="btn btn-success btn-sm" onClick={handleExportarExcel}>
+                                Exportar a Excel
+                            </button>
+                        </div>
                         <div className='mb-3'>
                             <label htmlFor="archivo_excel" className='form-label fw-bold'>Subir Archivo de Costeo (Excel)</label>
                             <input

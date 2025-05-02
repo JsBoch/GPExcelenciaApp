@@ -47,44 +47,240 @@ function ListaProductosPredefinidos() {
     }, []);
 
     const columns = [
-        { data: 'titulo', title: 'Título' },
-        { data: 'descripcion', title: 'Descripción' },
-        { data: 'ancho', title: 'Ancho' },
-        { data: 'alto', title: 'Alto' },
-        { data: 'profundidad', title: 'Profundidad' },
-        { data: 'cantidad', title: 'Catidad' },
-        { data: 'precio', title: 'Precio' },
-        { data: 'cantidad_uno', title: 'Cantidad Uno' },
-        { data: 'precio_uno', title: 'Precio Uno' },
-        { data: 'cantidad_dos', title: 'Cantidad Dos' },
-        { data: 'precio_dos', title: 'Precio Dos' },
-        { data: 'cantidad_tres', title: 'Cantidad Tres' },
-        { data: 'precio_tres', title: 'Precio Tres' },
-        { data: 'cantidad_cuatro', title: 'Cantidad Cuatro' },
-        { data: 'precio_cuatro', title: 'Precio Cuatro' },
-        { data: 'unidad_medida', title: 'Unidad Medida' },
-        { data: 'variacion', title: 'Variación' },
-        { data: 'observaciones', title: 'Observaciones' },
         {
             data: 'idproductopredefinido',
             title: 'Acciones',
             render: (data) => {
                 return `
-            <button class="btn btn-primary btn-sm  editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-            <button class="btn btn-danger btn-sm desactivar-btn btn-fixed-width" data-id="${data}">Eliminar</button>
+            <button class="btn btn-primary btn-sm  editar-btn" data-id="${data}" title="Editar">
+            <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar">
+            <i class="fas fa-trash-alt"></i>
+            </button>
             `
             }
-        }
+        },
+        { data: 'titulo', title: 'Tipo' },
+        {
+            data: 'descripcion',
+            title: 'Descripción',
+            className: 'col-descripcion',
+            render: function (data) {
+                return `<div title="${data}">${data}</div>`;
+            }
+        },
+        { data: 'unidad_medida', title: 'Unidad Medida' },
+        { data: 'variacion', title: 'Variación' },
+        { data: 'ancho', title: 'Ancho' },
+        { data: 'alto', title: 'Alto' },
+        { data: 'profundidad', title: 'Profundidad' },
+        {
+            data: 'cantidad',
+            title: 'Catidad',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    return Number(data).toLocaleString('es-GT', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    });
+                }
+                return '';
+            },
+        },
+        {
+            data: 'precio',
+            title: 'Precio',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        {
+            data: 'cantidad_uno',
+            title: 'Cantidad Uno',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    return Number(data).toLocaleString('es-GT', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    });
+                }
+                return '';
+            },
+        },
+        {
+            data: 'precio_uno',
+            title: 'Precio Uno',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        {
+            data: 'cantidad_dos',
+            title: 'Cantidad Dos',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    return Number(data).toLocaleString('es-GT', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    });
+                }
+                return '';
+            },
+        },
+        {
+            data: 'precio_dos',
+            title: 'Precio Dos',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        {
+            data: 'cantidad_tres',
+            title: 'Cantidad Tres',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    return Number(data).toLocaleString('es-GT', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    });
+                }
+                return '';
+            },
+        },
+        {
+            data: 'precio_tres',
+            title: 'Precio Tres',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        {
+            data: 'cantidad_cuatro',
+            title: 'Cantidad Cuatro',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    return Number(data).toLocaleString('es-GT', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    });
+                }
+                return '';
+            },
+        },
+        {
+            data: 'precio_cuatro',
+            title: 'Precio Cuatro',
+            render: (data) => {
+                if (data !== null && data !== undefined) {
+                    try {
+                        // Formatea el número como moneda (Quetzales en Guatemala)
+                        return Number(data).toLocaleString('es-GT', {
+                            style: 'currency',
+                            currency: 'GTQ',
+                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
+                            maximumFractionDigits: 2,
+                        });
+                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
+                        // Ejemplo para dólares estadounidenses:
+                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    } catch (error) {
+                        console.error("Error al formatear la moneda:", error);
+                        return data; // Muestra el valor sin formato en caso de error
+                    }
+                }
+                return ''; // O algún otro valor por defecto si el total es nulo o undefined
+            },
+        },
+        {
+            data: 'observaciones',
+            title: 'Observaciones',
+            className: 'col-descripcion',
+            render: function (data) {
+                return `<div title="${data}">${data}</div>`;
+            }
+        },
     ];
 
     useEffect(() => {
         const handleButtonClick = async (event) => {
-            const id = event.target.getAttribute('data-id');
+            const button = event.target.closest('button');
+            if (!button) return; // Salir si no se hizo clic en un botón
+
+            const id = button.getAttribute('data-id');
             const token = localStorage.getItem('token'); // Recupera el token del localStorage
 
-            if (event.target.classList.contains('editar-btn')) {
+            if (button.classList.contains('editar-btn')) {
                 navigate(`/productospredefinidos/editar/${id}`);
-            } else if (event.target.classList.contains('desactivar-btn')) {
+            } else if (button.classList.contains('desactivar-btn')) {
                 // Mostrar el mensaje de confirmación antes de eliminar
                 alertify.confirm(
                     "Confirmar Eliminación",
@@ -95,8 +291,8 @@ function ListaProductosPredefinidos() {
                     () => { // Función para "No"
                         alertify.error("Eliminación cancelada");
                     }
-                );                
-            } 
+                );
+            }
         };
 
         // Agregar el evento al documento
@@ -109,6 +305,7 @@ function ListaProductosPredefinidos() {
     }, [navigate]); // Dependencia 'navigate' para evitar problemas con la navegación
 
     const options = {
+        autoWidth: false, // Desactiva el autoajuste        
         language: spanishTranslation,
     };
 
@@ -125,7 +322,7 @@ function ListaProductosPredefinidos() {
                 },
             })
                 .then(() => {
-                    setProductosPredefinidos(prevProductosPredefinidos => {                        
+                    setProductosPredefinidos(prevProductosPredefinidos => {
                         return prevProductosPredefinidos.filter(prevProductoPredefinido => Number(prevProductoPredefinido.idproductopredefinido) !== Number(id)); //convertimos a numero
                     });
                     alertify.success("Registro eliminado correctamente");
@@ -138,30 +335,30 @@ function ListaProductosPredefinidos() {
     };
 
     return (
-        <div className="container-fluid mt-4">            
+        <div className="container-fluid mt-4">
             <div className="card">
                 <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Productos Predefinidos</h2>
                 </div>
                 <div className="card-body">
-                    {loading ? (
+                    {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando registros predefinidos...</p>
                     ) : (
                         <div className="table-responsive">
                             <DataTable
                                 data={productosPredefinidos}
                                 columns={columns}
-                                options={options}
+                                options={{ ...options, language: spanishTranslation }}
                                 className="table table-striped table-bordered table-hover table-sm"
                             >
                                 <thead>
-                                    <tr>                                        
+                                    <tr>
                                         <th>Título</th>
                                         <th>Descripción</th>
                                         <th>Ancho</th>
                                         <th>Alto</th>
                                         <th>Profundidad</th>
-                                        <th>Precio</th>                                        
+                                        <th>Precio</th>
                                         <th>Cantidad 1</th>
                                         <th>Precio 1</th>
                                         <th>Cantidad 2</th>
