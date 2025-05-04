@@ -355,6 +355,48 @@ class CotizacionController extends Controller
         return response()->json(['message' => 'Cotización eliminada']);
     }
 
+    /**
+     * Obtiene los detalles de una cotización específica. para utilizarlos en el 
+     * modal que se utilizará para cambiar los precios ya sea del total de la coización
+     * o de los detalles de la cotización. En la consulta de cotizaciones como en el 
+     * módulo de costeo.
+     */
+    public function detalle($id)
+    {
+        // Obtener los detalles de la cotización
+        $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
+            ->select(
+                'd.iddetallecotizacion',
+                'idcotizacion',
+                'idproducto',
+                'producto',
+                'titulo',
+                'descripcion',
+                'cantidad',
+                'ancho',
+                'alto',
+                'profundidad',
+                'precio',
+                'total',
+                'fecha_registro',
+                'usuario_registro',
+                'costeado',
+                'fecha_costeo',
+                'usuario_costeo',
+                'estado',
+                'incluye_foto',
+                'unidad_medida',
+                'm2',
+                'imagen',
+                'imagen as imagen_ruta',
+                'porcentaje_aplicado',
+            )
+            ->from('adm_detalle_cotizacion as d')
+            ->get();        
+
+        return response()->json($detalles);
+    }
+
     public function desactivar($id)
     {
         $cotizacion = AdmCotizacion::find($id);
@@ -455,5 +497,45 @@ class CotizacionController extends Controller
             'cotizacion'    => $cotizacion,
             'totalEnLetras' => $totalEnLetras,
         ]);
+    }
+
+    public function guardarDetalle(Request $request, $cotizacion)
+    {
+        $cotizacion = AdmCotizacion::findOrFail($cotizacion);
+        $request->validate([
+            'detalle' => 'required|array',
+            'detalle.*.iddetallecotizacion' => 'nullable|exists:adm_detalle_cotizacion,iddetallecotizacion',
+            'detalle.*.porcentaje_aplicado' => 'nullable|numeric|min:0|max:10',
+            'detalle.*.precio' => 'required|numeric|min:0',
+            'detalle.*.total' => 'required|numeric|min:0',
+            // Puedes agregar más reglas de validación según tus necesidades
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->input('detalle') as $item) {
+                $detalle = AdmDetalleCotizacion::find($item['iddetallecotizacion']);
+                if ($detalle && $detalle->idcotizacion === $cotizacion->idcotizacion) {
+                    $detalle->porcentaje_aplicado = $item['porcentaje_aplicado'];
+                    $detalle->precio = $item['precio'];
+                    $detalle->total = $item['total'];
+                    $detalle->save();
+                }
+            }
+
+            // Recalcular el total general de la cotización
+            $totalGeneral = $cotizacion->detalles()->sum('total');
+            $cotizacion->total_general = $totalGeneral;
+            $cotizacion->save();
+
+            DB::commit();
+
+            return response()->json(['message' => 'Detalle de cotización actualizado correctamente']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error al guardar el detalle de la cotización', 'error' => $e->getMessage()], 500);
+        }
     }
 }

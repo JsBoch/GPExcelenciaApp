@@ -11,15 +11,17 @@ import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 import alertify from 'alertifyjs';
 // import * as moment from 'moment';
 import { format } from 'date-fns';
+import DetalleCotizacionModal from './DetalleCotizacionModal'; // Importa el componente del modal de detalle de cotización
 
 DataTable.use(DT);
 
 function ListaCotizaciones() {
     const [cotizaciones, setCotizaciones] = useState([]);
+    const [detalleCotizacion, setDetalleCotizacion] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
-    const navigate = useNavigate(); // Hook para la navegación
-    //20250407
+    const navigate = useNavigate(); // Hook para la navegación    
     const [pdfData, setPdfData] = useState(null); // Estado para almacenar los datos del PDF
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
@@ -87,6 +89,29 @@ function ListaCotizaciones() {
         fetchCotizaciones(fechaInicio, fechaFin);
     };
 
+    const obtenerDetalleCotizacion = async (id) => {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const response = await axios.get(`/api/cotizaciones/detalle/${id}`, { // Asegúrate de que esta ruta exista en tu API
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setDetalleCotizacion(response.data);
+                setModalVisible(true);
+            } catch (error) {
+                alertify.error('Error al obtener el detalle de la cotización.');
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            alertify.error('Token de autenticación no encontrado.');
+            setLoading(false);
+        }
+    };
+
     const columns = [
         {
             data: 'idcotizacion',
@@ -94,7 +119,10 @@ function ListaCotizaciones() {
             render: (data) => {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
                 //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `        
+                return `   
+                <button class="btn btn-info btn-sm detalle-btn" data-id="${data}" title="Ver Detalle">
+                <i class="fas fa-eye"></i>
+            </button>     
             <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
                 <i class="fas fa-edit"></i>
             </button>
@@ -176,10 +204,10 @@ function ListaCotizaciones() {
         const handleButtonClick = async (event) => {
             const button = event.target.closest('button');
             if (!button) return; // Salir si no se hizo clic en un botón
-    
+
             const id = button.getAttribute('data-id');
             const token = localStorage.getItem('token');
-    
+
             if (button.classList.contains('editar-btn')) {
                 navigate(`/cotizaciones/editar/${id}`);
             } else if (button.classList.contains('desactivar-btn')) {
@@ -202,13 +230,15 @@ function ListaCotizaciones() {
                 } else {
                     alertify.error('Token no encontrado para generar PDF.');
                 }
+            } else if (button.classList.contains('detalle-btn')) {
+                obtenerDetalleCotizacion(id);
             }
         };
-    
+
         document.addEventListener('click', handleButtonClick);
         return () => document.removeEventListener('click', handleButtonClick);
     }, []);
-    
+
 
     const options = {
         autoWidth: false, // Desactiva el autoajuste
@@ -290,6 +320,16 @@ function ListaCotizaciones() {
                         <button className="btn btn-danger mt-3" onClick={() => setPdfData(null)}>Cerrar PDF</button>
                     </div>
                 </div>
+            )}
+            {modalVisible && detalleCotizacion && (                
+                <DetalleCotizacionModal
+                detalle={detalleCotizacion}
+                onClose={() => {
+                    setModalVisible(false);
+                    setDetalleCotizacion(null);
+                }}
+                idCotizacion={detalleCotizacion[0]?.idcotizacion} // Pasa el ID de la cotización al modal
+            />
             )}
             <div className="card">
                 <div className="card-header bg-primary text-white">

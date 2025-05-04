@@ -110,8 +110,8 @@ function Home() {
                 links={getFilteredLinks()}
             />
             <div className="content">
-                <h1>Página de Inicio</h1>
-                <p>¡SISTEMA GP OPERACIONES!</p>
+                <h1>!GP EXCELENCIA</h1>
+                <p>Sistema de operaciones</p>
             </div>
         </div>
     );

@@ -86,6 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
 //COTIZACIONES
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizaciones', CotizacionController::class);
+    Route::get('/cotizaciones/detalle/{id}', [CotizacionController::class,'detalle']);
+    Route::post('/cotizaciones/{cotizacion}/detalle/guardar', [CotizacionController::class, 'guardarDetalle']);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
     Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
