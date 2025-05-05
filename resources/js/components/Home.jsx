@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
+import { FiUsers, FiUserPlus, FiSearch, FiFileText, FiBox } from 'react-icons/fi';
 
 function Home() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -53,48 +54,121 @@ function Home() {
         }
     };
 
-    const getFilteredLinks = () => {
+    const getStructuredLinks = () => {
         if (!user || !user.perfiles) {
-            //console.log('Usuario o perfiles no definidos:', user);
             alertify.error("Usuario o perfiles no definidos");
             return [];
         }
 
-        let links = [];
+        const menuStructure = [];
+        const opcionesPorTipo = {};
 
         user.perfiles.forEach((perfil) => {
             perfil.opciones.forEach((opcion) => {
-                if (opcion.nombre === 'Registro empleados') {
-                    links.push({ to: '/empleados/crear', text: 'Crear Empleado' });
-                } else if (opcion.nombre === 'Consulta empleados') {
-                    links.push({ to: '/empleados/lista', text: 'Consultar Empleados' });
-                }else if (opcion.nombre === 'Registro clientes') {
-                    links.push({ to: '/clientes/crear', text: 'Registrar cliente' });
-                } else if (opcion.nombre === 'Consulta clientes') {
-                    links.push({ to: '/clientes/lista', text: 'Consultar Clientes' });
-                }else if (opcion.nombre === 'Contacto cliente') {
-                    links.push({ to: '/contacto_cliente/crear', text: 'Registrar contacto cliente' });
-                } else if (opcion.nombre === 'Consulta contacto cliente') {
-                    links.push({ to: '/contacto_cliente/lista', text: 'Consultar contactos cliente' });
-                }else if (opcion.nombre === 'Cotizaciones') {
-                    links.push({ to: '/cotizaciones/crear', text: 'Registrar cotización' });
-                } else if (opcion.nombre === 'Consulta cotizaciones') {
-                    links.push({ to: '/cotizaciones/lista', text: 'Consultar cotizaciones' });
-                }else if (opcion.nombre === 'Consulta cotizaciones costeo') {
-                    links.push({ to: '/costeocotizaciones/lista', text: 'Consultar cotizaciones para Costeo' });
-                }else if (opcion.nombre === 'Productos Predefinidos') {
-                    links.push({ to: '/productospredefinidos/crear', text: 'Productos Predefinidos' });
-                }else if (opcion.nombre === 'Consulta productos predefinidos') {
-                    links.push({ to: '/productospredefinidos/lista', text: 'Consultar productos predefinidos' });
-                }else if (opcion.nombre === 'Monitor de Cotizaciones') {
-                    links.push({ to: '/monitorfacturacion/lista', text: 'Consultar cotizaciones para facturar' });
-                }else if (opcion.nombre === 'Lista de cotizaciones costeo') {
-                    links.push({ to: '/cotizacionescosteo/lista', text: 'Consultar listado de cotizaciones' });
+                const partes = opcion.nombre.split(' ');
+                //console.log('partes', partes);
+                if (partes.length >= 2) {
+                    //const tipo = partes[1].slice(0, -1).toLowerCase(); // "empleados" -> "empleado"
+                    const tipo = partes[1].toLowerCase(); // "empleados" -> "empleado"
+                    const accion = partes[0].toLowerCase();
+
+                    if (!opcionesPorTipo[tipo]) {
+                        opcionesPorTipo[tipo] = [];
+                    }
+                    opcionesPorTipo[tipo].push({ nombre: opcion.nombre, accion: accion });
+                } else {
+                    // Manejar opciones que no siguen el patrón "Acción Tipo" si es necesario
+                    //console.warn(`Opción no reconocida: ${opcion.nombre}`);
                 }
-                // Agrega más opciones según tus permisos
             });
         });
-        return links;
+
+        for (const tipo in opcionesPorTipo) {
+            const submenus = [];
+            //console.log('opcionesPorTipo', opcionesPorTipo);
+            opcionesPorTipo[tipo].forEach(opcion => {
+                let to = '';
+                let text = '';
+                let icon = null;
+                if (opcion.nombre === 'Registro empleados' && opcion.accion === 'registro') {
+                    to = `/empleados/crear`;
+                    text = 'Crear Empleado';
+                    icon = <FiUserPlus />;
+                } else if (opcion.nombre === 'Consulta empleados' && opcion.accion === 'consulta') {
+                    to = `/empleados/lista`;
+                    text = 'Consultar empleados';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Registro clientes' && opcion.accion === 'registro') {
+                    to = `/clientes/crear`;
+                    text = 'Crear Cliente';
+                    icon = <FiUserPlus />;
+                } else if (opcion.nombre === 'Consulta clientes' && opcion.accion === 'consulta') {
+                    to = `/clientes/lista`;
+                    text = 'Consultar clientes';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Registro contacto_cliente' && opcion.accion === 'registro') {
+                    to = `/contacto_cliente/crear`;
+                    text = 'Crear contacto';
+                    icon = <FiUserPlus />;
+                } else if (opcion.nombre === 'Consulta contacto_cliente' && opcion.accion === 'consulta') {
+                    to = `/contacto_cliente/lista`;
+                    text = 'Consultar contactos';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Registro cotizaciones' && opcion.accion === 'registro') {
+                    to = `/cotizaciones/crear`;
+                    text = 'Crear cotización';
+                    icon = <FiFileText />;
+                } else if (opcion.nombre === 'Consulta cotizaciones' && opcion.accion === 'consulta') {
+                    to = `/cotizaciones/lista`;
+                    text = 'Consultar cotizaciones';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Consulta cotizaciones_costeo' && opcion.accion === 'consulta') {
+                    to = `/costeocotizaciones/lista`;
+                    text = 'Consultar cotizaciones para costeo';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Registro productos_predefinidos' && opcion.accion === 'registro') {
+                    to = `/productospredefinidos/crear`;
+                    text = 'Crear producto predefinido';
+                    icon = <FiBox />;
+                } else if (opcion.nombre === 'Consulta productos_predefinidos' && opcion.accion === 'consulta') {
+                    to = `/productospredefinidos/lista`;
+                    text = 'Consultar productos predefinidos';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Consulta Monitor_de_Cotizaciones' && opcion.accion === 'consulta') {
+                    to = `/monitorfacturacion/lista`;
+                    text = 'Cotizaciones para facturar';
+                    icon = <FiSearch />;
+                } else if (opcion.nombre === 'Consulta Cotizaciones_en_costeo' && opcion.accion === 'consulta') {
+                    to = `/cotizacionescosteo/lista`;
+                    text = 'Consulta de cotizaciones gerencia';
+                    icon = <FiSearch />;
+                }
+
+                if (to && text) {
+                    submenus.push({ to, text, icon });
+                }
+            });
+
+            if (submenus.length > 0) {
+                let groupIcon = null;
+
+                if (tipo === 'empleados') groupIcon = <FiUsers />;
+                else if (tipo === 'clientes') groupIcon = <FiUsers />;
+                else if (tipo === 'cotizaciones') groupIcon = <FiFileText />;
+                else if (tipo === 'productos_predefinidos') groupIcon = <FiBox />;
+                else if (tipo === 'contacto_cliente') groupIcon = <FiUsers />;
+                else if (tipo === 'cotizaciones_costeo') groupIcon = <FiFileText />;
+                else if (tipo === 'monitor_de_cotizaciones') groupIcon = <FiFileText />;
+                else if (tipo === 'cotizaciones_en_costeo') groupIcon = <FiFileText />;
+
+                menuStructure.push({
+                    text: tipo.charAt(0).toUpperCase() + tipo.slice(1), // Capitalizar la primera letra
+                    icon: groupIcon,
+                    submenus: submenus,
+                });
+            }
+        }
+        return menuStructure;
     };
 
     if (loading) {
@@ -102,16 +176,16 @@ function Home() {
     }
 
     return (
-        <div className="home-container">            
+        <div className="home-container">
             <SlideMenu
                 isOpen={menuOpen}
                 onStateChange={handleStateChange}
                 logout={logout}
-                links={getFilteredLinks()}
+                links={getStructuredLinks()}
             />
             <div className="content">
-                <h1>Página de Inicio</h1>
-                <p>¡SISTEMA GP OPERACIONES!</p>
+                <h1>!GP EXCELENCIA</h1>
+                <p>Sistema de operaciones</p>
             </div>
         </div>
     );
