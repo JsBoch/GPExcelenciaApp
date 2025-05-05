@@ -45,7 +45,7 @@ function ListaProductosPredefinidos({ isOpen, onClose, onProductoSeleccionado })
 
     const columns = [
         { data: 'titulo', title: 'Título' },
-        { data: 'descripcion', title: 'Descripción' },
+        { data: 'descripcion', title: 'Descripción',visible:false },
         { data: 'ancho', title: 'Ancho' },
         { data: 'alto', title: 'Alto' },
         { data: 'profundidad', title: 'Profundidad' },
@@ -61,7 +61,7 @@ function ListaProductosPredefinidos({ isOpen, onClose, onProductoSeleccionado })
         { data: 'precio_cuatro', title: 'Precio Cuatro' },
         { data: 'unidad_medida', title: 'Unidad Medida' },
         { data: 'variacion', title: 'Variación', render: renderVariacion },
-        { data: 'observaciones', title: 'Observaciones' },
+        { data: 'observaciones', title: 'Observaciones',visible:false },
     ];
 
     const options = {

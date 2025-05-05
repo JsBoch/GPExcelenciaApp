@@ -1,0 +1,97 @@
+body.bm-menu-open {
+  overflow: hidden;
+}
+
+.bm-menu {
+  background: white !important;
+  height: 100vh;
+  overflow: hidden;
+  padding: 1rem 0;
+  font-size: 0.875em;
+  color: black;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #ddd;  
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-scroll {  
+  overflow-y: auto;
+  flex-grow: 1;
+  /* padding: 0 1rem; */
+}
+
+.menu-item-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.menu-item-parent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 10px;
+  font-weight: normal;
+  cursor: pointer;
+  color: #333;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+
+.menu-item-parent:hover {
+  background-color: #f0f0f0;
+}
+
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-icon {
+  font-size: 1.1rem;
+}
+
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  margin-left: 10px;
+}
+
+.submenu.open {
+  max-height: 500px;
+}
+
+.submenu-item {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  color: #555;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.submenu-item:hover {
+  background-color: #eee;
+}
+
+.logout-button {
+  color: #333 !important;       /* Asegura texto visible */
+  background: transparent;
+  border: none;
+  padding: 10px 20px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1em;
+  margin-bottom: 20px;
+}
+
+.logout-button:hover {
+  background-color: #f0f0f0;
+}

@@ -1,0 +1,55 @@
+.table-responsive-custom {
+    overflow-x: auto;
+    width: 100%;    
+}
+
+.custom-datatable thead {
+    background-color: #f0f0f0;
+    font-weight: 600;
+}
+
+.custom-datatable th,
+.custom-datatable td {
+    white-space: nowrap; /* Evita salto de línea en celdas */
+    vertical-align: middle;
+    text-align: center;
+    padding: 6px 10px;
+    font-size: 0.875rem; /* Más compacto */
+}
+
+.custom-datatable tbody tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+/* ListaProductosPredefinidos.css */
+
+.dataTables_scrollHeadInner,
+.dataTables_scrollHeadInner table {
+    width: 100% !important;
+}
+
+.dataTables_scrollBody {
+    overflow-x: auto !important;
+}
+
+table.dataTable thead th {
+    background-color: #f8f9fa; /* Color claro para distinguir el encabezado */
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+table.dataTable thead {
+    display: table-header-group;
+}
+
+table.dataTable th, table.dataTable td {
+    white-space: nowrap;
+}
+td.text-left {
+    text-align: left;
+}
+
+td.text-right {
+    text-align: right;
+}
