@@ -11,6 +11,9 @@ import Select from 'react-select';
 import ContactoClienteForm from './ContactoClienteForm';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap';
 import ProductoPredefinidoModal from './ProductoPredefinidoModal';
+import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
+import Header from './Header';
+import '../../css/generalesForm.css';
 
 DataTable.use(DT);
 
@@ -271,27 +274,27 @@ function CotizacionForm() {
 
         // Validaciones
         if (!cotizacion.idcliente || cotizacion.idcliente === '') {
-            alertify.error("Debe seleccionar un cliente.");
+            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar un cliente.");
             return;
         }
 
         if (!cotizacion.idcontacto || cotizacion.idcontacto === '') {
-            alertify.error("Debe seleccionar un contacto.");
+            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar un contacto.");
             return;
         }
 
         if (!cotizacion.idtipopago || cotizacion.idtipopago === '') {
-            alertify.error("Debe seleccionar una forma de pago.");
+            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar una forma de pago.");
             return;
         }
 
         if (!detalles || detalles.length === 0) {
-            alertify.error("Debe asignar registros en el detalle de la cotización.");
+            alertify.alert("CAMPO OBLIGATORIO","Debe asignar registros en el detalle de la cotización.");
             return;
         }
 
         if (!cotizacion.direccion_entrega || cotizacion.direccion_entrega.trim() === '') {
-            alertify.error("Debe ingresar la dirección de entrega.");
+            alertify.alert("CAMPO OBLIGATORIO","Debe ingresar la dirección de entrega.");
             return;
         }
 
@@ -596,29 +599,64 @@ function CotizacionForm() {
         }));
     };
 
+    const limpiarCampos = () => {
+        setCotizacion({
+            idcotizacion: 0,
+            idcotizacionoriginal: 0,
+            idcliente: '',
+            cliente: '',
+            idcontacto: 0,
+            contacto: '',
+            fecha_cotizacion: fechaActual,
+            trabajo: '',
+            observaciones_costeo: '',
+            observaciones_cliente: '',
+            total_general: 0,
+            costeo_observaciones: '',
+            nocotizacion: '',
+            version: 1,
+            idtipopago: '',
+            direccion_entrega: '',
+        });
+        setDetalles([]);
+        setDetalle({
+            unidad_medida: '',
+            descripcion: '',
+            cantidad: 0,
+            ancho: 0,
+            alto: 0,
+            m2: 0,
+            profundidad: 0,
+            precio: 0,
+            total: 0,
+        });
+    }
+
     return (
-        <div className='container-fluid mt-4 mb-4'>
+        <div className='mt-4 mb-4'>
+            <Header title={id ? 'Editar Cotización' : 'Crear Nueva Cotización'} />
             <div className="card shadow p-4">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
-                </div>
+                </div> */}
                 <div className="card-body">
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <div className='row g-2 mb-3'>
                             <div className='col-md-6'>
-                                <label className='form-label fw-bold'>Cliente</label>
+                                <label className='form-label'>Cliente</label>
                                 <Select
                                     value={clienteOptions.find(option => option.value === cotizacion.idcliente)}
                                     onChange={handleClienteChange}
                                     options={clienteOptions}
                                     isSearchable={true}
                                     placeholder="Seleccionar Cliente"
+                                    className='form-select form-select-sm campo-obligatorio-fondo'
                                 />
                             </div>
                             <div className='col-md-6'>
-                                <label className='form-label fw-bold'>Contacto</label>
-                                <select name="idcontacto" value={cotizacion.idcontacto} onChange={handleChange} className='form-select form-select-sm' disabled={!clienteId}>
+                                <label className='form-label'>Contacto</label>
+                                <select name="idcontacto" value={cotizacion.idcontacto} onChange={handleChange} className='form-select form-select-sm campo-obligatorio-fondo' disabled={!clienteId}>
                                     <option value="">Seleccionar Contacto</option>
                                     {contactos.map(contacto => (
                                         <option key={contacto.id_contactocliente} value={contacto.id_contactocliente}>
@@ -638,8 +676,8 @@ function CotizacionForm() {
                         </div>
                         <div className='row g-2 mb-3'>
                             <div className='col-md-4'>
-                                <label className='form-label fw-bold'>Forma pago</label>
-                                <select name="idtipopago" value={cotizacion.idtipopago} onChange={handleChange} className='form-select form-select-sm'>
+                                <label className='form-label'>Forma pago</label>
+                                <select name="idtipopago" value={cotizacion.idtipopago} onChange={handleChange} className='form-select form-select-sm campo-obligatorio-fondo'>
                                     <option value="">Seleccionar forma de pago</option>
                                     {tiposPago.map(tipoPago => (
                                         <option key={tipoPago.idtipopago} value={tipoPago.idtipopago}>
@@ -649,23 +687,23 @@ function CotizacionForm() {
                                 </select>
                             </div>
                             <div className='col-md-3'>
-                                <label className='form-label fw-bold'>Fecha cotizacion</label>
+                                <label className='form-label'>Fecha cotizacion</label>
                                 <input type="date" name="fecha_cotizacion" value={cotizacion.fecha_cotizacion} onChange={handleChange} placeholder="Fecha cotización" className='form-control form-control-sm' required />
                             </div>
                             <div className='col-md-5'>
-                                <label className='form-label fw-bold'>Trabajo</label>
+                                <label className='form-label'>Trabajo</label>
                                 <input type="text" name="trabajo" value={cotizacion.trabajo} onChange={handleChange} placeholder="Nombre del trabajo o proyecto" className='form-control form-control-sm' />
                             </div>
                         </div>
                         <div className='row g-2 mb-4'>
                             <div className='col-md-12'>
-                                <label className='form-label fw-bold'>Dirección entrega</label>
-                                <input type="text" name="direccion_entrega" value={cotizacion.direccion_entrega} onChange={handleChange} placeholder="Dirección de entrega" className='form-control form-control-sm' />
+                                <label className='form-label'>Dirección entrega</label>
+                                <input type="text" name="direccion_entrega" value={cotizacion.direccion_entrega} onChange={handleChange} placeholder="Dirección de entrega" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
 
                         {/* --- Sección Detalle de Cotización --- */}
-                        <h5 className="mt-4 mb-3 border-bottom pb-2">Agregar Detalle</h5>
+                        <h5 className="mt-4 mb-3 border-bottom pb-2 campo-obligatorio-fondo">Agregar Detalle</h5>
 
                         <div className='row g-1 mb-2'>
                             <div className='col-md-4'>
@@ -677,7 +715,7 @@ function CotizacionForm() {
                         <div className='row g-3 mb-2'>
                             {/* Este bloque va aquí, después del botón */}
                             <div className='col-md-2'>
-                                <label className='form-label fw-bold'>Unidad Medida</label>
+                                <label className='form-label'>Unidad Medida</label>
                                 <select name="unidad_medida" value={detalle.unidad_medida} onChange={handleDetalleChange} className='form-select form-select-sm'>
                                     <option value="">Seleccionar</option>
                                     {unidadesMedida.map(um => (
@@ -689,7 +727,7 @@ function CotizacionForm() {
                             </div>
 
                             <div className='col-md-1'>
-                                <label className='form-label fw-bold'>Cantidad</label>
+                                <label className='form-label'>Cantidad</label>
                                 <input
                                     type="number"
                                     name="cantidad"
@@ -701,7 +739,7 @@ function CotizacionForm() {
                                 />
                             </div>
                             <div className='col-md-9'>
-                                <label className='form-label fw-bold'>Descripción</label>
+                                <label className='form-label'>Descripción</label>
                                 <textarea rows="1" name="descripcion" value={detalle.descripcion} onChange={handleDetalleChange} className='form-control form-control-sm'></textarea>
                             </div>
                         </div>
@@ -709,23 +747,23 @@ function CotizacionForm() {
                         {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
                         <div className='row g-2 align-items-end mb-3'>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Ancho</label>
+                                <label className='form-label'>Ancho</label>
                                 <input type="number" name="ancho" value={detalle.ancho} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Alto</label>
+                                <label className='form-label'>Alto</label>
                                 <input type="number" name="alto" value={detalle.alto} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>M2</label>
+                                <label className='form-label'>M2</label>
                                 <input type="number" name="m2" value={detalle.m2} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Prof.</label>
+                                <label className='form-label'>Prof.</label>
                                 <input type="number" name="profundidad" value={detalle.profundidad} onChange={handleDetalleChange} className='form-control form-control-sm' step="any" min="0" />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Precio</label>
+                                <label className='form-label'>Precio</label>
                                 <input
                                     type="number"
                                     name="precio"
@@ -737,7 +775,7 @@ function CotizacionForm() {
                                 />
                             </div>
                             <div className='col'>
-                                <label className='form-label fw-bold'>Total</label>
+                                <label className='form-label'>Total</label>
                                 <input
                                     type="number"
                                     name="total"
@@ -776,6 +814,7 @@ function CotizacionForm() {
                                 }}
                                 slots={slots}
                                 className="table table-striped table-bordered table-hover table-sm"
+                                //style={{fontWeight: "#ddd" }}
                                 id="tabla-detalles"
                             >
                                 <thead>
@@ -813,17 +852,17 @@ function CotizacionForm() {
                         {/* --- Sección Observaciones --- */}
                         <div className='row g-2 mb-3'>
                             <div className='col-md-6'>
-                                <label className='form-label fw-bold'>Observaciones cliente</label>
+                                <label className='form-label'>Observaciones cliente</label>
                                 <textarea rows="3" name="observaciones_cliente" value={cotizacion.observaciones_cliente} onChange={handleChange} placeholder="Observaciones para cliente" className='form-control form-control-sm'></textarea>
                             </div>
                             <div className='col-md-6'>
-                                <label className='form-label fw-bold'>Observaciones costeo (Internas)</label>
+                                <label className='form-label'>Observaciones costeo (Internas)</label>
                                 <textarea rows="3" name="observaciones_costeo" value={cotizacion.observaciones_costeo} onChange={handleChange} placeholder="Observaciones internas para costeo" className='form-control form-control-sm'></textarea>
                             </div>
                         </div>
 
                         {/* --- Botones de Acción --- */}
-                        <div className='d-flex justify-content-between mt-4 flex-wrap'>
+                        {/* <div className='d-flex justify-content-between mt-4 flex-wrap'>
                             <button type="submit" className='btn btn-primary btn-sm w-auto me-2 mb-2'>
                                 {id ? 'ACTUALIZAR' : 'GUARDAR'}
                             </button>
@@ -835,8 +874,37 @@ function CotizacionForm() {
                                     <Link to="/Home" className="btn btn-secondary btn-sm w-100 mb-2">INICIO</Link>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
+                        <div
+                            className="mt-4 p-3 border rounded shadow-sm bg-light"
+                            style={{ borderColor: "#ddd" }}
+                        >
+                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSave /> {id ? 'ACTUALIZAR' : 'GUARDAR'}
+                                </button>
+                                <button
+                                    type="button" // Importante: no es un botón de submit
+                                    className="btn btn-light d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px", color: "#000", border: "1px solid #ccc" }}
+                                    onClick={limpiarCampos} // Asocia la función al evento onClick
+                                >
+                                    <FaBroom /> {/* Puedes usar otro icono como FaBroom */} Limpiar
+                                </button>
+                                <Link
+                                    to="/cotizaciones/lista"
+                                    className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSearch /> Consultar
+                                </Link>
+                            </div>
+                        </div>
                         {/* Modal para ContactoClienteForm */}
                         <Modal isOpen={modalIsOpen} toggle={toggleModal} centered size='xl'>
                             <ModalHeader toggle={toggleModal}>

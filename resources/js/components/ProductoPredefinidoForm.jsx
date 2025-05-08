@@ -5,6 +5,9 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
+import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
+import Header from './Header';
+import '../../css/generalesForm.css';
 
 function ProductoPredefinidoForm() {
     const { id } = useParams(); // Obtiene el id de la URL
@@ -100,21 +103,23 @@ function ProductoPredefinidoForm() {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Validaciones
-        if (!productoPredefinido.titulo.trim()) {
-            alertify.error("Debe ingresar el título.");
-            return;
-        }
-
-        if (!productoPredefinido.idunidadmedida) {
-            alertify.error("Seleccione la unidad de medida.");
-            return;
-        }
-
         const dataToSend = {
             ...productoPredefinido,
             variacion: productoPredefinido.variacion ? '1' : '0'
         };
+
+        // Validación de campos obligatorios
+        const camposObligatorios = [
+            { campo: dataToSend.titulo, nombre: 'Titulo' },
+            { campo: dataToSend.idunidadmedida, nombre: 'Unidad medida' },
+        ];
+
+        const camposFaltantes = camposObligatorios.filter(c => !c.campo || c.campo.trim() === '');
+        if (camposFaltantes.length > 0) {
+            const nombres = camposFaltantes.map(c => c.nombre).join(', ');
+            alertify.alert('DATOS OBLIGATORIOS', `Por favor, complete los siguientes campos obligatorios: ${nombres}`);
+            return;
+        }
 
         if (id) {
             // Editar producto predefinido existente (solicitud PUT)
@@ -135,18 +140,42 @@ function ProductoPredefinidoForm() {
         }
     };
 
+    const limpiarCampos = () => {
+        setProductoPredefinido({
+            titulo: '',
+            descripcion: '',
+            ancho: 0,
+            alto: 0,
+            profundidad: 0,
+            precio: 0,
+            observaciones: '',
+            cantidad: 0,
+            cantidad_uno: 0,
+            cantidad_dos: 0,
+            cantidad_tres: 0,
+            cantidad_cuatro: 0,
+            precio_uno: 0,
+            precio_dos: 0,
+            precio_tres: 0,
+            precio_cuatro: 0,
+            variacion: false,
+            idunidadmedida: 0,
+        });
+    }
+
     return (
-        <div className='container mt-4'>
+        <div className='mt-4'>
+            <Header title={id ? 'Actualizar Producto Predefinido' : 'Crear Producto Predefinido'}/>
             <div className="card shadow p-4">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de Producto Predefinido</h4>
-                </div>
+                </div> */}
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
                         <div className='row g-2'>
                             <div className='col-md-2'>
                                 <label className="form-label">Titulo</label>
-                                <input type="text" name="titulo" value={productoPredefinido.titulo} onChange={handleChange} placeholder="Titulo" className='form-control form-control-sm' style={{ textTransform: 'uppercase' }} />
+                                <input type="text" name="titulo" value={productoPredefinido.titulo} onChange={handleChange} placeholder="Titulo" className='form-control form-control-sm campo-obligatorio-fondo' style={{ textTransform: 'uppercase' }} />
                             </div>
                             <div className='col-md-6'>
                                 <label className="form-label">Descripción</label>
@@ -157,7 +186,7 @@ function ProductoPredefinidoForm() {
                         <div className='row g-2 mt-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Unidad medida</label>
-                                <select name="idunidadmedida" value={productoPredefinido.idunidadmedida} onChange={handleChange} className='form-control form-control-sm'>
+                                <select name="idunidadmedida" value={productoPredefinido.idunidadmedida} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
                                     <option value="">Seleccionar Unidad Medida</option>
                                     {unidadesMedida.map(unidadMedida => (
                                         <option key={unidadMedida.idunidadmedida} value={unidadMedida.idunidadmedida}>
@@ -322,7 +351,7 @@ function ProductoPredefinidoForm() {
                             </div>
                         </div>
 
-                        <div className='d-flex justify-content-between mt-4'>
+                        {/* <div className='d-flex justify-content-between mt-4'>
                             <button type="submit" className='btn btn-primary btn-sm w-25'>
                                 {id ? 'ACTUALIZAR' : 'GUARDAR'}
                             </button>
@@ -331,8 +360,38 @@ function ProductoPredefinidoForm() {
                                     <Link to="/productospredefinidos/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
                                 </div>
                                 <div style={{ width: '50%' }}>
-                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link> {/* Estilo diferente para volver */}
+                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
                                 </div>
+                            </div>
+                        </div> */}
+
+                        <div
+                            className="mt-4 p-3 border rounded shadow-sm bg-light"
+                            style={{ borderColor: "#ddd" }}
+                        >
+                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSave /> {id ? 'ACTUALIZAR' : 'GUARDAR'}
+                                </button>
+                                <button
+                                    type="button" // Importante: no es un botón de submit
+                                    className="btn btn-light d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px", color: "#000", border: "1px solid #ccc" }}
+                                    onClick={limpiarCampos} // Asocia la función al evento onClick
+                                >
+                                    <FaBroom /> {/* Puedes usar otro icono como FaBroom */} Limpiar
+                                </button>
+                                <Link
+                                    to="/productospredefinidos/lista"
+                                    className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSearch /> Consultar
+                                </Link>
                             </div>
                         </div>
                     </form>

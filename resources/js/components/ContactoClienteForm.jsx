@@ -6,6 +6,9 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
+import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
+import Header from './Header';
+import '../../css/generalesForm.css';
 
 function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Recibe clienteId como prop
     const { id } = useParams(); // Obtiene el id de la URL
@@ -71,19 +74,36 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
+        // Validación de campos obligatorios
+        const camposObligatorios = [
+            { campo: contactoCliente.idcliente, nombre: 'Cliente' },
+            { campo: contactoCliente.nombre, nombre: 'Nombre' },
+            { campo: contactoCliente.telefono, nombre: 'Teléfono' },
+            { campo: contactoCliente.puesto, nombre: 'Puesto' },
+        ];
+
+        const camposFaltantes = camposObligatorios.filter(c => !c.campo || c.campo.trim() === '');
+        if (camposFaltantes.length > 0) {
+            const nombres = camposFaltantes.map(c => c.nombre).join(', ');
+            alertify.alert('DATOS OBLIGATORIOS', `Por favor, complete los siguientes campos obligatorios: ${nombres}`);
+            return;
+        }
+
         if (id) {
             // Editar empleado existente (solicitud PUT)
             axios.put(`/api/contacto_cliente/${id}`, contactoCliente, { headers })
                 .then(res => {
-                    console.log('Contacto actualizado:', res.data);
-                    navigate('/contacto_cliente/lista'); // Redirige a la lista
+                    //console.log('Contacto actualizado:', res.data);
+                    //navigate('/contacto_cliente/lista'); // Redirige a la lista
+                    alertify.success("Contacto actualizado correctamente");
+                    limpiarCampos(); // Limpia los campos después de actualizar
                 })
                 .catch(error => console.error('Error al actualizar el contacto:', error));
         } else {
             // Crear nuevo empleado (solicitud POST)
             axios.post('/api/contacto_cliente', contactoCliente, { headers })
                 .then(res => {
-                    console.log('Contacto creado:', res.data);
+                    //console.log('Contacto creado:', res.data);
                     alertify.success("Contacto creado correctamente");
                     onContactCreated();
 
@@ -97,18 +117,30 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
         }
     };
 
+    const limpiarCampos = () => {
+        setContactoCliente({
+            idcliente: 0,
+            nombre: '',
+            telefono: '',
+            correo: '',
+            puesto: '',
+            observaciones: '',
+        });
+    }
+
     return (
-        <div className='container mt-4'>
+        <div className='mt-4'>
+            <Header title="Registro de contactos (Cliente)" />
             <div className="card shadow p-4">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de contactos</h4>
-                </div>
+                </div> */}
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Cliente</label>
-                                <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm'>
+                                <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
                                     <option value="">Seleccionar Cliente</option>
                                     {clientes.map(cliente => (
                                         <option key={cliente.idcliente} value={cliente.idcliente}>
@@ -121,13 +153,13 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Nombre</label>
-                                <input type="text" name="nombre" value={contactoCliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm' />
+                                <input type="text" name="nombre" value={contactoCliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className='form-label'>Teléfono</label>
-                                <input type='text' name="telefono" value={contactoCliente.telefono} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm' />
+                                <input type='text' name="telefono" value={contactoCliente.telefono} onChange={handleChange} placeholder="Teléfono" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
                         <div className='row g-2'>
@@ -137,7 +169,7 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                             </div>
                             <div className='col-md-4'>
                                 <label className='form-label'>Puesto</label>
-                                <input type='text' name='puesto' value={contactoCliente.puesto} onChange={handleChange} placeholder="Puesto" className='form-control form-control-sm' />
+                                <input type='text' name='puesto' value={contactoCliente.puesto} onChange={handleChange} placeholder="Puesto" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
                         <div className='row g-2'>
@@ -146,11 +178,33 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                                 <input type='text' name="observaciones" value={contactoCliente.observaciones} onChange={handleChange} placeholder="Observaciones" className='form-control form-contorl-lg' />
                             </div>
                         </div>
-                        <div className="d-flex justify-content-between mt-4 flex-wrap">
-                            <button type="submit" className="btn btn-primary btn-sm me-2 flex-grow-1">GUARDAR</button>
-                            <div className="d-flex gap-2 flex-grow-1">
-                                <Link to="/contacto_cliente/lista" className="btn btn-success btn-sm flex-grow-1">CONSULTA</Link>
-                                <Link to="/Home" className="btn btn-secondary btn-sm flex-grow-1">INICIO</Link>
+                        <div
+                            className="mt-4 p-3 border rounded shadow-sm bg-light"
+                            style={{ borderColor: "#ddd" }}
+                        >
+                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSave /> Guardar
+                                </button>
+                                <button
+                                    type="button" // Importante: no es un botón de submit
+                                    className="btn btn-light d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px", color: "#000", border: "1px solid #ccc" }}
+                                    onClick={limpiarCampos} // Asocia la función al evento onClick
+                                >
+                                    <FaBroom /> {/* Puedes usar otro icono como FaBroom */} Limpiar
+                                </button>
+                                <Link
+                                    to="/contacto_cliente/lista"
+                                    className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSearch /> Consultar
+                                </Link>
                             </div>
                         </div>
                     </form>

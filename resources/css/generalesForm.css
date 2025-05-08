@@ -1,0 +1,10 @@
+.form-control.form-control-sm.campo-obligatorio-fondo {
+  background-color: rgba(254, 231, 226 , 1) !important; /* Rojo claro con transparencia */
+  /* Puedes agregar otros estilos obligatorios aquí, como el borde */
+   /* border: 1px solid red!important;  */
+}
+.form-select.form-select-sm.campo-obligatorio-fondo {
+  background-color: rgba(254, 231, 226 , 1) !important; /* Rojo claro con transparencia */
+  /* Puedes agregar otros estilos obligatorios aquí, como el borde */
+   /* border: 1px solid red!important;  */
+}

@@ -3,6 +3,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 
 import { Link, useParams, useNavigate } from 'react-router-dom'; //
+import alertify from 'alertifyjs';
+import 'alertifyjs/build/css/alertify.min.css';
+import 'alertifyjs/build/css/themes/default.min.css';
+import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
+import Header from './Header';
+import '../../css/generalesForm.css';
 
 function ClienteRegistro() {
     const [cliente, setCliente] = useState({
@@ -103,41 +109,91 @@ function ClienteRegistro() {
             clienteData.cui = '0'; // O clienteData.cui = 'valor_predeterminado';
         }
 
+        // Validación de campos obligatorios
+        const camposObligatorios = [
+            { campo: clienteData.nit, nombre: 'Nit' },
+            { campo: clienteData.nombre, nombre: 'Nombre' },
+            { campo: clienteData.razonsocial, nombre: 'Razón Social' },
+            { campo: clienteData.direccion, nombre: 'Dirección' },
+            { campo: clienteData.monto_credito, nombre: 'Monto crédito' },
+            { campo: clienteData.dias_credito, nombre: 'Días crédito' },
+        ];
+
+        const camposFaltantes = camposObligatorios.filter(c => !c.campo || c.campo.trim() === '');
+        if (camposFaltantes.length > 0) {
+            const nombres = camposFaltantes.map(c => c.nombre).join(', ');
+            alertify.alert('DATOS OBLIGATORIOS', `Por favor, complete los siguientes campos obligatorios: ${nombres}`);
+            return;
+        }
+
         if (id) {
             // Editar cliente existente (solicitud PUT)
             axios.put(`/api/clientes/${id}`, clienteData, { headers })
                 .then(res => {
-                    console.log('Cliente actualizado:', res.data);
-                    navigate('/clientes/lista'); // Redirige a la lista
+                    // console.log('Cliente actualizado:', res.data);
+                    // navigate('/clientes/lista'); // Redirige a la lista
+                    alertify.success('Cliente actualizado correctamente');
+                    limpiarCampos(); // Llama a la función para limpiar los campos
                 })
                 .catch(error => console.error('Error al actualizar el cliente:', error));
         } else {
             // Crear nuevo empleado (solicitud POST)            
             axios.post('/api/clientes', clienteData, { headers })
                 .then(res => {
-                    console.log('Cliente creado:', res.data);
-                    navigate('/clientes/lista'); // Redirige a la lista
+                    // console.log('Cliente creado:', res.data);
+                    // navigate('/clientes/lista'); // Redirige a la lista
+                    alertify.success('Cliente creado correctamente');
+                    limpiarCampos(); // Llama a la función para limpiar los campos
                 })
                 .catch(error => console.error('Error al crear el cliente:', error));
         }
     };
 
+    const limpiarCampos = () => {
+        setCliente({
+            idcliente: '',
+            nit: '',
+            nombre: '',
+            direccion: '',
+            email: '',
+            comentario: '',
+            fecharegistro: '',
+            estado: '',
+            codigo: '',
+            iddepartamento: '',
+            razonsocial: '',
+            monto_credito: '',
+            id_empleado: '',
+            dias_credito: '',
+            id_municipio: '',
+            idtipocliente: '',
+            codigo_postal: '',
+            cui: '',
+            usuario_registro: '',
+            usuario_modifica: '',
+            telefono_uno: '',
+            telefono_dos: '',
+            telefono_tres: '',
+            fecha_modificacion: ''
+        }); 
+    }
     return (
-        <div className='container mt-4'>
+        <div className='mt-4'>
+            <Header title={id ? 'Actualizar registro de cliente' : 'Crear registro de cliente'} />
             <div className="card shadow p-4">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de Cliente</h4>
-                </div>
+                </div> */}
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
                         <div className='row g-2'>
-                            <div className='col-md-2'>
+                            {/* <div className='col-md-2'>
                                 <label className='form-label'>Código</label>
                                 <input type="text" name="codigo" value={cliente.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-sm' />
-                            </div>
+                            </div> */}
                             <div className='col-md-4'>
                                 <label className="form-label">NIT</label>
-                                <input type="text" name="nit" value={cliente.nit} onChange={handleChange} placeholder="NIT" className='form-control form-control-sm' />
+                                <input type="text" name="nit" value={cliente.nit} onChange={handleChange} placeholder="NIT" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">CUI</label>
@@ -147,17 +203,17 @@ function ClienteRegistro() {
                         <div className='row g-2'>
                             <div className='col-md-6'>
                                 <label className="form-label">Nombre</label>
-                                <input type="text" name="nombre" value={cliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm' />
+                                <input type="text" name="nombre" value={cliente.nombre} onChange={handleChange} placeholder="Nombre" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                             <div className='col-md-6'>
                                 <label className="form-label">Razón Social</label>
-                                <input type="text" name="razonsocial" value={cliente.razonsocial} onChange={handleChange} placeholder="Razón social" className='form-control form-control-sm' />
+                                <input type="text" name="razonsocial" value={cliente.razonsocial} onChange={handleChange} placeholder="Razón social" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
                         <div className='row g-2'>
                             <div className='col-md-8'>
                                 <label className="form-label">Dirección</label>
-                                <input type="text" name="direccion" value={cliente.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-sm' />
+                                <input type="text" name="direccion" value={cliente.direccion} onChange={handleChange} placeholder="Dirección" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Correo</label>
@@ -194,11 +250,11 @@ function ClienteRegistro() {
                         <div className='row g-2'>
                             <div className='col-md-4'>
                                 <label className="form-label">Monto crédito</label>
-                                <input type="text" name="monto_credito" value={cliente.monto_credito} onChange={handleChange} placeholder="Monto crédito" className='form-control form-control-sm' />
+                                <input type="text" name="monto_credito" value={cliente.monto_credito} onChange={handleChange} placeholder="Monto crédito" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                             <div className='col-md-4'>
                                 <label className="form-label">Días crédito</label>
-                                <input type="text" name="dias_credito" value={cliente.dias_credito} onChange={handleChange} placeholder="Días crédito" className='form-control form-control-sm' />
+                                <input type="text" name="dias_credito" value={cliente.dias_credito} onChange={handleChange} placeholder="Días crédito" className='form-control form-control-sm campo-obligatorio-fondo' />
                             </div>
                         </div>
                         <div className='row g-2'>
@@ -214,21 +270,33 @@ function ClienteRegistro() {
                                 </select>
                             </div>
                         </div>
-                        <div className='row g-2'>
-                            <div className='col-md-8'>
-                                <label className="form-label">Observaciones</label>
-                                <input type="text" name="comentario" value={cliente.comentario} onChange={handleChange} placeholder="Observaciones" className='form-control form-control-sm' />
-                            </div>
-                        </div>
-                        <div className='d-flex justify-content-between mt-4'>
-                            <button type="submit" className='btn btn-primary btn-sm w-25'>GUARDAR</button>
-                            <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                                <div style={{ width: '50%' }}>
-                                    <Link to="/clientes/lista" className="btn btn-success btn-sm" style={{ width: '100%' }}>CONSULTA</Link>
-                                </div>
-                                <div style={{ width: '50%' }}>
-                                    <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                                </div>
+                        <div
+                            className="mt-4 p-3 border rounded shadow-sm bg-light"
+                            style={{ borderColor: "#ddd" }}
+                        >
+                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSave /> {id ? 'ACTUALIZAR' : 'GUARDAR'}
+                                </button>
+                                <button
+                                    type="button" // Importante: no es un botón de submit
+                                    className="btn btn-light d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px", color: "#000", border: "1px solid #ccc" }}
+                                    onClick={limpiarCampos} // Asocia la función al evento onClick
+                                >
+                                    <FaBroom /> {/* Puedes usar otro icono como FaBroom */} Limpiar
+                                </button>
+                                <Link
+                                    to="/clientes/lista"
+                                    className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSearch /> Consultar
+                                </Link>
                             </div>
                         </div>
                     </form>
