@@ -68,22 +68,12 @@ function CotizacionForm() {
         precio: 0,
         total: 0,
         imagen: null, //nuevo estado para el archivo de imagen
-        imagen_preview: null, //para mostrar una vista previa de la imágen
+        imagen_preview: null, //para mostrar una vista previa de la imágen     
+        imagen_ruta: null, //para almacenar la ruta de la imagen   
     });
 
     //CAMBIO: Estados para almacenar precios y cantidades del modal
-    const [productoPredefinido, setProductoPredefinido] = useState({
-        variacion: '0',
-        precio: 0,
-        cantidad_uno: 0,
-        precio_uno: 0,
-        cantidad_dos: 0,
-        precio_dos: 0,
-        cantidad_tres: 0,
-        precio_tres: 0,
-        cantidad_cuatro: 0,
-        precio_cuatro: 0,
-    });
+    const [productoPredefinido, setProductoPredefinido] = useState(null);
 
     // const [cantidadDetalle, setCantidadDetalle] = useState(0); //No se usa directamente
 
@@ -272,29 +262,31 @@ function CotizacionForm() {
         const headers = { Authorization: `Bearer ${token}` };
         const formData = new FormData();
 
+        //console.log('Detalles finales a enviar al backend:', JSON.parse(JSON.stringify(detalles)));
+
         // Validaciones
         if (!cotizacion.idcliente || cotizacion.idcliente === '') {
-            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar un cliente.");
+            alertify.alert("CAMPO OBLIGATORIO", "Debe seleccionar un cliente.");
             return;
         }
 
         if (!cotizacion.idcontacto || cotizacion.idcontacto === '') {
-            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar un contacto.");
+            alertify.alert("CAMPO OBLIGATORIO", "Debe seleccionar un contacto.");
             return;
         }
 
         if (!cotizacion.idtipopago || cotizacion.idtipopago === '') {
-            alertify.alert("CAMPO OBLIGATORIO","Debe seleccionar una forma de pago.");
+            alertify.alert("CAMPO OBLIGATORIO", "Debe seleccionar una forma de pago.");
             return;
         }
 
         if (!detalles || detalles.length === 0) {
-            alertify.alert("CAMPO OBLIGATORIO","Debe asignar registros en el detalle de la cotización.");
+            alertify.alert("CAMPO OBLIGATORIO", "Debe asignar registros en el detalle de la cotización.");
             return;
         }
 
         if (!cotizacion.direccion_entrega || cotizacion.direccion_entrega.trim() === '') {
-            alertify.alert("CAMPO OBLIGATORIO","Debe ingresar la dirección de entrega.");
+            alertify.alert("CAMPO OBLIGATORIO", "Debe ingresar la dirección de entrega.");
             return;
         }
 
@@ -330,15 +322,31 @@ function CotizacionForm() {
             formData.append(`detalles[${index}][profundidad]`, detalle.profundidad);
             formData.append(`detalles[${index}][precio]`, detalle.precio);
             formData.append(`detalles[${index}][total]`, detalle.total);
+            // --- Manejo de IMAGEN al enviar FormData ---
             if (detalle.imagen) {
+                // Caso 1: Se seleccionó un NUEVO archivo
                 formData.append(`detalles[${index}][imagen]`, detalle.imagen);
+                //console.log(`Frontend: Adjuntando nuevo archivo para índice ${index}`); // Log para verificar
+            } else if (detalle.imagen_ruta) {
+                // Caso 2: NO se seleccionó un archivo nuevo, pero existe una ruta vieja
+                // Enviamos la ruta vieja para que el backend sepa que debe mantenerla
+                formData.append(`detalles[${index}][imagen_ruta]`, detalle.imagen_ruta);
+                //console.log(`Frontend: Adjuntando ruta existente para índice ${index}: ${detalle.imagen_ruta}`); // Log para verificar
             }
+            // Caso 3: No hay imagen (ni nueva ni vieja) -> No se adjunta nada relacionado con imagen
+
+            // Opcional: Si tus detalles tienen un ID (iddetallecotizacion) al editar, envíalo también
+            // Esto es necesario si quieres que el backend actualice detalles existentes en lugar de eliminarlos y recrearlos
+            // if (detalle.iddetallecotizacion) {
+            //     formData.append(`detalles[${index}][iddetallecotizacion]`, detalle.iddetallecotizacion);
+            // }
         });
 
         try {
             let res;
             if (id) {
                 formData.append('_method', 'PUT'); // Para indicar que es una actualización
+                //console.log('Detalles a enviar:', detalles);
                 res = await axios.post(`/api/cotizaciones/${id}`, formData, { headers });
                 alertify.success("Cotización actualizada correctamente");
             } else {
@@ -377,15 +385,81 @@ function CotizacionForm() {
         if (detalleSeleccionado) {
             const index = detalles.findIndex((d) => d === detalleSeleccionado);
             if (index !== -1) {
+                const originalItem = detalleSeleccionado; // El objeto original del array (viene de backend o agregado antes)
+                const formState = detalle; // El estado actual de los inputs del formulario de detalle
+
+                // Logs para depuración intensiva (puedes removerlos después)
+                // console.log('[handleAddDetalle - Editando] originalItem:', JSON.parse(JSON.stringify(originalItem)));
+                // console.log('[handleAddDetalle - Editando] formState (detalle actual del form):', JSON.parse(JSON.stringify(formState)));
+                // console.log('[handleAddDetalle - Editando] formState.imagen es File?', formState.imagen instanceof File);
+                // console.log('[handleAddDetalle - Editando] formState.imagen (valor):', formState.imagen);
+
+                // Construir el objeto actualizado para poner de vuelta en el array `detalles`
+                const updatedItem = {
+                    ...originalItem, // Mantener todas las propiedades originales (incluyendo iddetallecotizacion si existe, y la original imagen_ruta)
+
+                    // Sobrescribir/Actualizar campos con los valores del formulario
+                    unidad_medida: formState.unidad_medida,
+                    descripcion: formState.descripcion,
+                    cantidad: formState.cantidad,
+                    ancho: formState.ancho,
+                    alto: formState.alto,
+                    m2: formState.m2, // Asegúrate que m2 se calcula y está en formState si no es readOnly
+                    profundidad: formState.profundidad,
+                    precio: formState.precio,
+                    total: formState.total, // Asegúrate que total se calcula y está en formState si no es readOnly
+                    // MANEJO EXPLÍCITO DE IMAGEN:
+                    imagen: formState.imagen instanceof File ? formState.imagen : null, // Si hay un File nuevo, úsalo, sino, explícitamente null.
+                    imagen_preview: formState.imagen_preview, // La preview del formulario (puede ser blob de nueva imagen o URL de la vieja)
+
+                    imagen_ruta: formState.imagen instanceof File
+                        ? null // Si hay un archivo nuevo, la ruta vieja se anula (backend generará una nueva)
+                        : (formState.imagen_ruta || originalItem.imagen_ruta || null), // Mantener la ruta existente si no hay archivo nuevo
+                };
+
+                //console.log('[handleAddDetalle - Editando] updatedItem FINAL:', JSON.parse(JSON.stringify(updatedItem)));
+
+
                 const nuevosDetalles = [...detalles];
-                nuevosDetalles[index] = nuevoDetalle; //detalle;
-                setDetalles(nuevosDetalles);
+                nuevosDetalles[index] = updatedItem; // Reemplazar el objeto original en el array
+                setDetalles(nuevosDetalles); // Actualizar el estado principal de detalles
             }
             setDetalleSeleccionado(null);
         } else {
-            setDetalles([...detalles, nuevoDetalle]);
-            // Llama a calcularPrecioDetalle solo cuando se agrega un nuevo detalle
-            calcularPrecioDetalle(nuevoDetalle.cantidad);
+            // const newItem = {
+            //     ...formState, // Copia el estado del formulario
+            //     imagen_ruta: null, // Una nueva imagen aún no tiene ruta de BD
+            //     // incluye_foto se basa en si formState.imagen tiene un File
+            //     incluye_foto: formState.imagen ? 'S' : 'N',
+            //     // iddetallecotizacion: genera un ID temporal si lo necesitas en frontend
+            // };
+            // console.log('handleAddDetalle (Add New): Objeto final para el array =', newItem); // Log para verificar
+            // setDetalles([...detalles, newItem]);
+            // // Llama a calcularPrecioDetalle solo cuando se agrega un nuevo detalle
+            // calcularPrecioDetalle(newItem.cantidad);
+            // Lógica para AGREGAR un NUEVO detalle (esta parte parecía funcionar bien)
+            const formState = detalle; // Usar formState para claridad aquí también
+            const newItem = {
+                // NO uses ...originalItem aquí porque no existe.
+                // Genera un ID temporal si lo necesitas para el key en la lista, o deja que el backend lo asigne.
+                // iddetallecotizacion: Date.now(), // Ejemplo de ID temporal para el frontend
+                unidad_medida: formState.unidad_medida,
+                descripcion: formState.descripcion,
+                cantidad: formState.cantidad,
+                ancho: formState.ancho,
+                alto: formState.alto,
+                m2: formState.m2,
+                profundidad: formState.profundidad,
+                precio: formState.precio,
+                total: formState.total,
+                imagen: formState.imagen instanceof File ? formState.imagen : null,
+                imagen_preview: formState.imagen_preview,
+                imagen_ruta: null, // Un nuevo ítem no tiene ruta de BD aún
+                // otros campos que necesites para un nuevo detalle, como incluye_foto, etc.
+                incluye_foto: formState.imagen instanceof File ? 'S' : 'N',
+            };
+            //console.log('[handleAddDetalle - Agregando Nuevo] newItem FINAL:', JSON.parse(JSON.stringify(newItem)));
+            setDetalles([...detalles, newItem]);
         }
 
         setDetalle({
@@ -400,6 +474,7 @@ function CotizacionForm() {
             total: 0,
             imagen: null,
             imagen_preview: null,
+            imagen_ruta: null,
         });
     };
 
@@ -494,7 +569,11 @@ function CotizacionForm() {
 
     //Carga los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
     const handleRowClick = (rowData) => {
+        //console.log('rowData:', rowData);
         setDetalleSeleccionado(rowData);
+
+        const previewUrl = rowData.imagen_ruta ? `/images_cotizaciones/${rowData.imagen_ruta}` : (rowData.imagen_preview || null);
+
         setDetalle({
             unidad_medida: rowData.unidad_medida,
             descripcion: rowData.descripcion,
@@ -506,16 +585,20 @@ function CotizacionForm() {
             precio: rowData.precio,
             total: rowData.total,
             imagen: null, // Cuando se edita, la imagen ya está guardada, no se "carga" aquí
-            imagen_preview: rowData.imagen_ruta ? `/images_cotizaciones/${rowData.imagen_ruta}` : null,
+            imagen_preview: previewUrl,
+            imagen_ruta: rowData.imagen_ruta || null, // ¡CRUCIAL! Conservar la ruta de la imagen existente en el estado del formulario.
         });
 
-        if (rowData.imagen_ruta) {
-            setSelectedImageUrl(`/images_cotizaciones/${rowData.imagen_ruta}`);
+        // Lógica del modal de imagen (parece estar bien, pero asegúrate que usa la previewUrl correcta)
+        if (previewUrl) { // Usa la previewUrl que acabamos de definir
+            setSelectedImageUrl(previewUrl);
+            //console.log('Detalle Form State After Click:', detalle);
             setIsImageModalOpen(true);
         } else {
-            alertify.error("No hay imagen para mostrar");
+            // alertify.error("Este detalle no tiene una imagen asociada."); // Comentado si quieres evitar alerta si no hay imagen
             setSelectedImageUrl(null);
-            setIsImageModalOpen(false); // Asegurarse de que el modal esté cerrado si no hay imagen
+            //console.log('Detalle else Form State After Click:', detalle);
+            setIsImageModalOpen(false);
         }
     };
 
@@ -532,70 +615,132 @@ function CotizacionForm() {
         { title: 'Total', data: 'total' },
         {
             title: 'Imagen',
-            data: 'imagen_ruta',
-            render: (imagen_ruta) => (
-                imagen_ruta ? <img src={`/images_cotizaciones/${imagen_ruta}`} alt="Imagen Detalle" style={{ maxWidth: '50px' }} /> : 'Sin imagen'
-            ),
+            data: 'imagen_ruta', // Mantenemos 'imagen_ruta' como data key principal si viene del backend
+            render: (data, type, row) => { // 'data' es imagen_ruta, 'row' es el objeto completo del detalle
+                // Verifica si hay imagen_ruta (desde backend) O si hay imagen (File object) O si hay imagen_preview (URL temporal)
+                const hasImage = row.imagen_ruta || (row.imagen && row.imagen instanceof File) || row.imagen_preview;
+
+                if (hasImage) {
+                    // Muestra un texto o ícono indicando que hay una imagen
+                    return 'Con imagen'; // O podrías usar '<i class="fas fa-image"></i>' si tienes Font Awesome
+                } else {
+                    return 'Sin imagen';
+                }
+            },
         },
     ];
 
     const handleProductoPredefinidoSeleccionado = (producto) => {
         setProductoPredefinido(producto);
-        setDetalle(prevDetalle => ({ // Update precio here too, use callback
-            ...prevDetalle,
+        // Prepara el detalle con los datos del producto
+        const nuevoDetalleInicial = {
             unidad_medida: producto.unidad_medida,
             descripcion: producto.titulo,
             ancho: producto.ancho,
             alto: producto.alto,
             profundidad: producto.profundidad,
-            precio: producto.precio || 0, // Ensure a numeric fallback
-            cantidad: 0
+            cantidad: 0, // Cantidad inicial es 0 al seleccionar el producto
+            precio: 0, // El precio se calculará a continuación
+            total: 0, // El total también se calculará
+            imagen: null,
+            imagen_preview: null, // El producto predefinido no trae imagen de detalle aquí
+        };
+
+        // Actualiza el estado del detalle
+        setDetalle(prevDetalle => ({
+            ...prevDetalle,
+            ...nuevoDetalleInicial // Aplica los campos del nuevo producto
         }));
-        calcularPrecioDetalle(0); // Calcular el precio inicial al seleccionar el producto
+
+        calcularPrecioDetalle(0, producto); // Calcular el precio inicial al seleccionar el producto
         toggleProductoPredefinidoModal();
     };
 
     const handleCantidadDetalleChange = (e) => {
         const value = parseInt(e.target.value, 10) || 0;
         // setCantidadDetalle(value); // This is unnecessary in this setup!
-        setDetalle(prevDetalle => ({
-            ...prevDetalle,
-            cantidad: value,
-        }));
-        //calcularPrecioDetalle(value); // This calls calcularPrecioDetalle with new quantity
+        setDetalle(prevDetalle => {
+            const updatedDetalle = {
+                ...prevDetalle,
+                cantidad: value,
+            };
+
+            // Vuelve a calcular el precio y total con la *nueva cantidad* y el *producto predefinido actual*
+            // Es importante usar el 'productoPredefinido' del estado aquí, ya que este handler
+            // se llama DESPUÉS de que un producto ya ha sido seleccionado y su estado ha sido actualizado.
+            calcularPrecioDetalle(value, productoPredefinido); // Usa el valor de la cantidad recién ingresado y el producto del estado
+
+            // Retorna el estado actualizado del detalle
+            return updatedDetalle;
+        });
     };
 
-    const calcularPrecioDetalle = (cantidad) => {
+    // Modificar calcularPrecioDetalle para aceptar el producto como argumento
+    const calcularPrecioDetalle = (cantidad, productData) => {
         let nuevoPrecio = 0;
 
-        if (!productoPredefinido) {
-            return; // Prevent errors if productoPredefinido is not yet loaded
+        // Usa los datos del producto pasados como argumento. Si por alguna razón no se pasan,
+        // usa el estado 'productoPredefinido' (aunque con la corrección siempre se pasarán).
+        const currentProductData = productData || productoPredefinido;
+
+        // Asegúrate de que tenemos datos del producto para calcular
+        if (!currentProductData) {
+            //console.warn("calcularPrecioDetalle llamado sin datos de producto.");
+            // Establece precio a 0 si no hay datos para evitar errores
+            setDetalle(prevDetalle => ({
+                ...prevDetalle,
+                precio: 0,
+                total: 0,
+            }));
+            return;
         }
 
-        if (productoPredefinido.variacion === '0' || productoPredefinido.variacion === false) { // Handle string '0' or boolean
-            nuevoPrecio = parseFloat(productoPredefinido.precio) || 0;
-        } else if (productoPredefinido.variacion === '1' || productoPredefinido.variacion === true) { // Handle string '1' or boolean
-            if (cantidad > 0 && cantidad <= productoPredefinido.cantidad_uno) {
-                nuevoPrecio = parseFloat(productoPredefinido.precio_uno) || 0;
-            } else if (productoPredefinido.cantidad_dos > 0 && cantidad > productoPredefinido.cantidad_uno && cantidad <= productoPredefinido.cantidad_dos) {
-                nuevoPrecio = parseFloat(productoPredefinido.precio_dos) || 0;
-            } else if (productoPredefinido.cantidad_tres > 0 && cantidad > productoPredefinido.cantidad_dos && cantidad <= productoPredefinido.cantidad_tres) {
-                nuevoPrecio = parseFloat(productoPredefinido.precio_tres) || 0;
-            } else if (productoPredefinido.cantidad_cuatro > 0 && cantidad > productoPredefinido.cantidad_tres) {
-                nuevoPrecio = parseFloat(productoPredefinido.precio_cuatro) || 0;
+        //console.log('Calculando precio para:', currentProductData.titulo, ', Cantidad:', cantidad, ', Variación:', currentProductData.variacion); // Log para depuración
+
+        // Lógica de cálculo basada en la VARIACIÓN (usar solo 'N' o 'S')
+        // Asegúrate de que los valores del backend son exactamente 'N' y 'S'
+        if (currentProductData.variacion === 'N') {
+            //console.log('Variación N: Usando precio base.');
+            nuevoPrecio = parseFloat(currentProductData.precio) || 0;
+        } else if (currentProductData.variacion === 'S') {
+            //console.log('Variación S: Aplicando reglas de cantidad.');
+            // Lógica de rangos de cantidad
+            if (cantidad > 0 && cantidad <= parseFloat(currentProductData.cantidad_uno || 0)) {
+                nuevoPrecio = parseFloat(currentProductData.precio_uno) || 0;
+            } else if (parseFloat(currentProductData.cantidad_dos || 0) > 0 && cantidad > parseFloat(currentProductData.cantidad_uno || 0) && cantidad <= parseFloat(currentProductData.cantidad_dos || 0)) {
+                nuevoPrecio = parseFloat(currentProductData.precio_dos) || 0;
+            } else if (parseFloat(currentProductData.cantidad_tres || 0) > 0 && cantidad > parseFloat(currentProductData.cantidad_dos || 0) && cantidad <= parseFloat(currentProductData.cantidad_tres || 0)) {
+                nuevoPrecio = parseFloat(currentProductData.precio_tres) || 0;
+            } else if (parseFloat(currentProductData.cantidad_cuatro || 0) > 0 && cantidad > parseFloat(currentProductData.cantidad_tres || 0)) {
+                nuevoPrecio = parseFloat(currentProductData.precio_cuatro) || 0;
             } else {
-                nuevoPrecio = cantidad * parseFloat(productoPredefinido.precio) || 0;  // Default price when no range matches 
+                // Qué hacer si la cantidad no cae en ningún rango para variación 'S'?
+                // Tu lógica actual calculaba cantidad * precio base, lo cual puede no ser correcto.
+                // Considera establecer el precio a 0, mostrar un mensaje, o usar otra lógica de negocio.
+                //console.warn('Cantidad', cantidad, 'fuera de rangos definidos para variación S. Estableciendo precio a 0.');
+                nuevoPrecio = 0; // O define una lógica de fallback adecuada
             }
-        }
-
-        // Check if the calculated price is valid, else fallback to a default (0)
-        if (isNaN(nuevoPrecio)) {
+        } else {
+            // Manejar casos inesperados de variación
+            //console.warn('Variación desconocida:', currentProductData.variacion, '. Estableciendo precio a 0.');
             nuevoPrecio = 0;
         }
 
+        // Asegura que el precio calculado sea un número válido
+        if (isNaN(nuevoPrecio)) {
+            //console.error("Precio calculado es NaN. Estableciendo a 0.");
+            alertify.error("Error al calcular el precio. Estableciendo a 0.");
+            nuevoPrecio = 0;
+        }
+
+        // Calcula el total basado en la cantidad y el nuevo precio
+        const totalCalculado = (cantidad * nuevoPrecio).toFixed(2);
+
+        // Actualiza el estado del detalle con el nuevo precio y total
         setDetalle(prevDetalle => ({
             ...prevDetalle,
-            precio: parseFloat(nuevoPrecio.toFixed(2)) || 0, // Ensure valid number
+            precio: parseFloat(nuevoPrecio.toFixed(2)), // Asegura 2 decimales y tipo number
+            total: totalCalculado, // El total ya está como string con 2 decimales
         }));
     };
 

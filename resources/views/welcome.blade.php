@@ -14,5 +14,7 @@
     </head>
     <body class="antialiased">    
         <div id="root"></div>
+        <!-- Contenedor para los modales -->
+    <div id="modal-root"></div>
     </body>
 </html>

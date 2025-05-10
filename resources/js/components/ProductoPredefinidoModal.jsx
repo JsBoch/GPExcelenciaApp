@@ -7,7 +7,7 @@ import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 
 DataTable.use(DT);
 
-const renderVariacion = (data) => data === '1' ? 'Sí' : 'No';
+const renderVariacion = (data) => data === 'S' ? 'SI' : 'NO';
 
 function ListaProductosPredefinidos({ isOpen, onClose, onProductoSeleccionado }) {
     const [productosPredefinidos, setProductosPredefinidos] = useState([]);

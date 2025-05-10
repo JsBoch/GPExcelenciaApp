@@ -6,9 +6,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom'; //
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
-import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
+import { FaSave, FaSearch, FaHome, FaBroom, FaPlusCircle } from "react-icons/fa";
 import Header from './Header';
 import '../../css/generalesForm.css';
+import ContactoClienteForm from './ContactoClienteForm'; // 1. Importa el formulario de contacto
+import '../../css/modalStyles.css'; // 2. Crea y enlaza un CSS para el modal (ver abajo)
 
 function ClienteRegistro() {
     const [cliente, setCliente] = useState({
@@ -43,17 +45,22 @@ function ClienteRegistro() {
     //20250324 19:25 edit
     const { id } = useParams(); // Obtiene el id de la URL
     const navigate = useNavigate();
+    // 3. Estado para controlar la visibilidad del modal de contacto
+    const [isContactoModalOpen, setIsContactoModalOpen] = useState(false);
+    const [modoEdicion, setModoEdicion] = useState(!!id); // true si hay id
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
         if (id) {
+            setModoEdicion(true);
             // Cargar datos del empleado para editar
             axios.get(`/api/clientes/${id}`, { headers })
                 .then(res => {
                     const data = res.data;
                     setCliente({
+                        idcliente: data.idcliente || id, // Guardar el id del cliente
                         codigo: data.codigo || '',
                         nit: data.nit || '',
                         cui: data.cui || '',
@@ -85,6 +92,7 @@ function ClienteRegistro() {
                 })
                 .catch(error => console.error('Error al cargar el cliente:', error));
         } else {
+            setModoEdicion(false);
             // Cargar listas desplegables para crear un nuevo empleado            
             axios.get('/api/departamentos-pais', { headers }).then(res => setDepartamentosPais(res.data));
             axios.get('/api/vendedores', { headers }).then(res => setVendedores(res.data));
@@ -137,12 +145,20 @@ function ClienteRegistro() {
                 })
                 .catch(error => console.error('Error al actualizar el cliente:', error));
         } else {
-            // Crear nuevo empleado (solicitud POST)            
+            // Crear nuevo cliente (solicitud POST)            
             axios.post('/api/clientes', clienteData, { headers })
                 .then(res => {
                     // console.log('Cliente creado:', res.data);
                     // navigate('/clientes/lista'); // Redirige a la lista
                     alertify.success('Cliente creado correctamente');
+                    // Si la API devuelve el cliente creado con su ID:
+                    if (res.data && res.data.idcliente) {
+                        setCliente(prevCliente => ({ ...prevCliente, idcliente: res.data.idcliente }));
+                        // Ahora podrías, por ejemplo, abrir el modal de contactos automáticamente
+                        // o simplemente el botón "Agregar Contacto" ya funcionará con este ID.
+                        // O redirigir a la edición de este nuevo cliente:
+                        // navigate(`/clientes/editar/${res.data.idcliente}`);
+                    }
                     limpiarCampos(); // Llama a la función para limpiar los campos
                 })
                 .catch(error => console.error('Error al crear el cliente:', error));
@@ -175,8 +191,29 @@ function ClienteRegistro() {
             telefono_dos: '',
             telefono_tres: '',
             fecha_modificacion: ''
-        }); 
+        });
+        setModoEdicion(false); // Oculta el botón Agregar Contacto
     }
+
+    // 4. Funciones para manejar el modal de contacto
+    const handleOpenContactoModal = () => {
+        if (!cliente.idcliente && !id) { // Si es un cliente nuevo sin ID y no estamos en modo edición de un cliente existente
+            alertify.warning('Por favor, primero guarde el cliente para poder agregarle contactos.');
+            return;
+        }
+        setIsContactoModalOpen(true);
+    };
+
+    const handleCloseContactoModal = () => {
+        setIsContactoModalOpen(false);
+    };
+
+    const handleContactCreated = () => {
+        alertify.success('Contacto asociado al cliente creado exitosamente.');
+        // Podrías querer recargar una lista de contactos si la muestras aquí, o simplemente cerrar.
+        // handleCloseContactoModal(); // ContactoClienteForm ya llama a onClose, que es esta función.
+    };
+
     return (
         <div className='mt-4'>
             <Header title={id ? 'Actualizar registro de cliente' : 'Crear registro de cliente'} />
@@ -282,6 +319,18 @@ function ClienteRegistro() {
                                 >
                                     <FaSave /> {id ? 'ACTUALIZAR' : 'GUARDAR'}
                                 </button>
+                                {/* 5. Botón para abrir el modal de contacto */}
+                                {/* Mostrar solo si estamos editando un cliente (id existe) o si el cliente nuevo ya tiene idcliente */}
+                                {modoEdicion && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-info d-flex align-items-center justify-content-center gap-2"
+                                        style={{ minWidth: "180px" }}
+                                        onClick={handleOpenContactoModal}
+                                    >
+                                        <FaPlusCircle /> Agregar Contacto
+                                    </button>
+                                )}
                                 <button
                                     type="button" // Importante: no es un botón de submit
                                     className="btn btn-light d-flex align-items-center justify-content-center gap-2 flex-fill"
@@ -302,6 +351,29 @@ function ClienteRegistro() {
                     </form>
                 </div>
             </div>
+            {/* 6. Renderizado condicional del modal de contacto */}
+            {isContactoModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content-wrapper"
+                        style={{
+                            width: '90%',
+                            maxWidth: '1000px',
+                            margin: '10vh auto',
+                            backgroundColor: '#fff',
+                            padding: '20px',
+                            borderRadius: '8px',
+                            boxShadow: '0 0 15px rgba(0,0,0,0.3)',
+                        }}>
+                        <ContactoClienteForm
+                            clienteId={id || cliente.idcliente} // Pasa el ID del cliente actual
+                            onClose={handleCloseContactoModal}
+                            onContactCreated={handleContactCreated}
+                        />
+                        {/* Podrías añadir un botón "Cerrar" explícito aquí también si ContactoClienteForm no lo tiene visible */}
+                        {/* <button onClick={handleCloseContactoModal} className="btn btn-sm btn-danger mt-2">Cerrar Modal</button> */}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

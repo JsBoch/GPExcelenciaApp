@@ -8,6 +8,9 @@ import '../../css/ListaEmpleados.css';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
+import '../../css/tableFormat.css';
+import { FaRegFileAlt } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -52,23 +55,26 @@ function ListaProductosPredefinidos() {
             title: 'Acciones',
             render: (data) => {
                 return `
-            <button class="btn btn-primary btn-sm  editar-btn" data-id="${data}" title="Editar">
-            <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar">
-            <i class="fas fa-trash-alt"></i>
-            </button>
-            `
+                    <div class="d-flex gap-1 justify-content-center align-items-center">
+                        <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Desactivar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
             }
         },
         { data: 'titulo', title: 'Tipo' },
         {
             data: 'descripcion',
             title: 'Descripción',
-            className: 'col-descripcion',
-            render: function (data) {
-                return `<div title="${data}">${data}</div>`;
-            }
+            // className: 'col-descripcion',
+            // render: function (data) {
+            //     return `<div title="${data}">${data}</div>`;
+            // },
+            visible: false,
         },
         { data: 'unidad_medida', title: 'Unidad Medida' },
         { data: 'variacion', title: 'Variación' },
@@ -266,7 +272,8 @@ function ListaProductosPredefinidos() {
             className: 'col-descripcion',
             render: function (data) {
                 return `<div title="${data}">${data}</div>`;
-            }
+            },
+            visible: false,
         },
     ];
 
@@ -335,11 +342,12 @@ function ListaProductosPredefinidos() {
     };
 
     return (
-        <div className="container-fluid mt-4">
+        <div className="mt-4 px-3 px-md-4">
             <div className="card">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Productos Predefinidos</h2>
-                </div>
+                </div> */}
+                <Header title="Lista de Productos Predefinidos" />
                 <div className="card-body">
                     {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando registros predefinidos...</p>
@@ -353,8 +361,10 @@ function ListaProductosPredefinidos() {
                             >
                                 <thead>
                                     <tr>
+                                        {/* <th>Id producto predefinidos</th> */}
+                                        <th>Acciones</th>
                                         <th>Título</th>
-                                        <th>Descripción</th>
+                                        {/* <th>Descripción</th> */}
                                         <th>Ancho</th>
                                         <th>Alto</th>
                                         <th>Profundidad</th>
@@ -370,21 +380,25 @@ function ListaProductosPredefinidos() {
                                         <th>Unidad medida</th>
                                         <th>Variación</th>
                                         <th>Observaciones</th>
-                                        <th>Acciones</th>
+                                        
                                     </tr>
                                 </thead>
                             </DataTable>
                         </div>
                     )}
                 </div>
-                <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/productospredefinidos/crear" className="btn btn-success btn-sm" style={{ width: '100%' }}>REGISTRAR</Link>
-                        </div>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                        </div>
+                <div
+                    className="mt-4 p-3 border rounded shadow-sm bg-light"
+                    style={{ borderColor: "#ddd" }}
+                >
+                    <div className="d-flex flex-wrap gap-2 justify-content-between">
+                        <Link
+                            to="/productospredefinidos/crear"
+                            className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
+                            style={{ minWidth: "150px" }}
+                        >
+                            <FaRegFileAlt /> Registro de Productos Predefinidos
+                        </Link>
                     </div>
                 </div>
             </div>

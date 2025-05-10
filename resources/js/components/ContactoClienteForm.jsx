@@ -10,10 +10,19 @@ import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
 import Header from './Header';
 import '../../css/generalesForm.css';
 
-function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Recibe clienteId como prop
+// NO necesitas useParams aquí si el ID del contacto siempre viene de la URL (para edición)
+// o no existe (para creación). Si el modal SIEMPRE es para CREAR, entonces 'id' de useParams no se usa.
+// Si el modal puede ser para EDITAR un contacto existente, entonces sí lo necesitas.
+// Por simplicidad, asumimos que el modal desde ClienteRegistro es para CREAR un contacto.
+// const { id } = useParams(); // id del CONTACTO (si se edita desde una ruta de contacto)
+
+function ContactoClienteForm({ clienteId, onClose, onContactCreated,contactoAEditarId  }) {  // Recibe clienteId como prop  // contactoAEditarId es opcional
     const { id } = useParams(); // Obtiene el id de la URL
+    // const { id: idContactoDesdeUrl } = useParams(); // Para edición de contacto si se accede por URL
+    // const idParaEditar = contactoAEditarId || idContactoDesdeUrl; // Prioriza prop si existe
     const navigate = useNavigate();
     const [clientes, setClientes] = useState([]);
+     const [nombreClienteFijado, setNombreClienteFijado] = useState(''); // Para mostrar nombre si está deshabilitado
     //const fechaActual = new Date().toISOString().split("T")[0];
     //maneja el estado, en este caso un objeto con varios campos.
     //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
@@ -26,33 +35,91 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
         observaciones: '',
     });
 
+    // Estado para saber si estamos en modo edición de un CONTACTO
+    const [isEditModeContacto, setIsEditModeContacto] = useState(false);
+
+    // useEffect(() => {
+    //     const token = localStorage.getItem('token');
+    //     const headers = { Authorization: `Bearer ${token}` };
+
+    //     if (id) {
+    //         // Cargar datos del contacto para editar
+    //         axios.get(`/api/contacto_cliente/${id}`, { headers })
+    //             .then(res => {
+    //                 const data = res.data;
+    //                 setContactoCliente({
+    //                     idcliente: data.idcliente || 0,
+    //                     nombre: data.nombre || '',
+    //                     telefono: data.telefono || '',
+    //                     correo: data.correo || '',
+    //                     puesto: data.puesto || '',
+    //                     observaciones: data.observaciones || '',
+    //                 });
+
+    //                 // Cargar listas desplegables después de cargar los datos del empleado
+    //                 axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
+    //             })
+    //             .catch(error => console.error('Error al cargar el contacto:', error));
+    //     } else {
+    //         // Cargar listas desplegables para crear un nuevo empleado
+    //         axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
+    //     }
+    // }, [id]);
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        if (id) {
-            // Cargar datos del contacto para editar
-            axios.get(`/api/contacto_cliente/${id}`, { headers })
+        // Cargar lista de clientes para el dropdown (siempre, o condicionalmente)
+        // Si clienteId está fijado, y no quieres que el usuario cambie, podrías no necesitarla
+        // o solo para obtener el nombre del cliente.
+        axios.get('/api/lista_clientes', { headers })
+            .then(res => {
+                setClientes(res.data);
+                if (clienteId) { // Si tenemos un clienteId fijo (desde el modal)
+                    const clienteEncontrado = res.data.find(c => c.idcliente === parseInt(clienteId, 10));
+                    if (clienteEncontrado) {
+                        setNombreClienteFijado(clienteEncontrado.nombre);
+                    }
+                }
+            })
+            .catch(error => console.error('Error al cargar lista de clientes:', error));
+
+        // Lógica para cargar un contacto existente para edición (si se pasa contactoAEditarId)
+        // Esto es si el modal también puede EDITAR contactos, no solo crear.
+        // Por ahora, nos enfocaremos en la creación desde ClienteRegistro.
+        // Si quieres que el modal también edite, esta lógica se activaría.
+        if (contactoAEditarId) {
+            setIsEditModeContacto(true);
+            axios.get(`/api/contacto_cliente/${contactoAEditarId}`, { headers })
                 .then(res => {
                     const data = res.data;
                     setContactoCliente({
-                        idcliente: data.idcliente || 0,
+                        idcliente: data.idcliente || clienteId || 0, // Asegura que idcliente se mantenga si se edita
                         nombre: data.nombre || '',
                         telefono: data.telefono || '',
                         correo: data.correo || '',
                         puesto: data.puesto || '',
                         observaciones: data.observaciones || '',
                     });
-
-                    // Cargar listas desplegables después de cargar los datos del empleado
-                    axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
                 })
-                .catch(error => console.error('Error al cargar el contacto:', error));
-        } else {
-            // Cargar listas desplegables para crear un nuevo empleado
-            axios.get('/api/lista_clientes', { headers }).then(res => setClientes(res.data));
+                .catch(error => console.error('Error al cargar el contacto para editar:', error));
+        } else if (clienteId) { // Creación para un clienteId específico
+            setIsEditModeContacto(false);
+            setContactoCliente({ // Resetear para asegurar un formulario limpio
+                idcliente: clienteId,
+                nombre: '',
+                telefono: '',
+                correo: '',
+                puesto: '',
+                observaciones: '',
+            });
+        } else { // Creación genérica (si el form se usa fuera del modal sin clienteId)
+            setIsEditModeContacto(false);
+            // limpiarCampos(); // Se maneja por el estado inicial
         }
-    }, [id]);
+
+    }, [clienteId, contactoAEditarId]); // Depender de clienteId y contactoAEditarId
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -82,44 +149,42 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
             { campo: contactoCliente.puesto, nombre: 'Puesto' },
         ];
 
-        const camposFaltantes = camposObligatorios.filter(c => !c.campo || c.campo.trim() === '');
+        const camposFaltantes = camposObligatorios.filter(c =>
+            // Verifica si c.campo es null o undefined (usamos == null para cubrir ambos)
+            c.campo == null ||
+            // O si c.campo es una cadena Y (typeof verifica que sea string)
+            // la cadena está vacía después de quitar espacios (trim())
+            (typeof c.campo === 'string' && c.campo.trim() === '')
+        );
         if (camposFaltantes.length > 0) {
             const nombres = camposFaltantes.map(c => c.nombre).join(', ');
             alertify.alert('DATOS OBLIGATORIOS', `Por favor, complete los siguientes campos obligatorios: ${nombres}`);
             return;
         }
 
-        if (id) {
-            // Editar empleado existente (solicitud PUT)
-            axios.put(`/api/contacto_cliente/${id}`, contactoCliente, { headers })
+        // 
+        if (isEditModeContacto && contactoAEditarId) { // Editando un contacto
+            axios.put(`/api/contacto_cliente/${contactoAEditarId}`, contactoCliente, { headers })
                 .then(res => {
-                    //console.log('Contacto actualizado:', res.data);
-                    //navigate('/contacto_cliente/lista'); // Redirige a la lista
                     alertify.success("Contacto actualizado correctamente");
-                    limpiarCampos(); // Limpia los campos después de actualizar
+                    if (onContactCreated) onContactCreated(); // Callback general
+                    if (onClose) onClose(); // Cierra el modal
                 })
-                .catch(error => console.error('Error al actualizar el contacto:', error));
-        } else {
-            // Crear nuevo empleado (solicitud POST)
+                .catch(error => { /* ... tu manejo de error ... */ });
+        } else { // Creando un nuevo contacto
             axios.post('/api/contacto_cliente', contactoCliente, { headers })
                 .then(res => {
-                    //console.log('Contacto creado:', res.data);
                     alertify.success("Contacto creado correctamente");
-                    onContactCreated();
-
-                    //navigate('/contacto_cliente/lista'); // Redirige a la lista
-                    onClose(); //Cierra el modal
+                    if (onContactCreated) onContactCreated(); // Llama al callback
+                    if (onClose) onClose(); // Cierra el modal
                 })
-                .catch(error => {
-                    console.error('Error al crear el contacto:', error)
-                    alertify.error("Error al crear el contacto");
-                });
+                .catch(error => { /* ... tu manejo de error ... */ });
         }
     };
 
     const limpiarCampos = () => {
         setContactoCliente({
-            idcliente: 0,
+            idcliente: clienteId || 0, // Mantiene el clienteId si vino como prop
             nombre: '',
             telefono: '',
             correo: '',
@@ -130,24 +195,50 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
 
     return (
         <div className='mt-4'>
-            <Header title="Registro de contactos (Cliente)" />
+            <Header title={isEditModeContacto ? "Editar Contacto" : "Registrar Nuevo Contacto"} />
             <div className="card shadow p-4">
                 {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">Registro de contactos</h4>
                 </div> */}
+                <div className="card shadow p-3"> {/* Menos padding si es modal */}
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
                         <div className='row g-2'>
-                            <div className='col-md-4'>
+                            <div className='col-md-12'>
                                 <label className='form-label'>Cliente</label>
-                                <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
+                                {/* <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
                                     <option value="">Seleccionar Cliente</option>
                                     {clientes.map(cliente => (
                                         <option key={cliente.idcliente} value={cliente.idcliente}>
                                             {cliente.nombre}
                                         </option>
                                     ))}
-                                </select>
+                                </select> */}
+                                {clienteId && nombreClienteFijado ? (
+                                    <input 
+                                        type="text" 
+                                        value={`${nombreClienteFijado} (ID: ${clienteId})`} 
+                                        className='form-control form-control-sm' 
+                                        disabled 
+                                    />
+                                ) : (
+                                    <select 
+                                        name="idcliente" 
+                                        value={contactoCliente.idcliente} 
+                                        onChange={handleChange} 
+                                        className='form-control form-control-sm campo-obligatorio-fondo'
+                                        // Deshabilitar si es para un clienteId específico Y NO estamos editando un contacto existente
+                                        // (si contactoAEditarId está presente, es edición y se debe poder cambiar si es necesario, aunque raro)
+                                        disabled={!!clienteId && !contactoAEditarId} 
+                                    >
+                                        <option value="">Seleccionar Cliente</option>
+                                        {clientes.map(cliente => (
+                                            <option key={cliente.idcliente} value={cliente.idcliente}>
+                                                {cliente.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </div>
                         <div className='row g-2'>
@@ -188,7 +279,7 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                                     className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
                                     style={{ minWidth: "150px" }}
                                 >
-                                    <FaSave /> Guardar
+                                    <FaSave />{isEditModeContacto ? 'Actualizar Contacto' : 'Guardar Contacto'}
                                 </button>
                                 <button
                                     type="button" // Importante: no es un botón de submit
@@ -198,6 +289,15 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                                 >
                                     <FaBroom /> {/* Puedes usar otro icono como FaBroom */} Limpiar
                                 </button>
+                                {typeof onClose === 'function' && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-secondary btn-sm d-flex align-items-center justify-content-center gap-2" // btn-sm
+                                        onClick={onClose}
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
                                 <Link
                                     to="/contacto_cliente/lista"
                                     className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
@@ -208,6 +308,7 @@ function ContactoClienteForm({ clienteId, onClose, onContactCreated }) {  // Rec
                             </div>
                         </div>
                     </form>
+                </div>
                 </div>
             </div>
         </div>

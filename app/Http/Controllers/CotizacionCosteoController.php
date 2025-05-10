@@ -178,6 +178,8 @@ class CotizacionCosteoController extends Controller
                                                          // 3. Obtener y procesar los nuevos detalles (como en store)
             //$detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
 
+            $totalGeneralCalculado = 0; // Inicializamos la variable para la suma
+
             if (! empty($detalles)  && is_array($detalles)) { // Solo procesar si hay detalles
                                          // Obtener el correlativo para los detalles (igual que en store)
                 $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
@@ -193,6 +195,16 @@ class CotizacionCosteoController extends Controller
                 $ultimoIdUsado       = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
 
                 foreach ($detalles as $detalle) {
+                    // Convertir valores a números para asegurar el cálculo correcto
+                $cantidad = (float) ($detalle['cantidad'] ?? 0);
+                $precio = (float) ($detalle['precio'] ?? 0);
+                $m2 = (float) ($detalle['m2'] ?? 0); // Asegúrate de incluir M2 si afecta al total
+                $profundidad = (float) ($detalle['profundidad'] ?? 0); // Asegúrate de incluir Profundidad
+
+                // Recalcula el total del detalle en el backend para mayor seguridad
+                // (Aunque ya lo haces en el frontend, es bueno verificar o usar el del backend)
+                // Si el 'total' viene del frontend y confías en él:
+                $totalDetalle = (float) ($detalle['total'] ?? ($cantidad * $precio)); // Usa el total del frontend si existe, si no, calcula (ajusta la lógica según cómo se calcula el total real)
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
                     AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $idDetalleCotizacion,
@@ -216,6 +228,9 @@ class CotizacionCosteoController extends Controller
                         'm2'                  => $detalle['m2'] ?? 0,
                     ]);
 
+                    // Sumar el total del detalle al total general
+                $totalGeneralCalculado += $totalDetalle;
+
                     $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
                     $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
                 }
@@ -225,11 +240,13 @@ class CotizacionCosteoController extends Controller
                 $correlativoDetalle->save();
             }
 
-            // Si todo fue bien, confirmar la transacción
-            DB::commit();
-
+            // 4. Actualizar el campo total_general de la cotización principal
+        $cotizacion->total_general = $totalGeneralCalculado;
+        $cotizacion->save(); // Guarda el total general calculado
                                            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-                                           // Para devolverla con detalles, necesitas volver a cargar la relación
+                         
+            // Si todo fue bien, confirmar la transacción
+            DB::commit();                  // Para devolverla con detalles, necesitas volver a cargar la relación
             $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
 
             return response()->json($cotizacion);
