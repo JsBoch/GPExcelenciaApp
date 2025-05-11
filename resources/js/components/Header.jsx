@@ -12,7 +12,7 @@ function Header({title}) {
     return (
         <div style={{
             width: '100%',
-            backgroundColor: 'rgb(39, 50, 56)',
+            backgroundColor: 'rgba(39, 50, 56, 1)',
             color: 'white',
             padding: '1rem',
             fontSize: '1.25rem',
