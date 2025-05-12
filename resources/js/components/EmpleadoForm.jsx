@@ -206,12 +206,13 @@ function EmpleadoForm() {
                 .then((res) => {
                     //console.log("Empleado actualizado:", res.data);
                     //navigate("/empleados/lista"); // Redirige a la lista
+                    alertify.success("Empleado actualizado");
                     limpiarCampos();
                 })
-                .catch((error) =>
+                .catch((error) => {
                     //console.error("Error al actualizar empleado:", error);
-                    alertify.error("Error al actualizar empleado:")
-                );
+                    alertify.error("Error al actualizar empleado:");
+                });
         } else {
             // Crear nuevo empleado (solicitud POST)
             axios
@@ -219,12 +220,13 @@ function EmpleadoForm() {
                 .then((res) => {
                     //console.log("Empleado creado:", res.data);
                     //navigate("/empleados/lista"); // Redirige a la lista
+                    alertify.success("Empleado creado");
                     limpiarCampos();
                 })
-                .catch((error) =>
-                    //console.error("Error al crear empleado:", error)
-                    alertify.error("Error al crear empleado")
-                );
+                .catch((error) => {
+                    //console.log("Error al crear empleado:", error);
+                    alertify.error("Error al crear empleado");
+                });
         }
     };
 
@@ -253,7 +255,6 @@ function EmpleadoForm() {
             direccion: "",
             id_departamentopais: "",
             usuario_registro: "",
-            // ... otros campos
         });
     };
 
@@ -353,9 +354,26 @@ function EmpleadoForm() {
                                         type="text"
                                         name="telefono_casa"
                                         value={empleado.telefono_casa}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono_casa",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono casa"
                                         className="form-control form-control-sm"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                                 <div className="col-md-4">
@@ -366,9 +384,26 @@ function EmpleadoForm() {
                                         type="text"
                                         name="movil"
                                         value={empleado.movil}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "movil",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Celular"
                                         className="form-control form-control-sm campo-obligatorio-fondo"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                                 <div className="col-md-4">
@@ -379,9 +414,26 @@ function EmpleadoForm() {
                                         type="text"
                                         name="otro_telefono"
                                         value={empleado.otro_telefono}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                         onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "otro_telefono",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Otro teléfono"
                                         className="form-control form-control-sm"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                             </div>
@@ -476,14 +528,31 @@ function EmpleadoForm() {
                                         type="text"
                                         name="telefono_emergencia"
                                         value={empleado.telefono_emergencia}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono_emergencia",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono emergencia"
                                         className="form-control form-control-sm campo-obligatorio-fondo"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                             </div>
                         </FormSection>
-                        <FormSection title="Información de la empresa">                            
+                        <FormSection title="Información de la empresa">
                             <div className="row g-2">
                                 <div className="col-md-6">
                                     <label className="form-label">Área</label>
