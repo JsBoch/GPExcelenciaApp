@@ -778,21 +778,65 @@ function CotizacionForm() {
     const handleCantidadDetalleChange = (e) => {
         const value = parseInt(e.target.value, 10) || 0;
         // setCantidadDetalle(value); // This is unnecessary in this setup!
-        setDetalle((prevDetalle) => {
-            const updatedDetalle = {
+        if (!productoPredefinido) {
+            alertify.error("Selecciona un producto antes de ingresar una cantidad.");
+            return;
+        }
+
+        setDetalle((prevDetalle) => ({
+            //const updatedDetalle = {
                 ...prevDetalle,
                 cantidad: value,
-            };
+            //};
 
             // Vuelve a calcular el precio y total con la *nueva cantidad* y el *producto predefinido actual*
             // Es importante usar el 'productoPredefinido' del estado aquí, ya que este handler
             // se llama DESPUÉS de que un producto ya ha sido seleccionado y su estado ha sido actualizado.
-            calcularPrecioDetalle(value, productoPredefinido); // Usa el valor de la cantidad recién ingresado y el producto del estado
+            //calcularPrecioDetalle(value, productoPredefinido); // Usa el valor de la cantidad recién ingresado y el producto del estado
 
             // Retorna el estado actualizado del detalle
-            return updatedDetalle;
-        });
+            //return updatedDetalle;
+        }));
     };
+
+    // Este efecto se ejecuta cuando la cantidad o el producto cambian
+    useEffect(() => {
+        if (!productoPredefinido || !detalle || !detalle.cantidad) return;
+        if (!productoPredefinido || !detalle.cantidad) return;
+
+        const calcularPrecioDetalle = (cantidad, productData) => {
+            const { variacion, precio, cantidad_uno, cantidad_dos,cantidad_tres,cantidad_cuatro, precio_uno, precio_dos, precio_tres,precio_cuatro } = productData;
+
+            let nuevoPrecio = 0;
+
+            if (variacion === "S") {
+                const c = parseFloat(cantidad);
+                const cu = parseFloat(cantidad_uno || 0);
+                const cd = parseFloat(cantidad_dos || 0);
+                const ct = parseFloat(cantidad_tres || 0);
+                const cc = parseFloat(cantidad_cuatro || 0);
+
+                if (c <= cu) {
+                    nuevoPrecio = parseFloat(precio_uno || 0);
+                } else if (c >= cu && c <= cd) {
+                    nuevoPrecio = parseFloat(precio_dos || 0);
+                } else if(c >= cd && c <= ct) {
+                    nuevoPrecio = parseFloat(precio_tres || 0);
+                }else if (c > ct) {
+                    nuevoPrecio = parseFloat(precio_cuatro || 0);
+                }
+            } else {
+                nuevoPrecio = parseFloat(precio || 0);
+            }
+
+            setDetalle((prevDetalle) => ({
+                ...prevDetalle,
+                precio: nuevoPrecio,
+            }));
+        };
+
+        calcularPrecioDetalle(detalle.cantidad, productoPredefinido);
+    }, [detalle.cantidad, productoPredefinido]);
 
     // Modificar calcularPrecioDetalle para aceptar el producto como argumento
     const calcularPrecioDetalle = (cantidad, productData) => {
