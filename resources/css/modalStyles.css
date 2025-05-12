@@ -1,0 +1,37 @@
+/* modalStyles.css o tu archivo CSS principal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6); /* Fondo más oscuro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; /* Bootstrap usa z-index altos para modales */
+  padding: 15px; /* Espacio por si el contenido es muy grande */
+}
+
+.modal-content-wrapper {
+  background-color: white;
+  padding: 20px;
+  border-radius: 0.3rem; /* Similar a Bootstrap cards */
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 100%; 
+  max-width: 600px; /* Ajusta según necesites */
+  animation: fadeInModal 0.3s ease-out; /* Animación sutil */
+}
+
+@keyframes fadeInModal {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

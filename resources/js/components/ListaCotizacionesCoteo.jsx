@@ -4,13 +4,16 @@ import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
 import { Link, useNavigate } from 'react-router-dom';
-import '../../css/ListaEmpleados.css';
+//import '../../css/ListaEmpleados.css';
 import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
 import { format } from 'date-fns';
 import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
+import '../../css/tableFormat.css';
+import { FaRegFileAlt } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -57,15 +60,17 @@ function ListaCotizacionesCosteo() {
             title: 'Acciones',
             render: (data, type, row) => {// 'row' contiene toda la fila de datos
                 return `
-                    <button class="btn btn-primary costear-btn" 
+                <div class="d-flex gap-1 justify-content-center align-items-center">
+                    <button class="btn btn-primary btn-sm costear-btn" 
                             data-id="${data}" 
                             data-obs-costeo="${row.observaciones_costeo}"
                             data-obs-cliente="${row.observaciones_cliente}" title="Costear">
                         <i class="fa-solid fa-calculator"></i>
                     </button>
-                    <button class="btn btn-success pdf-btn btn-fixed-width" data-id="${data}" title="Generar PDF">
+                    <button class="btn btn-success btn-sm pdf-btn btn-fixed-width" data-id="${data}" title="Generar PDF">
                     <i class="fas fa-file-pdf"></i>
-                    </button>`;
+                    </button>
+                    </div>`;
             }
         },
         { data: 'idcotizacion', title: 'ID', visible: false },
@@ -183,7 +188,7 @@ function ListaCotizacionesCosteo() {
     }, [cotizaciones]);
 
     return (
-        <div className="container-fluid mt-4">
+        <div className="mt-4 px-3 px-md-4">
             {pdfData && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                     <div style={{ width: '80%', height: '80%' }}>
@@ -195,9 +200,10 @@ function ListaCotizacionesCosteo() {
                 </div>
             )}
             <div className="card">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Cotizaciones para Costeo</h2>
-                </div>
+                </div> */}
+                <Header title="Lista de Cotizaciones para Costeo" />
                 <div className="card-body">
                     {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
@@ -235,13 +241,13 @@ function ListaCotizacionesCosteo() {
                         </div>
                     )}
                 </div>
-                <div className='d-flex justify-content-end mt-4 mb-4'>
+                {/* <div className='d-flex justify-content-end mt-4 mb-4'>
                     <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
                         <div style={{ width: '100%' }}>
                             <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '75%' }}>INICIO</Link>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
         </div>
     );

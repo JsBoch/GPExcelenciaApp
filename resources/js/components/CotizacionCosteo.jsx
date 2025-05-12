@@ -8,7 +8,9 @@ import alertify from 'alertifyjs';
 import 'alertifyjs/build/css/alertify.min.css';
 import 'alertifyjs/build/css/themes/default.min.css';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from 'reactstrap'; // Importa los componentes de reactstrap
+import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
 //import * as XLSX from 'xlsx';
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -99,10 +101,12 @@ function CotizacionCosteo() {
             axios.post(`/api/costeocotizaciones/${id}?_method=PUT`, formData, { headers, 'Content-Type': 'multipart/form-data' })
                 .then(res => {
                     alertify.success("Cotización actualizada correctamente");
+                    setCotizacion(res.data); // <-- **Agregar esta línea**
+                    setDetalles(res.data.detalles); // <-- También recargar detalles si el backend los devuelve
                     navigate('/costeocotizaciones/lista');
                 })
                 .catch(error => {
-                    console.error('Error al actualizar la cotización:', error);
+                    //console.error('Error al actualizar la cotización:', error);
                     alertify.error("Error al actualizar la cotización");
                 });
         } else {
@@ -110,6 +114,10 @@ function CotizacionCosteo() {
             axios.post('/api/cotizaciones', formData, { headers, 'Content-Type': 'multipart/form-data' })
                 .then(res => {
                     alertify.success("Cotización creada correctamente");
+                    // Si estás navegando inmediatamente, quizás no necesites setear el estado aquí,
+                    // pero si te quedas en la página después de crear, hazlo:
+                    // setCotizacion(res.data); // <-- Agregar si te quedas en la página
+                    // setDetalles(res.data.detalles); // <-- Agregar si te quedas en la página
                     navigate('/cotizaciones/lista');
                 })
                 .catch(error => {
@@ -337,12 +345,12 @@ function CotizacionCosteo() {
     };
 
     return (
-        <div className='container mt-4'>
+        <div className='mt-4 px-3 px-md-4'>
             <div className="card shadow p-4">
-                <div className="card-header bg-primary text-white">
-                    {/* Cambia el título según si editas o creas */}
+                {/* <div className="card-header bg-primary text-white">                    
                     <h4 className="mb-0">Costeo de Cotización</h4>
-                </div>
+                </div> */}
+                <Header title="Costeo de Cotización" />
                 <div className="card-body">
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Detalle de Cotización --- */}
@@ -410,7 +418,7 @@ function CotizacionCosteo() {
                                 </thead>
                             </DataTable>
                         </div>
-                        <div className='mt-3'>
+                        <div className='mt-3 mb-3'>
                             <button type="button" className="btn btn-success btn-sm" onClick={handleExportarExcel}>
                                 Exportar a Excel
                             </button>
@@ -434,13 +442,27 @@ function CotizacionCosteo() {
                         </div>
 
                         {/* --- Botones de Acción --- */}
-                        <div className='d-flex justify-content-between mt-4 pt-3 border-top'> {/* Separador visual */}
-                            <button type="submit" className='btn btn-primary btn-sm'>
-                                GUARDAR
-                            </button>
-                            <div>
-                                <Link to="/costeocotizaciones/lista" className="btn btn-secondary btn-sm me-2">CONSULTA</Link>
-                                <Link to="/Home" className="btn btn-outline-secondary btn-sm">INICIO</Link> {/* Estilo diferente para volver */}
+                        <div
+                            className="mt-4 p-3 border rounded shadow-sm bg-light"
+                            style={{ borderColor: "#ddd" }}
+                        >
+                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+
+                                <button type="submit"
+                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    style={{ minWidth: "150px" }}
+                                >
+                                    <FaSave /> GUARDAR
+                                </button>
+                                <div>
+                                    <Link
+                                        to="/costeocotizaciones/lista"
+                                        className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                        style={{ minWidth: "150px" }}
+                                    >
+                                        <FaSearch /> Consultar
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </form>

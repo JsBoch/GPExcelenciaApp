@@ -122,8 +122,11 @@ class CotizacionController extends Controller
             $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
 
             foreach ($detalles as $index => $detalleData) {
+                //Log::info("Procesando detalle en índice: {$index}");
+                //Log::info("¿Request tiene archivo detalles[{$index}][imagen]?: " . ($request->hasFile("detalles.{$index}.imagen") ? 'Sí' : 'No'));
                 $imagenRuta = null;
                 if ($request->hasFile("detalles.{$index}.imagen")) {
+                    //Log::info("Archivo detectado para índice: {$index}");
                     $imagen       = $request->file("detalles.{$index}.imagen");
                     $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
                     $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
@@ -145,7 +148,7 @@ class CotizacionController extends Controller
                     'fecha_registro'      => date('Y-m-d H:i:s'),
                     'usuario_registro'    => auth()->user()->name,
                     'costeado'            => 'N',
-                    'incluyefoto'         => $imagenRuta ? 'S' : 'N',
+                    'incluye_foto'         => $imagenRuta ? 'S' : 'N',
                     'estado'              => 1,
                     'unidad_medida'       => $detalleData['unidad_medida'],
                     'm2'                  => $detalleData['m2'],
@@ -223,7 +226,7 @@ class CotizacionController extends Controller
                 'incluye_foto',
                 'unidad_medida',
                 'm2',
-                'imagen',
+                //'imagen',
                 'imagen as imagen_ruta',
             )
             ->from('adm_detalle_cotizacion as d')
@@ -287,11 +290,19 @@ class CotizacionController extends Controller
                     if ($request->hasFile("detalles.{$index}.imagen")) {
                         $imagen       = $request->file("detalles.{$index}.imagen");
                         $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
-                        $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+                        //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+                        //$imagenRuta = $nombreImagen;
+                        if ($imagen->move(public_path('images_cotizaciones'), $nombreImagen)) {
                         $imagenRuta = $nombreImagen;
-                    } elseif (isset($detalleData['imagen']) && $detalleData['imagen']) {
+                        // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
+                    } else {
+                        // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
+                        // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
+                        // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
+                    }
+                    } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
                         // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
-                        $imagenRuta = $detalleData['imagen'];
+                        $imagenRuta = $detalleData['imagen_ruta'];
                     }
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
                     AdmDetalleCotizacion::create([
@@ -310,7 +321,7 @@ class CotizacionController extends Controller
                         'fecha_registro'      => now(), // Usar now() para la fecha actual
                         'usuario_registro'    => auth()->user()->name,
                         'costeado'            => $detalleData['costeado'] ?? 'N',
-                        'incluyefoto'         => $imagenRuta ? 'S' : 'N',
+                        'incluye_foto'         => $imagenRuta ? 'S' : 'N',
                         'estado'              => $detalleData['estado'] ?? 1,
                         'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
                         'm2'                  => $detalleData['m2'] ?? 0,
@@ -387,7 +398,7 @@ class CotizacionController extends Controller
                 'incluye_foto',
                 'unidad_medida',
                 'm2',
-                'imagen',
+                //'imagen',
                 'imagen as imagen_ruta',
                 'porcentaje_aplicado',
             )

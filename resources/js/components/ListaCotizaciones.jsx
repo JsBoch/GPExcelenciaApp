@@ -4,7 +4,7 @@ import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
 import { Link, useNavigate } from 'react-router-dom';
-import '../../css/ListaEmpleados.css';
+//import '../../css/ListaEmpleados.css';
 //Funcionalidad para React PDF
 import CotizacionPDF from './CotizacionPDF'; // Importa el componente CotizacionPDF
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
@@ -12,6 +12,9 @@ import alertify from 'alertifyjs';
 // import * as moment from 'moment';
 import { format } from 'date-fns';
 import DetalleCotizacionModal from './DetalleCotizacionModal'; // Importa el componente del modal de detalle de cotización
+import '../../css/tableFormat.css';
+import { FaRegFileAlt } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -116,26 +119,19 @@ function ListaCotizaciones() {
         {
             data: 'idcotizacion',
             title: 'Acciones',
+
             render: (data) => {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `   
-                <button class="btn btn-info btn-sm detalle-btn" data-id="${data}" title="Ver Detalle">
-                <i class="fas fa-eye"></i>
-            </button>     
-            <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-            <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
-                <i class="fas fa-file-pdf"></i>
-            </button>
-            <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar">
-                <i class="fas fa-file-invoice-dollar"></i>
-            </button>        
-    `;
+                // <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                return `
+  <div class="d-flex gap-1 justify-content-center align-items-center">
+    <button class="btn btn-info btn-sm detalle-btn" data-id="${data}" title="Ver Detalle"><i class="fas fa-eye"></i></button>
+    <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar"><i class="fas fa-edit"></i></button>
+    <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar"><i class="fas fa-trash"></i></button>
+    <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF"><i class="fas fa-file-pdf"></i></button>
+    <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar"><i class="fas fa-file-invoice-dollar"></i></button>   
+  </div>
+`;
             }
         },
         { data: 'idcotizacion', title: 'ID', visible: false },
@@ -310,7 +306,7 @@ function ListaCotizaciones() {
     };
 
     return (
-        <div className="container-fluid mt-4">
+        <div className="mt-4 px-3 px-md-4">
             {pdfData && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                     <div style={{ width: '80%', height: '80%' }}>
@@ -321,20 +317,21 @@ function ListaCotizaciones() {
                     </div>
                 </div>
             )}
-            {modalVisible && detalleCotizacion && (                
+            {modalVisible && detalleCotizacion && (
                 <DetalleCotizacionModal
-                detalle={detalleCotizacion}
-                onClose={() => {
-                    setModalVisible(false);
-                    setDetalleCotizacion(null);
-                }}
-                idCotizacion={detalleCotizacion[0]?.idcotizacion} // Pasa el ID de la cotización al modal
-            />
+                    detalle={detalleCotizacion}
+                    onClose={() => {
+                        setModalVisible(false);
+                        setDetalleCotizacion(null);
+                    }}
+                    idCotizacion={detalleCotizacion[0]?.idcotizacion} // Pasa el ID de la cotización al modal
+                />
             )}
             <div className="card">
-                <div className="card-header bg-primary text-white">
-                    <h2 className="text-center mb-0">Lista de Cotizaciones</h2>
-                </div>
+                {/* <div className="card-header bg-primary text-white">
+                    <Header title="Lista de Cotizaciones" />
+                </div> */}
+                <Header title="Lista de Cotizaciones" />
                 <div className="card-body">
                     <div className="mb-3">
                         <div className="row g-3 align-items-center">
@@ -378,7 +375,7 @@ function ListaCotizaciones() {
                                 className="table table-striped table-bordered table-hover table-sm"
                                 ref={dtRef} // Asigna la referencia al componente DataTable
                             >
-                                <thead>
+                                {/* <thead>
                                     <tr>
                                         <th>No. Cotización</th>
                                         <th>Fecha</th>
@@ -396,19 +393,23 @@ function ListaCotizaciones() {
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
-                                </thead>
+                                </thead> */}
                             </DataTable>
                         </div>
                     )}
                 </div>
-                <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/cotizaciones/crear" className="btn btn-success btn-sm" style={{ width: '100%' }}>REGISTRAR</Link>
-                        </div>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                        </div>
+                <div
+                    className="mt-4 p-3 border rounded shadow-sm bg-light"
+                    style={{ borderColor: "#ddd" }}
+                >
+                    <div className="d-flex flex-wrap gap-2 justify-content-between">
+                        <Link
+                            to="/cotizaciones/crear"
+                            className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
+                            style={{ minWidth: "150px" }}
+                        >
+                            <FaRegFileAlt /> Registro de Cotizaciones
+                        </Link>
                     </div>
                 </div>
             </div>

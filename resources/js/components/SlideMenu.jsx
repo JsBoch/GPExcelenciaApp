@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { slide as Menu } from 'react-burger-menu';
 import { Link } from 'react-router-dom';
-import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
 import '../../css/SlideMenu.css';
+import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
 import { FiLogOut } from 'react-icons/fi';
 
 function SlideMenu({ logout, links, ...props }) {

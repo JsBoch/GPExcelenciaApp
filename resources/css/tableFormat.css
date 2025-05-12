@@ -1,0 +1,31 @@
+/* Styles for the Datatable header */
+.table thead th {
+    background-color: #343a40; /* Dark gray background, adjust to your theme */
+    color: white; /* White text color */
+    font-weight: bold;
+    /* Optional: add some padding or adjust font size */
+    /* padding: 0.75rem; */
+    /* font-size: 1rem; */
+}
+
+/* Optional: Style for the header specifically when sorted */
+.table thead th.sorting_asc,
+.table thead th.sorting_desc,
+.table thead th.sorting {
+     background-color: #495057; /* Slightly different shade when sortable */
+     color: white;
+}
+
+/* Ensure borders are visible with the dark header */
+.table thead th,
+.table tbody td {
+    border-color: #6c757d; /* Darker border for contrast */
+}
+
+/* Styles for the action buttons container */
+.action-buttons-container {
+    display: flex; /* Use flexbox */
+    gap: 0.5rem; /* Add space between items (Bootstrap 5 gap utility) */
+    justify-content: center; /* Center buttons horizontally */
+    align-items: center; /* Align buttons vertically */
+}

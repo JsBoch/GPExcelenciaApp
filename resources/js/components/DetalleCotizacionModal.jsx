@@ -1,9 +1,12 @@
 // DetalleCotizacionModal.js
 import React, { useMemo, useState, useEffect } from 'react';
-import { MaterialReactTable } from 'material-react-table'; 
+import { MaterialReactTable } from 'material-react-table';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import axios from 'axios';
 import alertify from 'alertifyjs';
+import { Modal, ModalBody, ModalHeader, ModalFooter, Button as BootstrapButton } from 'reactstrap';
+import '../../css/tableFormat.css';
+import ImagenModal from './ImagenModal';
 
 const DetalleCotizacionModal = ({ detalle, onClose }) => {
   const [detalleItems, setDetalleItems] = useState([]);
@@ -25,9 +28,9 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
 
   useEffect(() => {
     const total = detalleItems.reduce((sum, item) => {
-        const subtotal = parseFloat(item.total);
-        return sum + (isNaN(subtotal) ? 0 : subtotal);
-      }, 0);
+      const subtotal = parseFloat(item.total);
+      return sum + (isNaN(subtotal) ? 0 : subtotal);
+    }, 0);
     setTotalGeneral(total);
   }, [detalleItems]);
 
@@ -43,6 +46,19 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
       items[rowIndex] = item;
       setDetalleItems(items);
     }
+  };
+
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+
+  const handleViewImage = (imagen_ruta) => {
+    const url = imagen_ruta ? `/images_cotizaciones/${imagen_ruta}` : null;
+    setSelectedImageUrl(url || null);
+    setIsImageModalOpen(true);
+  };
+
+  const toggleImageModal = () => {
+    setIsImageModalOpen(!isImageModalOpen);
   };
 
   const handleGuardarDetalle = async () => {
@@ -74,9 +90,9 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
       header: 'Producto',
     },
     {
-        accessorKey: 'unidad_medida',
-        header: 'Unidad',
-      },
+      accessorKey: 'unidad_medida',
+      header: 'Unidad',
+    },
     // {
     //   accessorKey: 'titulo',
     //   header: 'Título',
@@ -98,9 +114,9 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
       header: 'Alto',
     },
     {
-        accessorKey: 'm2',
-        header: 'M2',
-      },
+      accessorKey: 'm2',
+      header: 'M2',
+    },
     {
       accessorKey: 'profundidad',
       header: 'Profundidad',
@@ -137,7 +153,22 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
           style: 'currency',
           currency: 'GTQ',
         }),
-    },        
+    },
+    {
+      id: 'imagen_ruta', // <- obligatorio si header no es string
+      header: 'Imagen',
+      accessorKey: 'imagen_ruta',
+      Cell: ({ row }) => (
+        <button
+          className="btn btn-outline-info btn-sm"
+          onClick={() => handleViewImage(row.original.imagen_ruta)}
+          disabled={!row.original.imagen_ruta}
+          title={row.original.imagen_ruta ? "Ver imagen" : "Sin imagen"}
+        >
+          <i className="fas fa-image"></i>
+        </button>
+      )
+    },
   ], [detalleItems]);
 
   return (
@@ -156,6 +187,7 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
           enableBottomToolbar
           muiTableProps={{
             sx: {
+              zIndex: 1040,
               tableLayout: 'auto',
             },
           }}
@@ -169,6 +201,14 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
             })}
           </Typography>
         </Box>
+
+        {isImageModalOpen && selectedImageUrl && (
+          <ImagenModal
+            imagenSrc={selectedImageUrl}
+            onClose={toggleImageModal}
+          />
+        )}
+
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={handleGuardarDetalle} color="primary">

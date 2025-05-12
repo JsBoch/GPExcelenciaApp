@@ -6,24 +6,27 @@ import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstr
 import { Link, useNavigate } from 'react-router-dom';
 //import '../../css/ListaEmpleados.css';
 import '../../css/ListaClientes.css';
+import '../../css/tableFormat.css';
+import { FaRegFileAlt } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
 function ListaClientes() {
-    const customStyles = {
-        headRow: {
-          style: {
-            backgroundColor: 'black',
-            color: 'white',
-          },
-        },
-        headCells: {
-          style: {
-            fontWeight: 'bold',
-          },
-        },
-        // ... otros estilos personalizados
-      };
+    // const customStyles = {
+    //     headRow: {
+    //       style: {
+    //         backgroundColor: 'black',
+    //         color: 'white',
+    //       },
+    //     },
+    //     headCells: {
+    //       style: {
+    //         fontWeight: 'bold',
+    //       },
+    //     },
+    //     // ... otros estilos personalizados
+    //   };
 
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -68,20 +71,20 @@ function ListaClientes() {
         { data: 'idcliente', title: 'ID', visible: false },
         { data: 'codigo', title: 'Código' },
         { data: 'nit', title: 'NIT' },
-        { data: 'cui', title: 'CUI' },
+        { data: 'cui', title: 'CUI', visible: false },
         { data: 'nombre', title: 'Nombre' },
         { data: 'razonsocial', title: 'Razón social' },
         { data: 'direccion', title: 'Dirección' },
-        { data: 'codigo_postal', title: 'Código postal' },
-        { data: 'departamento', title: 'Departamento' },
+        { data: 'codigo_postal', title: 'Código postal', visible: false },
+        { data: 'departamento', title: 'Departamento', visible: false },
         { data: 'telefono_uno', title: 'Teléfono uno' },
         { data: 'telefono_dos', title: 'Teléfono dos' },
         { data: 'telefono_tres', title: 'Teléfono tres' },
         { data: 'email', title: 'Correo' },
-        { data: 'monto_credito', title: 'Monto crédito' },
-        { data: 'dias_credito', title: 'Días crédito' },
-        { data: 'comentario', title: 'Comentario' },
-        { data: 'vendedor', title: 'Vendedor' },
+        { data: 'monto_credito', title: 'Monto crédito', visible: false },
+        { data: 'dias_credito', title: 'Días crédito', visible: false },
+        { data: 'comentario', title: 'Comentario', visible: false },
+        { data: 'vendedor', title: 'Vendedor', visible: false },
         { data: 'id_empleado', title: 'Empleado ID', visible: false },
         { data: 'id_municipio', title: 'Municipio ID', visible: false },
         { data: 'idtipocliente', title: 'Tipo cliente ID', visible: false },
@@ -95,8 +98,18 @@ function ListaClientes() {
             data: 'idcliente',
             title: 'Acciones',
             render: (data) => {
-                return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                    <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
+                //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
+                return `
+                    <div class="d-flex gap-1 justify-content-center align-items-center">
+                        <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Desactivar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
             }
         }
     ];
@@ -104,10 +117,20 @@ function ListaClientes() {
     useEffect(() => {
         // Función para manejar los clics en los botones "Editar"
         const handleButtonClick = (event) => {
-            const id = event.target.getAttribute('data-id');
-            if (event.target.classList.contains('editar-btn')) {
+            // const id = event.target.getAttribute('data-id');
+            // if (event.target.classList.contains('editar-btn')) {
+            //     navigate(`/clientes/editar/${id}`);
+            // } else if (event.target.classList.contains('desactivar-btn')) {
+            //     handleDesactivar(id);
+            // }
+            // Busca el elemento <button> más cercano al que se hizo clic
+            const button = event.target.closest('button');
+            if (!button) return; // Si no se encuentra, no hace nada
+
+            const id = button.getAttribute('data-id');
+            if (button.classList.contains('editar-btn')) {
                 navigate(`/clientes/editar/${id}`);
-            } else if (event.target.classList.contains('desactivar-btn')) {
+            } else if (button.classList.contains('desactivar-btn')) {
                 handleDesactivar(id);
             }
         };
@@ -162,10 +185,11 @@ function ListaClientes() {
     };
 
     return (
-        <div className="container data-table-container mt-4">
-            <h2 className="text-center mb-4">Lista de Clientes</h2> {/* Título centrado */}
+        <div className="mt-4 px-3 px-md-4">
+            <Header title="Lista de Clientes" />
+            {/* <h2 className="text-center mb-4">Lista de Empleados</h2> */}
             {loading || !spanishTranslation ? (
-                <p className='loading-message'>Cargando clientes...</p>
+                <p>Cargando clientes...</p>
             ) : (
                 <div className="table-responsive"> {/* Contenedor para hacer la tabla responsive */}
                     <DataTable
@@ -174,9 +198,9 @@ function ListaClientes() {
                         columns={columns}
                         options={{ ...options, language: spanishTranslation }}
                         className="table" // Clases de Bootstrap mejoradas
-                        customStyles={customStyles} // Agrega los estilos personalizados
+                    //customStyles={customStyles} // Agrega los estilos personalizados
                     >
-                        <thead>
+                        {/* <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Código</th>
@@ -205,18 +229,22 @@ function ListaClientes() {
                                 <th>Fecha modificación</th>
                                 <th>Estado</th>
                             </tr>
-                        </thead>
+                        </thead> */}
                     </DataTable>
                 </div>
             )}
-            <div className='d-flex justify-content-end mt-4 mb-4'>
-                <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                    <div style={{ width: '50%' }}>
-                        <Link to="/clientes/crear" className="btn btn-success btn-sm" style={{ width: '100%' }}>REGISTRO</Link>
-                    </div>
-                    <div style={{ width: '50%' }}>
-                        <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                    </div>
+            <div
+                className="mt-4 p-3 border rounded shadow-sm bg-light"
+                style={{ borderColor: "#ddd" }}
+            >
+                <div className="d-flex flex-wrap gap-2 justify-content-between">
+                    <Link
+                        to="/clientes/crear"
+                        className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
+                        style={{ minWidth: "150px" }}
+                    >
+                        <FaRegFileAlt /> Registro de Clientes
+                    </Link>
                 </div>
             </div>
         </div>

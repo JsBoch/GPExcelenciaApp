@@ -10,6 +10,9 @@ import CotizacionPDF from './CotizacionPDF'; // Importa el componente Cotizacion
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 import alertify from 'alertifyjs';
 import { format } from 'date-fns';
+import '../../css/tableFormat.css';
+import { FaSearch } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -41,7 +44,7 @@ function MonitorFacturacion() {
                     setLoading(false);
                 })
                 .catch(error => {
-                    console.error('Error al obtener las cotizaciones:', error);
+                    //console.error('Error al obtener las cotizaciones:', error);
                     alertify.error('Error al obtener las cotizaciones.');
                     setLoading(false);
                 });
@@ -57,14 +60,17 @@ function MonitorFacturacion() {
             data: 'idcotizacion',
             title: 'Acciones',
             render: (data) => {
-                return `            
+                return `      
+                <div class="d-flex gap-1 justify-content-center align-items-center">      
             <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Regresar a venta">
             <i class="fas fa-file-invoice-dollar"></i>
             </button>
             <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
             <i class="fas fa-file-pdf"></i>
-            </button>`;
+            </button>
+            </div>`;
             }
+            
         },
         { data: 'idcotizacion', title: 'ID', visible: false },
         { data: 'nocotizacion', title: 'No.Cotizacion' },
@@ -191,12 +197,48 @@ function MonitorFacturacion() {
                         //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
                         return prevCotizaciones.filter(cotizacion => Number(cotizacion.idcotizacion) !== Number(id)); //convertimos a numero
                     });
+                    alertify.success('Cotización regresada a ventas.');
                 })
                 .catch((error) => {
                     //console.error('Error al desactivar la cotizacion:', error);
                     alertify.error('Error al volver la cotización a ventas.');
                 });
         }
+    };
+
+    const fetchCotizaciones = () => {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const params = new URLSearchParams();
+       
+        if (token) {
+            axios.get(`/api/monitorfacturacion`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then(response => {
+                    setCotizaciones(response.data);
+                    setLoading(false);
+                })
+                .catch(error => {
+                    alertify.error('Error al obtener las cotizaciones.');
+                    setLoading(false);
+                });
+        } else {
+            setCotizaciones([]); // Limpiar las cotizaciones si no hay fechas
+            setLoading(false);
+            if (!token) {
+                alertify.error('Token de autenticación no encontrado');
+            } else {
+                // Opcional: Mostrar un mensaje indicando que se deben seleccionar las fechas
+                // alertify.warning('Por favor, seleccione un rango de fechas.');
+            }
+        }
+    };
+
+    const handleFiltrar = () => {
+        fetchCotizaciones();
     };
 
     return (
@@ -212,9 +254,20 @@ function MonitorFacturacion() {
                 </div>
             )}
             <div className="card">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Cotizaciones para facturar</h2>
-                </div>
+                </div> */}
+                <Header title="Lista de Cotizaciones para facturar" />
+                <div className="mb-3">
+                        <div className="row g-3 align-items-center">                            
+                            <div className="col-auto">
+                                <button className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill mt-3" onClick={handleFiltrar}
+                                style={{ width: "150px" }}>
+                                    <FaSearch /> Consultar
+                                    </button>
+                            </div>
+                        </div>
+                    </div>
                 <div className="card-body">
                     {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
@@ -251,14 +304,7 @@ function MonitorFacturacion() {
                             </DataTable>
                         </div>
                     )}
-                </div>
-                <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                        </div>
-                    </div>
-                </div>
+                </div>                
             </div>
         </div>
     );

@@ -1,0 +1,118 @@
+.form-control.form-control-sm.campo-obligatorio-fondo {
+  background-color: #eeeeee !important; /* amarillo claro */
+  border-left: 4px solid #ffc107 !important; /* amarillo Bootstrap */
+  /* background-color: rgba(254, 231, 226 , 1) !important; Rojo claro con transparencia */
+  /* Puedes agregar otros estilos obligatorios aquí, como el borde */
+   /* border: 1px solid red!important;  */
+}
+.form-select.form-select-sm.campo-obligatorio-fondo {
+  background-color: #eeeeee !important; /* amarillo claro */
+  border-left: 4px solid #ffc107 !important; /* amarillo Bootstrap */
+  /* background-color: rgba(254, 231, 226 , 1) !important; Rojo claro con transparencia */
+  /* Puedes agregar otros estilos obligatorios aquí, como el borde */
+   /* border: 1px solid red!important;  */
+}
+.campo-obligatorio-label::after {
+  content: "*";
+  color: red;
+  margin-left: 4px;
+  font-weight: bold;
+}
+.card-body {
+  overflow-x: auto;
+}
+
+/* Estilo para inputs obligatorios */
+.campo-obligatorio-fondo {
+  background-color: #fff7e6 !important;
+  border: 1px solid #ffc107;
+}
+
+/* Botones uniformes */
+.btn-form {
+  min-width: 120px;
+  font-weight: 500;
+}
+
+/* Responsive form card */
+.card-form {
+  overflow-x: auto;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+/* Subtítulo de secciones del formulario */
+.form-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #85c04a;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
+
+/* Separador visual */
+.form-divider {
+  border-top: 1px solid #353636;
+  margin: 1rem 0;
+}
+
+/* Indicador de error */
+.is-invalid {
+  border-color: #dc3545;
+}
+
+/* Estilo para los botones principales */
+.btn-guardar {
+  background-color: rgb(39, 50, 56);
+  color: #fff;
+  border: none;
+}
+
+.btn-guardar:hover {
+  background-color: rgb(55, 74, 83); /* un poco más oscuro para hover */
+  color: #fff;
+}
+
+.btn-consultar {
+  background-color: rgb(133,192,74);
+  color: #1d1c1c;
+  border: none;
+}
+
+.btn-consultar:hover {
+  background-color: rgb(61, 97, 25); /* un poco más oscuro para hover */
+  color: #fff;
+}
+
+.btn-limpiar {
+  background-color: rgb(240, 243, 238);
+  color: #1d1c1c;
+  border: none;
+}
+
+.btn-limpiar:hover {
+  background-color: rgb(173, 174, 172); /* un poco más oscuro para hover */
+  color: #fff;
+}
+.btn-producto-predefinido {
+  background-color: #555654;
+  color: #f1f1f1;
+  border: none;
+}
+
+.btn-producto-predefinido:hover {
+  background-color: #e7e3e3; /* un poco más oscuro para hover */
+  color: #242323;
+}
+.btn-agregar {
+  background-color: rgb(133,192,74);
+  color: #fff;
+  border: none;
+}
+
+.btn-agregar:hover {
+  background-color: rgb(61, 97, 25); /* un poco más oscuro para hover */
+  color: #fff;
+}

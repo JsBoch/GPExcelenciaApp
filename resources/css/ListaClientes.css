@@ -40,12 +40,12 @@
 }
 
 /* Opcional: Estilo para el encabezado fijo */
-.table thead th {
+/* .table thead th {
     position: sticky;
     top: 0;
     background-color: #f2f2f2;
     z-index: 1; /* Para asegurarse de que esté encima del resto de la tabla */
-}
+/*} */
 
 /* Estilo para mensajes de carga */
 

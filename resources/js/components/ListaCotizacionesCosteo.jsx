@@ -10,6 +10,9 @@ import CotizacionPDF from './CotizacionPDF'; // Importa el componente Cotizacion
 import { PDFViewer } from '@react-pdf/renderer'; // Importa PDFViewer
 import alertify from 'alertifyjs';
 import { format } from 'date-fns';
+import '../../css/tableFormat.css';
+import { FaRegFileAlt, FaSearch } from "react-icons/fa";
+import Header from './Header';
 
 DataTable.use(DT);
 
@@ -89,10 +92,12 @@ function ListaCotizacionesCosteo() {
             render: (data) => {
                 // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
                 //     <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `                        
+                return `        
+                <div class="d-flex gap-1 justify-content-center align-items-center">                
             <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
              <i class="fas fa-file-pdf"></i>
-            </button>`;
+            </button>
+            </div>`;
             }
         },
         { data: 'idcotizacion', title: 'ID', visible: false },
@@ -158,7 +163,24 @@ function ListaCotizacionesCosteo() {
             data: 'archivo_costeo',
             title: 'Archivo Costeo',
             render: (data) => {
-                return data ? `<a href="/${data}" target="_blank" rel="noopener noreferrer">Ver/Descargar</a>` : 'No hay archivo';
+                // Verificar si data NO es null, NO es undefined, es una cadena,
+                // NO es una cadena vacía (o solo espacios),
+                // Y NO es la cadena "null" (ignorando mayúsculas/minúsculas)
+                const hasFile = (data != null && // data no es null ni undefined
+                    typeof data === 'string' && // data es una cadena
+                    data.trim() !== '' && // data no es una cadena vacía o solo espacios
+                    data.toLowerCase() !== 'null'); // data no es la cadena "null"
+
+                if (hasFile) {
+                    // Si hay un valor de archivo válido, crea el link.
+                    // Asumo que 'data' contiene la ruta relativa o completa correcta.
+                    // Si 'data' ya es una URL completa, podrías usar solo href={data}
+                    return `<a href="/${data}" target="_blank" rel="noopener noreferrer">Ver/Descargar</a>`;
+                } else {
+                    // Si no hay un valor de archivo válido (es null, undefined, "", o "null"),
+                    // muestra el texto.
+                    return 'No hay archivo';
+                }
             }
         },
     ];
@@ -222,7 +244,7 @@ function ListaCotizacionesCosteo() {
 
 
     return (
-        <div className="container-fluid mt-4">
+        <div className="mt-4 px-3 px-md-4">
             {pdfData && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                     <div style={{ width: '80%', height: '80%' }}>
@@ -234,9 +256,10 @@ function ListaCotizacionesCosteo() {
                 </div>
             )}
             <div className="card">
-                <div className="card-header bg-primary text-white">
+                {/* <div className="card-header bg-primary text-white">
                     <h2 className="text-center mb-0">Lista de Cotizaciones</h2>
-                </div>
+                </div> */}
+                <Header title="Lista de Cotizaciones" />
                 <div className="card-body">
                     <div className="mb-3">
                         <div className="row g-3 align-items-center">
@@ -265,7 +288,13 @@ function ListaCotizacionesCosteo() {
                                 />
                             </div>
                             <div className="col-auto">
-                                <button className="btn btn-primary btn-sm" onClick={handleFiltrar}>Consultar</button>
+                                <button
+                                    className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
+                                    onClick={handleFiltrar}
+                                    style={{ width: "150px" }}
+                                >
+                                    <FaSearch />  Consultar
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -303,13 +332,6 @@ function ListaCotizacionesCosteo() {
                             </DataTable>
                         </div>
                     )}
-                </div>
-                <div className="card-footer d-flex justify-content-end">
-                    <div style={{ display: 'flex', width: '25%', gap: '10px' }}>
-                        <div style={{ width: '50%' }}>
-                            <Link to="/Home" className="btn btn-secondary btn-sm" style={{ width: '100%' }}>INICIO</Link>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
