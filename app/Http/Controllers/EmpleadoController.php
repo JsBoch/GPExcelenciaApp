@@ -74,20 +74,31 @@ class EmpleadoController extends Controller
             $idEmpleado = $correlativo->correlativo + $correlativo->incremento; // Genera el nuevo ID del empleado
             $correlativo->correlativo = $idEmpleado; // Actualiza el correlativo en la base de datos
             $correlativo->save();
+
+            $codigoEmpleado = Correlativo::find('codigo_empleado'); // Obtiene el registro de correlativo para la tabla 'codigo_empleado'
+            if (! $codigoEmpleado) {
+                return response()->json(['message' => 'No se encontró el correlativo para el código del empleado'], 400);
+            }
+
+            $codigoE                         = $codigoEmpleado->correlativo + $codigoEmpleado->incremento;
+            $codigoEmpleado->correlativo = $codigoE;
+            $codigoEmpleado->save();
     
             $datosEmpleado = $request->all();
             $datosEmpleado['id_empleado'] = $idEmpleado; // Asigna el ID generado al empleado
             $datosEmpleado['usuario_registro'] = auth()->user()->name; // Asigna el usuario registrado
             $datosEmpleado['fecha_registro'] = now(); // Asigna la fecha de registro
             $datosEmpleado['estado'] = 1; // Asigna el estado
+            $datosEmpleado['codigo'] = $codigoE; // Asigna el código generado al empleado
+            $datosEmpleado['iduser'] = auth()->user()->id; // Asigna el ID del usuario autenticado
     
             $empleado = Empleado::create($datosEmpleado);
     
             DB::commit(); // Confirma la transacción
     
-            //return response()->json($empleado, 201); //devuelve una copia del objeto empleado
-            $respuesta = array("estado"=>"Creado con éxito"); 
-            return response()->json($respuesta,201);
+            return response()->json($empleado, 201); //devuelve una copia del objeto empleado
+            //$respuesta = array("estado"=>"Creado con éxito"); 
+            //return response()->json($respuesta,201);
         } catch (\Exception $e) {
             DB::rollback(); // Revierte la transacción en caso de error
             return response()->json(['message' => 'Error al crear empleado: ' . $e->getMessage()], 500);

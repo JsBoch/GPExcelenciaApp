@@ -64,6 +64,15 @@ class ClientesController extends Controller
             $idCliente = $correlativo->correlativo + $correlativo->incremento; // Genera el nuevo ID del empleado
             $correlativo->correlativo = $idCliente; // Actualiza el correlativo en la base de datos
             $correlativo->save();
+
+             $codigoCliente = Correlativo::find('codigo_cliente'); // Obtiene el registro de correlativo para la tabla 'codigo_empleado'
+            if (! $codigoCliente) {
+                return response()->json(['message' => 'No se encontró el correlativo para el código del cliente'], 400);
+            }
+
+            $codigoC                         = $codigoCliente->correlativo + $codigoCliente->incremento;
+            $codigoCliente->correlativo = $codigoC;
+            $codigoCliente->save();
     
             $datosCliente = $request->all();
             $datosCliente['idcliente'] = $idCliente; // Asigna el ID generado al empleado
@@ -73,6 +82,7 @@ class ClientesController extends Controller
             $datosCliente['id_municipio'] = 0; // Asigna el estado
             $datosCliente['idtipocliente'] = 1; // Asigna el estado
             $datosCliente['codigo_postal'] = ''; // Asigna el estado
+            $datosCliente['codigo'] = $codigoC; // Asigna el estado
     
             $cliente = Clientes::create($datosCliente);
     

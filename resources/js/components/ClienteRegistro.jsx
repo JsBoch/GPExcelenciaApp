@@ -166,9 +166,11 @@ function ClienteRegistro() {
                     alertify.success("Cliente actualizado correctamente");
                     limpiarCampos(); // Llama a la función para limpiar los campos
                 })
-                .catch((error) =>
-                    console.error("Error al actualizar el cliente:", error)
-                );
+                .catch((error) => {
+                    //console.log("Error al actualizar el cliente:", error);
+                    //console.error("Error al actualizar el cliente:", error);
+                    alertify.error("Error al actualizar el cliente");
+        });
         } else {
             // Crear nuevo cliente (solicitud POST)
             axios
@@ -190,9 +192,11 @@ function ClienteRegistro() {
                     }
                     limpiarCampos(); // Llama a la función para limpiar los campos
                 })
-                .catch((error) =>
-                    console.error("Error al crear el cliente:", error)
-                );
+                .catch((error) => {
+                    //console.log("Error al crear el cliente:", error);
+                    //console.error("Error al crear el cliente:", error);
+                    alertify.error("Error al crear el cliente");
+        });
         }
     };
 
@@ -350,9 +354,26 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_uno"
                                         value={cliente.telefono_uno}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono_uno",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono"
                                         className="form-control form-control-sm"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                                 <div className="col-md-4">
@@ -363,9 +384,26 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_dos"
                                         value={cliente.telefono_dos}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono_dos",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono"
                                         className="form-control form-control-sm"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                                 <div className="col-md-4">
@@ -376,9 +414,26 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_tres"
                                         value={cliente.telefono_tres}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono_tres",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono"
                                         className="form-control form-control-sm"
+                                        inputMode="numeric"
+                                        maxLength={8}
                                     />
                                 </div>
                             </div>
