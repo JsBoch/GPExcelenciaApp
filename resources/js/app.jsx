@@ -24,6 +24,7 @@ import MonitorFacturacion from './components/MonitorFacturacion';
 import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
+import '../css/generalesForm.css';
 
 function App() {
     // Función para verificar si el usuario está autenticado
