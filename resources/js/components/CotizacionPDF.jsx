@@ -213,6 +213,12 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     </Text>
                 </View>
             </View>
+            <View style={{ marginTop: 5, marginBottom: 5, width: "100%" }}>
+                <Text>
+                    <Text style={{ fontWeight: 700 }}>OBSERVACIONES:</Text>{" "}
+                    {cotizacion.observaciones_cliente || "N/A"}
+                </Text>
+            </View>
 
             {/* Tabla de productos */}
             <View style={styles.table}>
