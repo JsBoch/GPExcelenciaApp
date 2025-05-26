@@ -149,7 +149,7 @@ function EmpleadoForm() {
         const { name, value } = e.target;
         setEmpleado({
             ...empleado,
-            [name]: name === "nombre" ? value.toUpperCase() : value, //esto pasa nombre a mayúsculas en tiempo real
+            [name]: name === "nombre" || name === "contacto_emergencia" ? value.toUpperCase() : value, //esto pasa nombre a mayúsculas en tiempo real
         });
     };
 
@@ -185,10 +185,18 @@ function EmpleadoForm() {
                 campo: empleado.telefono_emergencia,
                 nombre: "Teléfono de Emergencia",
             },
+            {
+                campo: empleado.id_departamento,
+                nombre: "Área de Trabajo",
+            },
+            { campo: empleado.id_puesto, 
+                nombre: "Puesto" 
+            },
+            
         ];
 
         const camposFaltantes = camposObligatorios.filter(
-            (c) => !c.campo || c.campo.trim() === ""
+            (c) => !c.campo || String(c.campo).trim() === ""
         );
         if (camposFaltantes.length > 0) {
             const nombres = camposFaltantes.map((c) => c.nombre).join(", ");

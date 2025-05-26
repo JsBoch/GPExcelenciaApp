@@ -11,7 +11,14 @@ import Select from "react-select";
 import ContactoClienteForm from "./ContactoClienteForm";
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from "reactstrap";
 import ProductoPredefinidoModal from "./ProductoPredefinidoModal";
-import { FaSave, FaSearch, FaProductHunt, FaBroom,FaCheckSquare, FaWindowClose } from "react-icons/fa";
+import {
+    FaSave,
+    FaSearch,
+    FaProductHunt,
+    FaBroom,
+    FaCheckSquare,
+    FaWindowClose,
+} from "react-icons/fa";
 import Header from "./Header";
 import FormSection from "./FormSection";
 
@@ -270,9 +277,9 @@ function CotizacionForm() {
             })
             .then((res) => {
                 setContactos(res.data);
-                if (res.data.length === 0) {
-                    setModalIsOpen(true);
-                }
+                // if (res.data.length === 0) {
+                //     setModalIsOpen(true);
+                // }
             })
             .catch((error) => {
                 //console.error('Error al cargar contactos:', error);
@@ -302,11 +309,12 @@ function CotizacionForm() {
         }
 
         if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {
-            alertify.alert(
-                "CAMPO OBLIGATORIO",
-                "Debe seleccionar un contacto."
-            );
-            return;
+            // alertify.alert(
+            //     "CAMPO OBLIGATORIO",
+            //     "Debe seleccionar un contacto."
+            // );
+            // return;
+            cotizacion.idcontacto = 0; // Si no hay contacto, asignamos 0
         }
 
         if (!cotizacion.idtipopago || cotizacion.idtipopago === "") {
@@ -491,8 +499,8 @@ function CotizacionForm() {
                         formState.imagen instanceof File
                             ? null // Si hay un archivo nuevo, la ruta vieja se anula (backend generará una nueva)
                             : formState.imagen_ruta ||
-                              originalItem.imagen_ruta ||
-                              null, // Mantener la ruta existente si no hay archivo nuevo
+                            originalItem.imagen_ruta ||
+                            null, // Mantener la ruta existente si no hay archivo nuevo
                 };
 
                 //console.log('[handleAddDetalle - Editando] updatedItem FINAL:', JSON.parse(JSON.stringify(updatedItem)));
@@ -778,15 +786,17 @@ function CotizacionForm() {
     const handleCantidadDetalleChange = (e) => {
         const value = parseInt(e.target.value, 10) || 0;
         // setCantidadDetalle(value); // This is unnecessary in this setup!
-        if (!productoPredefinido) {
-            alertify.error("Selecciona un producto antes de ingresar una cantidad.");
-            return;
-        }
+        // if (!productoPredefinido) {
+        //     alertify.error(
+        //         "Selecciona un producto antes de ingresar una cantidad."
+        //     );
+        //     return;
+        // }
 
         setDetalle((prevDetalle) => ({
             //const updatedDetalle = {
-                ...prevDetalle,
-                cantidad: value,
+            ...prevDetalle,
+            cantidad: value,
             //};
 
             // Vuelve a calcular el precio y total con la *nueva cantidad* y el *producto predefinido actual*
@@ -805,7 +815,18 @@ function CotizacionForm() {
         if (!productoPredefinido || !detalle.cantidad) return;
 
         const calcularPrecioDetalle = (cantidad, productData) => {
-            const { variacion, precio, cantidad_uno, cantidad_dos,cantidad_tres,cantidad_cuatro, precio_uno, precio_dos, precio_tres,precio_cuatro } = productData;
+            const {
+                variacion,
+                precio,
+                cantidad_uno,
+                cantidad_dos,
+                cantidad_tres,
+                cantidad_cuatro,
+                precio_uno,
+                precio_dos,
+                precio_tres,
+                precio_cuatro,
+            } = productData;
 
             let nuevoPrecio = 0;
 
@@ -820,9 +841,9 @@ function CotizacionForm() {
                     nuevoPrecio = parseFloat(precio_uno || 0);
                 } else if (c >= cu && c <= cd) {
                     nuevoPrecio = parseFloat(precio_dos || 0);
-                } else if(c >= cd && c <= ct) {
+                } else if (c >= cd && c <= ct) {
                     nuevoPrecio = parseFloat(precio_tres || 0);
-                }else if (c > ct) {
+                } else if (c > ct) {
                     nuevoPrecio = parseFloat(precio_cuatro || 0);
                 }
             } else {
@@ -1016,7 +1037,7 @@ function CotizacionForm() {
                                         type="button"
                                         className="btn btn-link btn-sm"
                                         onClick={handleAgregarContacto}
-                                        style={{                                            
+                                        style={{
                                             textDecoration: "none",
                                             color: "#007bff",
                                             cursor: "pointer",
@@ -1102,7 +1123,8 @@ function CotizacionForm() {
                                         className="btn btn-sm btn-producto-predefinido"
                                         onClick={toggleProductoPredefinidoModal}
                                     >
-                                      <FaProductHunt/> Seleccionar Producto Predefinido
+                                        <FaProductHunt /> Seleccionar Producto
+                                        Predefinido
                                     </button>
                                 </div>
                             </div>
@@ -1262,9 +1284,9 @@ function CotizacionForm() {
                                                 : "btn btn-sm btn-agregar"
                                         }
                                     >
-                                        <FaCheckSquare/> 
+                                        <FaCheckSquare />
                                         {detalleSeleccionado
-                                           ? " Actualizar"
+                                            ? " Actualizar"
                                             : " Agregar"}
                                     </button>
                                     <button
@@ -1272,7 +1294,7 @@ function CotizacionForm() {
                                         onClick={handleQuitarDetalle}
                                         className="btn btn-danger btn-sm ms-2"
                                     >
-                                        <FaWindowClose/> Quitar
+                                        <FaWindowClose /> Quitar
                                     </button>
                                 </div>
                             </div>
