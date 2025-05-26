@@ -17,6 +17,11 @@ import Header from "./Header";
 import ContactoClienteForm from "./ContactoClienteForm"; // 1. Importa el formulario de contacto
 import "../../css/modalStyles.css"; // 2. Crea y enlaza un CSS para el modal (ver abajo)
 import FormSection from "./FormSection"; // 3. Importa el componente FormSection
+import {
+    validateNIT,
+    validateOnlyNumbers,
+    validateDecimalAmount,
+} from "../utils/validators";
 
 function ClienteRegistro() {
     const [cliente, setCliente] = useState({
@@ -54,6 +59,7 @@ function ClienteRegistro() {
     // 3. Estado para controlar la visibilidad del modal de contacto
     const [isContactoModalOpen, setIsContactoModalOpen] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(!!id); // true si hay id
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -109,16 +115,67 @@ function ClienteRegistro() {
             // Cargar listas desplegables para crear un nuevo empleado
             axios
                 .get("/api/departamentos-pais", { headers })
-                .then((res) => setDepartamentosPais(res.data));
+                .then((res) => {
+                    setDepartamentosPais(res.data);
+                    // Buscar el departamento "GUATEMALA"
+                    const deptoGuatemala = res.data.find(
+                        (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+                    );
+
+                    // Si lo encuentra, establecerlo por defecto en el cliente
+                    if (deptoGuatemala) {
+                        setCliente((prev) => ({
+                            ...prev,
+                            iddepartamento: deptoGuatemala.iddepartamentopais, // ajusta a la propiedad que tu backend devuelve (puede ser iddepartamento)
+                        }));
+                    }
+                })
+                .catch((error) =>
+                    console.error("Error al cargar departamentos:", error)
+                );
             axios
                 .get("/api/vendedores", { headers })
                 .then((res) => setVendedores(res.data));
         }
     }, [id]);
 
+    const validators = {
+        nit: validateNIT,
+        telefono_uno: (val) => validateOnlyNumbers(val, 8, 8),
+        telefono_dos: (val) => validateOnlyNumbers(val, 8, 8),
+        telefono_tres: (val) => validateOnlyNumbers(val, 8, 8),
+        monto_credito: (val) => validateDecimalAmount(val, 10, 2),
+        dias_credito: (val) => validateOnlyNumbers(val, 0, 2),
+    };
+
     //Maneja los cambios en el formulario
     const handleChange = (e) => {
-        setCliente({ ...cliente, [e.target.name]: e.target.value });
+        //setCliente({ ...cliente, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        const uppercaseFields = ["nombre", "razonsocial", "nit"];
+
+        const formattedValue = uppercaseFields.includes(name)
+            ? value.toUpperCase()
+            : value;
+
+        setCliente((prev) => ({ ...prev, [name]: formattedValue }));
+
+        if (validators[name]) {
+            const result = validators[name](formattedValue);
+            setErrors((prev) => ({
+                ...prev,
+                [name]: result === true ? null : result,
+            }));
+        }
+
+        if (validators[name]) {
+            const result = validators[name](value);
+            setErrors((prev) => ({
+                ...prev,
+                [name]: result === true ? null : result,
+            }));
+        }
     };
 
     //maneja el envío del formulario
@@ -142,10 +199,11 @@ function ClienteRegistro() {
             { campo: clienteData.direccion, nombre: "Dirección" },
             { campo: clienteData.monto_credito, nombre: "Monto crédito" },
             { campo: clienteData.dias_credito, nombre: "Días crédito" },
+            { campo: clienteData.id_empleado, nombre: "Vendedor asociado" },
         ];
 
         const camposFaltantes = camposObligatorios.filter(
-            (c) => !c.campo || c.campo.trim() === ""
+            (c) => !c.campo || String(c.campo).trim() === ""
         );
         if (camposFaltantes.length > 0) {
             const nombres = camposFaltantes.map((c) => c.nombre).join(", ");
@@ -170,7 +228,7 @@ function ClienteRegistro() {
                     //console.log("Error al actualizar el cliente:", error);
                     //console.error("Error al actualizar el cliente:", error);
                     alertify.error("Error al actualizar el cliente");
-        });
+                });
         } else {
             // Crear nuevo cliente (solicitud POST)
             axios
@@ -196,11 +254,15 @@ function ClienteRegistro() {
                     //console.log("Error al crear el cliente:", error);
                     //console.error("Error al crear el cliente:", error);
                     alertify.error("Error al crear el cliente");
-        });
+                });
         }
     };
 
     const limpiarCampos = () => {
+        const deptoGuatemala = departamentosPais.find(
+            (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+        );
+
         setCliente({
             idcliente: "",
             nit: "",
@@ -211,7 +273,7 @@ function ClienteRegistro() {
             fecharegistro: "",
             estado: "",
             codigo: "",
-            iddepartamento: "",
+            iddepartamento: deptoGuatemala ? deptoGuatemala.iddepartamentopais : "", // ← aquí se asigna GUATEMALA
             razonsocial: "",
             monto_credito: "",
             id_empleado: "",
@@ -278,8 +340,16 @@ function ClienteRegistro() {
                                         value={cliente.nit}
                                         onChange={handleChange}
                                         placeholder="NIT"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
+                                        //className="form-control form-control-sm campo-obligatorio-fondo"
+                                        className={`form-control form-control-sm campo-obligatorio-fondo ${
+                                            errors.nit ? "is-invalid" : ""
+                                        }`}
                                     />
+                                    {errors.nit && (
+                                        <div className="invalid-feedback">
+                                            {errors.nit}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-md-4">
                                     <label className="form-label">CUI</label>
@@ -354,27 +424,22 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_uno"
                                         value={cliente.telefono_uno}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "telefono_uno",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
+                                        onChange={handleChange}
                                         placeholder="Teléfono"
-                                        className="form-control form-control-sm"
+                                        //className="form-control form-control-sm"
+                                        className={`form-control form-control-sm ${
+                                            errors.telefono_uno
+                                                ? "is-invalid"
+                                                : ""
+                                        }`}
                                         inputMode="numeric"
                                         maxLength={8}
                                     />
+                                    {errors.telefono_uno && (
+                                        <div className="invalid-feedback">
+                                            {errors.telefono_uno}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-md-4">
                                     <label className="form-label">
@@ -384,27 +449,22 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_dos"
                                         value={cliente.telefono_dos}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "telefono_dos",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
+                                        onChange={handleChange}
                                         placeholder="Teléfono"
-                                        className="form-control form-control-sm"
+                                        //className="form-control form-control-sm"
+                                        className={`form-control form-control-sm ${
+                                            errors.telefono_dos
+                                                ? "is-invalid"
+                                                : ""
+                                        }`}
                                         inputMode="numeric"
                                         maxLength={8}
                                     />
+                                    {errors.telefono_dos && (
+                                        <div className="invalid-feedback">
+                                            {errors.telefono_dos}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-md-4">
                                     <label className="form-label">
@@ -414,27 +474,22 @@ function ClienteRegistro() {
                                         type="text"
                                         name="telefono_tres"
                                         value={cliente.telefono_tres}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "telefono_tres",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
+                                        onChange={handleChange}
                                         placeholder="Teléfono"
-                                        className="form-control form-control-sm"
+                                        //className="form-control form-control-sm"
+                                        className={`form-control form-control-sm ${
+                                            errors.telefono_tres
+                                                ? "is-invalid"
+                                                : ""
+                                        }`}
                                         inputMode="numeric"
                                         maxLength={8}
                                     />
+                                    {errors.telefono_tres && (
+                                        <div className="invalid-feedback">
+                                            {errors.telefono_tres}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="row g-2">
@@ -479,8 +534,19 @@ function ClienteRegistro() {
                                         value={cliente.monto_credito}
                                         onChange={handleChange}
                                         placeholder="Monto crédito"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
+                                        //className="form-control form-control-sm campo-obligatorio-fondo"
+                                        className={`form-control form-control-sm campo-obligatorio-fondo ${
+                                            errors.monto_credito
+                                                ? "is-invalid"
+                                                : ""
+                                        }`}
+                                        inputMode="numeric"
                                     />
+                                    {errors.monto_credito && (
+                                        <div className="invalid-feedback">
+                                            {errors.monto_credito}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-md-4">
                                     <label className="form-label">
@@ -492,8 +558,19 @@ function ClienteRegistro() {
                                         value={cliente.dias_credito}
                                         onChange={handleChange}
                                         placeholder="Días crédito"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
+                                        //className="form-control form-control-sm campo-obligatorio-fondo"
+                                        className={`form-control form-control-sm campo-obligatorio-fondo ${
+                                            errors.dias_credito
+                                                ? "is-invalid"
+                                                : ""
+                                        }`}
+                                        inputMode="numeric"
                                     />
+                                    {errors.dias_credito && (
+                                        <div className="invalid-feedback">
+                                            {errors.dias_credito}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="row g-2">
@@ -505,7 +582,7 @@ function ClienteRegistro() {
                                         name="id_empleado"
                                         value={cliente.id_empleado}
                                         onChange={handleChange}
-                                        className="form-control form-control-sm"
+                                        className="form-control form-control-sm campo-obligatorio-fondo"
                                     >
                                         <option value="">
                                             Seleccionar vendedor

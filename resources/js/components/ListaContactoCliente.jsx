@@ -8,6 +8,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import '../../css/tableFormat.css';
 import { FaRegFileAlt } from "react-icons/fa";
 import Header from './Header';
+import alertify from "alertifyjs";
+import "alertifyjs/build/css/alertify.min.css";
+import "alertifyjs/build/css/themes/default.min.css";
 
 DataTable.use(DT);
 
@@ -165,10 +168,18 @@ function ListaContactoCliente() {
                     if (button.classList.contains('editar-btn')) {
                         navigate(`/contacto_cliente/editar/${id}`);
                     } else if (button.classList.contains('desactivar-btn')) {
-                        // Add a confirmation dialog
-                        if (window.confirm('¿Está seguro de que desea desactivar este empleado?')) {
-                            handleDesactivar(id);
+                        alertify
+                    .confirm(
+                        "Confirmación",
+                        "¿Está seguro de que desea eliminar el registro seleccionado?",
+                        function () {
+                            handleDesactivar(id); // ✅ Aceptado
+                        },
+                        function () {
+                            alertify.error("Acción cancelada"); // ❌ Cancelado (opcional)
                         }
+                    )
+                    .set("labels", { ok: "Sí", cancel: "No" }); // Etiquetas personalizadas
                     }
                 }
             };

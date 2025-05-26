@@ -24,8 +24,8 @@ function ContactoClienteForm({
 }) {
     // Recibe clienteId como prop  // contactoAEditarId es opcional
     const { id } = useParams(); // Obtiene el id de la URL
-    // const { id: idContactoDesdeUrl } = useParams(); // Para edición de contacto si se accede por URL
-    // const idParaEditar = contactoAEditarId || idContactoDesdeUrl; // Prioriza prop si existe
+    const { id: idContactoDesdeUrl } = useParams(); // Para edición de contacto si se accede por URL
+    const idParaEditar = contactoAEditarId || idContactoDesdeUrl; // Prioriza prop si existe
     const navigate = useNavigate();
     const [clientes, setClientes] = useState([]);
     const [nombreClienteFijado, setNombreClienteFijado] = useState(""); // Para mostrar nombre si está deshabilitado
@@ -73,10 +73,10 @@ function ContactoClienteForm({
         // Esto es si el modal también puede EDITAR contactos, no solo crear.
         // Por ahora, nos enfocaremos en la creación desde ClienteRegistro.
         // Si quieres que el modal también edite, esta lógica se activaría.
-        if (contactoAEditarId) {
+        if (idParaEditar) {
             setIsEditModeContacto(true);
             axios
-                .get(`/api/contacto_cliente/${contactoAEditarId}`, { headers })
+                .get(`/api/contacto_cliente/${idParaEditar}`, { headers })
                 .then((res) => {
                     const data = res.data;
                     setContactoCliente({
@@ -126,9 +126,11 @@ function ContactoClienteForm({
     }, [clienteId]);
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
         setContactoCliente({
             ...contactoCliente,
-            [e.target.name]: e.target.value,
+            //[e.target.name]: e.target.value,
+            [name]: name === "nombre" || name === "puesto" ? value.toUpperCase(): value, // Convierte a mayúsculas solo para nombre y puesto
         });
     };
 
@@ -164,11 +166,11 @@ function ContactoClienteForm({
         }
 
         //
-        if (isEditModeContacto && contactoAEditarId) {
+        if (isEditModeContacto && idParaEditar) {
             // Editando un contacto
             axios
                 .put(
-                    `/api/contacto_cliente/${contactoAEditarId}`,
+                    `/api/contacto_cliente/${idParaEditar}`,
                     contactoCliente,
                     { headers }
                 )
@@ -193,6 +195,8 @@ function ContactoClienteForm({
                     /* ... tu manejo de error ... */
                 });
         }
+
+        limpiarCampos(); // Limpia los campos después de guardar
     };
 
     const limpiarCampos = () => {
@@ -223,13 +227,12 @@ function ContactoClienteForm({
                     {" "}
                     {/* Menos padding si es modal */}
                     <div className="card-body card-form">
-                        <form onSubmit={handleSubmit}>
-                            <FormSection title={"Datos generales"} >
+                        <form onSubmit={handleSubmit}>                            
                             <div className="row g-2">
                                 <div className="col-md-12">
                                     <label className="form-label">
                                         Cliente
-                                    </label>
+                                    </label>                                    
                                     {/* <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
                                     <option value="">Seleccionar Cliente</option>
                                     {clientes.map(cliente => (
@@ -273,6 +276,7 @@ function ContactoClienteForm({
                                     )}
                                 </div>
                             </div>
+                            <FormSection title={"Datos del contacto"} >
                             <div className="row g-2">
                                 <div className="col-md-4">
                                     <label className="form-label">Nombre</label>
@@ -295,9 +299,24 @@ function ContactoClienteForm({
                                         type="text"
                                         name="telefono"
                                         value={contactoCliente.telefono}
-                                        onChange={handleChange}
+                                        //onChange={handleChange}
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    ""
+                                                ); // Solo números
+                                            if (value.length <= 8) {
+                                                handleChange({
+                                                    target: {
+                                                        name: "telefono",
+                                                        value,
+                                                    },
+                                                });
+                                            }
+                                        }}
                                         placeholder="Teléfono"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
+                                        className="form-control form-control-sm campo-obligatorio-fondo"                                        
                                     />
                                 </div>
                             </div>
