@@ -29,18 +29,19 @@ function ListaContactoCliente() {
             .then(data => setSpanishTranslation(data))
             .catch(error => console.error('Error al cargar la traducción:', error));
 
-        fetchClientes(); // Cargar la lista de clientes al inicio            
+        fetchClientes();          
     }, []);
 
     const fetchClientes = () => {
         const token = localStorage.getItem('token');
         if (token) {
-            axios.get('/api/clientes', { // Asegúrate de que esta ruta sea correcta
+            axios.get('/api/lista_clientes', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             })
                 .then(response => {
+                    console.log('Clientes obtenidos:', response.data); // Agrega esta línea para depuración
                     setClientes(response.data);
                     setLoading(false);
                 })
