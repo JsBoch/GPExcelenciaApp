@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\AdmCotizacion;
@@ -46,10 +47,10 @@ class CotizacionController extends Controller
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');            
-                                            
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+
         $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
-                                            //}
+        //}
 
         // Filtro por rango de fechas
         if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
@@ -259,8 +260,8 @@ class CotizacionController extends Controller
             // Añadir campos de auditoría para la cabecera
             $datosCabecera['usuario_modificacion'] = auth()->user()->name;
             $datosCabecera['fecha_modificacion']   = now(); // Usar now() es más conveniente
-                                                            // Quitar la línea de estado si no la envías o quieres mantener la existente
-                                                            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+            // Quitar la línea de estado si no la envías o quieres mantener la existente
+            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
 
             $cotizacion->update($datosCabecera);
 
@@ -268,15 +269,15 @@ class CotizacionController extends Controller
             // Es importante hacer esto DENTRO de la transacción
             AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
 
-                                                         // 3. Obtener y procesar los nuevos detalles (como en store)
+            // 3. Obtener y procesar los nuevos detalles (como en store)
             $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
 
             if (! empty($detalles)) { // Solo procesar si hay detalles
-                                         // Obtener el correlativo para los detalles (igual que en store)
+                // Obtener el correlativo para los detalles (igual que en store)
                 $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
                 if (! $correlativoDetalle) {
                     DB::rollback();
-                                                                                                                                  // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
+                    // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
                     return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
                 }
 
@@ -293,13 +294,13 @@ class CotizacionController extends Controller
                         //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
                         //$imagenRuta = $nombreImagen;
                         if ($imagen->move(public_path('images_cotizaciones'), $nombreImagen)) {
-                        $imagenRuta = $nombreImagen;
-                        // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
-                    } else {
-                        // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
-                        // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
-                        // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
-                    }
+                            $imagenRuta = $nombreImagen;
+                            // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
+                        } else {
+                            // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
+                            // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
+                            // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
+                        }
                     } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
                         // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
                         $imagenRuta = $detalleData['imagen_ruta'];
@@ -337,14 +338,13 @@ class CotizacionController extends Controller
                 $correlativoDetalle->save();
             }
 
-                                           // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-                                           // Para devolverla con detalles, necesitas volver a cargar la relación
+            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
+            // Para devolverla con detalles, necesitas volver a cargar la relación
             $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
-                                           // Si todo fue bien, confirmar la transacción
+            // Si todo fue bien, confirmar la transacción
             DB::commit();
 
             return response()->json($cotizacion);
-
         } catch (\Exception $e) {
             // Si algo falla, revertir la transacción
             DB::rollback();
@@ -403,7 +403,7 @@ class CotizacionController extends Controller
                 'porcentaje_aplicado',
             )
             ->from('adm_detalle_cotizacion as d')
-            ->get();        
+            ->get();
 
         return response()->json($detalles);
     }
@@ -500,7 +500,8 @@ class CotizacionController extends Controller
         // Convertir total a letras (usando kwn/number-to-words)
         $numberToWords     = new NumberToWords();
         $numberTransformer = $numberToWords->getNumberTransformer('es');
-        $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+        // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
 
         // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
         // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
@@ -543,10 +544,24 @@ class CotizacionController extends Controller
             DB::commit();
 
             return response()->json(['message' => 'Detalle de cotización actualizado correctamente']);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Error al guardar el detalle de la cotización', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    private function convertirNumeroALetrasConCentavos($numero)
+    {
+        $numberToWords = new NumberToWords();
+        $numberTransformer = $numberToWords->getNumberTransformer('es');
+
+        $entero = floor($numero);
+        $decimal = round(($numero - $entero) * 100);
+
+        $letrasEntero = $numberTransformer->toWords($entero);
+        $letrasCentavos = $decimal > 0 ? "CON {$decimal}/100" : "CON 00/100";
+
+        //return ucfirst($letrasEntero) . ' ' . $letrasCentavos;
+        return strtoupper($letrasEntero . ' ' . $letrasCentavos);
     }
 }

@@ -1,3 +1,4 @@
+import '../utils/disableHyphenation'; // Asegúrate de que este archivo exista y desactive la hipenación
 import React from "react";
 import {
     Page,
@@ -29,6 +30,7 @@ Font.register({
 const styles = StyleSheet.create({
     page: {
         padding: 30,
+        paddingBottom: 60,
         fontFamily: "Roboto",
         fontSize: 10,
     },
@@ -221,7 +223,8 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
             </View>
 
             {/* Tabla de productos */}
-            <View style={styles.table}>
+            {/* <View style={styles.table}> */}
+            <View style={{ ...styles.table, flexDirection: "column" }}>
                 <View style={styles.tableRow}>
                     <View
                         style={[
@@ -287,7 +290,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                 ]}
                             >
                                 {detalle.descripcion}
-                            </Text>
+                            </Text>                            
                         </View>
                         <View
                             style={[
@@ -296,7 +299,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                             ]}
                         >
                             <Text style={styles.tableCell}>
-                                {detalle.precio}
+                                {formatoMoneda.format(detalle.precio)}
                             </Text>
                         </View>
                         <View
@@ -311,6 +314,96 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         </View>
                     </View>
                 ))}
+                {/* {cotizacion.detalles.map((detalle, index) => (
+                    <React.Fragment key={index}>
+                        {index % 20 === 0 && (
+                            <View style={styles.tableRow} break>
+                                <View
+                                    style={[styles.tableCol, { width: "8%" }]}
+                                >
+                                    <Text style={styles.tableCell}>CANT.</Text>
+                                </View>
+                                <View
+                                    style={[styles.tableCol, { width: "62%" }]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            { textAlign: "center" },
+                                        ]}
+                                    >
+                                        DESCRIPCIÓN
+                                    </Text>
+                                </View>
+                                <View
+                                    style={[styles.tableCol, { width: "15%" }]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            { textAlign: "center" },
+                                        ]}
+                                    >
+                                        PRECIO
+                                    </Text>
+                                </View>
+                                <View
+                                    style={[styles.tableCol, { width: "15%" }]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            { textAlign: "center" },
+                                        ]}
+                                    >
+                                        TOTAL
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+                        <View style={styles.tableRowData}>
+                            <View style={[styles.tableCol, { width: "8%" }]}>
+                                <Text style={styles.tableCell}>
+                                    {detalle.cantidad}
+                                </Text>
+                            </View>
+                            <View style={[styles.tableCol, { width: "62%" }]}>
+                                <Text
+                                    style={[
+                                        styles.tableCell,
+                                        {
+                                            textAlign: "left",
+                                            margin: 0,
+                                            paddingRight: 2,
+                                        },
+                                    ]}
+                                >
+                                    {detalle.descripcion}
+                                </Text>
+                            </View>
+                            <View style={[styles.tableCol, { width: "15%" }]}>
+                                <Text
+                                    style={[
+                                        styles.tableCell,
+                                        { textAlign: "right" },
+                                    ]}
+                                >
+                                    {formatoMoneda.format(detalle.precio)}
+                                </Text>
+                            </View>
+                            <View style={[styles.tableCol, { width: "15%" }]}>
+                                <Text
+                                    style={[
+                                        styles.tableCell,
+                                        { textAlign: "right" },
+                                    ]}
+                                >
+                                    {formatoMoneda.format(detalle.total)}
+                                </Text>
+                            </View>
+                        </View>
+                    </React.Fragment>
+                ))} */}
             </View>
 
             {/* Total General */}
@@ -340,9 +433,14 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
             >
                 <View>
                     {totalEnLetras && (
-                        <Text style={{ fontSize: 12 }}>
-                            Total en Letras: {totalEnLetras}
-                        </Text>
+                        <>
+                            <Text style={{ fontSize: 10 }}>
+                                TOTAL EN LETRAS
+                            </Text>
+                            <Text style={{ fontSize: 10 }}>
+                                {totalEnLetras}
+                            </Text>
+                        </>
                     )}
                 </View>
                 <View>
