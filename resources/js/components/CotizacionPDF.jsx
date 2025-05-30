@@ -214,13 +214,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         {cotizacion.tipo_pago}
                     </Text>
                 </View>
-            </View>
-            <View style={{ marginTop: 5, marginBottom: 5, width: "100%" }}>
-                <Text>
-                    <Text style={{ fontWeight: 700 }}>OBSERVACIONES:</Text>{" "}
-                    {cotizacion.observaciones_cliente || "N/A"}
-                </Text>
-            </View>
+            </View>            
 
             {/* Tabla de productos */}
             {/* <View style={styles.table}> */}
@@ -448,6 +442,12 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         Total: {formatoMoneda.format(cotizacion.total_general)}
                     </Text>
                 </View>
+            </View>
+            <View style={{ marginTop: 5, marginBottom: 5, width: "100%" }}>
+                <Text>
+                    <Text style={{ fontWeight: 700 }}>OBSERVACIONES:</Text>{" "}
+                    {cotizacion.observaciones_cliente || ""}
+                </Text>
             </View>
             <View
                 fixed
