@@ -25,7 +25,8 @@ import FormSection from "./FormSection";
 DataTable.use(DT);
 
 function CotizacionForm() {
-    const fechaActual = new Date().toISOString().split("T")[0];
+    // const fechaActual = new Date().toISOString().split("T")[0];
+    const fechaActual = new Date().toLocaleDateString("en-CA");
     const { id } = useParams();
     const navigate = useNavigate();
     const [tiposPago, setTiposPago] = useState([]);
@@ -435,7 +436,7 @@ function CotizacionForm() {
             }
             navigate("/cotizaciones/lista");
         } catch (error) {
-            //console.error('Error al guardar la cotización:', error);
+           // console.error('Error al guardar la cotización:', error);
             alertify.error("Error al guardar la cotización", error);
         }
     };

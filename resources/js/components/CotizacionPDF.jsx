@@ -266,7 +266,8 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     </View>
                 </View>
                 {cotizacion.detalles.map((detalle, index) => (
-                    <View style={styles.tableRowData} key={index}>
+                    // <View style={styles.tableRowData} key={index}>
+                        <View style={[styles.tableRowData, { flexDirection: "row" }]} key={index} wrap={false}>
                         <View style={[styles.tableCol, { width: "8%" }]}>
                             <Text style={styles.tableCell}>
                                 {detalle.cantidad}
