@@ -29,3 +29,22 @@
     justify-content: center; /* Center buttons horizontally */
     align-items: center; /* Align buttons vertically */
 }
+
+.tr.estado-1 td {
+    background-color: #eaf2f8 !important;
+}
+tr.estado-2 td {
+    background-color: #fef9e7 !important;
+}
+tr.estado-3 td {
+    background-color: #d5f5e3 !important;
+}
+tr.estado-4 td {
+    background-color: #fdebd0 !important;
+}
+tr.estado-5 td {
+    background-color: #fadbd8 !important;
+}
+tr.estado-6 td {
+    background-color: #e8daef !important;
+}

@@ -23,7 +23,7 @@ import {
 import "../../css/tableFormat.css";
 import ImagenModal from "./ImagenModal";
 
-const DetalleCotizacionModal = ({ detalle, onClose }) => {
+const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
     const [detalleItems, setDetalleItems] = useState([]);
     const [totalGeneral, setTotalGeneral] = useState(0);
     const [porcentajeGlobal, setPorcentajeGlobal] = useState(0);
@@ -282,6 +282,7 @@ const DetalleCotizacionModal = ({ detalle, onClose }) => {
                     variant="contained"
                     onClick={handleGuardarDetalle}
                     color="primary"
+                    disabled={estadoCotizacion === 2 || estadoCotizacion === 4} 
                 >
                     Guardar Cambios
                 </Button>

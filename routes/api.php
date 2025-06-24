@@ -14,6 +14,7 @@ use App\Http\Controllers\CotizacionCosteoController;
 use App\Http\Controllers\ProductoPredefinidoController;
 use App\Http\Controllers\MonitorFacturacionController;
 use App\Http\Controllers\CosteoCotizacionesController;
+use App\Http\Controllers\TipoPagoController;
 
 
 //
@@ -91,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
     Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
+    Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
@@ -102,7 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
 //COSTEO COTIZACIONES
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/costeocotizaciones', CotizacionCosteoController::class);
-    Route::get('/costeocotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);           
+    Route::get('/costeocotizaciones/{id}/pdf', [CotizacionCosteoController::class, 'generarPdf']);           
 });
 
 //PRODUCTO PREDEFINIDO
@@ -119,6 +121,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/monitorfacturacion', MonitorFacturacionController::class);    
     Route::put('/monitorfacturacion/desactivar/{id}', [MonitorFacturacionController::class, 'desactivar']);
     Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);          
+    Route::get('/facturar/{id}', [MonitorFacturacionController::class, 'generarXmlFactura']);
+    Route::get('/monitorfacturacion/{id}/facturapdf', [MonitorFacturacionController::class, 'generarImpresionFactura']);
 });
 
 //CONSULTA COTIZACIONES COSTEO
@@ -126,4 +130,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizacionescosteo', CosteoCotizacionesController::class);        
     Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);    
     Route::get('/exportar/cotizacion/{id}', [CosteoCotizacionesController::class, 'exportarExcel'])->name('cotizaciones.exportar');      
+});
+
+//TIPOS DE PAGO
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/tipopago', TipoPagoController::class);
+    Route::put('/tipopago/desactivar/{id}', [TipoPagoController::class, 'desactivar']);    
 });

@@ -19,7 +19,7 @@ class CotizacionController extends Controller
 {
     public function index(Request $request)
     {
-        $user              = Auth::user();              // Obtiene el usuario autenticado
+        $user = Auth::user();              // Obtiene el usuario autenticado
         $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
 
         $query = AdmCotizacion::query()
@@ -43,6 +43,15 @@ class CotizacionController extends Controller
                 'c.version',
                 'c.idtipopago',
                 'c.estado',
+                DB::raw("CASE
+                    WHEN c.estado = 1 THEN 'REGISTRO'
+                    WHEN c.estado = 2 THEN 'COSTEO'
+                    WHEN c.estado = 3 THEN 'COSTEADA'
+                    WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+                    WHEN c.estado = 5 THEN 'PARA FACTURAR'
+                    WHEN c.estado = 6 THEN 'FACTURADA'
+                    ELSE 'DESCONOCIDO'
+                END as estado_texto")
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -78,30 +87,30 @@ class CotizacionController extends Controller
 
             $correlativo = Correlativo::find('adm_cotizacion');
 
-            if (! $correlativo) {
+            if (!$correlativo) {
                 return response()->json(['message' => 'No se encontró el correlativo para cotizacion'], 400);
             }
 
-            $idCotizacion             = $correlativo->correlativo + $correlativo->incremento;
+            $idCotizacion = $correlativo->correlativo + $correlativo->incremento;
             $correlativo->correlativo = $idCotizacion;
             $correlativo->save();
 
             $correlativonocotizacion = Correlativo::find('no_cotizacion');
-            if (! $correlativonocotizacion) {
+            if (!$correlativonocotizacion) {
                 return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
             }
 
-            $nocotizacion                         = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
+            $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
             $correlativonocotizacion->correlativo = $nocotizacion;
             $correlativonocotizacion->save();
 
-            $datosCotizacion                     = $request->all();
-            $datosCotizacion['idcotizacion']     = $idCotizacion;
-            $datosCotizacion['nocotizacion']     = $nocotizacion;
+            $datosCotizacion = $request->all();
+            $datosCotizacion['idcotizacion'] = $idCotizacion;
+            $datosCotizacion['nocotizacion'] = $nocotizacion;
             $datosCotizacion['usuario_registro'] = auth()->user()->name;
-            $datosCotizacion['fecha_registro']   = date('Y-m-d H:i:s');
-            $datosCotizacion['estado']           = 1;
-            $datosCotizacion['idusuario']        = auth()->user()->id;
+            $datosCotizacion['fecha_registro'] = date('Y-m-d H:i:s');
+            //$datosCotizacion['estado']           = 1;
+            $datosCotizacion['idusuario'] = auth()->user()->id;
 
             $cotizacion = AdmCotizacion::create($datosCotizacion);
 
@@ -109,12 +118,12 @@ class CotizacionController extends Controller
 
             $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
 
-            if (! $correlativoDetalle) {
+            if (!$correlativoDetalle) {
                 return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
             }
 
             $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-            if (! is_array($detalles)) {
+            if (!is_array($detalles)) {
                 Log::error('Los detalles no son un array: ' . print_r($detalles, true));
                 DB::rollback();
                 return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
@@ -128,32 +137,32 @@ class CotizacionController extends Controller
                 $imagenRuta = null;
                 if ($request->hasFile("detalles.{$index}.imagen")) {
                     //Log::info("Archivo detectado para índice: {$index}");
-                    $imagen       = $request->file("detalles.{$index}.imagen");
+                    $imagen = $request->file("detalles.{$index}.imagen");
                     $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
                     $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
                     $imagenRuta = $nombreImagen;
                 }
                 AdmDetalleCotizacion::create([
                     'iddetallecotizacion' => $idDetalleCotizacion,
-                    'idcotizacion'        => $idCotizacion,
-                    'idproducto'          => 0,
-                    'producto'            => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
-                    'titulo'              => '',
-                    'descripcion'         => $detalleData['descripcion'],
-                    'cantidad'            => $detalleData['cantidad'],
-                    'ancho'               => $detalleData['ancho'],
-                    'alto'                => $detalleData['alto'],
-                    'profundidad'         => $detalleData['profundidad'],
-                    'precio'              => $detalleData['precio'],
-                    'total'               => $detalleData['total'],
-                    'fecha_registro'      => date('Y-m-d H:i:s'),
-                    'usuario_registro'    => auth()->user()->name,
-                    'costeado'            => 'N',
-                    'incluye_foto'         => $imagenRuta ? 'S' : 'N',
-                    'estado'              => 1,
-                    'unidad_medida'       => $detalleData['unidad_medida'],
-                    'm2'                  => $detalleData['m2'],
-                    'imagen'              => $imagenRuta,
+                    'idcotizacion' => $idCotizacion,
+                    'idproducto' => 0,
+                    'producto' => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
+                    'titulo' => '',
+                    'descripcion' => $detalleData['descripcion'],
+                    'cantidad' => $detalleData['cantidad'],
+                    'ancho' => $detalleData['ancho'],
+                    'alto' => $detalleData['alto'],
+                    'profundidad' => $detalleData['profundidad'],
+                    'precio' => $detalleData['precio'],
+                    'total' => $detalleData['total'],
+                    'fecha_registro' => date('Y-m-d H:i:s'),
+                    'usuario_registro' => auth()->user()->name,
+                    'costeado' => 'N',
+                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
+                    'estado' => 1,
+                    'unidad_medida' => $detalleData['unidad_medida'],
+                    'm2' => $detalleData['m2'],
+                    'imagen' => $imagenRuta,
                 ]);
 
                 $idDetalleCotizacion += 1;
@@ -200,7 +209,7 @@ class CotizacionController extends Controller
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->first();
-        if (! $cotizaciones) {
+        if (!$cotizaciones) {
             return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
         }
         // Obtener los detalles de la cotización
@@ -246,7 +255,7 @@ class CotizacionController extends Controller
         try {
             // 1. Encontrar y actualizar la cotización principal
             $cotizacion = AdmCotizacion::find($id);
-            if (! $cotizacion) {
+            if (!$cotizacion) {
                 DB::rollback(); // Revertir si no se encuentra
                 return response()->json(['message' => 'Cotización no encontrada'], 404);
             }
@@ -259,7 +268,7 @@ class CotizacionController extends Controller
 
             // Añadir campos de auditoría para la cabecera
             $datosCabecera['usuario_modificacion'] = auth()->user()->name;
-            $datosCabecera['fecha_modificacion']   = now(); // Usar now() es más conveniente
+            $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
             // Quitar la línea de estado si no la envías o quieres mantener la existente
             // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
 
@@ -272,10 +281,10 @@ class CotizacionController extends Controller
             // 3. Obtener y procesar los nuevos detalles (como en store)
             $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
 
-            if (! empty($detalles)) { // Solo procesar si hay detalles
+            if (!empty($detalles)) { // Solo procesar si hay detalles
                 // Obtener el correlativo para los detalles (igual que en store)
                 $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-                if (! $correlativoDetalle) {
+                if (!$correlativoDetalle) {
                     DB::rollback();
                     // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
                     return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
@@ -284,12 +293,12 @@ class CotizacionController extends Controller
                 // Determinar el siguiente ID disponible basado en el correlativo actual
                 // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
                 $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-                $ultimoIdUsado       = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
+                $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
 
                 foreach ($detalles as $index => $detalleData) {
                     $imagenRuta = null;
                     if ($request->hasFile("detalles.{$index}.imagen")) {
-                        $imagen       = $request->file("detalles.{$index}.imagen");
+                        $imagen = $request->file("detalles.{$index}.imagen");
                         $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
                         //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
                         //$imagenRuta = $nombreImagen;
@@ -308,25 +317,25 @@ class CotizacionController extends Controller
                     // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
                     AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $idDetalleCotizacion,
-                        'idcotizacion'        => $id,                                                            // Usar el $id de la cotización que estamos actualizando
-                        'idproducto'          => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
-                        'producto'            => $detalleData['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
-                        'titulo'              => $detalleData['titulo'] ?? '',
-                        'descripcion'         => $detalleData['descripcion'] ?? '',
-                        'cantidad'            => $detalleData['cantidad'] ?? 0,
-                        'ancho'               => $detalleData['ancho'] ?? 0,
-                        'alto'                => $detalleData['alto'] ?? 0,
-                        'profundidad'         => $detalleData['profundidad'] ?? 0,
-                        'precio'              => $detalleData['precio'] ?? 0,
-                        'total'               => $detalleData['total'] ?? 0,
-                        'fecha_registro'      => now(), // Usar now() para la fecha actual
-                        'usuario_registro'    => auth()->user()->name,
-                        'costeado'            => $detalleData['costeado'] ?? 'N',
-                        'incluye_foto'         => $imagenRuta ? 'S' : 'N',
-                        'estado'              => $detalleData['estado'] ?? 1,
-                        'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
-                        'm2'                  => $detalleData['m2'] ?? 0,
-                        'imagen'              => $imagenRuta, // Guardar o mantener la ruta de la imagen
+                        'idcotizacion' => $id,                                                            // Usar el $id de la cotización que estamos actualizando
+                        'idproducto' => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
+                        'producto' => $detalleData['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
+                        'titulo' => $detalleData['titulo'] ?? '',
+                        'descripcion' => $detalleData['descripcion'] ?? '',
+                        'cantidad' => $detalleData['cantidad'] ?? 0,
+                        'ancho' => $detalleData['ancho'] ?? 0,
+                        'alto' => $detalleData['alto'] ?? 0,
+                        'profundidad' => $detalleData['profundidad'] ?? 0,
+                        'precio' => $detalleData['precio'] ?? 0,
+                        'total' => $detalleData['total'] ?? 0,
+                        'fecha_registro' => now(), // Usar now() para la fecha actual
+                        'usuario_registro' => auth()->user()->name,
+                        'costeado' => $detalleData['costeado'] ?? 'N',
+                        'incluye_foto' => $imagenRuta ? 'S' : 'N',
+                        'estado' => $detalleData['estado'] ?? 1,
+                        'unidad_medida' => $detalleData['unidad_medida'] ?? null,
+                        'm2' => $detalleData['m2'] ?? 0,
+                        'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
                     ]);
 
                     $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
@@ -356,7 +365,7 @@ class CotizacionController extends Controller
     public function destroy($id)
     {
         $cotizacion = AdmCotizacion::find($id);
-        if (! $cotizacion) {
+        if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
@@ -367,9 +376,9 @@ class CotizacionController extends Controller
     }
 
     /**
-     * Obtiene los detalles de una cotización específica. para utilizarlos en el 
+     * Obtiene los detalles de una cotización específica. para utilizarlos en el
      * modal que se utilizará para cambiar los precios ya sea del total de la coización
-     * o de los detalles de la cotización. En la consulta de cotizaciones como en el 
+     * o de los detalles de la cotización. En la consulta de cotizaciones como en el
      * módulo de costeo.
      */
     public function detalle($id)
@@ -411,7 +420,7 @@ class CotizacionController extends Controller
     public function desactivar($id)
     {
         $cotizacion = AdmCotizacion::find($id);
-        if (! $cotizacion) {
+        if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
@@ -424,11 +433,11 @@ class CotizacionController extends Controller
     public function activarFacturacion($id)
     {
         $cotizacion = AdmCotizacion::find($id);
-        if (! $cotizacion) {
+        if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        $cotizacion->estado = 3;
+        $cotizacion->estado = 4;
         $cotizacion->save();
 
         return response()->json(['message' => 'Cotización enviada a facturación']);
@@ -489,16 +498,16 @@ class CotizacionController extends Controller
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->first();
 
-        if (! $cotizacion) {
+        if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        $detalles                     = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-        $cotizacion->detalles         = $detalles;
+        $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+        $cotizacion->detalles = $detalles;
         $cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
 
         // Convertir total a letras (usando kwn/number-to-words)
-        $numberToWords     = new NumberToWords();
+        $numberToWords = new NumberToWords();
         $numberTransformer = $numberToWords->getNumberTransformer('es');
         // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
         $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
@@ -506,7 +515,7 @@ class CotizacionController extends Controller
         // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
         // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
         return response()->json([
-            'cotizacion'    => $cotizacion,
+            'cotizacion' => $cotizacion,
             'totalEnLetras' => $totalEnLetras,
         ]);
     }
@@ -563,5 +572,34 @@ class CotizacionController extends Controller
 
         //return ucfirst($letrasEntero) . ' ' . $letrasCentavos;
         return strtoupper($letrasEntero . ' ' . $letrasCentavos);
+    }
+
+    public function generarNotaEnvio($id)
+    {
+        $nota = DB::table('adm_cotizacion as ct')
+            ->join('clientes as cl', 'ct.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ctt', 'ct.idcontacto', '=', 'ctt.id_contactocliente')
+            ->join('adm_detalle_cotizacion as dc', 'ct.idcotizacion', '=', 'dc.idcotizacion')
+            ->where('ct.idcotizacion', $id)
+            ->where('cl.estado', 1)
+            ->where('ctt.estado', 1)
+            ->where('dc.estado', 1)
+            ->select(
+                DB::raw("CONCAT('CT', ct.nocotizacion) as noenvio"),
+                'cl.nombre as cliente',
+                'ct.direccion_entrega',
+                'ct.fecha_cotizacion',
+                'ctt.nombre as contacto',
+                'ctt.telefono',
+                'dc.cantidad',
+                'dc.descripcion'
+            )
+            ->get();
+
+        if ($nota->isEmpty()) {
+            return response()->json(['message' => 'No se encontró la cotización o sus detalles'], 404);
+        }
+
+        return response()->json($nota);
     }
 }

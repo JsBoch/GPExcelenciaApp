@@ -22,21 +22,27 @@ class TipoPagoController extends Controller
     }
 
     public function store(Request $request)
-    {
-        try {
-           
-            $datosTipoPago['estado']           = 1;            
+{
+    try {
+        DB::beginTransaction(); // Asegúrate de iniciar la transacción si usas commit
 
-            $productoPredefinido = AdmTipoPago::create($datosTipoPago);
+        $datosTipoPago = [
+            'tipo' => strtoupper($request->input('tipo')),
+            'estado' => 1,
+        ];
 
-            DB::commit();
+        $tipoPago = AdmTipoPago::create($datosTipoPago);
 
-            return response()->json($productoPredefinido, 201);
-        } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json(['message' => 'Error al crear el tipo de pago: ' . $e->getMessage()], 500);
-        }
+        DB::commit();
+
+        return response()->json($tipoPago, 201);
+    } catch (\Exception $e) {
+        DB::rollback();
+        return response()->json([
+            'message' => 'Error al crear el tipo de pago: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function show($id)
     {
