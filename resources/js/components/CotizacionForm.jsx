@@ -18,9 +18,11 @@ import {
     FaBroom,
     FaCheckSquare,
     FaWindowClose,
+    FaPlus,
 } from "react-icons/fa";
 import Header from "./Header";
 import FormSection from "./FormSection";
+import TipoPagoModal from "./TipoPagoModal";
 
 DataTable.use(DT);
 
@@ -45,6 +47,8 @@ function CotizacionForm() {
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState(null);
     const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
+    const [tipoPagoModalOpen, setTipoPagoModalOpen] = useState(false);
+    const toggleTipoPagoModal = () => setTipoPagoModalOpen(!tipoPagoModalOpen);
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -299,9 +303,7 @@ function CotizacionForm() {
         e.preventDefault();
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
-        const formData = new FormData();
-
-        //console.log('Detalles finales a enviar al backend:', JSON.parse(JSON.stringify(detalles)));
+        const formData = new FormData();        
 
         // Validaciones
         if (!cotizacion.idcliente || cotizacion.idcliente === "") {
@@ -309,12 +311,7 @@ function CotizacionForm() {
             return;
         }
 
-        if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {
-            // alertify.alert(
-            //     "CAMPO OBLIGATORIO",
-            //     "Debe seleccionar un contacto."
-            // );
-            // return;
+        if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {           
             cotizacion.idcontacto = 0; // Si no hay contacto, asignamos 0
         }
 
@@ -370,6 +367,12 @@ function CotizacionForm() {
         );
         formData.append("direccion_entrega", cotizacion.direccion_entrega);
         formData.append("costear", costearValue);
+        if(costearValue === "S"){
+            formData.append("estado","2");
+        }else{
+            formData.append("estado","1");
+        }
+
         formData.append(
             "idcotizacionoriginal",
             cotizacion.idcotizacionoriginal
@@ -436,7 +439,7 @@ function CotizacionForm() {
             }
             navigate("/cotizaciones/lista");
         } catch (error) {
-           // console.error('Error al guardar la cotización:', error);
+            // console.error('Error al guardar la cotización:', error);
             alertify.error("Error al guardar la cotización", error);
         }
     };
@@ -500,8 +503,8 @@ function CotizacionForm() {
                         formState.imagen instanceof File
                             ? null // Si hay un archivo nuevo, la ruta vieja se anula (backend generará una nueva)
                             : formState.imagen_ruta ||
-                            originalItem.imagen_ruta ||
-                            null, // Mantener la ruta existente si no hay archivo nuevo
+                              originalItem.imagen_ruta ||
+                              null, // Mantener la ruta existente si no hay archivo nuevo
                 };
 
                 //console.log('[handleAddDetalle - Editando] updatedItem FINAL:', JSON.parse(JSON.stringify(updatedItem)));
@@ -735,8 +738,24 @@ function CotizacionForm() {
         { title: "Alto", data: "alto" },
         { title: "M2", data: "m2" },
         { title: "Profundidad", data: "profundidad" },
-        { title: "Precio", data: "precio" },
-        { title: "Total", data: "total" },
+        {
+            title: "Precio",
+            data: "precio",
+            render: (data) =>
+                parseFloat(data).toLocaleString("es-GT", {
+                    style: "currency",
+                    currency: "GTQ",
+                }),
+        },
+        {
+            title: "Total",
+            data: "total",
+            render: (data) =>
+                parseFloat(data).toLocaleString("es-GT", {
+                    style: "currency",
+                    currency: "GTQ",
+                }),
+        },
         {
             title: "Imagen",
             data: "imagen_ruta", // Mantenemos 'imagen_ruta' como data key principal si viene del backend
@@ -1049,7 +1068,7 @@ function CotizacionForm() {
                                 </div>
                             </div>
                             <div className="row g-2 mb-3">
-                                <div className="col-md-4">
+                                <div className="col-md-3">
                                     <label className="form-label">
                                         Forma pago
                                     </label>
@@ -1071,6 +1090,24 @@ function CotizacionForm() {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className="col-md-1 d-flex align-items-end">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-primary btn-sm w-100 d-flex justify-content-center align-items-center"
+                                        onClick={toggleTipoPagoModal}
+                                        title="Agregar nueva forma de pago"
+                                        style={{
+                                            fontSize: "0.9rem",
+                                            fontWeight: "bold",
+                                            padding: "4px",
+                                            color: "#0d6efd", // azul de Bootstrap
+                                            borderColor: "#0d6efd",
+                                            backgroundColor: "#ffffff", // fondo blanco para mejor contraste
+                                        }}
+                                    >
+                                        <FaPlus />
+                                    </button>
                                 </div>
                                 <div className="col-md-3">
                                     <label className="form-label">
@@ -1343,9 +1380,14 @@ function CotizacionForm() {
                                     Total General:
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="total_general"
-                                    value={cotizacion.total_general}
+                                    value={parseFloat(
+                                        cotizacion.total_general || 0
+                                    ).toLocaleString("es-GT", {
+                                        style: "currency",
+                                        currency: "GTQ",
+                                    })}
                                     readOnly
                                     className="form-control"
                                     style={{
@@ -1490,6 +1532,31 @@ function CotizacionForm() {
                             </ModalFooter>
                         </Modal>
                     </form>
+                    <TipoPagoModal
+                        isOpen={tipoPagoModalOpen}
+                        toggle={toggleTipoPagoModal}
+                        onTipoPagoCreado={(nuevoTipo) => {
+                            setTiposPago((prevTipos) => {
+                                const nuevaLista = [...prevTipos, nuevoTipo];
+
+                                // Ordenar por el campo 'tipo' alfabéticamente
+                                nuevaLista.sort((a, b) =>
+                                    a.tipo.localeCompare(b.tipo, "es", {
+                                        sensitivity: "base",
+                                    })
+                                );
+
+                                return nuevaLista;
+                            });
+
+                            // Asignar el nuevo tipo al select automáticamente
+                            setCotizacion((prev) => ({
+                                ...prev,
+                                idtipopago: nuevoTipo.idtipopago,
+                            }));
+                        }}
+                        tiposExistentes={tiposPago} // ✅ aquí pasamos la lista existente
+                    />
                 </div>
             </div>
         </div>

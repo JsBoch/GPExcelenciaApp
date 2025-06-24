@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 //import '../../css/ListaEmpleados.css';
 //Funcionalidad para React PDF
 import CotizacionPDF from "./CotizacionPDF"; // Importa el componente CotizacionPDF
-import { PDFViewer,PDFDownloadLink } from "@react-pdf/renderer"; // Importa PDFViewer
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer"; // Importa PDFViewer
 import alertify from "alertifyjs";
 // import * as moment from 'moment';
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ import DetalleCotizacionModal from "./DetalleCotizacionModal"; // Importa el com
 import "../../css/tableFormat.css";
 import { FaRegFileAlt } from "react-icons/fa";
 import Header from "./Header";
+import NotaEnvioPDF from "./NotaEnvioPDF";
 
 DataTable.use(DT);
 
@@ -30,6 +31,11 @@ function ListaCotizaciones() {
     const [fechaFin, setFechaFin] = useState("");
     const [fechaHoy, setFechaHoy] = useState("");
     const dtRef = useRef(null); // Referencia al componente DataTable
+    const [tableKey, setTableKey] = useState(0);
+    const cotizacionesRef = useRef([]);
+    const fechaInicioRef = useRef("");
+    const fechaFinRef = useRef("");
+    const [notaEnvioData, setNotaEnvioData] = useState(null);
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -73,6 +79,7 @@ function ListaCotizaciones() {
                 })
                 .then((response) => {
                     setCotizaciones(response.data);
+                    setTableKey((prev) => prev + 1);
                     setLoading(false);
                 })
                 .catch((error) => {
@@ -81,6 +88,7 @@ function ListaCotizaciones() {
                 });
         } else {
             setCotizaciones([]); // Limpiar las cotizaciones si no hay fechas
+            setTableKey((prev) => prev + 1);
             setLoading(false);
             if (!token) {
                 alertify.error("Token de autenticación no encontrado");
@@ -109,7 +117,24 @@ function ListaCotizaciones() {
                         },
                     }
                 );
-                setDetalleCotizacion(response.data);
+                const detalle = response.data;
+
+                // 🔍 Obtener el estado desde cotizacionesRef
+                const cotizacionSeleccionada = cotizacionesRef.current.find(
+                    (c) => Number(c.idcotizacion) === Number(id)
+                );
+
+                if (!cotizacionSeleccionada) {
+                    alertify.error(
+                        "No se encontró el estado de la cotización."
+                    );
+                    return;
+                }
+
+                setDetalleCotizacion({
+                    detalle,
+                    estado: cotizacionSeleccionada.estado,
+                });
                 setModalVisible(true);
             } catch (error) {
                 alertify.error("Error al obtener el detalle de la cotización.");
@@ -121,6 +146,18 @@ function ListaCotizaciones() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        cotizacionesRef.current = cotizaciones;
+    }, [cotizaciones]);
+
+    useEffect(() => {
+        fechaInicioRef.current = fechaInicio;
+    }, [fechaInicio]);
+
+    useEffect(() => {
+        fechaFinRef.current = fechaFin;
+    }, [fechaFin]);
 
     const columns = [
         {
@@ -137,6 +174,9 @@ function ListaCotizaciones() {
     <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar"><i class="fas fa-trash"></i></button>
     <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF"><i class="fas fa-file-pdf"></i></button>
     <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar"><i class="fas fa-file-invoice-dollar"></i></button>   
+    <button class="btn btn-secondary btn-sm nota-envio-btn" data-id="${data}" title="Nota de Envío">
+        <i class="fas fa-file-alt"></i>
+    </button>
   </div>
 `;
             },
@@ -213,6 +253,7 @@ function ListaCotizaciones() {
         { data: "trabajo", title: "Trabajo", visible: false },
         { data: "version", title: "Version", visible: false },
         { data: "estado", title: "Estado", visible: false },
+        { data: "estado_texto", title: "Estado" },
     ];
 
     useEffect(() => {
@@ -228,7 +269,11 @@ function ListaCotizaciones() {
             } else if (button.classList.contains("desactivar-btn")) {
                 handleDesactivar(id);
             } else if (button.classList.contains("facturar-btn")) {
-                handleFacturar(id);
+                const cotizacionSeleccionada = cotizacionesRef.current.find(
+                    (c) => Number(c.idcotizacion) === Number(id)
+                );
+
+                handleFacturar(id, cotizacionSeleccionada);
             } else if (button.classList.contains("pdf-btn")) {
                 if (token) {
                     try {
@@ -250,6 +295,30 @@ function ListaCotizaciones() {
                 }
             } else if (button.classList.contains("detalle-btn")) {
                 obtenerDetalleCotizacion(id);
+            } else if (button.classList.contains("nota-envio-btn")) {
+                const token = localStorage.getItem("token");
+                try {
+                    const response = await fetch(
+                        `/api/cotizaciones/${id}/nota-envio`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        setNotaEnvioData(data); // 👈 Carga los datos para el PDF
+                    } else {
+                        alertify.error(
+                            data.message ||
+                                "No se pudo generar la nota de envío."
+                        );
+                    }
+                } catch (err) {
+                    alertify.error("Error al consultar la nota de envío.");
+                }
             }
         };
 
@@ -265,10 +334,17 @@ function ListaCotizaciones() {
         language: spanishTranslation, // Agrega la traducción aquí
         order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {
-            if (data.estado === 1 && data.costear === "S") {
-                row.style.backgroundColor = "#d5d8dc";
-            } else if (data.estado === 3) {
-                row.style.backgroundColor = "#fcf3cf";
+            row.classList.remove(
+                "estado-1",
+                "estado-2",
+                "estado-3",
+                "estado-4",
+                "estado-5",
+                "estado-6"
+            );
+
+            if (data.estado) {
+                row.classList.add(`estado-${data.estado}`);
             }
         },
     };
@@ -299,6 +375,7 @@ function ListaCotizaciones() {
                 )
                 .then(() => {
                     setCotizaciones((prevCotizaciones) => {
+                        setTableKey((prev) => prev + 1);
                         //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
                         return prevCotizaciones.filter(
                             (cotizacion) =>
@@ -313,7 +390,39 @@ function ListaCotizaciones() {
         }
     };
 
-    const handleFacturar = (id) => {
+    const handleFacturar = (id, cotizacion) => {
+        if (!cotizacion) {
+            alertify.alert(
+                "Error",
+                "No se encontró la cotización seleccionada."
+            );
+            return;
+        }
+
+        if (Number(cotizacion.total_general) === 0) {
+            alertify.alert(
+                "TOTAL EN CERO",
+                "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
+            );
+            return;
+        }
+
+        if (Number(cotizacion.estado) === 4) {
+            alertify.alert(
+                "PRE-FACTURACIÓN",
+                "El registro ya está en PRE-FACTURACIÓN, No se puede volver a enviar"
+            );
+            return;
+        }
+
+        if (Number(cotizacion.estado) > 4) {
+            alertify.alert(
+                "PRE-FACTURACIÓN",
+                "El registro ya paso la etapa de PRE-FACTURACIÓN, No se puede volver a enviar"
+            );
+            return;
+        }
+
         const token = localStorage.getItem("token");
         if (token) {
             axios
@@ -327,16 +436,13 @@ function ListaCotizaciones() {
                     }
                 )
                 .then(() => {
-                    setCotizaciones((prevCotizaciones) => {
-                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
-                        return prevCotizaciones.filter(
-                            (cotizacion) =>
-                                Number(cotizacion.idcotizacion) !== Number(id)
-                        ); //convertimos a numero
-                    });
+                    alertify.success("Cotización enviada a facturación.");
+                    fetchCotizaciones(
+                        fechaInicioRef.current,
+                        fechaFinRef.current
+                    );
                 })
-                .catch((error) => {
-                    //console.error('Error al desactivar la cotizacion:', error);
+                .catch(() => {
                     alertify.error(
                         "Error al enviar la cotización a facturación."
                     );
@@ -408,9 +514,54 @@ function ListaCotizaciones() {
                     </div>
                 </div>
             )}
+            {notaEnvioData && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div style={{ width: "80%", height: "80%" }}>
+                        <PDFViewer width="100%" height="100%">
+                            <NotaEnvioPDF data={notaEnvioData} />
+                        </PDFViewer>
+                    </div>
+
+                    <div className="mt-3 d-flex gap-2">
+                        <PDFDownloadLink
+                            document={<NotaEnvioPDF data={notaEnvioData} />}
+                            fileName={`nota-envio-${notaEnvioData[0]?.noenvio}.pdf`}
+                            className="btn btn-primary"
+                        >
+                            {({ loading }) =>
+                                loading
+                                    ? "Generando PDF..."
+                                    : "Descargar Nota de Envío"
+                            }
+                        </PDFDownloadLink>
+
+                        <button
+                            className="btn btn-danger"
+                            onClick={() => setNotaEnvioData(null)}
+                        >
+                            Cerrar PDF
+                        </button>
+                    </div>
+                </div>
+            )}
             {modalVisible && detalleCotizacion && (
                 <DetalleCotizacionModal
-                    detalle={detalleCotizacion}
+                    detalle={detalleCotizacion.detalle}
+                    estadoCotizacion={detalleCotizacion.estado}
                     onClose={() => {
                         setModalVisible(false);
                         setDetalleCotizacion(null);
@@ -479,13 +630,14 @@ function ListaCotizaciones() {
                     ) : (
                         <div className="table-responsive">
                             <DataTable
+                                key={tableKey}
                                 data={cotizaciones}
                                 columns={columns}
                                 options={{
                                     ...options,
                                     language: spanishTranslation,
                                 }}
-                                className="table table-striped table-bordered table-hover table-sm"
+                                className="table table-bordered table-hover table-sm"
                                 ref={dtRef} // Asigna la referencia al componente DataTable
                             >
                                 {/* <thead>

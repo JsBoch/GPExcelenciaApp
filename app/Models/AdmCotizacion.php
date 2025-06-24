@@ -38,6 +38,16 @@ class AdmCotizacion extends Model
         'fecha_costeo',
         'usuario_costeo',
         'archivo_costeo',
+        'resultado',
+        'uuid',
+        'serie',
+        'numero',
+        'descripcion',
+        'fecha_certificacion',
+        'xml_certificado',
+        'alertas',
+        'identificador',
+        'errores',
     ];
 
     public function tipoPago()

@@ -150,7 +150,7 @@ class CotizacionCosteoController extends Controller
             $datosCabecera['fecha_costeo']   = now(); // Usar now() es más conveniente
                                                       // Quitar la línea de estado si no la envías o quieres mantener la existente
                                                       // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
-            $datosCabecera['estado'] = 2;
+            $datosCabecera['estado'] = 3;
             $cotizacion->update($datosCabecera);
 
             // Guardar el archivo de costeo si se proporciona
