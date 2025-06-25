@@ -48,3 +48,82 @@ tr.estado-5 td {
 tr.estado-6 td {
     background-color: #e8daef !important;
 }
+
+button.btn-sm i {
+  font-size: 0.75rem; /* tamaño uniforme */
+  line-height: 1;
+}
+
+/* Forzar mismo tamaño en los botones de la tabla */
+.table td .btn {
+  height: 32px; /* Fuerza la altura uniforme */
+  width: 32px; /* Fuerza el ancho para íconos */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estilo uniforme para los íconos dentro de botones */
+.table td .btn i {
+  font-size: 14px;
+  line-height: 1;
+}
+
+table.dataTable {
+  table-layout: fixed; /* evita autoajuste */
+  width: max-content !important; /* permite ancho basado en contenido */
+}
+
+table.dataTable th,
+table.dataTable td {
+  white-space: nowrap; /* evita que los datos se partan en dos líneas */
+}
+
+.btn-accion {
+  color: #fff;
+  font-size: 0.75rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  border-radius: 4px;
+  border: none;
+}
+
+.btn-detalle { background-color: #3B82F6; }
+.btn-editar { background-color: #10B981; }
+.btn-eliminar { background-color: #EF4444; }
+.btn-pdf { background-color: #8B5CF6; }
+.btn-facturar { background-color: #F97316; }
+.btn-nota-envio { background-color: #6B7280; }
+.btn-facturacion {background-color: #0EA5E9; color: #fff;}
+
+.btn-accion:hover {
+  filter: brightness(0.9);
+}
+
+tr.selected {
+    background-color: #E0F2FE !important;
+}
+
+.toolbar-btn {
+  min-width: 160px;     /* Ajusta si el texto más largo lo requiere */
+  height: 36px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 4px;
+}
+
+/* Estilo para los íconos de acción al hacer hover */
+.btn-accion:hover i,
+.toolbar-btn:hover i {
+  color: #fff !important;
+  transform: scale(1.2);
+  transition: transform 0.2s ease, color 0.2s ease;
+}

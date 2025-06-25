@@ -25,6 +25,7 @@ import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
 import '../css/generalesForm.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 function App() {
     // Función para verificar si el usuario está autenticado
