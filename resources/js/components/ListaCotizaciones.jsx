@@ -497,6 +497,16 @@ function ListaCotizaciones() {
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 4;
 
+    const cotizacionesFiltradas = cotizaciones.filter((cot) => {
+        const texto = filtro.toLowerCase();
+        return (
+            cot.nocotizacion?.toLowerCase().includes(texto) ||
+            cot.cliente?.toLowerCase().includes(texto) ||
+            cot.total_general?.toString().includes(texto) ||
+            cot.observaciones_costeo?.toLowerCase().includes(texto)
+        );
+    });
+
     return (
         <div className="mt-4 px-3 px-md-4">
             {/* {pdfData && (
