@@ -430,14 +430,20 @@ class CotizacionController extends Controller
         return response()->json(['message' => 'Cotización desactivada']);
     }
 
-    public function activarFacturacion($id)
+    public function activarFacturacion(Request $request, $id)
     {
+        $estado = $request->input("estado");
+
+        if (!is_numeric($estado)) {
+            return response()->json(['error' => 'Estado inválido'], 422);
+        }
+
         $cotizacion = AdmCotizacion::find($id);
         if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        $cotizacion->estado = 4;
+        $cotizacion->estado = $estado;
         $cotizacion->save();
 
         return response()->json(['message' => 'Cotización enviada a facturación']);

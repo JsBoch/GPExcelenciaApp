@@ -16,6 +16,8 @@ import "../../css/tableFormat.css";
 import { FaRegFileAlt } from "react-icons/fa";
 import Header from "./Header";
 import NotaEnvioPDF from "./NotaEnvioPDF";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import * as bootstrap from "bootstrap";
 
 DataTable.use(DT);
 
@@ -36,6 +38,8 @@ function ListaCotizaciones() {
     const fechaInicioRef = useRef("");
     const fechaFinRef = useRef("");
     const [notaEnvioData, setNotaEnvioData] = useState(null);
+    const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
+    const [filtro, setFiltro] = useState("");
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -160,27 +164,6 @@ function ListaCotizaciones() {
     }, [fechaFin]);
 
     const columns = [
-        {
-            data: "idcotizacion",
-            title: "Acciones",
-
-            render: (data) => {
-                // return `<button class="btn btn-primary editar-btn btn-fixed-width" data-id="${data}">Editar</button>
-                // <button class="btn btn-danger desactivar-btn btn-fixed-width" data-id="${data}">Desactivar</button>`;
-                return `
-  <div class="d-flex gap-1 justify-content-center align-items-center">
-    <button class="btn btn-info btn-sm detalle-btn" data-id="${data}" title="Ver Detalle"><i class="fas fa-eye"></i></button>
-    <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar"><i class="fas fa-edit"></i></button>
-    <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Eliminar"><i class="fas fa-trash"></i></button>
-    <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF"><i class="fas fa-file-pdf"></i></button>
-    <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar"><i class="fas fa-file-invoice-dollar"></i></button>   
-    <button class="btn btn-secondary btn-sm nota-envio-btn" data-id="${data}" title="Nota de Envío">
-        <i class="fas fa-file-alt"></i>
-    </button>
-  </div>
-`;
-            },
-        },
         { data: "idcotizacion", title: "ID", visible: false },
         { data: "nocotizacion", title: "No.Cotizacion" },
         {
@@ -202,7 +185,7 @@ function ListaCotizaciones() {
                 return ""; // O algún otro valor por defecto si la fecha es nula
             },
         },
-        { data: "tipo_pago", title: "Forma Pago", visible: false },
+        { data: "tipo_pago", title: "Forma Pago" },
         // { data: 'total_general', title: 'Total' },
         {
             data: "total_general",
@@ -230,7 +213,7 @@ function ListaCotizaciones() {
         },
         { data: "costear", title: "Costear" },
         { data: "cliente", title: "Cliente" },
-        { data: "contacto", title: "Contacto", visible: false },
+        { data: "contacto", title: "Contacto" },
         {
             data: "direccion_entrega",
             title: "Dirección entrega",
@@ -273,7 +256,13 @@ function ListaCotizaciones() {
                     (c) => Number(c.idcotizacion) === Number(id)
                 );
 
-                handleFacturar(id, cotizacionSeleccionada);
+                handleFacturar(id, cotizacionSeleccionada, 4);
+            } else if (button.classList.contains("facturacion-btn")) {
+                const cotizacionSeleccionada = cotizacionesRef.current.find(
+                    (c) => Number(c.idcotizacion) === Number(id)
+                );
+
+                handleFacturar(id, cotizacionSeleccionada, 5);
             } else if (button.classList.contains("pdf-btn")) {
                 if (token) {
                     try {
@@ -328,8 +317,10 @@ function ListaCotizaciones() {
 
     const options = {
         autoWidth: false, // Desactiva el autoajuste
+        searching: false,
+        //scrollX:true,
         columnDefs: [
-            { targets: 0, width: "100px" }, // Ajusta la columna de acciones manualmente (índice 0 si es la primera visible)
+            { targets: 0, width: "100px", targets: 2, width: "120px" }, // Ajusta la columna de acciones manualmente (índice 0 si es la primera visible)
         ],
         language: spanishTranslation, // Agrega la traducción aquí
         order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
@@ -346,6 +337,14 @@ function ListaCotizaciones() {
             if (data.estado) {
                 row.classList.add(`estado-${data.estado}`);
             }
+
+            // Manejo de selección de fila
+            row.onclick = () => {
+                const filas = row.parentNode.querySelectorAll("tr");
+                filas.forEach((r) => r.classList.remove("selected"));
+                row.classList.add("selected");
+                setRegistroSeleccionado(data);
+            };
         },
     };
 
@@ -357,6 +356,17 @@ function ListaCotizaciones() {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
         //console.log('Estado cotización actualizado:', cotizaciones);
     }, [cotizaciones]);
+
+    useEffect(() => {
+        const tooltipTriggerList = [].slice.call(
+            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        tooltipTriggerList.forEach((el) => {
+            new bootstrap.Tooltip(el);
+        });
+    }, []);
+
+    const limpiarFiltro = () => setFiltro("");
     /*
     Este handle se utiliza para cambiar el estado de 0 a 1 para los registros al eliminar
     */
@@ -390,7 +400,7 @@ function ListaCotizaciones() {
         }
     };
 
-    const handleFacturar = (id, cotizacion) => {
+    const handleFacturar = (id, cotizacion, estado) => {
         if (!cotizacion) {
             alertify.alert(
                 "Error",
@@ -407,18 +417,18 @@ function ListaCotizaciones() {
             return;
         }
 
-        if (Number(cotizacion.estado) === 4) {
+        if (Number(cotizacion.estado) === 5) {
             alertify.alert(
                 "PRE-FACTURACIÓN",
-                "El registro ya está en PRE-FACTURACIÓN, No se puede volver a enviar"
+                "El registro ya está en FACTURACIÓN, No se puede volver a enviar"
             );
             return;
         }
 
-        if (Number(cotizacion.estado) > 4) {
+        if (Number(cotizacion.estado) > 5) {
             alertify.alert(
-                "PRE-FACTURACIÓN",
-                "El registro ya paso la etapa de PRE-FACTURACIÓN, No se puede volver a enviar"
+                "FACTURACIÓN",
+                "El registro ya paso la etapa de FACTURACIÓN, No se puede volver a enviar"
             );
             return;
         }
@@ -428,7 +438,9 @@ function ListaCotizaciones() {
             axios
                 .put(
                     `/api/cotizaciones/activarfacturacion/${id}`,
-                    {},
+                    {
+                        estado: estado,
+                    },
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -449,6 +461,41 @@ function ListaCotizaciones() {
                 });
         }
     };
+
+    const generarPDF = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado");
+        try {
+            const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            setPdfData(data);
+        } catch {
+            alertify.error("Error al generar PDF.");
+        }
+    };
+
+    const generarNotaEnvio = async (id) => {
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`/api/cotizaciones/${id}/nota-envio`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (response.ok) setNotaEnvioData(data);
+            else alertify.error(data.message || "Error en nota de envío.");
+        } catch {
+            alertify.error("Error al consultar nota de envío.");
+        }
+    };
+
+    const estado = Number(registroSeleccionado?.estado);
+
+    const puedeEditar = estado === 1;
+    const puedeEliminar = estado === 1;
+    const puedePreFacturar = estado === 1 || estado === 3;
+    const puedeFacturar = estado === 4;
 
     return (
         <div className="mt-4 px-3 px-md-4">
@@ -625,13 +672,278 @@ function ListaCotizaciones() {
                             </div>
                         </div>
                     </div>
+                    <div className="mb-4 d-flex flex-wrap gap-2 align-items-center">
+                        {/* Visible solo en pantallas grandes */}
+                        <div className="d-none d-md-flex flex-wrap gap-2">
+                            <button
+                                className="btn btn-info btn-sm toolbar-btn"
+                                disabled={!registroSeleccionado}
+                                onClick={() =>
+                                    obtenerDetalleCotizacion(
+                                        registroSeleccionado?.idcotizacion
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Abre una ventana con el detalle de la cotización"
+                            >
+                                <i className="fas fa-eye"></i> Detalle
+                            </button>
+                            <button
+                                className="btn btn-success btn-sm toolbar-btn"
+                                disabled={!registroSeleccionado || !puedeEditar}
+                                onClick={() =>
+                                    navigate(
+                                        `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Abre el formulario de registro para cambiar datos"
+                            >
+                                <i className="fas fa-edit"></i> Editar
+                            </button>
+                            <button
+                                className="btn btn-danger btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado || !puedeEliminar
+                                }
+                                onClick={() =>
+                                    handleDesactivar(
+                                        registroSeleccionado?.idcotizacion
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Elimina el registro seleccionado"
+                            >
+                                <i className="fas fa-trash"></i> Eliminar
+                            </button>
+                            <button
+                                className="btn btn-primary btn-sm toolbar-btn"
+                                disabled={!registroSeleccionado}
+                                onClick={() =>
+                                    generarPDF(
+                                        registroSeleccionado?.idcotizacion
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Generar el PDF del registro seleccionado"
+                            >
+                                <i className="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button
+                                className="btn btn-warning btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado || !puedePreFacturar
+                                }
+                                onClick={() =>
+                                    handleFacturar(
+                                        registroSeleccionado?.idcotizacion,
+                                        registroSeleccionado,
+                                        4
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Envía el registro seleccionado a pre-facturación"
+                            >
+                                <i className="fas fa-paper-plane"></i>{" "}
+                                Pre-Facturar
+                            </button>
+                            <button
+                                className="btn btn-info btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado || !puedeFacturar
+                                }
+                                onClick={() =>
+                                    handleFacturar(
+                                        registroSeleccionado?.idcotizacion,
+                                        registroSeleccionado,
+                                        5
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Indica a contabilidad que el registro ya se puede facturar"
+                            >
+                                <i className="fas fa-file-signature"></i>{" "}
+                                Facturar
+                            </button>
+                            <button
+                                className="btn btn-secondary btn-sm toolbar-btn"
+                                disabled={!registroSeleccionado}
+                                onClick={() =>
+                                    generarNotaEnvio(
+                                        registroSeleccionado?.idcotizacion
+                                    )
+                                }
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Generar la nota de envío"
+                            >
+                                <i className="fas fa-file-alt"></i> Nota Envío
+                            </button>
+                        </div>
+
+                        {/* Visible solo en pantallas pequeñas */}
+                        <div className="dropdown d-md-none">
+                            <button
+                                className="btn btn-primary btn-sm dropdown-toggle"
+                                type="button"
+                                id="accionesDropdown"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                disabled={!registroSeleccionado}
+                            >
+                                Acciones
+                            </button>
+                            <ul
+                                className="dropdown-menu"
+                                aria-labelledby="accionesDropdown"
+                            >
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            obtenerDetalleCotizacion(
+                                                registroSeleccionado?.idcotizacion
+                                            )
+                                        }
+                                    >
+                                        Detalle
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            navigate(
+                                                `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
+                                            )
+                                        }
+                                    >
+                                        Editar
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            handleDesactivar(
+                                                registroSeleccionado?.idcotizacion
+                                            )
+                                        }
+                                    >
+                                        Eliminar
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            generarPDF(
+                                                registroSeleccionado?.idcotizacion
+                                            )
+                                        }
+                                    >
+                                        PDF
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            handleFacturar(
+                                                registroSeleccionado?.idcotizacion,
+                                                registroSeleccionado
+                                            )
+                                        }
+                                    >
+                                        Pre-Facturar
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            handleFacturacion(
+                                                registroSeleccionado?.idcotizacion,
+                                                registroSeleccionado
+                                            )
+                                        }
+                                    >
+                                        Facturar
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            generarNotaEnvio(
+                                                registroSeleccionado?.idcotizacion
+                                            )
+                                        }
+                                    >
+                                        Nota Envío
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="mb-3">
+                        <label
+                            htmlFor="buscador"
+                            className="form-label fw-bold"
+                        >
+                            🔍 Buscar cotización:
+                        </label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                id="buscador"
+                                className="form-control form-control-lg"
+                                placeholder="Buscar por número, cliente, total, observación..."
+                                value={filtro}
+                                onChange={(e) => setFiltro(e.target.value)}
+                            />
+                            {filtro && (
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    onClick={limpiarFiltro}
+                                >
+                                    ✖
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
                     ) : (
-                        <div className="table-responsive">
+                        <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                        >
                             <DataTable
                                 key={tableKey}
-                                data={cotizaciones}
+                                data={cotizaciones.filter((cot) => {
+                                    const texto = filtro.toLowerCase();
+                                    return (
+                                        cot.nocotizacion
+                                            ?.toLowerCase()
+                                            .includes(texto) ||
+                                        cot.cliente
+                                            ?.toLowerCase()
+                                            .includes(texto) ||
+                                        cot.total_general
+                                            ?.toString()
+                                            .includes(texto) ||
+                                        cot.observaciones_costeo
+                                            ?.toLowerCase()
+                                            .includes(texto)
+                                    );
+                                })}
                                 columns={columns}
                                 options={{
                                     ...options,
@@ -639,27 +951,7 @@ function ListaCotizaciones() {
                                 }}
                                 className="table table-bordered table-hover table-sm"
                                 ref={dtRef} // Asigna la referencia al componente DataTable
-                            >
-                                {/* <thead>
-                                    <tr>
-                                        <th>No. Cotización</th>
-                                        <th>Fecha</th>
-                                        <th>Forma Pago</th>
-                                        <th>Total</th>
-                                        <th>Costear</th>
-                                        <th>Cliente</th>
-                                        <th>Contacto</th>
-                                        <th>Dirección Entrega</th>
-                                        <th>Obsv. Costeo</th>
-                                        <th>Obsv. Cliente</th>
-                                        <th>Obsv. Vendedor</th>
-                                        <th>Trabajo</th>
-                                        <th>Versión</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead> */}
-                            </DataTable>
+                            ></DataTable>
                         </div>
                     )}
                 </div>
