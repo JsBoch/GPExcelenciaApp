@@ -409,7 +409,7 @@ function ListaCotizaciones() {
             return;
         }
 
-        if (Number(cotizacion.total_general) === 0) {
+        if (Number(cotizacion.total_general) === 0 && Number(cotizacion.estado) > 3) {
             alertify.alert(
                 "TOTAL EN CERO",
                 "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
