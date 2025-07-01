@@ -122,6 +122,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/monitorfacturacion/desactivar/{id}', [MonitorFacturacionController::class, 'desactivar']);
     Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);          
     Route::get('/facturar/{id}', [MonitorFacturacionController::class, 'generarXmlFactura']);
+    Route::get('/notacredito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaCredito']);
+    Route::get('/notadebito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaDebito']);
+    Route::put('/facturar/{id}/anular', [MonitorFacturacionController::class, 'anularFactura']);
+
     Route::get('/monitorfacturacion/{id}/facturapdf', [MonitorFacturacionController::class, 'generarImpresionFactura']);
 });
 

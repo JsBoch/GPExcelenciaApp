@@ -1,18 +1,27 @@
+// 👇 Refactor del componente MonitorFacturacion con mejoras similares a ListaCotizaciones
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-bs5";
-import "bootstrap/dist/css/bootstrap.min.css"; // Importa los estilos de Bootstrap 5
-import { Link, useNavigate } from "react-router-dom";
-import "../../css/ListaEmpleados.css";
-//Funcionalidad para React PDF
-import CotizacionPDF from "./CotizacionPDF"; // Importa el componente CotizacionPDF
-import { PDFViewer } from "@react-pdf/renderer"; // Importa PDFViewer
+import "bootstrap/dist/css/bootstrap.min.css";
+import { useNavigate } from "react-router-dom";
 import alertify from "alertifyjs";
 import { format } from "date-fns";
-import "../../css/tableFormat.css";
-import { FaSearch } from "react-icons/fa";
+import {
+    FaSearch,
+    FaFilePdf,
+    FaFileInvoice,
+    FaFileInvoiceDollar,
+    FaUndo,
+} from "react-icons/fa";
+import CotizacionPDF from "./CotizacionPDF";
+import { PDFViewer } from "@react-pdf/renderer";
 import Header from "./Header";
+import "../../css/tableFormat.css";
+import "../../css/monitor_cotizaciones.css";
+
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import * as bootstrap from "bootstrap";
 
 DataTable.use(DT);
 
@@ -20,9 +29,14 @@ function MonitorFacturacion() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
-    const navigate = useNavigate(); // Hook para la navegación
-    //20250407
-    const [pdfData, setPdfData] = useState(null); // Estado para almacenar los datos del PDF
+    const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
+    const [filtro, setFiltro] = useState("");
+    const [pdfData, setPdfData] = useState(null);
+    const navigate = useNavigate();
+    const today = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
+    const [fechaInicio, setFechaInicio] = useState(today);
+    const [fechaFinal, setFechaFinal] = useState(today);
+    const [mostrarModalErrores, setMostrarModalErrores] = useState(false);
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -33,53 +47,277 @@ function MonitorFacturacion() {
             );
     }, []);
 
+    const fetchCotizaciones = () => {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            alertify.error("Token de autenticación no encontrado");
+            setCotizaciones([]);
+            setLoading(false);
+            return;
+        }
+
+        const params = {};
+        if (fechaInicio) params.fechaInicio = fechaInicio;
+        if (fechaFinal) params.fechaFinal = fechaFinal;
+
+        axios
+            .get("/api/monitorfacturacion", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                params, // envia las fechas como query params
+            })
+            .then((response) => {
+                setCotizaciones(response.data);
+                setLoading(false);
+            })
+            .catch(() => {
+                alertify.error("Error al obtener las cotizaciones.");
+                setLoading(false);
+            });
+    };
+
     useEffect(() => {
+        fetchCotizaciones();
+    }, []);
+
+    const cotizacionesFiltradas = cotizaciones.filter((cot) => {
+        const texto = filtro.toLowerCase();
+        return (
+            cot.nocotizacion?.toLowerCase().includes(texto) ||
+            cot.cliente?.toLowerCase().includes(texto) ||
+            cot.total_general?.toString().includes(texto) ||
+            cot.observaciones_costeo?.toLowerCase().includes(texto)
+        );
+    });
+
+    const handleDesactivar = (id) => {
         const token = localStorage.getItem("token");
         if (token) {
             axios
-                .get("/api/monitorfacturacion", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                .put(
+                    `/api/monitorfacturacion/desactivar/${id}`,
+                    {},
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                )
+                .then(() => {
+                    setCotizaciones((prev) =>
+                        prev.filter((c) => c.idcotizacion !== Number(id))
+                    );
+                    alertify.success("Cotización regresada a ventas.");
                 })
-                .then((response) => {
-                    setCotizaciones(response.data);
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    //console.error('Error al obtener las cotizaciones:', error);
-                    alertify.error("Error al obtener las cotizaciones.");
-                    setLoading(false);
+                .catch(() => {
+                    alertify.error("Error al volver la cotización a ventas.");
                 });
-        } else {
-            //console.error('Token de autenticación no encontrado');
-            alertify.error("Token de autenticación no encontrado");
-            setLoading(false);
         }
+    };
+
+    const generarPDF = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token)
+            return alertify.error("Token no encontrado para generar PDF.");
+        try {
+            const response = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            setPdfData(data);
+        } catch {
+            alertify.error("Error al generar el PDF.");
+        }
+    };
+
+    // const generarFactura = async (id) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token)
+    //         return alertify.error("Token no encontrado para generar XML.");
+    //     try {
+    //         const response = await fetch(
+    //             `${import.meta.env.VITE_API_URL}/facturar/${id}`,
+    //             {
+    //                 method: "GET",
+    //                 headers: { Authorization: `Bearer ${token}` },
+    //                 credentials: "include",
+    //             }
+    //         );
+    //         if (!response.ok) {
+    //             const errorData = await response.json();
+    //             alertify.error(
+    //                 "Error al facturar: " +
+    //                     (errorData.errores || "Error desconocido")
+    //             );
+    //             return;
+    //         }
+    //         const data = await response.json();
+    //         alertify.success(`Factura generada. UUID: ${data.uuid}`);
+    //     } catch (error) {
+    //         alertify.error("Error al generar el XML.");
+    //     }
+    // };
+    const generarFactura = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token)
+            return alertify.error("Token no encontrado para generar XML.");
+        try {
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/facturar/${id}`,
+                {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.errores) {
+                    setErroresCertificacion(data.errores);
+                    setMostrarModalErrores(true);
+                } else {
+                    alertify.error("Error al certificar.");
+                }
+                return;
+            }
+
+            alertify.success(`Factura generada. UUID: ${data.uuid}`);
+            fetchCotizaciones(); // Opcional: refrescar datos
+        } catch (error) {
+            alertify.error("Error al generar el XML.");
+        }
+    };
+
+    const abrirFacturaPDF = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token)
+            return alertify.error("Token no encontrado para abrir PDF.");
+        try {
+            const response = await fetch(
+                `${
+                    import.meta.env.VITE_API_URL
+                }/monitorfacturacion/${id}/facturapdf`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            URL.revokeObjectURL(url);
+        } catch {
+            alertify.error("Error al abrir el PDF.");
+        }
+    };
+
+    useEffect(() => {
+        const tooltipTriggerList = [].slice.call(
+            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        tooltipTriggerList.forEach((el) => {
+            new bootstrap.Tooltip(el);
+        });
     }, []);
 
-    const columns = [
-        {
-            data: "idcotizacion",
-            title: "Acciones",
-            render: (data) => {
-                return `      
-                <div class="d-flex gap-1 justify-content-center align-items-center">      
-                    <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Regresar a venta">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                    </button>
-                    <button class="btn btn-success btn-sm pdf-btn" data-id="${data}" title="Generar PDF">
-                        <i class="fas fa-file-pdf"></i>
-                    </button>
-                    <button class="btn btn-warning btn-sm facturar-btn" data-id="${data}" title="Facturar">
-                        <i class="fas fa-file-invoice"></i>
-                    </button>
-                    <button class="btn btn-success btn-sm pdffactura-btn" data-id="${data}" title="Factura PDF">
-                        <i class="fas fa-file-pdf"></i>
-                    </button>
-                </div>`;
+    const limpiarFiltro = () => setFiltro("");
+
+    const handleAnularFactura = () => {
+        alertify.prompt(
+            "Anulación de factura",
+            "Ingrese el motivo de la anulación:",
+            "",
+            async function (evt, motivo) {
+                if (!motivo || motivo.trim() === "") {
+                    alertify.error("Debe ingresar un motivo.");
+                    return;
+                }
+
+                try {
+                    const token = localStorage.getItem("token");
+                    const response = await axios.put(
+                        `/api/facturar/${registroSeleccionado.idcotizacion}/anular`,
+                        { motivo },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                    alertify.success("Factura anulada con éxito.");
+                    fetchCotizaciones(); // recargar datos
+                } catch (error) {
+                    console.error(error);
+                    alertify.error("Error al anular la factura.");
+                }
             },
-        },
+            function () {
+                alertify.error("Anulación cancelada.");
+            }
+        );
+    };
+
+    const generarNotaCredito = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/notacredito/${id}`,
+                {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.resultado) {
+                alertify.error("No certificado: " + (data.errores || "Error"));
+                return;
+            }
+
+            alertify.success(`Nota de crédito certificada. UUID: ${data.uuid}`);
+            fetchCotizaciones(); // refresca tabla
+        } catch (error) {
+            alertify.error("Error al generar nota de crédito.");
+        }
+    };
+
+    const generarNotaDebito = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/notadebito/${id}`,
+                {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.resultado) {
+                alertify.error("No certificado: " + (data.errores || "Error"));
+                return;
+            }
+
+            alertify.success(`Nota de débito certificada. UUID: ${data.uuid}`);
+            fetchCotizaciones();
+        } catch (error) {
+            alertify.error("Error al generar nota de débito.");
+        }
+    };
+
+    const columns = [
         { data: "idcotizacion", title: "ID", visible: false },
         { data: "nocotizacion", title: "No.Cotizacion" },
         {
@@ -128,7 +366,7 @@ function MonitorFacturacion() {
         },
         { data: "costear", title: "Costear", visible: false },
         { data: "cliente", title: "Cliente" },
-        { data: "contacto", title: "Contacto", visible: false },
+        { data: "contacto", title: "Contacto" },
         {
             data: "direccion_entrega",
             title: "Dirección entrega",
@@ -138,7 +376,6 @@ function MonitorFacturacion() {
         {
             data: "observaciones_cliente",
             title: "Obsv.Cliente",
-            visible: false,
         },
         {
             data: "costeo_observaciones",
@@ -154,237 +391,117 @@ function MonitorFacturacion() {
         { data: "idcontacto", title: "ID Contacto", visible: false },
         { data: "trabajo", title: "Trabajo", visible: false },
         { data: "version", title: "Version", visible: false },
+        { data: "estado", title: "Estado", visible: false },
+        {
+            data: "uuid",
+            title: "Autorización",
+            render: function (data, type, row) {
+                if (
+                    row.resultado === "N" &&
+                    Array.isArray(row.errores) &&
+                    row.errores.length > 0
+                ) {
+                    return `<span class="text-danger fw-bold">
+                <i class="bi bi-exclamation-circle me-1"></i> Error
+            </span>`;
+                }
+
+                return data ? `<span class="text-success">${data}</span>` : "";
+            },
+        },
+        { data: "errores", title: "ERRORES", visible: false },
+        { data: "resultado", title: "RESULTADO", visible: false },
+        {
+            data: "estado_texto",
+            title: "Estado",
+            render: function (data, type, row) {
+                let color = "secondary";
+                let icon = "bi-question-circle"; // ícono por defecto
+
+                if (
+                    row.resultado === "N" &&
+                    Array.isArray(row.errores) &&
+                    row.errores.length > 0
+                ) {
+                    color = "danger";
+                    icon = "bi-exclamation-triangle-fill";
+                    data = "Con errores";
+                } else {
+                    switch (row.estado) {
+                        case 4:
+                            color = "warning";
+                            icon = "bi-hourglass-split";
+                            break;
+                        case 5:
+                            color = "danger";
+                            icon = "bi-x-circle";
+                            break;
+                        case 6:
+                            color = "success";
+                            icon = "bi-check-circle";
+                            break;
+                    }
+                }
+
+                return `<span class="badge bg-${color}">
+                    <i class="bi ${icon} me-1"></i> ${data}
+                </span>`;
+            },
+        },
     ];
-
-    useEffect(() => {
-        const handleButtonClick = async (event) => {
-            const button = event.target.closest("button");
-            if (!button) return; // Salir si no se hizo clic en un botón
-
-            const id = button.getAttribute("data-id");
-            const token = localStorage.getItem("token"); // Recupera el token del localStorage
-
-            if (button.classList.contains("desactivar-btn")) {
-                handleDesactivar(id);
-            } else if (button.classList.contains("pdf-btn")) {
-                if (token) {
-                    try {
-                        const response = await fetch(
-                            `/api/monitorfacturacion/${id}/pdf`,
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                },
-                            }
-                        );
-                        const data = await response.json(); // Obtener datos como JSON
-                        //console.log("Datos de la API para el PDF:", data);
-                        setPdfData(data); // Establecer los datos del PDF en el estado
-                    } catch (error) {
-                        //console.error('Error al generar el PDF:', error);
-                        alertify.error("Error al generar el PDF.");
-                    }
-                } else {
-                    //console.error('Token no encontrado para generar PDF.');
-                    alertify.error("Token no encontrado para generar PDF.");
-                }
-            } else if (button.classList.contains("facturar-btn")) {
-                if (token) {
-                    try {
-                        const response = await fetch(
-                            `${import.meta.env.VITE_API_URL}/facturar/${id}`,
-                            {
-                                method: "GET",
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                },
-                                credentials: "include",
-                            }
-                        );
-
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            console.error("Errores:", errorData.errores);
-                            alertify.error(
-                                "Error al facturar: " +
-                                    (errorData.errores || "Error desconocido")
-                            );
-                            return;
-                        }
-
-                        const data = await response.json();
-
-                        // ✅ Aquí puedes acceder a los valores que devuelve el backend
-                        console.log("Resultado:", data.resultado);
-                        console.log("UUID:", data.uuid);
-                        console.log("Serie:", data.serie);
-                        console.log("Número:", data.numero);
-                        console.log("Descripción:", data.descripcion);
-                        console.log(
-                            "Fecha de Certificación:",
-                            data.fecha_certificacion
-                        );
-                        console.log("Alertas:", data.alertas);
-
-                        // Puedes mostrar un mensaje al usuario
-                        alertify.success(
-                            `Factura generada. UUID: ${data.uuid}`
-                        );
-
-                        // // Si deseas descargar el xml_certificado:
-                        // const blob = new Blob([data.xml_certificado], {
-                        //     type: "application/xml",
-                        // });
-                        // const url = URL.createObjectURL(blob);
-                        // const link = document.createElement("a");
-                        // link.href = url;
-                        // link.download = `factura_${id}.xml`;
-                        // document.body.appendChild(link);
-                        // link.click();
-                        // link.remove();
-                        // URL.revokeObjectURL(url);
-                    } catch (error) {
-                        console.error("Error al facturar:", error);
-                        alertify.error("Error al generar el XML.");
-                    }
-                } else {
-                    alertify.error("Token no encontrado para generar XML.");
-                }
-            } else if (button.classList.contains("pdffactura-btn")) {
-                if (token) {
-                    try {
-                        const response = await fetch(
-                            `${
-                                import.meta.env.VITE_API_URL
-                            }/monitorfacturacion/${id}/facturapdf`,
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                },
-                            }
-                        );
-
-                        if (!response.ok)
-                            throw new Error("No se pudo abrir el PDF");
-
-                        const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, "_blank");
-                        URL.revokeObjectURL(url); // opcional si no quieres retener el objeto
-                    } catch (error) {
-                        console.error("Error al abrir el PDF:", error);
-                        alertify.error("Error al abrir el PDF.");
-                    }
-                } else {
-                    alertify.error("Token no encontrado para abrir PDF.");
-                }
-            }
-        };
-
-        // Agregar el evento al documento
-        document.addEventListener("click", handleButtonClick);
-
-        // Limpiar el evento cuando el componente se desmonte
-        return () => {
-            document.removeEventListener("click", handleButtonClick);
-        };
-    }, [navigate]); // Dependencia 'navigate' para evitar problemas con la navegación
 
     const options = {
         language: spanishTranslation, // Agrega la traducción aquí
-    };
+        rowCallback: (row, data) => {
+            row.classList.remove(
+                "estado-1",
+                "estado-2",
+                "estado-3",
+                "estado-4",
+                "estado-5",
+                "estado-6"
+            );
 
-    // useEffect(() => {
-    //     // Este useEffect se ejecutará después de que el estado cotizacion cambie.
-    //     //console.log('Estado cotización actualizado:', cotizaciones);
-    // }, [cotizaciones]);
-    /*
-    Este handle se utiliza para cambiar el estado de 0 a 1 para los registros al eliminar
-    */
-    const handleDesactivar = (id) => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            axios
-                .put(
-                    `/api/monitorfacturacion/desactivar/${id}`,
-                    {},
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                )
-                .then(() => {
-                    setCotizaciones((prevCotizaciones) => {
-                        //console.log('Empleados antes del filtro:', prevEmpleados); // Agrega esta línea
-                        return prevCotizaciones.filter(
-                            (cotizacion) =>
-                                Number(cotizacion.idcotizacion) !== Number(id)
-                        ); //convertimos a numero
-                    });
-                    alertify.success("Cotización regresada a ventas.");
-                })
-                .catch((error) => {
-                    //console.error('Error al desactivar la cotizacion:', error);
-                    alertify.error("Error al volver la cotización a ventas.");
-                });
-        }
-    };
-
-    const fetchCotizaciones = () => {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        const params = new URLSearchParams();
-
-        if (token) {
-            axios
-                .get(`/api/monitorfacturacion`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                })
-                .then((response) => {
-                    setCotizaciones(response.data);
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    alertify.error("Error al obtener las cotizaciones.");
-                    setLoading(false);
-                });
-        } else {
-            setCotizaciones([]); // Limpiar las cotizaciones si no hay fechas
-            setLoading(false);
-            if (!token) {
-                alertify.error("Token de autenticación no encontrado");
-            } else {
-                // Opcional: Mostrar un mensaje indicando que se deben seleccionar las fechas
-                // alertify.warning('Por favor, seleccione un rango de fechas.');
+            if (data.estado) {
+                row.classList.add(`estado-${data.estado}`);
             }
-        }
+
+            // Manejo de selección de fila
+            row.onclick = () => {
+                const filas = row.parentNode.querySelectorAll("tr");
+                filas.forEach((r) => r.classList.remove("selected"));
+                row.classList.add("selected");
+                setRegistroSeleccionado(data);
+            };
+        },
     };
 
-    const handleFiltrar = () => {
-        fetchCotizaciones();
-    };
+    const estado = Number(registroSeleccionado?.estado);
+
+    const puedeRegresarVenta = estado === 4;
+    const puedeEliminar = estado === 1;
+    const puedePreFacturar = estado === 1 || estado === 3;
+    const puedeFacturar = estado === 5;
+    const puedeGenerarPDFFactura = estado === 6;
 
     return (
         <div className="container-fluid mt-4">
             {pdfData && (
                 <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
                     style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
+                        backgroundColor: "rgba(0,0,0,0.7)",
+                        zIndex: 1050,
                     }}
                 >
-                    <div style={{ width: "80%", height: "80%" }}>
+                    <div
+                        className="bg-white rounded shadow"
+                        style={{
+                            width: "80%",
+                            height: "80%",
+                            position: "relative",
+                        }}
+                    >
                         <PDFViewer width="100%" height="100%">
                             <CotizacionPDF
                                 cotizacion={pdfData.cotizacion}
@@ -392,8 +509,9 @@ function MonitorFacturacion() {
                                 logoSrc="/images/LogoGP.jpg"
                             />
                         </PDFViewer>
+
                         <button
-                            className="btn btn-danger mt-3"
+                            className="btn btn-danger position-absolute top-0 start-0 m-2"
                             onClick={() => setPdfData(null)}
                         >
                             Cerrar PDF
@@ -401,65 +519,371 @@ function MonitorFacturacion() {
                     </div>
                 </div>
             )}
+
             <div className="card">
-                {/* <div className="card-header bg-primary text-white">
-                    <h2 className="text-center mb-0">Lista de Cotizaciones para facturar</h2>
-                </div> */}
                 <Header title="Lista de Cotizaciones para facturar" />
-                <div className="mb-3">
-                    <div className="row g-3 align-items-center">
-                        <div className="col-auto">
-                            <button
-                                className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill mt-3"
-                                onClick={handleFiltrar}
-                                style={{ width: "150px" }}
-                            >
-                                <FaSearch /> Consultar
-                            </button>
-                        </div>
+                <div className="row mb-3">
+                    <div className="col-md-3">
+                        <label className="form-label fw-bold">
+                            📅 Fecha inicio:
+                        </label>
+                        <input
+                            type="date"
+                            className="form-control"
+                            value={fechaInicio}
+                            onChange={(e) => setFechaInicio(e.target.value)}
+                        />
+                    </div>
+                    <div className="col-md-3">
+                        <label className="form-label fw-bold">
+                            📅 Fecha final:
+                        </label>
+                        <input
+                            type="date"
+                            className="form-control"
+                            value={fechaFinal}
+                            onChange={(e) => setFechaFinal(e.target.value)}
+                        />
+                    </div>
+                    <div className="col-md-3 d-flex align-items-end">
+                        <button
+                            className="btn btn-primary w-100"
+                            onClick={fetchCotizaciones}
+                        >
+                            Consultar
+                        </button>
                     </div>
                 </div>
+                {/* Buscador personalizado */}
+                <div className="mb-3">
+                    <label htmlFor="buscador" className="form-label fw-bold">
+                        🔍 Buscar cotización:
+                    </label>
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            id="buscador"
+                            className="form-control form-control-lg"
+                            placeholder="Buscar por número, cliente, total, observación..."
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                        />
+                        {filtro && (
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={() => setFiltro("")}
+                            >
+                                ✖
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Barra de acciones */}
+                <div className="mb-3 d-flex flex-wrap gap-2">
+                    <button
+                        className="btn btn-danger btn-sm"
+                        disabled={!puedeRegresarVenta}
+                        onClick={() =>
+                            handleDesactivar(registroSeleccionado?.idcotizacion)
+                        }
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Regresar la cotización a ventas"
+                    >
+                        <FaUndo /> Regresar a Venta
+                    </button>
+
+                    <button
+                        className="btn btn-success btn-sm"
+                        disabled={!registroSeleccionado}
+                        onClick={() =>
+                            generarPDF(registroSeleccionado?.idcotizacion)
+                        }
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Generar el PDF del registro seleccionado"
+                    >
+                        <FaFilePdf /> PDF Cotización
+                    </button>
+
+                    <button
+                        className="btn btn-warning btn-sm"
+                        disabled={!puedeFacturar}
+                        onClick={() =>
+                            generarFactura(registroSeleccionado?.idcotizacion)
+                        }
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Enviar el registro seleccionado a certificación"
+                    >
+                        <FaFileInvoiceDollar /> Certificar
+                    </button>
+
+                    <button
+                        className="btn btn-primary btn-sm"
+                        disabled={!puedeGenerarPDFFactura}
+                        onClick={() =>
+                            abrirFacturaPDF(registroSeleccionado?.idcotizacion)
+                        }
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Generar el PDF de la factura certificada"
+                    >
+                        <FaFileInvoice /> PDF Factura
+                    </button>
+                    <button
+                        className="btn btn-danger btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.resultado !== "N" ||
+                            !registroSeleccionado.errores ||
+                            registroSeleccionado.errores.length === 0
+                        }
+                        onClick={() => setMostrarModalErrores(true)}
+                        data-bs-toggle="tooltip"
+                        title="Ver errores de certificación"
+                    >
+                        <i className="bi bi-exclamation-circle me-1"></i> ❗Ver
+                        errores
+                    </button>
+
+                    <button
+                        className="btn btn-danger btn-sm me-2"
+                        disabled={
+                            registroSeleccionado &&
+                            registroSeleccionado.resultado === "S" &&
+                            registroSeleccionado.uuid
+                        }
+                        onClick={handleAnularFactura}
+                    >
+                        <i className="bi bi-x-circle me-1"></i>
+                        Anular Factura
+                    </button>
+                    <button
+                        className="btn btn-info btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                        onClick={() =>
+                            generarNotaCredito(
+                                registroSeleccionado?.idcotizacion
+                            )
+                        }
+                        data-bs-toggle="tooltip"
+                        title="Certificar una Nota de Crédito para esta factura"
+                    >
+                        🧾 Nota Crédito
+                    </button>
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                        onClick={() =>
+                            generarNotaDebito(
+                                registroSeleccionado?.idcotizacion
+                            )
+                        }
+                        data-bs-toggle="tooltip"
+                        title="Certificar una Nota de Débito para esta factura"
+                    >
+                        🧾 Nota Débito
+                    </button>
+                </div>
+
                 <div className="card-body">
                     {loading || !spanishTranslation ? (
                         <p className="text-center">Cargando cotizaciones...</p>
+                    ) : cotizacionesFiltradas.length === 0 ? (
+                        <div className="alert alert-warning text-center">
+                            No se encontraron cotizaciones que coincidan con la
+                            búsqueda.
+                        </div>
                     ) : (
                         <div className="table-responsive">
                             <DataTable
-                                data={cotizaciones}
+                                data={cotizacionesFiltradas}
                                 columns={columns}
                                 options={{
                                     ...options,
-                                    language: spanishTranslation,
+                                    searching: false,
+                                    paging: true,
+                                    pageLength: 10,
+                                    lengthChange: false,
                                 }}
-                                className="table table-striped table-bordered table-hover table-sm"
-                            >
+                                className="table table-hover table-bordered"
+                                onRowClick={(rowData, rowMeta) => {
+                                    setRegistroSeleccionado(rowData);
+                                }}
+                                rowCallback={(row, data, index) => {
+                                    if (
+                                        registroSeleccionado?.idcotizacion ===
+                                        data.idcotizacion
+                                    ) {
+                                        row.classList.add("table-primary");
+                                    } else {
+                                        row.classList.remove("table-primary");
+                                    }
+                                }}
+                                initComplete={() => {
+                                    const tooltipTriggerList = [].slice.call(
+                                        document.querySelectorAll(
+                                            '[data-bs-toggle="tooltip"]'
+                                        )
+                                    );
+                                    tooltipTriggerList.forEach(
+                                        (el) => new bootstrap.Tooltip(el)
+                                    );
+                                }}
+                            />
+                            {/* <table className="table table-striped table-bordered table-hover table-sm">
                                 <thead>
                                     <tr>
-                                        {/* <th>ID</th> */}
-                                        <th>No. Cotización</th>
+                                        <th>No.Cotización</th>
                                         <th>Fecha</th>
                                         <th>Forma Pago</th>
                                         <th>Total</th>
-                                        <th>Costear</th>
                                         <th>Cliente</th>
-                                        {/* <th>ID Cliente</th> */}
-                                        <th>Contacto</th>
-                                        <th>Dirección Entrega</th>
-                                        {/* <th>Obsv. Costeo</th> */}
-                                        <th>Obsv. Cliente</th>
-                                        {/* <th>Obsv. Vendedor</th> */}
-                                        {/* <th>ID Contacto</th>                                         */}
-                                        <th>Trabajo</th>
                                         <th>Versión</th>
-                                        {/* <th>ID Original</th> */}
-                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
-                            </DataTable>
+                                <tbody>
+                                    {cotizacionesFiltradas.map((cot) => (
+                                        <tr
+                                            key={cot.idcotizacion}
+                                            onClick={() =>
+                                                setRegistroSeleccionado(cot)
+                                            }
+                                            className={
+                                                registroSeleccionado?.idcotizacion ===
+                                                cot.idcotizacion
+                                                    ? "table-primary"
+                                                    : ""
+                                            }
+                                            style={{ cursor: "pointer" }}
+                                        >
+                                            <td>{cot.nocotizacion}</td>
+                                            <td>
+                                                {format(
+                                                    new Date(
+                                                        cot.fecha_cotizacion
+                                                    ),
+                                                    "dd-MM-yyyy"
+                                                )}
+                                            </td>
+                                            <td>{cot.tipo_pago}</td>
+                                            <td>
+                                                {Number(
+                                                    cot.total_general
+                                                ).toLocaleString("es-GT", {
+                                                    style: "currency",
+                                                    currency: "GTQ",
+                                                })}
+                                            </td>
+                                            <td>{cot.cliente}</td>
+                                            <td>{cot.version}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table> */}
                         </div>
                     )}
                 </div>
             </div>
+            {mostrarModalErrores && (
+                <div
+                    className="modal fade show"
+                    style={{
+                        display: "block",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                    }}
+                    tabIndex="-1"
+                    role="dialog"
+                >
+                    <div className="modal-dialog modal-lg" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Errores de Certificación - Cotización{" "}
+                                    {registroSeleccionado?.nocotizacion}
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() =>
+                                        setMostrarModalErrores(false)
+                                    }
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {registroSeleccionado?.errores?.length > 0 ? (
+                                    <table className="table table-bordered table-sm">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Categoría</th>
+                                                <th>Numeral</th>
+                                                <th>Validación</th>
+                                                <th>Mensaje</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Array.isArray(
+                                                registroSeleccionado?.errores
+                                            ) &&
+                                            registroSeleccionado.errores
+                                                .length > 0 ? (
+                                                registroSeleccionado.errores.map(
+                                                    (err, idx) => (
+                                                        <tr key={idx}>
+                                                            <td>{idx + 1}</td>
+                                                            <td>
+                                                                {err.categoria}
+                                                            </td>
+                                                            <td>
+                                                                {err.numeral}
+                                                            </td>
+                                                            <td>
+                                                                {err.validacion}
+                                                            </td>
+                                                            <td>
+                                                                {
+                                                                    err.mensaje_error
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )
+                                            ) : (
+                                                <p>
+                                                    No se encontraron errores
+                                                    detallados.
+                                                </p>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <p>No se encontraron errores detallados.</p>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() =>
+                                        setMostrarModalErrores(false)
+                                    }
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
