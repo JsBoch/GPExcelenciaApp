@@ -366,13 +366,14 @@ function CotizacionForm() {
             cotizacion.observaciones_cliente
         );
         formData.append("direccion_entrega", cotizacion.direccion_entrega);
-        formData.append("costear", costearValue);
-        if(costearValue === "S"){
-            formData.append("estado","2");
-        }else{
-            formData.append("estado","1");
-        }
+        formData.append("costear", "N");
+        // if(costearValue === "S"){
+        //     formData.append("estado","2");
+        // }else{
+        //     formData.append("estado","1");
+        // }
 
+        formData.append("estado","1");
         formData.append(
             "idcotizacionoriginal",
             cotizacion.idcotizacionoriginal

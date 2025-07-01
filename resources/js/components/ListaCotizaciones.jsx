@@ -496,6 +496,7 @@ function ListaCotizaciones() {
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 4;
+    const puedeEnviarACosteo = estado === 1 || estado === 2;
 
     const cotizacionesFiltradas = cotizaciones.filter((cot) => {
         const texto = filtro.toLowerCase();
@@ -693,9 +694,9 @@ function ListaCotizaciones() {
                                         registroSeleccionado?.idcotizacion
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Abre una ventana con el detalle de la cotización"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Abre una ventana con el detalle de la cotización"
                             >
                                 <i className="fas fa-eye"></i> Detalle
                             </button>
@@ -707,9 +708,9 @@ function ListaCotizaciones() {
                                         `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Abre el formulario de registro para cambiar datos"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Abre el formulario de registro para cambiar datos"
                             >
                                 <i className="fas fa-edit"></i> Editar
                             </button>
@@ -723,9 +724,9 @@ function ListaCotizaciones() {
                                         registroSeleccionado?.idcotizacion
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Elimina el registro seleccionado"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Elimina el registro seleccionado"
                             >
                                 <i className="fas fa-trash"></i> Eliminar
                             </button>
@@ -737,11 +738,30 @@ function ListaCotizaciones() {
                                         registroSeleccionado?.idcotizacion
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Generar el PDF del registro seleccionado"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Generar el PDF del registro seleccionado"
                             >
                                 <i className="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button
+                                className="btn btn-secondary btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado || !puedeEnviarACosteo
+                                }
+                                onClick={() =>
+                                    handleFacturar(
+                                        registroSeleccionado?.idcotizacion,
+                                        registroSeleccionado,
+                                        2
+                                    )
+                                }
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Envía el registro seleccionado a pre-facturación"
+                            >
+                                <i className="fas fa-paper-plane"></i>{" "}
+                                Enviar a costeo
                             </button>
                             <button
                                 className="btn btn-warning btn-sm toolbar-btn"
@@ -755,9 +775,9 @@ function ListaCotizaciones() {
                                         4
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Envía el registro seleccionado a pre-facturación"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Envía el registro seleccionado a pre-facturación"
                             >
                                 <i className="fas fa-paper-plane"></i>{" "}
                                 Pre-Facturar
@@ -774,9 +794,9 @@ function ListaCotizaciones() {
                                         5
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Indica a contabilidad que el registro ya se puede facturar"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Indica a contabilidad que el registro ya se puede facturar"
                             >
                                 <i className="fas fa-file-signature"></i>{" "}
                                 Facturar
@@ -789,9 +809,9 @@ function ListaCotizaciones() {
                                         registroSeleccionado?.idcotizacion
                                     )
                                 }
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Generar la nota de envío"
+                                // data-bs-toggle="tooltip"
+                                // data-bs-placement="top"
+                                // title="Generar la nota de envío"
                             >
                                 <i className="fas fa-file-alt"></i> Nota Envío
                             </button>
