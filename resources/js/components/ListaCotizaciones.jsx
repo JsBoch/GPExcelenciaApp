@@ -701,7 +701,7 @@ function ListaCotizaciones() {
                             </button>
                             <button
                                 className="btn btn-success btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado || !puedeEditar}
+                                disabled={!registroSeleccionado}
                                 onClick={() =>
                                     navigate(
                                         `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
