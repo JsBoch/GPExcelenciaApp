@@ -490,7 +490,7 @@ function ListaCotizaciones() {
 
     const estado = Number(registroSeleccionado?.estado);
 
-    const puedeEditar = estado === 1 || estado === 2 || estado === 3;
+    const puedeEditar = estado === 1 || estado === 3;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 4;
