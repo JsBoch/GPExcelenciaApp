@@ -445,8 +445,15 @@ class CotizacionController extends Controller
 
         $cotizacion->estado = $estado;
         $cotizacion->save();
+        $mensajes = [
+        4 => "Cotización enviada a pre-facturación",
+        5 => "Cotización enviada para facturar",
+        2 => "Cotización enviada a costeo",
+    ];
 
-        return response()->json(['message' => 'Cotización enviada a facturación']);
+    $mensaje = $mensajes[$estado] ?? "Estado actualizado correctamente";
+
+    return response()->json(['message' => $mensaje]);
     }
 
     public function listarClientes()

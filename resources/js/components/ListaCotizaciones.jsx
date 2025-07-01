@@ -447,17 +447,15 @@ function ListaCotizaciones() {
                         },
                     }
                 )
-                .then(() => {
-                    alertify.success("Cotización enviada a facturación.");
+                .then((response) => {
+                    alertify.success(response.data.message);
                     fetchCotizaciones(
                         fechaInicioRef.current,
                         fechaFinRef.current
                     );
                 })
-                .catch(() => {
-                    alertify.error(
-                        "Error al enviar la cotización a facturación."
-                    );
+                .catch((error) => {
+                    error.response?.data?.message || "Ocurrió un error al actualizar la cotización."
                 });
         }
     };
@@ -492,7 +490,7 @@ function ListaCotizaciones() {
 
     const estado = Number(registroSeleccionado?.estado);
 
-    const puedeEditar = estado === 1;
+    const puedeEditar = estado === 1 || estado === 2 || estado === 3;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 4;
@@ -702,7 +700,7 @@ function ListaCotizaciones() {
                             </button>
                             <button
                                 className="btn btn-success btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado}
+                                disabled={!registroSeleccionado || !puedeEditar}
                                 onClick={() =>
                                     navigate(
                                         `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
