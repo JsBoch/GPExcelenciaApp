@@ -1,0 +1,17 @@
+/* Colores suaves y profesionales */
+.estado-4 {
+    background-color: #fff8e1 !important; /* Amarillo pastel */
+}
+.estado-5 {
+    background-color: #ffebee !important; /* Rojo claro */
+}
+.estado-6 {
+    background-color: #e8f5e9 !important; /* Verde suave */
+}
+
+/* Mantener texto legible */
+.estado-4 td,
+.estado-5 td,
+.estado-6 td {
+    color: #333 !important;
+}
