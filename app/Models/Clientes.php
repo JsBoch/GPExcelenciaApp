@@ -39,6 +39,7 @@ class Clientes extends Model
         'telefono_dos',
         'telefono_tres',
         'fecha_modificacion',
+        'extranjero',
     ];
 
     public function empleados(){

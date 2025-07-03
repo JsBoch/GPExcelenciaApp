@@ -14,7 +14,7 @@ class CotizacionCosteoController extends Controller
 {
     public function index()
     {
-        $cotizaciones = AdmCotizacion::where('c.estado', 1)
+        $cotizaciones = AdmCotizacion::where('c.estado', 2)
             ->where('c.costear', 'S')
             ->select(
                 'c.idcotizacion',

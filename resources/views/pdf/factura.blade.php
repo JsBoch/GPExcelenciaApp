@@ -85,7 +85,7 @@
                 Zona 6 de Mixco, Guatemala<br>
                 <span style="color: red;">Ventas: serviciocliente@gpexcelencia.com</span><br>
                 Contabilidad: creditos@gpexcelencia.com<br>
-                <span style="color: #0074cc;">Número Interno: GP-20234610-10812</span>
+                <span style="color: #0074cc;">Número Interno: {{ $cotizacion->numero_interno }}</span>
             </td>
 
             <!-- Columna 3: Info DTE -->
@@ -99,6 +99,17 @@
                 </div><br>
                 <strong>NIT.: <span style="font-size: 13px;">109126599</span></strong><br>
                 GP Excelencia, Sociedad Anónima
+            </td>
+        </tr>
+    </table>
+
+    <!-- Información del cliente -->
+    <table width="100%" style="border-collapse: collapse; margin-bottom: 10px; font-size: 12px;">
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px;">
+                <strong>NIT:</strong> {{ $cotizacion->nit }}<br>
+                <strong>NOMBRE:</strong> {{ $cotizacion->nombre }}<br>
+                <strong>DIRECCIÓN:</strong> {{ $cotizacion->direccion }}
             </td>
         </tr>
     </table>

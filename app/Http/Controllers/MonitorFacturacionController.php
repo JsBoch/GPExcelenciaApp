@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\AdmCotizacion;
 use App\Models\AdmDetalleCotizacion;
 use NumberToWords\NumberToWords;
+use App\Models\Correlativo;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +20,7 @@ class MonitorFacturacionController extends Controller
     {
         $fechaInicio = $request->query('fechaInicio');
         $fechaFinal = $request->query('fechaFinal');
+        $estado = $request->query('estado');
 
         $query = AdmCotizacion::whereIn('c.estado', [4, 5, 6])
             ->select(
@@ -61,10 +63,21 @@ class MonitorFacturacionController extends Controller
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
 
         // 👇 Aplica el filtro por fechas si están definidos
-        if ($fechaInicio && $fechaFinal) {
+        if ($estado) {
+            $query->where('c.estado', $estado);
+
+            // Si estado = 5 (PARA FACTURAR), no aplicar filtro de fecha
+            if ($estado != 5 && $fechaInicio && $fechaFinal) {
+                $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+            }
+        } elseif ($fechaInicio && $fechaFinal) {
             $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
         }
+        // if ($fechaInicio && $fechaFinal) {
+        //     $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+        // }
 
+       // Log::info($query);
         $cotizaciones = $query->get();
         // Decodificar errores para cada cotización
         foreach ($cotizaciones as $cot) {
@@ -92,11 +105,11 @@ class MonitorFacturacionController extends Controller
                 'c.total_general',
                 'c.costear',
                 'cl.nombre as cliente',
-                'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+                'cl.nit as nit',
                 'ct.nombre as contacto',
-                'e.nombre as vendedor',                 // Asegúrate de tener este campo en tu tabla (o relación)
-                'e.movil as telefono_vendedor',         // Ajusta según tu estructura
-                'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
+                'e.nombre as vendedor',
+                'e.movil as telefono_vendedor',
+                'e.correo_personal as correo_vendedor',
                 'c.direccion_entrega',
                 'c.observaciones_costeo',
                 'c.observaciones_cliente',
@@ -143,6 +156,7 @@ class MonitorFacturacionController extends Controller
 
     public function generarXMLFactura($idcotizacion)
     {
+        // Log::info($idcotizacion);
         $detalles = DB::select("
         SELECT 
             ROW_NUMBER() OVER (ORDER BY d.iddetallecotizacion) AS numero_linea,
@@ -178,7 +192,7 @@ class MonitorFacturacionController extends Controller
     ", [$idcotizacion]);
 
         if (empty($detalles)) {
-            return response()->json(['error' => 'Cotización no encontrada'], 404);
+            return response()->json(['error' => 'Detalle de cotización no encontrado'], 404);
         }
 
         $detalle = $detalles[0];
@@ -309,9 +323,9 @@ class MonitorFacturacionController extends Controller
         $xmlString = $doc->saveXML();
 
         // URL del proveedor o SAT a donde enviarás el XML
-        $apiUrl = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml'; // ← cambia esta URL por la real
+        $apiUrl = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
 
-        // Aquí puedes agregar cualquier encabezado requerido por el API
+        // encabezado requerido por el API
         $identificador = Str::uuid()->toString(); // Genera un UUID único para cada solicitud
         $headers = [
             'Content-Type' => 'application/xml',
@@ -329,10 +343,23 @@ class MonitorFacturacionController extends Controller
 
             $json = $response->json();
 
+            // Log::info($json);
             //Se graba en la base de datos la respuesta del SAT
             $cotizacion = AdmCotizacion::find($idcotizacion);
             if ($cotizacion) {
                 if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
+
+                    //Se obtiene el correlativo para la factura, utilizado en la impresión como número interno
+                    $correlativo = Correlativo::find('nofactura');
+
+                    if (!$correlativo) {
+                        return response()->json(['message' => 'No se encontró el correlativo para el numero interno'], 400);
+                    }
+
+                    $noFactura = $correlativo->correlativo + $correlativo->incremento;
+                    $correlativo->correlativo = $noFactura;
+                    $correlativo->save();
+
                     $cotizacion->update([
                         'resultado'            => 'S',
                         'uuid'                 => $json['uuid'],
@@ -344,6 +371,7 @@ class MonitorFacturacionController extends Controller
                         'alertas'              => $json['descripcion_alertas_infile'] ?? null,
                         'identificador'        => $identificador,
                         'estado' => 6,
+                        'nofactura' => $noFactura,
                     ]);
                 } else {
                     // Log::info($json);
@@ -414,19 +442,21 @@ class MonitorFacturacionController extends Controller
                 'd.descripcion',
                 'd.precio as precio_unitario',
                 'd.total as precio_total',
+                'c.nofactura',
             )
             ->from('adm_cotizacion as c')
             ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->first();
 
-        if (! $cotizacion) {
+
+        if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        // $detalles                     = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-        // $cotizacion->detalles         = $detalles;
-        // $cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
+        // Crear número interno
+        $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
+        $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nofactura;
 
         // Convertir total a letras (usando kwn/number-to-words)
         $numberToWords     = new NumberToWords();
@@ -435,14 +465,8 @@ class MonitorFacturacionController extends Controller
 
         $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
 
-        // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-        // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
-        // return response()->json([
-        //     'cotizacion'    => $cotizacion,
-        //     'totalEnLetras' => $totalEnLetras,
-        // ]);
         $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'));
-        //return $pdf->download('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
+
         return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
     }
 
@@ -467,7 +491,17 @@ class MonitorFacturacionController extends Controller
             'motivo' => 'required|string|max:250',
         ]);
 
-        $cotizacion = AdmCotizacion::findOrFail($idcotizacion);
+        $cotizacion = DB::table('adm_cotizacion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->where('c.idcotizacion', $idcotizacion)
+            ->select(
+                'c.idcotizacion',
+                'c.uuid',
+                'c.resultado',
+                'c.fecha_certificacion',
+                'cl.nit as receptor_nit'
+            )
+            ->first();
 
         if ($cotizacion->resultado !== 'S' || empty($cotizacion->uuid)) {
             return response()->json(['error' => 'La factura no puede ser anulada.'], 400);
@@ -476,55 +510,55 @@ class MonitorFacturacionController extends Controller
         $uuid = strtoupper(trim($cotizacion->uuid));
         $motivo = $request->motivo;
         $nitEmisor = '11201359K';
-        $idReceptor = 'CF'; // Puedes adaptarlo si usas NIT cliente
-        $fechaEmision = $cotizacion->fecha_certificacion;
+        $idReceptor = $cotizacion->receptor_nit ?: 'CF';
+        $fechaEmision = date('Y-m-d\TH:i:s', strtotime($cotizacion->fecha_certificacion));
         $fechaAnulacion = now()->format('Y-m-d\TH:i:s');
 
-        // Construcción del XML envuelto en GTDocumento (estructura oficial FEL)
+        // Crear documento XML de anulación con la estructura correcta
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
 
-        $GTDocumento = $doc->createElementNS('http://www.sat.gob.gt/dte/fel/0.2.0', 'dte:GTDocumento');
-        $GTDocumento->setAttribute('Version', '0.1');
-        $doc->appendChild($GTDocumento);
+        // Elemento raíz con namespaces y atributos
+        $GTAnulacion = $doc->createElementNS('http://www.sat.gob.gt/dte/fel/0.1.0', 'dte:GTAnulacionDocumento');
+        $GTAnulacion->setAttribute('xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
+        $GTAnulacion->setAttribute('xmlns:n1', 'http://www.altova.com/samplexml/other-namespace');
+        $GTAnulacion->setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+        $GTAnulacion->setAttribute('Version', '0.1');
+        $GTAnulacion->setAttribute(
+            'xsi:schemaLocation',
+            'http://www.sat.gob.gt/dte/fel/0.1.0 C:\\Users\\User\\Desktop\\FEL\\Esquemas\\GT_AnulacionDocumento-0.1.0.xsd'
+        );
+        $doc->appendChild($GTAnulacion);
 
+        // SAT > AnulacionDTE > DatosGenerales
         $SAT = $doc->createElement('dte:SAT');
-        $SAT->setAttribute('ClaseDocumento', 'dte');
-        $GTDocumento->appendChild($SAT);
+        $GTAnulacion->appendChild($SAT);
 
-        $DTE = $doc->createElement('dte:DTE');
-        $DTE->setAttribute('ID', 'DatosCertificados');
-        $SAT->appendChild($DTE);
+        $AnulacionDTE = $doc->createElement('dte:AnulacionDTE');
+        $AnulacionDTE->setAttribute('ID', 'DatosCertificados');
+        $SAT->appendChild($AnulacionDTE);
 
-        $DatosEmision = $doc->createElement('dte:DatosEmision');
-        $DatosEmision->setAttribute('ID', 'DatosEmision');
-        $DTE->appendChild($DatosEmision);
+        $DatosGenerales = $doc->createElement('dte:DatosGenerales');
+        $DatosGenerales->setAttribute('ID', 'DatosAnulacion');
+        $DatosGenerales->setAttribute('NumeroDocumentoAAnular', $uuid);
+        $DatosGenerales->setAttribute('NITEmisor', $nitEmisor);
+        $DatosGenerales->setAttribute('IDReceptor', $idReceptor);
+        $DatosGenerales->setAttribute('FechaEmisionDocumentoAnular', $fechaEmision);
+        $DatosGenerales->setAttribute('FechaHoraAnulacion', $fechaAnulacion);
+        $DatosGenerales->setAttribute('MotivoAnulacion', $motivo);
 
-        // AnulacionDTE (namespace debe ser local, no heredado)
-        $anulacion = $doc->createElementNS('http://www.sat.gob.gt/dte/fel/0.1.0', 'AnulacionDTE');
-        $anulacion->setAttribute('Version', '0.1');
-        $DatosEmision->appendChild($anulacion);
-
-        $datos = $doc->createElement('DatosGenerales');
-        $datos->setAttribute('ID', 'DatosAnulacion');
-        $datos->setAttribute('NumeroDocumentoAAnular', $uuid);
-        $datos->setAttribute('NITEmisor', $nitEmisor);
-        $datos->setAttribute('IDReceptor', $idReceptor);
-        $datos->setAttribute('FechaEmisionDocumentoAnular', $fechaEmision);
-        $datos->setAttribute('FechaHoraAnulacion', $fechaAnulacion);
-        $datos->setAttribute('MotivoAnulacion', $motivo);
-        $anulacion->appendChild($datos);
+        $AnulacionDTE->appendChild($DatosGenerales);
 
         $xmlString = $doc->saveXML();
 
-        // Cabeceras necesarias
+        // Headers y URL del API de INFILE
         $headers = [
-            'Content-Type'     => 'application/xml',
-            'UsuarioApi'       => 'DEMO_GP',
-            'LlaveApi'         => '49D7ADECD323FC85C417223AB706094D',
-            'UsuarioFirma'     => 'DEMO_GP',
-            'LlaveFirma'       => '41841aff97e60b3400cd9968097ba13d',
-            'Identificador'    => (string) Str::uuid(),
+            'Content-Type' => 'application/xml',
+            'UsuarioApi' => 'DEMO_GP',
+            'LlaveApi' => '49D7ADECD323FC85C417223AB706094D',
+            'UsuarioFirma' => 'DEMO_GP',
+            'LlaveFirma' => '41841aff97e60b3400cd9968097ba13d',
+            'Identificador' => (string) Str::uuid(),
         ];
 
         $url = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
@@ -539,23 +573,42 @@ class MonitorFacturacionController extends Controller
             Log::info('Respuesta de anulación FEL INFILE', ['body' => $response->body()]);
 
             $json = $response->json();
+            // 1. Decodifica directamente todo el JSON como objeto
+            $data = json_decode($response->body(), true);
 
-            if (isset($json['resultado']) && $json['resultado'] === true) {
-                $cotizacion->update([
-                    'estado' => 7,
-                    'descripcion' => 'FACTURA ANULADA',
-                ]);
+            // 2. Si contiene 'body', decodifica su contenido (también es JSON embebido)
+            $bodyData = isset($data['body']) ? json_decode($data['body'], true) : $data;
+
+            // 3. Verifica si hay un resultado exitoso
+            if (isset($bodyData['resultado']) && $bodyData['resultado'] === true) {
+                DB::table('adm_cotizacion')
+                    ->where('idcotizacion', $idcotizacion)
+                    ->update([
+                        'estado' => 7,
+                        'anulacion_resultado' => 'S',
+                        'fecha_anulacion_certificacion' => $bodyData['fecha'] ?? now(),
+                        'anulacion_descripcion' => $bodyData['descripcion'] ?? null,
+                        'anulacion_alertas' => json_encode([
+                            'infile' => $bodyData['descripcion_alertas_infile'] ?? [],
+                            'sat' => $bodyData['descripcion_alertas_sat'] ?? []
+                        ]),
+                        'anulacion_informacion_adicional' => $bodyData['informacion_adicional'] ?? null,
+                        'anulacion_uuid' => $bodyData['uuid'] ?? null,
+                        'anulacion_serie' => $bodyData['serie'] ?? null,
+                        'anulacion_numero' => $bodyData['numero'] ?? null,
+                        'anulacion_xml_certificado' => $bodyData['xml_certificado'] ?? null,
+                    ]);
 
                 return response()->json([
                     'resultado' => true,
                     'mensaje' => 'Factura anulada con éxito.',
-                    'uuid' => $uuid,
+                    'uuid' => $bodyData['uuid'] ?? '',
                 ]);
             } else {
                 return response()->json([
                     'resultado' => false,
-                    'mensaje' => 'La anulación no fue aceptada.',
-                    'errores' => $json['descripcion_errores'] ?? ['Error desconocido.'],
+                    'mensaje' => $bodyData['descripcion'] ?? 'La anulación no fue aceptada.',
+                    'errores' => $bodyData['descripcion_errores'] ?? ['Error desconocido.'],
                 ], 422);
             }
         } catch (\Exception $e) {
@@ -571,6 +624,7 @@ class MonitorFacturacionController extends Controller
             ], 500);
         }
     }
+
 
     public function generarXMLNotaCredito($idcotizacion)
     {
