@@ -48,6 +48,7 @@ class AdmCotizacion extends Model
         'alertas',
         'identificador',
         'errores',
+        'nofactura',
     ];
 
     public function tipoPago()

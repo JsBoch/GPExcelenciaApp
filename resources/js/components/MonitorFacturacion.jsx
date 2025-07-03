@@ -22,6 +22,7 @@ import "../../css/monitor_cotizaciones.css";
 
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
+import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from "reactstrap";
 
 DataTable.use(DT);
 
@@ -37,6 +38,9 @@ function MonitorFacturacion() {
     const [fechaInicio, setFechaInicio] = useState(today);
     const [fechaFinal, setFechaFinal] = useState(today);
     const [mostrarModalErrores, setMostrarModalErrores] = useState(false);
+    const [cliente, setCliente] = useState(null);
+    const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
+    const [estadoFiltro, setEstadoFiltro] = useState("");
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -61,6 +65,7 @@ function MonitorFacturacion() {
         const params = {};
         if (fechaInicio) params.fechaInicio = fechaInicio;
         if (fechaFinal) params.fechaFinal = fechaFinal;
+        if (estadoFiltro) params.estado = estadoFiltro;
 
         axios
             .get("/api/monitorfacturacion", {
@@ -133,33 +138,6 @@ function MonitorFacturacion() {
         }
     };
 
-    // const generarFactura = async (id) => {
-    //     const token = localStorage.getItem("token");
-    //     if (!token)
-    //         return alertify.error("Token no encontrado para generar XML.");
-    //     try {
-    //         const response = await fetch(
-    //             `${import.meta.env.VITE_API_URL}/facturar/${id}`,
-    //             {
-    //                 method: "GET",
-    //                 headers: { Authorization: `Bearer ${token}` },
-    //                 credentials: "include",
-    //             }
-    //         );
-    //         if (!response.ok) {
-    //             const errorData = await response.json();
-    //             alertify.error(
-    //                 "Error al facturar: " +
-    //                     (errorData.errores || "Error desconocido")
-    //             );
-    //             return;
-    //         }
-    //         const data = await response.json();
-    //         alertify.success(`Factura generada. UUID: ${data.uuid}`);
-    //     } catch (error) {
-    //         alertify.error("Error al generar el XML.");
-    //     }
-    // };
     const generarFactura = async (id) => {
         const token = localStorage.getItem("token");
         if (!token)
@@ -175,6 +153,7 @@ function MonitorFacturacion() {
             );
 
             const data = await response.json();
+            console.log(data);
 
             if (!response.ok) {
                 if (data.errores) {
@@ -314,6 +293,39 @@ function MonitorFacturacion() {
             fetchCotizaciones();
         } catch (error) {
             alertify.error("Error al generar nota de débito.");
+        }
+    };
+
+    const handleEditarCliente = async (idcliente) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        try {
+            const { data } = await axios.get(`/api/clientes/${idcliente}`, {
+                headers,
+            });
+            console.log(data);
+            setCliente(data);
+            setMostrarModalCliente(true);
+        } catch (error) {
+            console.log(error);
+            alertify.error("Error al obtener datos del cliente");
+        }
+    };
+
+    const handleGuardarCliente = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+        const headers = { Authorization: `Bearer ${token}` };
+        try {
+            await axios.put(`/api/clientes/${cliente.idcliente}`, cliente, {
+                headers,
+            });
+            alertify.success("Cliente actualizado");
+            setMostrarModalCliente(false);
+        } catch (error) {
+            alertify.error("Error al actualizar cliente");
         }
     };
 
@@ -524,6 +536,20 @@ function MonitorFacturacion() {
                 <Header title="Lista de Cotizaciones para facturar" />
                 <div className="row mb-3">
                     <div className="col-md-3">
+                        <label className="form-label fw-bold">Estado:</label>
+                        <select
+                            className="form-select"
+                            value={estadoFiltro}
+                            onChange={(e) => setEstadoFiltro(e.target.value)}
+                        >
+                            <option value="">Todos</option>
+                            <option value="4">PRE-FACTURACIÓN</option>
+                            <option value="5">PARA FACTURAR</option>
+                            <option value="6">FACTURADA</option>
+                            <option value="7">ANULADA</option>
+                        </select>
+                    </div>
+                    <div className="col-md-3">
                         <label className="form-label fw-bold">
                             📅 Fecha inicio:
                         </label>
@@ -651,9 +677,9 @@ function MonitorFacturacion() {
                     <button
                         className="btn btn-danger btn-sm me-2"
                         disabled={
-                            registroSeleccionado &&
-                            registroSeleccionado.resultado === "S" &&
-                            registroSeleccionado.uuid
+                            !registroSeleccionado ||
+                            !registroSeleccionado.resultado === "S" ||
+                            !registroSeleccionado.uuid
                         }
                         onClick={handleAnularFactura}
                     >
@@ -692,6 +718,15 @@ function MonitorFacturacion() {
                     >
                         🧾 Nota Débito
                     </button>
+                    <Button
+                        variant="warning"
+                        onClick={() =>
+                            handleEditarCliente(registroSeleccionado.idcliente)
+                        }
+                        disabled={!registroSeleccionado}
+                    >
+                        Información del cliente
+                    </Button>
                 </div>
 
                 <div className="card-body">
@@ -739,56 +774,6 @@ function MonitorFacturacion() {
                                     );
                                 }}
                             />
-                            {/* <table className="table table-striped table-bordered table-hover table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>No.Cotización</th>
-                                        <th>Fecha</th>
-                                        <th>Forma Pago</th>
-                                        <th>Total</th>
-                                        <th>Cliente</th>
-                                        <th>Versión</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cotizacionesFiltradas.map((cot) => (
-                                        <tr
-                                            key={cot.idcotizacion}
-                                            onClick={() =>
-                                                setRegistroSeleccionado(cot)
-                                            }
-                                            className={
-                                                registroSeleccionado?.idcotizacion ===
-                                                cot.idcotizacion
-                                                    ? "table-primary"
-                                                    : ""
-                                            }
-                                            style={{ cursor: "pointer" }}
-                                        >
-                                            <td>{cot.nocotizacion}</td>
-                                            <td>
-                                                {format(
-                                                    new Date(
-                                                        cot.fecha_cotizacion
-                                                    ),
-                                                    "dd-MM-yyyy"
-                                                )}
-                                            </td>
-                                            <td>{cot.tipo_pago}</td>
-                                            <td>
-                                                {Number(
-                                                    cot.total_general
-                                                ).toLocaleString("es-GT", {
-                                                    style: "currency",
-                                                    currency: "GTQ",
-                                                })}
-                                            </td>
-                                            <td>{cot.cliente}</td>
-                                            <td>{cot.version}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table> */}
                         </div>
                     )}
                 </div>
@@ -884,6 +869,139 @@ function MonitorFacturacion() {
                     </div>
                 </div>
             )}
+            {/* Modal para mostrar los datos del cliente del registro seleccionado*/}
+            <Modal
+                isOpen={mostrarModalCliente}
+                toggle={() => setMostrarModalCliente(false)}
+                size="lg" // más ancho
+                centered // centrado verticalmente
+            >
+                <ModalHeader toggle={() => setMostrarModalCliente(false)}>
+                    <span className="fs-5">Editar Cliente</span>
+                </ModalHeader>
+                <ModalBody>
+                    {cliente && (
+                        <form>
+                            <div className="row">
+                                <div className="col-md-6 mb-2">
+                                    <label className="form-label small mb-1">
+                                        NIT
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={cliente.nit}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                nit: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="col-md-6 mb-2">
+                                    <label className="form-label small mb-1">
+                                        CUI
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={cliente.cui}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                cui: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="col-md-12 mb-2">
+                                    <label className="form-label small mb-1">
+                                        Nombre
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={cliente.nombre}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                nombre: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="col-md-12 mb-2">
+                                    <label className="form-label small mb-1">
+                                        Dirección
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={cliente.direccion}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                direccion: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="col-md-6 mb-2">
+                                    <label className="form-label small mb-1">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        className="form-control form-control-sm"
+                                        value={cliente.email}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                email: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="col-md-6 mb-2">
+                                    <label className="form-label small mb-1">
+                                        Tipo de cliente
+                                    </label>
+                                    <select
+                                        className="form-select form-select-sm"
+                                        value={cliente.extranjero}
+                                        onChange={(e) =>
+                                            setCliente({
+                                                ...cliente,
+                                                extranjero: e.target.value,
+                                            })
+                                        }
+                                    >
+                                        <option value="N">Nacional</option>
+                                        <option value="E">Extranjero</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    )}
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        size="sm"
+                        onClick={() => setMostrarModalCliente(false)}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        color="primary"
+                        size="sm"
+                        onClick={handleGuardarCliente}
+                    >
+                        Guardar Cambios
+                    </Button>
+                </ModalFooter>
+            </Modal>
         </div>
     );
 }
