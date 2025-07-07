@@ -40,6 +40,9 @@ function ListaCotizaciones() {
     const [notaEnvioData, setNotaEnvioData] = useState(null);
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [filtro, setFiltro] = useState("");
+    const [motivosRechazo, setMotivosRechazo] = useState([]);
+    const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
+    const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -331,7 +334,9 @@ function ListaCotizaciones() {
                 "estado-3",
                 "estado-4",
                 "estado-5",
-                "estado-6"
+                "estado-6",
+                "estado-7",
+                "estado-8"
             );
 
             if (data.estado) {
@@ -409,7 +414,10 @@ function ListaCotizaciones() {
             return;
         }
 
-        if (Number(cotizacion.total_general) === 0 && Number(cotizacion.estado) > 3) {
+        if (
+            Number(cotizacion.total_general) === 0 &&
+            Number(cotizacion.estado) > 3
+        ) {
             alertify.alert(
                 "TOTAL EN CERO",
                 "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
@@ -455,7 +463,8 @@ function ListaCotizaciones() {
                     );
                 })
                 .catch((error) => {
-                    error.response?.data?.message || "Ocurrió un error al actualizar la cotización."
+                    error.response?.data?.message ||
+                        "Ocurrió un error al actualizar la cotización.";
                 });
         }
     };
@@ -488,6 +497,42 @@ function ListaCotizaciones() {
         }
     };
 
+    const abrirModalRechazo = async () => {
+        const token = localStorage.getItem("token");
+        try {
+            const { data } = await axios.get("/api/motivos-rechazo", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setMotivosRechazo(data);
+            setMostrarModalRechazo(true);
+        } catch (error) {
+            alertify.error("No se pudieron obtener los motivos de rechazo.");
+        }
+    };
+
+    const confirmarRechazo = async () => {
+        const token = localStorage.getItem("token");
+        if (!motivoSeleccionado || !registroSeleccionado) {
+            alertify.warning("Selecciona un motivo de rechazo.");
+            return;
+        }
+
+        try {
+            await axios.put(
+                `/api/cotizaciones/rechazar/${registroSeleccionado.idcotizacion}`,
+                { idmotivorechazo: motivoSeleccionado },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            alertify.success("Cotización rechazada.");
+            setMostrarModalRechazo(false);
+            fetchCotizaciones(fechaInicioRef.current, fechaFinRef.current);
+        } catch (error) {
+            alertify.error(
+                error.response?.data?.message || "Error al rechazar."
+            );
+        }
+    };
+
     const estado = Number(registroSeleccionado?.estado);
 
     const puedeEditar = estado === 1 || estado === 3;
@@ -508,16 +553,6 @@ function ListaCotizaciones() {
 
     return (
         <div className="mt-4 px-3 px-md-4">
-            {/* {pdfData && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                    <div style={{ width: '80%', height: '80%' }}>
-                        <PDFViewer width="100%" height="100%">
-                            <CotizacionPDF cotizacion={pdfData.cotizacion} totalEnLetras={pdfData.totalEnLetras} logoSrc="/images/LogoGP.png" />
-                        </PDFViewer>
-                        <button className="btn btn-danger mt-3" onClick={() => setPdfData(null)}>Cerrar PDF</button>
-                    </div>
-                </div>
-            )} */}
             {pdfData && (
                 <div
                     style={{
@@ -758,8 +793,8 @@ function ListaCotizaciones() {
                                 // data-bs-placement="top"
                                 // title="Envía el registro seleccionado a pre-facturación"
                             >
-                                <i className="fas fa-paper-plane"></i>{" "}
-                                Enviar a costeo
+                                <i className="fas fa-paper-plane"></i> Enviar a
+                                costeo
                             </button>
                             <button
                                 className="btn btn-warning btn-sm toolbar-btn"
@@ -812,6 +847,16 @@ function ListaCotizaciones() {
                                 // title="Generar la nota de envío"
                             >
                                 <i className="fas fa-file-alt"></i> Nota Envío
+                            </button>
+                            <button
+                                className="btn btn-dark btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
+                                    !(estado === 1 || estado === 3)
+                                }
+                                onClick={abrirModalRechazo}
+                            >
+                                <i className="fas fa-ban"></i> Rechazar
                             </button>
                         </div>
 
@@ -917,6 +962,18 @@ function ListaCotizaciones() {
                                         Nota Envío
                                     </button>
                                 </li>
+                                <li>
+                                    <button
+                                        className="btn btn-dark btn-sm toolbar-btn"
+                                        disabled={
+                                            !registroSeleccionado ||
+                                            !(estado === 1 || estado === 3)
+                                        }
+                                        onClick={() => abrirModalRechazo()}
+                                    >
+                                        <i className="fas fa-ban"></i> Rechazar
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -998,6 +1055,67 @@ function ListaCotizaciones() {
                     </div>
                 </div>
             </div>
+
+            {mostrarModalRechazo && (
+                <div
+                    className="modal d-block"
+                    tabIndex="-1"
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                >
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Motivo de Rechazo
+                                </h5>
+                                <button
+                                    className="btn-close"
+                                    onClick={() =>
+                                        setMostrarModalRechazo(false)
+                                    }
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <select
+                                    className="form-select"
+                                    value={motivoSeleccionado}
+                                    onChange={(e) =>
+                                        setMotivoSeleccionado(e.target.value)
+                                    }
+                                >
+                                    <option value="">
+                                        Selecciona un motivo
+                                    </option>
+                                    {motivosRechazo.map((m) => (
+                                        <option
+                                            key={m.idmotivorechazo}
+                                            value={m.idmotivorechazo}
+                                        >
+                                            {m.motivo}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() =>
+                                        setMostrarModalRechazo(false)
+                                    }
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={confirmarRechazo}
+                                >
+                                    Rechazar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

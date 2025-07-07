@@ -49,6 +49,9 @@ class AdmCotizacion extends Model
         'identificador',
         'errores',
         'nofactura',
+        'idmotivorechazo',
+        'fecha_rechazo',
+        'usuario_rechazo',
     ];
 
     public function tipoPago()
@@ -58,5 +61,9 @@ class AdmCotizacion extends Model
 
     public function detalles() { 
         return $this->hasMany(AdmDetalleCotizacion::class, 'idcotizacion', 'idcotizacion'); 
+    }
+
+    public function motivoRehazo() { 
+        return $this->hasMany(AdmMotivosRechazo::class, 'idmotivorechazo', 'idmotivorechazo'); 
     }
 }

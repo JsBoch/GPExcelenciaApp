@@ -48,7 +48,12 @@ tr.estado-5 td {
 tr.estado-6 td {
     background-color: #e8daef !important;
 }
-
+tr.estado-7 td {
+    background-color: #d586a2 !important;
+}
+tr.estado-8 td {
+    background-color:#ffd6d6 !important;
+}
 button.btn-sm i {
   font-size: 0.75rem; /* tamaño uniforme */
   line-height: 1;

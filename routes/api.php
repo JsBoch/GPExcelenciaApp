@@ -93,6 +93,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
+    Route::put('/cotizaciones/rechazar/{id}', [CotizacionController::class, 'rechazar']);
+    Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
