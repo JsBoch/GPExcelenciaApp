@@ -8,6 +8,7 @@ use App\Models\AdmTipoPago;
 use App\Models\AdmUnidadMedida;
 use App\Models\Clientes;
 use App\Models\ContactoCliente;
+use App\Models\AdmMotivosRechazo;
 use App\Models\Correlativo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar errores detallados
@@ -50,6 +51,8 @@ class CotizacionController extends Controller
                     WHEN c.estado = 4 THEN 'PRE-FACTURACION'
                     WHEN c.estado = 5 THEN 'PARA FACTURAR'
                     WHEN c.estado = 6 THEN 'FACTURADA'
+                    WHEN c.estado = 7 THEN 'ANULADA'
+                    WHEN c.estado = 8 THEN 'RECHAZADA'
                     ELSE 'DESCONOCIDO'
                 END as estado_texto")
             )
@@ -446,14 +449,14 @@ class CotizacionController extends Controller
         $cotizacion->estado = $estado;
         $cotizacion->save();
         $mensajes = [
-        4 => "Cotización enviada a pre-facturación",
-        5 => "Cotización enviada para facturar",
-        2 => "Cotización enviada a costeo",
-    ];
+            4 => "Cotización enviada a pre-facturación",
+            5 => "Cotización enviada para facturar",
+            2 => "Cotización enviada a costeo",
+        ];
 
-    $mensaje = $mensajes[$estado] ?? "Estado actualizado correctamente";
+        $mensaje = $mensajes[$estado] ?? "Estado actualizado correctamente";
 
-    return response()->json(['message' => $mensaje]);
+        return response()->json(['message' => $mensaje]);
     }
 
     public function listarClientes()
@@ -614,5 +617,35 @@ class CotizacionController extends Controller
         }
 
         return response()->json($nota);
+    }
+
+    public function motivosRechazo()
+    {
+        return AdmMotivosRechazo::where('estado', 1)->get(['idmotivorechazo', 'motivo']);
+    }
+
+    public function rechazar(Request $request, $id)
+    {
+        $request->validate([
+            'idmotivorechazo' => 'required|exists:adm_motivos_rechazo,idmotivorechazo',
+        ]);
+
+        $cotizacion = AdmCotizacion::find($id);
+
+        if (!$cotizacion) {
+            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        }
+
+        if (!in_array($cotizacion->estado, [1, 3])) {
+            return response()->json(['message' => 'Solo se pueden rechazar cotizaciones en estado 1 o 3'], 422);
+        }
+
+        $cotizacion->estado = 8; // Estado rechazado
+        $cotizacion->idmotivorechazo = $request->idmotivorechazo;
+        $cotizacion->fecha_rechazo = now();
+        $cotizacion->usuario_rechazo = auth()->user()->name;
+        $cotizacion->save();
+
+        return response()->json(['message' => 'Cotización rechazada correctamente.']);
     }
 }
