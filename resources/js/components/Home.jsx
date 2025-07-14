@@ -142,6 +142,10 @@ function Home() {
                     to = `/cotizacionescosteo/lista`;
                     text = 'Consulta de cotizaciones gerencia';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Consulta Pre-Facturación' && opcion.accion === 'consulta') {
+                    to = `/cotizacionesprefacturacion/lista`;
+                    text = 'Consulta de cotizaciones en Pre-Facturación';
+                    icon = <FiSearch />;
                 }
 
                 if (to && text) {
@@ -160,6 +164,7 @@ function Home() {
                 else if (tipo === 'cotizaciones_costeo') groupIcon = <FiFileText />;
                 else if (tipo === 'monitor_de_cotizaciones') groupIcon = <FiFileText />;
                 else if (tipo === 'cotizaciones_en_costeo') groupIcon = <FiFileText />;
+                else if (tipo === 'cotizacionesprefacturacion') groupIcon = <FiFileText />;
 
                 menuStructure.push({
                     text: tipo.charAt(0).toUpperCase() + tipo.slice(1), // Capitalizar la primera letra

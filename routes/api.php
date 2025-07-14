@@ -15,15 +15,15 @@ use App\Http\Controllers\ProductoPredefinidoController;
 use App\Http\Controllers\MonitorFacturacionController;
 use App\Http\Controllers\CosteoCotizacionesController;
 use App\Http\Controllers\TipoPagoController;
-
+use App\Http\Controllers\CotizacionConsultasController;
 
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
-Route::middleware('auth:sanctum')->get('/user', function(Request $request) {    
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     // Obtener el usuario autenticado con sus perfiles y opciones
-    $user = User::with('perfiles.opciones')->find($request->user()->id);    
+    $user = User::with('perfiles.opciones')->find($request->user()->id);
     // Devolver el usuario con sus relaciones
     return $user;
 });
@@ -50,12 +50,12 @@ PUT/PATCH /empleados/{empleado}: update (actualiza un empleado)
 DELETE /empleados/{empleado}: destroy (elimina un empleado)
  */
 
- //EMPLEADOS
+//EMPLEADOS
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/empleados', EmpleadoController::class);
     Route::put('/empleados/desactivar/{id}', [EmpleadoController::class, 'desactivar']);
-// Rutas adicionales para las listas desplegables
-//Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
+    // Rutas adicionales para las listas desplegables
+    //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
     Route::get('/identificaciones', [EmpleadoController::class, 'getIdentificaciones']);
     Route::get('/departamentos', [EmpleadoController::class, 'getDepartamentos']);
     Route::get('/puestos', [EmpleadoController::class, 'getPuestos']);
@@ -66,8 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/clientes', ClientesController::class);
     Route::put('/clientes/desactivar/{id}', [ClientesController::class, 'desactivar']);
-// Rutas adicionales para las listas desplegables
-//Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
+    // Rutas adicionales para las listas desplegables
+    //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
     Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
 });
@@ -78,8 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
     //Route::apiResource('/contacto_cliente', ContactoClienteController::class);
     Route::get('/contacto_cliente/cliente/{idcliente}', [ContactoClienteController::class, 'index']); // Agrega la ruta personalizada
     Route::put('/contacto_cliente/desactivar/{id}', [ContactoClienteController::class, 'desactivar']);
-// Rutas adicionales para las listas desplegables
-//Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
+    // Rutas adicionales para las listas desplegables
+    //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/lista_clientes', [ContactoClienteController::class, 'getClientes']);
 });
 
@@ -87,7 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
 //COTIZACIONES
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cotizaciones', CotizacionController::class);
-    Route::get('/cotizaciones/detalle/{id}', [CotizacionController::class,'detalle']);
+    Route::get('/cotizaciones/detalle/{id}', [CotizacionController::class, 'detalle']);
     Route::post('/cotizaciones/{cotizacion}/detalle/guardar', [CotizacionController::class, 'guardarDetalle']);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
     Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
@@ -97,32 +97,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
-    Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);    
+    Route::get('/lista_clientes', [CotizacionController::class, 'listarClientes']);
     Route::get('/lista_contactos', [CotizacionController::class, 'listarContactos']);
-    Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);    
-    Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);        
+    Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);
+    Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);
 });
 
 //COSTEO COTIZACIONES
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/costeocotizaciones', CotizacionCosteoController::class);
-    Route::get('/costeocotizaciones/{id}/pdf', [CotizacionCosteoController::class, 'generarPdf']);           
+    Route::get('/costeocotizaciones/{id}/pdf', [CotizacionCosteoController::class, 'generarPdf']);
 });
 
 //PRODUCTO PREDEFINIDO
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/productopredefinido', ProductoPredefinidoController::class);
     Route::put('/productopredefinido/desactivar/{id}', [ProductoPredefinidoController::class, 'desactivar']);
-    
+
     // Rutas adicionales para las listas desplegables    
-    Route::get('/lista_unidadesmedidapp', [ProductoPredefinidoController::class, 'listarUnidadesMedida']);        
+    Route::get('/lista_unidadesmedidapp', [ProductoPredefinidoController::class, 'listarUnidadesMedida']);
 });
 
 //MONITOR FACTURACION
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('/monitorfacturacion', MonitorFacturacionController::class);    
+    Route::apiResource('/monitorfacturacion', MonitorFacturacionController::class);
     Route::put('/monitorfacturacion/desactivar/{id}', [MonitorFacturacionController::class, 'desactivar']);
-    Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);          
+    Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);
     Route::get('/facturar/{id}', [MonitorFacturacionController::class, 'generarXmlFactura']);
     Route::get('/notacredito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaCredito']);
     Route::get('/notadebito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaDebito']);
@@ -133,13 +133,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //CONSULTA COTIZACIONES COSTEO
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('/cotizacionescosteo', CosteoCotizacionesController::class);        
-    Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);    
-    Route::get('/exportar/cotizacion/{id}', [CosteoCotizacionesController::class, 'exportarExcel'])->name('cotizaciones.exportar');      
+    Route::apiResource('/cotizacionescosteo', CosteoCotizacionesController::class);
+    Route::get('/cotizacionescosteo/{id}/pdf', [CosteoCotizacionesController::class, 'generarPdf']);
+    Route::get('/exportar/cotizacion/{id}', [CosteoCotizacionesController::class, 'exportarExcel'])->name('cotizaciones.exportar');
 });
 
 //TIPOS DE PAGO
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/tipopago', TipoPagoController::class);
-    Route::put('/tipopago/desactivar/{id}', [TipoPagoController::class, 'desactivar']);    
+    Route::put('/tipopago/desactivar/{id}', [TipoPagoController::class, 'desactivar']);
+});
+
+//CONSULTAS COTIZACIONES PRE-FACTURACIÓN
+//Route::middleware('auth:sanctum')->get('/cotizaciones-estado4', [CotizacionConsultasController::class, 'index']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('cotizaciones-estado4', [CotizacionConsultasController::class, 'index']);
+    Route::post('cotizaciones-estado4/agregar-comentario', [CotizacionConsultasController::class, 'storeComentario']);
+    Route::get('cotizaciones-estado4/{idcotizacion}/comentarios', [CotizacionConsultasController::class, 'comentarios']);
 });

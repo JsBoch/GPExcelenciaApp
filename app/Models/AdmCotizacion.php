@@ -66,4 +66,8 @@ class AdmCotizacion extends Model
     public function motivoRehazo() { 
         return $this->hasMany(AdmMotivosRechazo::class, 'idmotivorechazo', 'idmotivorechazo'); 
     }
+
+     public function comentarios_prefacturacion() { 
+        return $this->hasMany(ComentarioPreFacturacion::class, 'idcotizacion', 'idcotizacion'); 
+    }
 }

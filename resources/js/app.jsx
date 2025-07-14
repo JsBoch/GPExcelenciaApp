@@ -22,6 +22,8 @@ import ListaProductoPredefinido from './components/ListaProductosPredefinidos';
 import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
 import MonitorFacturacion from './components/MonitorFacturacion';
 import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
+import ListaCotizacionesPreFacturacion from './components/CotizacionesPreFacturacion'; // Asegúrate de que este componente exista
+// Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
 import '../css/generalesForm.css';
@@ -67,6 +69,7 @@ function App() {
                     <Route path="/productospredefinidos/editar/:id" element={<ProtectedRoute><EditarProductoPredefinido /></ProtectedRoute>} />
                     <Route path="/monitorfacturacion/lista" element={<ProtectedRoute><MonitorFacturacion /></ProtectedRoute>} />
                     <Route path="/cotizacionescosteo/lista" element={<ProtectedRoute><ListaCotizacionesParaCosteo /></ProtectedRoute>} />
+                    <Route path="/cotizacionesprefacturacion/lista" element={<ProtectedRoute><ListaCotizacionesPreFacturacion /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>
