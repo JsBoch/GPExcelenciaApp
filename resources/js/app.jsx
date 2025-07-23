@@ -22,7 +22,10 @@ import ListaProductoPredefinido from './components/ListaProductosPredefinidos';
 import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
 import MonitorFacturacion from './components/MonitorFacturacion';
 import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
-import ListaCotizacionesPreFacturacion from './components/CotizacionesPreFacturacion'; // Asegúrate de que este componente exista
+import ListaCotizacionesPreFacturacion from './components/CotizacionesPreFacturacion'; 
+import RegistroPedidoProduccion from './components/PedidoProduccion'; // Asegúrate de que este componente exista
+import ListaPedidosProduccion from './components/PedidoProduccionLista'; // Asegúrate
+import EditarPedidoProduccion from './components/PedidoProduccion'; // Asegúrate de que este componente exista
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -70,6 +73,9 @@ function App() {
                     <Route path="/monitorfacturacion/lista" element={<ProtectedRoute><MonitorFacturacion /></ProtectedRoute>} />
                     <Route path="/cotizacionescosteo/lista" element={<ProtectedRoute><ListaCotizacionesParaCosteo /></ProtectedRoute>} />
                     <Route path="/cotizacionesprefacturacion/lista" element={<ProtectedRoute><ListaCotizacionesPreFacturacion /></ProtectedRoute>} />
+                    <Route path="/pedidosproduccion/crear" element={<ProtectedRoute><RegistroPedidoProduccion /></ProtectedRoute>} />
+                    <Route path="/pedidosproduccion/lista" element={<ProtectedRoute><ListaPedidosProduccion /></ProtectedRoute>} />
+                    <Route path="/pedidosproduccion/editar/:id" element={<ProtectedRoute><EditarPedidoProduccion /></ProtectedRoute>} /> {/* Agrega esta ruta */}
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

@@ -16,6 +16,7 @@ use App\Http\Controllers\MonitorFacturacionController;
 use App\Http\Controllers\CosteoCotizacionesController;
 use App\Http\Controllers\TipoPagoController;
 use App\Http\Controllers\CotizacionConsultasController;
+use App\Http\Controllers\PedidosProduccionController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -150,4 +151,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('cotizaciones-estado4', [CotizacionConsultasController::class, 'index']);
     Route::post('cotizaciones-estado4/agregar-comentario', [CotizacionConsultasController::class, 'storeComentario']);
     Route::get('cotizaciones-estado4/{idcotizacion}/comentarios', [CotizacionConsultasController::class, 'comentarios']);
+});
+
+//PEDIDOS A PRODUCCIÓN
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);       
+    Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
+    Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
+    Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
+    Route::put('/pedidosproduccion/desactivar/{id}', [PedidosProduccionController::class, 'desactivar']);
+    Route::get('/pedidosproduccion/{id}/pdf', [PedidosProduccionController::class, 'generarPdf']);
+    Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
+    Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
+    Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);     
 });

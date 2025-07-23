@@ -18,6 +18,9 @@ import {
     Snackbar,
     Alert,
 } from "@mui/material";
+import CommentIcon from "@mui/icons-material/Comment";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import ReceiptIcon from "@mui/icons-material/Receipt";
 import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
@@ -268,38 +271,48 @@ function CotizacionesEstado4() {
                 <Typography variant="h6" gutterBottom>
                     Lista de Cotizaciones en Pre-Facturación
                 </Typography>
-                <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
+
+                <Box
+                    sx={{
+                        mb: 2,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 2,
+                    }}
+                >
                     <Button
                         variant="contained"
                         color="primary"
                         disabled={!selectedCotizacion}
                         onClick={() => setOpenModal(true)}
+                        startIcon={<CommentIcon />}
                     >
                         Agregar Comentario
                     </Button>
+
+                    <Button
+                        variant="outlined"
+                        color="secondary"
+                        disabled={!selectedCotizacion}
+                        onClick={() => obtenerComentarios()}
+                        startIcon={<VisibilityIcon />}
+                    >
+                        Ver Comentarios
+                    </Button>
+
+                    <Button
+                        variant="outlined"
+                        color="success"
+                        disabled={!selectedCotizacion}
+                        onClick={() =>
+                            handleCambiarEstado(selectedCotizacion, 5)
+                        }
+                        startIcon={<ReceiptIcon />}
+                    >
+                        Facturar
+                    </Button>
                 </Box>
-                <Button
-                    variant="outlined"
-                    color="secondary"
-                    disabled={!selectedCotizacion}
-                    onClick={() => obtenerComentarios()}
-                >
-                    Ver Comentarios
-                </Button>
-                <Button
-                    variant="outlined"
-                    color="secondary"
-                    disabled={!selectedCotizacion}
-                    onClick={() =>
-                        handleCambiarEstado(
-                            //selectedCotizacion?.idcotizacion,
-                            selectedCotizacion,
-                            5
-                        )
-                    }
-                >
-                    Facturar
-                </Button>
+
                 <TextField
                     fullWidth
                     variant="outlined"
@@ -308,6 +321,7 @@ function CotizacionesEstado4() {
                     onChange={(e) => setSearch(e.target.value)}
                     sx={{ mb: 2 }}
                 />
+
                 <MaterialReactTable table={table} />
             </Paper>
             <Dialog
