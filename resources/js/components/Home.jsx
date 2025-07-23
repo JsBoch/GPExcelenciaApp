@@ -146,6 +146,14 @@ function Home() {
                     to = `/cotizacionesprefacturacion/lista`;
                     text = 'Consulta de cotizaciones en Pre-Facturación';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Registro Pedidos-Producción' && opcion.accion === 'registro') {
+                    to = `/pedidosproduccion/crear`;
+                    text = 'Registro de pedidos de producción';
+                    icon = <FiFileText />;
+                }else if (opcion.nombre === 'Consulta Pedidos-Producción' && opcion.accion === 'consulta') {
+                    to = `/pedidosproduccion/lista`;
+                    text = 'Consulta de pedidos de producción';
+                    icon = <FiSearch />;
                 }
 
                 if (to && text) {
@@ -165,6 +173,7 @@ function Home() {
                 else if (tipo === 'monitor_de_cotizaciones') groupIcon = <FiFileText />;
                 else if (tipo === 'cotizaciones_en_costeo') groupIcon = <FiFileText />;
                 else if (tipo === 'cotizacionesprefacturacion') groupIcon = <FiFileText />;
+                else if (tipo === 'pedidosproduccion') groupIcon = <FiFileText />;
 
                 menuStructure.push({
                     text: tipo.charAt(0).toUpperCase() + tipo.slice(1), // Capitalizar la primera letra
