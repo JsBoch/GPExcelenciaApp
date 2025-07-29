@@ -185,3 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/recibos-reporte/pdf', [AdmRecibosController::class, 'generarReportePdf']);
     Route::put('/recibos/desactivar/{id}', [AdmRecibosController::class, 'desactivar']);
 });
+
+Route::get('/fecha-servidor', function () {
+    return response()->json(['fecha' => now()->format('Y-m-d')]);
+});

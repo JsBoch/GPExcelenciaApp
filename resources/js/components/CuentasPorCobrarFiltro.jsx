@@ -7,19 +7,37 @@ import { get } from "jquery";
 import Header from "./Header";
 
 const CuentasPorCobrarFiltro = () => {
-    const getTodayFormatted = () => {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, "0");
-        const dd = String(today.getDate()).padStart(2, "0");
-        return `${yyyy}-${mm}-${dd}`; // formato para input[type=date]
-    };
+    // const getTodayFormatted = () => {
+    //     const today = new Date();
+    //     const yyyy = today.getFullYear();
+    //     const mm = String(today.getMonth() + 1).padStart(2, "0");
+    //     const dd = String(today.getDate()).padStart(2, "0");
+    //     return `${yyyy}-${mm}-${dd}`; // formato para input[type=date]
+    // };
 
     const [clientes, setClientes] = useState([]);
     const [idCliente, setIdCliente] = useState("");
-    const [fechaInicio, setFechaInicio] = useState(getTodayFormatted());
-    const [fechaFin, setFechaFin] = useState(getTodayFormatted());
+    const [fechaInicio, setFechaInicio] = useState('');
+    const [fechaFin, setFechaFin] = useState('');
     const [pdfUrl, setPdfUrl] = useState(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+                setFechaInicio(res.data.fecha);
+                setFechaFin(res.data.fecha);                
+            })
+            .catch(() => {
+                // fallback por si falla
+                const today = new Date().toISOString().split("T")[0];
+                setFechaInicio(today);
+                setFechaFin(today);                
+            });
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem("token");

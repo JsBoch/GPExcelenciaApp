@@ -28,7 +28,8 @@ DataTable.use(DT);
 
 function CotizacionForm() {
     // const fechaActual = new Date().toISOString().split("T")[0];
-    const fechaActual = new Date().toLocaleDateString("en-CA");
+    //const fechaActual = new Date().toLocaleDateString("en-CA");
+    const [fechaActual, setFechaActual] = useState("");
     const { id } = useParams();
     const navigate = useNavigate();
     const [tiposPago, setTiposPago] = useState([]);
@@ -49,6 +50,23 @@ function CotizacionForm() {
     const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
     const [tipoPagoModalOpen, setTipoPagoModalOpen] = useState(false);
     const toggleTipoPagoModal = () => setTipoPagoModalOpen(!tipoPagoModalOpen);
+
+    // Cargar la fecha desde el servidor
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .then((res) => {
+                setFechaActual(res.data.fecha);
+            })
+            .catch(() => {
+                const localDate = new Date().toISOString().split("T")[0];
+                setFechaActual(localDate); // fallback
+            });
+    }, []);
+
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -303,7 +321,7 @@ function CotizacionForm() {
         e.preventDefault();
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
-        const formData = new FormData();        
+        const formData = new FormData();
 
         // Validaciones
         if (!cotizacion.idcliente || cotizacion.idcliente === "") {
@@ -311,7 +329,7 @@ function CotizacionForm() {
             return;
         }
 
-        if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {           
+        if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {
             cotizacion.idcontacto = 0; // Si no hay contacto, asignamos 0
         }
 
@@ -373,7 +391,7 @@ function CotizacionForm() {
         //     formData.append("estado","1");
         // }
 
-        formData.append("estado","1");
+        formData.append("estado", "1");
         formData.append(
             "idcotizacionoriginal",
             cotizacion.idcotizacionoriginal
@@ -390,7 +408,10 @@ function CotizacionForm() {
                 `detalles[${index}][descripcion]`,
                 detalle.descripcion
             );
-            formData.append(`detalles[${index}][cantidad]`, detalle.cantidad || 0);
+            formData.append(
+                `detalles[${index}][cantidad]`,
+                detalle.cantidad || 0
+            );
             formData.append(`detalles[${index}][ancho]`, detalle.ancho || 0);
             formData.append(`detalles[${index}][alto]`, detalle.alto || 0);
             formData.append(`detalles[${index}][m2]`, detalle.m2 || 0);
@@ -440,7 +461,7 @@ function CotizacionForm() {
             }
             navigate("/cotizaciones/lista");
         } catch (error) {
-            console.error('Error al guardar la cotización:', error);
+            console.error("Error al guardar la cotización:", error);
             alertify.error("Error al guardar la cotización", error);
         }
     };
