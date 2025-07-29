@@ -1020,7 +1020,7 @@ function CotizacionForm() {
     return (
         <div className="mt-4 mb-4">
             <Header
-                title={id ? "Editar Cotización" : "Crear Nueva Cotización"}
+                title={id ? "Editar Cotización" : "Crear Cotización"}
             />
             <div className="card shadow p-4">
                 {/* <div className="card-header bg-primary text-white">
