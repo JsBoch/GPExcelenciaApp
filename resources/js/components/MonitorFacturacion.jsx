@@ -34,9 +34,9 @@ function MonitorFacturacion() {
     const [filtro, setFiltro] = useState("");
     const [pdfData, setPdfData] = useState(null);
     const navigate = useNavigate();
-    const today = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
-    const [fechaInicio, setFechaInicio] = useState(today);
-    const [fechaFinal, setFechaFinal] = useState(today);
+    //const today = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
+    const [fechaInicio, setFechaInicio] = useState();
+    const [fechaFinal, setFechaFinal] = useState();
     const [mostrarModalErrores, setMostrarModalErrores] = useState(false);
     const [cliente, setCliente] = useState(null);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
@@ -50,6 +50,24 @@ function MonitorFacturacion() {
                 console.error("Error al cargar la traducción:", error)
             );
     }, []);
+
+    useEffect(() => {
+    const token = localStorage.getItem("token");
+    axios
+        .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+            setFechaInicio(res.data.fecha);
+            setFechaFinal(res.data.fecha);
+        })
+        .catch(() => {
+            // fallback por si falla
+            const today = new Date().toISOString().split("T")[0];
+            setFechaInicio(today);
+            setFechaFinal(today);
+        });
+}, []);
 
     const fetchCotizaciones = () => {
         setLoading(true);

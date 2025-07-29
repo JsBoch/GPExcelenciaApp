@@ -53,17 +53,36 @@ function ListaCotizaciones() {
             );
 
         // Establecer la fecha de hoy en el formato YYYY-MM-DD
-        const hoy = new Date();
-        const año = hoy.getFullYear();
-        const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-        const dia = String(hoy.getDate()).padStart(2, "0");
-        const fechaActual = `${año}-${mes}-${dia}`;
-        setFechaInicio(fechaActual);
-        setFechaFin(fechaActual);
-        //setFechaHoy(fechaActual); // Guarda la fecha de hoy para la lógica inicial
-        fetchCotizaciones(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
+        // const hoy = new Date();
+        // const año = hoy.getFullYear();
+        // const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+        // const dia = String(hoy.getDate()).padStart(2, "0");
+        // const fechaActual = `${año}-${mes}-${dia}`;
+        // setFechaInicio(fechaActual);
+        // setFechaFin(fechaActual);
+        // //setFechaHoy(fechaActual); // Guarda la fecha de hoy para la lógica inicial
+        // fetchCotizaciones(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
     }, []);
 
+    useEffect(() => {
+    const token = localStorage.getItem("token");
+    axios
+        .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+            setFechaInicio(res.data.fecha);
+            setFechaFin(res.data.fecha);
+            fetchCotizaciones(fechaInicio, fechaFin);
+        })
+        .catch(() => {
+            // fallback por si falla
+            const today = new Date().toISOString().split("T")[0];
+            setFechaInicio(today);
+            setFechaFin(today);
+            fetchCotizaciones(fechaInicio, fechaFin);
+        });
+}, []);
     //20250407 Código para enviar los parámetros de fecha
 
     const fetchCotizaciones = (startDate = "", endDate = "") => {

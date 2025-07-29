@@ -31,12 +31,30 @@ const RecibosConsulta = () => {
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [selectedRecibo, setSelectedRecibo] = useState(null);
-    const [fechaInicio, setFechaInicio] = useState(today);
-    const [fechaFin, setFechaFin] = useState(today);
+    const [fechaInicio, setFechaInicio] = useState();
+    const [fechaFin, setFechaFin] = useState();
     const [clienteFiltro, setClienteFiltro] = useState("");
     const [clientes, setClientes] = useState([]);
     const [pdfUrl, setPdfUrl] = useState(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+                setFechaInicio(res.data.fecha);
+                setFechaFin(res.data.fecha);
+            })
+            .catch(() => {
+                // fallback por si falla
+                const today = new Date().toISOString().split("T")[0];
+                setFechaInicio(today);
+                setFechaFin(today);
+            });
+    }, []);
 
     const fetchRecibos = async () => {
         const token = localStorage.getItem("token");
@@ -213,7 +231,6 @@ const RecibosConsulta = () => {
                         setLoading(true);
                         fetchRecibos(); // recargar la tabla
                         setRowSelection({});
-
                     })
                     .catch((error) => {
                         console.error("Error al eliminar recibo:", error);
@@ -269,7 +286,11 @@ const RecibosConsulta = () => {
                 </Box>
 
                 <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
-                    <Button variant="outlined" onClick={fetchRecibos} disabled={loading}>
+                    <Button
+                        variant="outlined"
+                        onClick={fetchRecibos}
+                        disabled={loading}
+                    >
                         Consultar
                     </Button>
                     <Button

@@ -29,7 +29,8 @@ DataTable.use(DT);
 
 function PedidoProduccion() {
     // const fechaActual = new Date().toISOString().split("T")[0];
-    const fechaActual = new Date().toLocaleDateString("en-CA");
+    //const fechaActual = new Date().toLocaleDateString("en-CA");
+    const [fechaActual, setFechaActual] = useState("");
     const { id } = useParams();
     const navigate = useNavigate();
     const [tiposPago, setTiposPago] = useState([]);
@@ -67,6 +68,26 @@ function PedidoProduccion() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState(null);
     /***************************** */
+
+    // Cargar la fecha desde el servidor
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .then((res) => {
+                setFechaActual(res.data.fecha);
+                setFechaInicio(res.data.fecha);
+                setFechaFin(res.data.fecha);
+            })
+            .catch(() => {
+                const localDate = new Date().toISOString().split("T")[0];
+                setFechaActual(localDate); // fallback
+                setFechaInicio(localDate);
+                setFechaFin(localDate); // fallback
+            });
+    }, []);
 
     const [pedidoProduccion, setPedidoProduccion] = useState({
         idpedidoproduccion: 0,

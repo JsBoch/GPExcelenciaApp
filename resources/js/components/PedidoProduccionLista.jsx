@@ -42,6 +42,7 @@ function PedidosProduccionLista() {
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [detallePedido, setDetallePedido] = useState(null);
+    const [fechaActual, setFechaActual] = useState("");
     // const [motivosRechazo, setMotivosRechazo] = useState([]);
     // const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
     // const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
@@ -54,16 +55,37 @@ function PedidosProduccionLista() {
                 console.error("Error al cargar la traducción:", error)
             );
 
-        // Establecer la fecha de hoy en el formato YYYY-MM-DD
-        const hoy = new Date();
-        const año = hoy.getFullYear();
-        const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-        const dia = String(hoy.getDate()).padStart(2, "0");
-        const fechaActual = `${año}-${mes}-${dia}`;
-        setFechaInicio(fechaActual);
-        setFechaFin(fechaActual);
+        // // Establecer la fecha de hoy en el formato YYYY-MM-DD
+        // const hoy = new Date();
+        // const año = hoy.getFullYear();
+        // const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+        // const dia = String(hoy.getDate()).padStart(2, "0");
+        // const fechaActual = `${año}-${mes}-${dia}`;
+        // setFechaInicio(fechaActual);
+        // setFechaFin(fechaActual);
         //setFechaHoy(fechaActual); // Guarda la fecha de hoy para la lógica inicial
-        fetchPedidosProduccion(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
+        //fetchPedidosProduccion(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
+    }, []);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .then((res) => {
+                setFechaActual(res.data.fecha);
+                setFechaInicio(fechaActual);
+                setFechaFin(fechaActual);
+                fetchPedidosProduccion(fechaActual, fechaActual);
+            })
+            .catch(() => {
+                const localDate = new Date().toISOString().split("T")[0];
+                setFechaActual(localDate); // fallback
+                setFechaInicio(fechaActual);
+                setFechaFin(fechaActual);
+                fetchPedidosProduccion(fechaActual, fechaActual);
+            });
     }, []);
 
     //20250407 Código para enviar los parámetros de fecha
@@ -374,9 +396,7 @@ function PedidosProduccionLista() {
                                         Number(id)
                                 );
                             });
-                            alertify.success(
-                                "Pedido eliminado correctamente."
-                            );
+                            alertify.success("Pedido eliminado correctamente.");
                         })
                         .catch((error) => {
                             alertify.error("Error al eliminar el pedido.");
@@ -460,7 +480,7 @@ function PedidosProduccionLista() {
             });
             const data = await response.json();
             setPdfData(data);
-        } catch(error) {
+        } catch (error) {
             console.error("Error al generar PDF:", error);
             alertify.error("Error al generar PDF.");
         }

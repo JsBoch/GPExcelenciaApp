@@ -11,7 +11,8 @@ import FormSection from "./FormSection";
 
 function EmpleadoForm() {
     // Obtener fecha actual en formato YYYY-MM-DD
-    const fechaActual = new Date().toISOString().split("T")[0];
+    //const fechaActual = new Date().toISOString().split("T")[0];
+    const [fechaActual, setFechaActual] = useState("");
     //maneja el estado, en este caso un objeto con varios campos.
     //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
     const [empleado, setEmpleado] = useState({
@@ -47,6 +48,21 @@ function EmpleadoForm() {
     const [departamentoId, setDepartamentoId] = useState(""); // Estado para el id del departamento seleccionado
     const { id } = useParams(); // Obtiene el id de la URL
     const navigate = useNavigate();
+    // Cargar la fecha desde el servidor
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .then((res) => {
+                setFechaActual(res.data.fecha);
+            })
+            .catch(() => {
+                const localDate = new Date().toISOString().split("T")[0];
+                setFechaActual(localDate); // fallback
+            });
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -149,7 +165,10 @@ function EmpleadoForm() {
         const { name, value } = e.target;
         setEmpleado({
             ...empleado,
-            [name]: name === "nombre" || name === "contacto_emergencia" ? value.toUpperCase() : value, //esto pasa nombre a mayúsculas en tiempo real
+            [name]:
+                name === "nombre" || name === "contacto_emergencia"
+                    ? value.toUpperCase()
+                    : value, //esto pasa nombre a mayúsculas en tiempo real
         });
     };
 
@@ -189,10 +208,7 @@ function EmpleadoForm() {
                 campo: empleado.id_departamento,
                 nombre: "Área de Trabajo",
             },
-            { campo: empleado.id_puesto, 
-                nombre: "Puesto" 
-            },
-            
+            { campo: empleado.id_puesto, nombre: "Puesto" },
         ];
 
         const camposFaltantes = camposObligatorios.filter(
@@ -423,7 +439,7 @@ function EmpleadoForm() {
                                         name="otro_telefono"
                                         value={empleado.otro_telefono}
                                         //onChange={handleChange}
-                                         onChange={(e) => {
+                                        onChange={(e) => {
                                             const value =
                                                 e.target.value.replace(
                                                     /\D/g,
