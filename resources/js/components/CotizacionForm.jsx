@@ -390,13 +390,13 @@ function CotizacionForm() {
                 `detalles[${index}][descripcion]`,
                 detalle.descripcion
             );
-            formData.append(`detalles[${index}][cantidad]`, detalle.cantidad);
-            formData.append(`detalles[${index}][ancho]`, detalle.ancho);
-            formData.append(`detalles[${index}][alto]`, detalle.alto);
-            formData.append(`detalles[${index}][m2]`, detalle.m2);
+            formData.append(`detalles[${index}][cantidad]`, detalle.cantidad || 0);
+            formData.append(`detalles[${index}][ancho]`, detalle.ancho || 0);
+            formData.append(`detalles[${index}][alto]`, detalle.alto || 0);
+            formData.append(`detalles[${index}][m2]`, detalle.m2 || 0);
             formData.append(
                 `detalles[${index}][profundidad]`,
-                detalle.profundidad
+                detalle.profundidad || 0
             );
             formData.append(`detalles[${index}][precio]`, detalle.precio);
             formData.append(`detalles[${index}][total]`, detalle.total);
@@ -440,7 +440,7 @@ function CotizacionForm() {
             }
             navigate("/cotizaciones/lista");
         } catch (error) {
-            // console.error('Error al guardar la cotización:', error);
+            console.error('Error al guardar la cotización:', error);
             alertify.error("Error al guardar la cotización", error);
         }
     };

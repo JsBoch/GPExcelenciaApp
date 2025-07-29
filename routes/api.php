@@ -17,7 +17,8 @@ use App\Http\Controllers\CosteoCotizacionesController;
 use App\Http\Controllers\TipoPagoController;
 use App\Http\Controllers\CotizacionConsultasController;
 use App\Http\Controllers\PedidosProduccionController;
-
+use App\Http\Controllers\CuentasPorCobrarController;
+use App\Http\Controllers\AdmRecibosController;
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -164,4 +165,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
     Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
     Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);     
+});
+
+// CUENTAS POR COBRAR
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/cuentas-por-cobrar', CuentasPorCobrarController::class);
+    
+    // Si quieres agregar rutas personalizadas (ejemplo: desactivar, filtros, etc.)
+    // Route::put('/cuentas-por-cobrar/desactivar/{id}', [CuentasPorCobrarController::class, 'desactivar']);
+    Route::get('/cuentas-por-cobrar/estado-cuenta/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaPDF']);
+// Estado de cuenta con cuentas por cobrar + recibos relacionados
+Route::get('/cuentas-por-cobrar/estado-cuenta-con-recibos/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaConRecibosPDF']);
+});
+
+//RECIBOS
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/recibos', AdmRecibosController::class);
+    Route::get('/recibos/{id}/pdf', [AdmRecibosController::class, 'generarPdf']);
+    Route::get('/recibos-reporte/pdf', [AdmRecibosController::class, 'generarReportePdf']);
+    Route::put('/recibos/desactivar/{id}', [AdmRecibosController::class, 'desactivar']);
 });

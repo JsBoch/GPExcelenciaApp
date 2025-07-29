@@ -46,6 +46,7 @@ class ClientesController extends Controller
         )        
         ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais') 
         ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')        
+        ->orderBy('clientes.nombre')
             ->get();
         return response()->json($clientes);
     }
@@ -144,13 +145,7 @@ class ClientesController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        // $cliente = Clientes::find($id);
-        // if (!$cliente) {
-        //     return response()->json(['message' => 'Cliente no encontrado'], 404);
-        // }        
-        // $cliente->update($request->all());
-        // return response()->json($cliente);
+    {       
         try {
             DB::beginTransaction(); // Inicia una transacción para asegurar la integridad de los datos
     

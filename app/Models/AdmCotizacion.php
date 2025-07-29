@@ -70,4 +70,9 @@ class AdmCotizacion extends Model
      public function comentarios_prefacturacion() { 
         return $this->hasMany(ComentarioPreFacturacion::class, 'idcotizacion', 'idcotizacion'); 
     }
+
+    public function cuentaPorCobrar()
+    {
+        return $this->hasOne(AdmCuentasPorCobrar::class, 'idcotizacion', 'idcotizacion');
+    }
 }
