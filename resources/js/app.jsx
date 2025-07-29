@@ -23,9 +23,13 @@ import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
 import MonitorFacturacion from './components/MonitorFacturacion';
 import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
 import ListaCotizacionesPreFacturacion from './components/CotizacionesPreFacturacion'; 
-import RegistroPedidoProduccion from './components/PedidoProduccion'; // Asegúrate de que este componente exista
-import ListaPedidosProduccion from './components/PedidoProduccionLista'; // Asegúrate
-import EditarPedidoProduccion from './components/PedidoProduccion'; // Asegúrate de que este componente exista
+import RegistroPedidoProduccion from './components/PedidoProduccion'; 
+import ListaPedidosProduccion from './components/PedidoProduccionLista'; 
+import EditarPedidoProduccion from './components/PedidoProduccion';
+import CuentasPorCobrarFiltro from './components/CuentasPorCobrarFiltro'; 
+import ReciboRegistro from './components/ReciboRegistro';
+import ReciboEditar from './components/ReciboRegistro';
+import ReciboConsulta from './components/RecibosConsulta';
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -76,6 +80,10 @@ function App() {
                     <Route path="/pedidosproduccion/crear" element={<ProtectedRoute><RegistroPedidoProduccion /></ProtectedRoute>} />
                     <Route path="/pedidosproduccion/lista" element={<ProtectedRoute><ListaPedidosProduccion /></ProtectedRoute>} />
                     <Route path="/pedidosproduccion/editar/:id" element={<ProtectedRoute><EditarPedidoProduccion /></ProtectedRoute>} /> {/* Agrega esta ruta */}
+                    <Route path="/cuentas-por-cobrar/lista" element={<ProtectedRoute><CuentasPorCobrarFiltro /></ProtectedRoute>} />
+                    <Route path="/recibos/crear" element={<ProtectedRoute><ReciboRegistro /></ProtectedRoute>} />
+                    <Route path="/recibos/editar/:id" element={<ProtectedRoute><ReciboEditar /></ProtectedRoute>} />
+                    <Route path="/recibos/lista" element={<ProtectedRoute><ReciboConsulta /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

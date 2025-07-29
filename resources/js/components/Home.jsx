@@ -90,6 +90,7 @@ function Home() {
                 let to = '';
                 let text = '';
                 let icon = null;
+
                 if (opcion.nombre === 'Registro empleados' && opcion.accion === 'registro') {
                     to = `/empleados/crear`;
                     text = 'Crear Empleado';
@@ -154,7 +155,21 @@ function Home() {
                     to = `/pedidosproduccion/lista`;
                     text = 'Consulta de pedidos de producción';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Consulta Reportes-Contabilidad' && opcion.accion === 'consulta') {
+                    to = `/cuentas-por-cobrar/lista`;
+                    text = 'Estado de cuenta';
+                    icon = <FiFileText />;
                 }
+                else if (opcion.nombre === 'Registro Recibos' && opcion.accion === 'registro') {
+                    to = `/recibos/crear`;
+                    text = 'Registro de recibos';
+                    icon = <FiFileText />;
+                }else if (opcion.nombre === 'Consulta Recibos' && opcion.accion === 'consulta') {
+                    to = `/recibos/lista`;
+                    text = 'Consulta de recibos';
+                    icon = <FiSearch />;
+                }
+
 
                 if (to && text) {
                     submenus.push({ to, text, icon });
@@ -172,8 +187,11 @@ function Home() {
                 else if (tipo === 'cotizaciones_costeo') groupIcon = <FiFileText />;
                 else if (tipo === 'monitor_de_cotizaciones') groupIcon = <FiFileText />;
                 else if (tipo === 'cotizaciones_en_costeo') groupIcon = <FiFileText />;
-                else if (tipo === 'cotizacionesprefacturacion') groupIcon = <FiFileText />;
-                else if (tipo === 'pedidosproduccion') groupIcon = <FiFileText />;
+                else if (tipo === 'pre-facturación') groupIcon = <FiFileText />;
+                else if (tipo === 'pedidos-producción') groupIcon = <FiFileText />;
+                else if (tipo === 'reportes-contabilidad') groupIcon = <FiFileText />;
+                else if (tipo === 'recibos') groupIcon = <FiFileText />;
+                else groupIcon = <FiBox />; // Icono por defecto si no se encuentra el tipo
 
                 menuStructure.push({
                     text: tipo.charAt(0).toUpperCase() + tipo.slice(1), // Capitalizar la primera letra

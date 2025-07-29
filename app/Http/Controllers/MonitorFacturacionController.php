@@ -7,6 +7,7 @@ use App\Models\AdmCotizacion;
 use App\Models\AdmDetalleCotizacion;
 use NumberToWords\NumberToWords;
 use App\Models\Correlativo;
+use App\Models\AdmCuentasPorCobrar;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -77,7 +78,7 @@ class MonitorFacturacionController extends Controller
         //     $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
         // }
 
-       // Log::info($query);
+        // Log::info($query);
         $cotizaciones = $query->get();
         // Decodificar errores para cada cotización
         foreach ($cotizaciones as $cot) {
@@ -346,12 +347,46 @@ class MonitorFacturacionController extends Controller
             // Log::info($json);
             //Se graba en la base de datos la respuesta del SAT
             $cotizacion = AdmCotizacion::find($idcotizacion);
+            // if ($cotizacion) {
+            //     if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
+
+            //         //Se obtiene el correlativo para la factura, utilizado en la impresión como número interno
+            //         $correlativo = Correlativo::find('nofactura');
+
+            //         if (!$correlativo) {
+            //             return response()->json(['message' => 'No se encontró el correlativo para el numero interno'], 400);
+            //         }
+
+            //         $noFactura = $correlativo->correlativo + $correlativo->incremento;
+            //         $correlativo->correlativo = $noFactura;
+            //         $correlativo->save();
+
+            //         $cotizacion->update([
+            //             'resultado'            => 'S',
+            //             'uuid'                 => $json['uuid'],
+            //             'serie'                => $json['serie'],
+            //             'numero'               => $json['numero'],
+            //             'descripcion'          => $json['descripcion'],
+            //             'fecha_certificacion'  => $json['fecha'],
+            //             'xml_certificado'      => base64_encode($json['xml_certificado']),
+            //             'alertas'              => $json['descripcion_alertas_infile'] ?? null,
+            //             'identificador'        => $identificador,
+            //             'estado' => 6,
+            //             'nofactura' => $noFactura,
+            //         ]);
+            //     } else {
+            //         // Log::info($json);
+            //         $cotizacion->update([
+            //             'resultado'     => 'N',
+            //             'errores'       => $json['descripcion_errores'],
+            //             'identificador' => $identificador,
+            //         ]);
+            //     }
+            // }
             if ($cotizacion) {
                 if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
 
-                    //Se obtiene el correlativo para la factura, utilizado en la impresión como número interno
                     $correlativo = Correlativo::find('nofactura');
-
                     if (!$correlativo) {
                         return response()->json(['message' => 'No se encontró el correlativo para el numero interno'], 400);
                     }
@@ -370,11 +405,45 @@ class MonitorFacturacionController extends Controller
                         'xml_certificado'      => base64_encode($json['xml_certificado']),
                         'alertas'              => $json['descripcion_alertas_infile'] ?? null,
                         'identificador'        => $identificador,
-                        'estado' => 6,
-                        'nofactura' => $noFactura,
+                        'estado'               => 6,
+                        'nofactura'            => $noFactura,
                     ]);
+
+                    // === Crear cuenta por cobrar ===
+                    if (!AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->exists()) {
+                        $correlativoCXC = Correlativo::find('adm_cuentas_porcobrar');
+
+                        if (! $correlativoCXC) {
+                            return response()->json(['message' => 'No se encontró correlativo para cuentas por cobrar'], 400);
+                        }
+
+                        $nuevoIdCXC = $correlativoCXC->correlativo + $correlativoCXC->incremento;
+                        $correlativoCXC->correlativo = $nuevoIdCXC;
+                        $correlativoCXC->save();
+
+                        AdmCuentasPorCobrar::create([
+                            'idcuentaporcobrar'     => $nuevoIdCXC,
+                            'idcotizacion'          => $cotizacion->idcotizacion,
+                            'idcliente'             => $cotizacion->idcliente,
+                            'fecha_emision'         => now(),
+                            'fecha_vencimiento'     => now()->addDays(30),
+                            'moneda'                => 'GTQ',
+                            'tasa_cambio'           => 1,
+                            'monto_original'        => $cotizacion->total_general,
+                            'saldo_pendiente'       => $cotizacion->total_general,
+                            'monto_pagado'          => 0,
+                            'descuento_aplicado'    => 0,
+                            'idusuario_creacion'    => auth()->user()->id,
+                            'usuario_creacion'      => auth()->user()->name,
+                            'fecha_creacion'        => now(),
+                            'origen_registro'       => 'sistema',
+                            'centro_costo'          => 'produccion',
+                            'cuenta_contable'       => '0',
+                            'estatus_riesgo'        => 'medio',
+                            'estado'                => 1,
+                        ]);
+                    }
                 } else {
-                    // Log::info($json);
                     $cotizacion->update([
                         'resultado'     => 'N',
                         'errores'       => $json['descripcion_errores'],
