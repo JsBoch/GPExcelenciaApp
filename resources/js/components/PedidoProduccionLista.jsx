@@ -75,9 +75,9 @@ function PedidosProduccionLista() {
             .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
             .then((res) => {
                 setFechaActual(res.data.fecha);
-                setFechaInicio(fechaActual);
-                setFechaFin(fechaActual);
-                fetchPedidosProduccion(fechaActual, fechaActual);
+                setFechaInicio(res.data.fecha);
+                setFechaFin(res.data.fecha);
+                fetchPedidosProduccion(res.data.fecha, res.data.fecha);
             })
             .catch(() => {
                 const localDate = new Date().toISOString().split("T")[0];
@@ -317,8 +317,9 @@ function PedidosProduccionLista() {
         searching: false,
         //scrollX:true,
         columnDefs: [
-            { targets: 0, width: "100px", targets: 2, width: "120px" }, // Ajusta la columna de acciones manualmente (índice 0 si es la primera visible)
-        ],
+  { targets: 0, width: "100px" },
+  { targets: 2, width: "120px" }
+],
         language: spanishTranslation, // Agrega la traducción aquí
         order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {

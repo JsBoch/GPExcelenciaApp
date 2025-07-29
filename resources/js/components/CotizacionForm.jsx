@@ -104,6 +104,15 @@ function CotizacionForm() {
         imagen_ruta: null, //para almacenar la ruta de la imagen
     });
 
+    useEffect(() => {
+    if (!id && fechaActual) {
+        setCotizacion((prev) => ({
+            ...prev,
+            fecha_cotizacion: fechaActual,
+        }));
+    }
+}, [fechaActual]);
+
     //CAMBIO: Estados para almacenar precios y cantidades del modal
     const [productoPredefinido, setProductoPredefinido] = useState(null);
 
