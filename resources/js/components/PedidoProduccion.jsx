@@ -132,6 +132,15 @@ function PedidoProduccion() {
         version: "",
     });
 
+    useEffect(() => {
+    if (!id && fechaActual) {
+        setPedidoProduccion((prev) => ({
+            ...prev,
+            fecha_pedido: fechaActual,
+            fecha_entrega: fechaActual,
+        }));
+    }
+}, [fechaActual]);
     const loadContactos = () => {
         if (clienteId) {
             const token = localStorage.getItem("token");

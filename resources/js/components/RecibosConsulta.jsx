@@ -26,13 +26,13 @@ import alertify from "alertifyjs";
 import { useNavigate } from "react-router-dom";
 
 const RecibosConsulta = () => {
-    const today = new Date().toISOString().split("T")[0];
+    //const today = new Date().toISOString().split("T")[0];
     const [recibos, setRecibos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [selectedRecibo, setSelectedRecibo] = useState(null);
-    const [fechaInicio, setFechaInicio] = useState();
-    const [fechaFin, setFechaFin] = useState();
+    const [fechaInicio, setFechaInicio] = useState('');
+    const [fechaFin, setFechaFin] = useState('');
     const [clienteFiltro, setClienteFiltro] = useState("");
     const [clientes, setClientes] = useState([]);
     const [pdfUrl, setPdfUrl] = useState(null);

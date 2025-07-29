@@ -28,13 +28,32 @@ const ReciboRegistro = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const { id } = useParams();
     const [modoEdicion, setModoEdicion] = useState(!!id);
+    const [fechaActual, setFechaActual] = useState("");
+
+    // Cargar la fecha desde el servidor
+        useEffect(() => {
+            const token = localStorage.getItem("token");
+            const headers = { Authorization: `Bearer ${token}` };
+    
+            axios
+                .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+                .then((res) => {
+                    setFechaActual(res.data.fecha);
+                    
+                })
+                .catch(() => {
+                    const localDate = new Date().toISOString().split("T")[0];
+                    setFechaActual(localDate); // fallback
+                    
+                });
+        }, []);
 
     const [form, setForm] = useState({
         idcuentaporcobrar: "",
         idcliente: "",
         cliente_nombre: "",
         saldo_pendiente: 0,
-        fecha_recibo: new Date().toISOString().split("T")[0],
+        fecha_recibo: fechaActual,
         monto_recibido: "",
         metodo_pago: "Efectivo",
         referencia: "",
@@ -42,6 +61,14 @@ const ReciboRegistro = () => {
         moneda: "GTQ",
     });
 
+    useEffect(() => {
+        if (!id && fechaActual) {
+            setForm((prev) => ({
+                ...prev,
+                fecha_recibo: fechaActual,                
+            }));
+        }
+    }, [fechaActual]);
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (!token) {
