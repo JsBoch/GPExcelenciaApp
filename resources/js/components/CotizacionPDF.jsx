@@ -1,4 +1,4 @@
-import '../utils/disableHyphenation'; // Asegúrate de que este archivo exista y desactive la hipenación
+import "../utils/disableHyphenation"; // Asegúrate de que este archivo exista y desactive la hipenación
 import React from "react";
 import {
     Page,
@@ -159,13 +159,13 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     <View style={styles.fechaBox}>
                         <Text>
                             {cotizacion.fecha_cotizacion
-                                ? new Date(
-                                      cotizacion.fecha_cotizacion
-                                  ).toLocaleDateString("es-GT", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                  })
+                                ? (() => {
+                                      const [y, m, d] =
+                                          cotizacion.fecha_cotizacion.split(
+                                              "-"
+                                          );
+                                      return `${d}/${m}/${y}`;
+                                  })()
                                 : "N/A"}
                         </Text>
                     </View>
@@ -214,7 +214,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         {cotizacion.tipo_pago}
                     </Text>
                 </View>
-            </View>            
+            </View>
 
             {/* Tabla de productos */}
             {/* <View style={styles.table}> */}
@@ -267,7 +267,11 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                 </View>
                 {cotizacion.detalles.map((detalle, index) => (
                     // <View style={styles.tableRowData} key={index}>
-                        <View style={[styles.tableRowData, { flexDirection: "row" }]} key={index} wrap={false}>
+                    <View
+                        style={[styles.tableRowData, { flexDirection: "row" }]}
+                        key={index}
+                        wrap={false}
+                    >
                         <View style={[styles.tableCol, { width: "8%" }]}>
                             <Text style={styles.tableCell}>
                                 {detalle.cantidad}
@@ -285,7 +289,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                 ]}
                             >
                                 {detalle.descripcion}
-                            </Text>                            
+                            </Text>
                         </View>
                         <View
                             style={[
