@@ -22,6 +22,8 @@ const estados = [
   { value: 8, label: 'Rechazada' },
 ];
 
+import Header from "./Header";
+
 const CotizacionesConsultaContabilidad = () => {
   const [data, setData] = useState({ data: [], total: 0, per_page: 10, current_page: 1 });
   const [vendedores, setVendedores] = useState([]);
@@ -79,7 +81,8 @@ const CotizacionesConsultaContabilidad = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display:'flex', gap:2, mb:2, flexWrap:'wrap' }}>
+      <Header title="Lista de Cotizaciones" />
+      <Box sx={{ display:'flex', gap:2, mb:2, mt:6, flexWrap:'wrap' }}>
         <TextField label="Desde" type="date" value={desde}
           onChange={e=>setDesde(e.target.value)} InputLabelProps={{ shrink: true }}/>
         <TextField label="Hasta" type="date" value={hasta}
