@@ -10,6 +10,7 @@ use App\Models\Clientes;
 use App\Models\ContactoCliente;
 use App\Models\AdmMotivosRechazo;
 use App\Models\Correlativo;
+use App\Models\AdmHistorialEnvioCotizacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar errores detallados
 use Illuminate\Support\Facades\DB;
@@ -446,7 +447,23 @@ class CotizacionController extends Controller
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
+        $estado = (int)$estado;
+        $ahora = now();
+
         $cotizacion->estado = $estado;
+
+        // Si es pre-facturación (4), setear fecha_prefacturacion
+        //if ($estado === 4 && is_null($cotizacion->fecha_prefacturacion)) {
+        if ($estado === 4) {
+            $cotizacion->fecha_prefacturacion = $ahora;
+        }
+
+        // Si es facturación (5), setear fecha_facturacion
+        if ($estado === 5) {
+            $cotizacion->fecha_facturacion = $ahora;
+        }
+
+
         $cotizacion->save();
         $mensajes = [
             4 => "Cotización enviada a pre-facturación",
@@ -484,56 +501,138 @@ class CotizacionController extends Controller
         return response()->json($unidadesMedida);
     }
 
-    public function generarPdf($id)
+    // public function generarPdf(Request $request, $id)
+    // {
+    //     $fecha_cot = $request->input('fecha_cotizacion');
+    //     if (!$fecha_cot || !preg_match('/\d{4}-\d{2}-\d{2}/', $fecha_cot)) {
+    //         $fecha_cot = AdmCotizacion::findOrFail($id)->fecha_cotizacion;
+    //     }
+
+    //     $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+    //         ->select(
+    //             'c.idcotizacion',
+    //             'c.nocotizacion',
+    //             'c.fecha_cotizacion',
+    //             't.tipo as tipo_pago',
+    //             'c.total_general',
+    //             'c.costear',
+    //             'cl.nombre as cliente',
+    //             'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+    //             'ct.nombre as contacto',
+    //             'e.nombre as vendedor',                 // Asegúrate de tener este campo en tu tabla (o relación)
+    //             'e.movil as telefono_vendedor',         // Ajusta según tu estructura
+    //             'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
+    //             'c.direccion_entrega',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.costeo_observaciones',
+    //             'c.trabajo',
+    //             'c.version'
+    //         )
+    //         ->from('adm_cotizacion as c')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+    //         ->first();
+
+    //     if (!$cotizacion) {
+    //         return response()->json(['message' => 'Cotización no encontrada'], 404);
+    //     }
+
+    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+    //     $cotizacion->detalles = $detalles;
+    //     //$cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
+    //     $cotizacion->fecha_cotizacion = $fecha_cot;
+    //     // Convertir total a letras (usando kwn/number-to-words)
+    //     $numberToWords = new NumberToWords();
+    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
+    //     // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
+
+    //     // registro en historial
+    //     AdmHistorialEnvioCotizacion::create([
+    //         'idcotizacion' => $id,
+    //         'fecha_cotizacion' => $fecha_cot
+    //     ]);
+
+    //     return response()->json([
+    //         'cotizacion' => $cotizacion,
+    //         'totalEnLetras' => $this->convertirNumeroALetrasConCentavos($cotizacion->total_general)
+    //     ]);
+
+    //     // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
+    //     // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
+    //     // return response()->json([
+    //     //     'cotizacion' => $cotizacion,
+    //     //     'totalEnLetras' => $totalEnLetras,
+    //     // ]);
+    // }
+    public function generarPdf(Request $request, $id)
     {
-        $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-            ->select(
-                'c.idcotizacion',
-                'c.nocotizacion',
-                'c.fecha_cotizacion',
-                't.tipo as tipo_pago',
-                'c.total_general',
-                'c.costear',
-                'cl.nombre as cliente',
-                'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
-                'ct.nombre as contacto',
-                'e.nombre as vendedor',                 // Asegúrate de tener este campo en tu tabla (o relación)
-                'e.movil as telefono_vendedor',         // Ajusta según tu estructura
-                'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
-                'c.direccion_entrega',
-                'c.observaciones_costeo',
-                'c.observaciones_cliente',
-                'c.costeo_observaciones',
-                'c.trabajo',
-                'c.version'
-            )
-            ->from('adm_cotizacion as c')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-            ->first();
+        try {
+            $fecha_cot = $request->input('fecha_cotizacion');
+            if (!$fecha_cot || !preg_match('/\d{4}-\d{2}-\d{2}/', $fecha_cot)) {
+                $fecha_cot = AdmCotizacion::findOrFail($id)->fecha_cotizacion;
+            }
+            $fechaInput = $request->input('fecha_cotizacion');
 
-        if (!$cotizacion) {
-            return response()->json(['message' => 'Cotización no encontrada'], 404);
+            // Obtiene la fecha original del registro en BD (aunque el usuario cambie el input)
+            $cotizacionOriginal = AdmCotizacion::findOrFail($id);
+            $fechaOriginal = $cotizacionOriginal->fecha_cotizacion;
+
+            $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+                ->select(
+                    'c.idcotizacion',
+                    'c.nocotizacion',
+                    'c.fecha_cotizacion',
+                    't.tipo as tipo_pago',
+                    'c.total_general',
+                    'c.costear',
+                    'cl.nombre as cliente',
+                    'cl.nit as nit',
+                    'ct.nombre as contacto',
+                    'e.nombre as vendedor',
+                    'e.movil as telefono_vendedor',
+                    'e.correo_personal as correo_vendedor',
+                    'c.direccion_entrega',
+                    'c.observaciones_costeo',
+                    'c.observaciones_cliente',
+                    'c.costeo_observaciones',
+                    'c.trabajo',
+                    'c.version'
+                )
+                ->from('adm_cotizacion as c')
+                ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+                ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+                ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+                ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+                ->first();
+
+            if (!$cotizacion) {
+                return response()->json(['message' => 'Cotización no encontrada'], 404);
+            }
+
+            $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+            $cotizacion->detalles = $detalles;
+            $cotizacion->fecha_cotizacion = $fecha_cot;
+
+            $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
+
+            AdmHistorialEnvioCotizacion::create([
+                'idcotizacion' => $id,
+                'fecha_cotizacion' => $fechaOriginal,
+                'fecha_envio' => $fechaInput
+            ]);
+
+            return response()->json([
+                'cotizacion' => $cotizacion,
+                'totalEnLetras' => $totalEnLetras
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error generando PDF cotización: ' . $e->getMessage());
+            return response()->json(['message' => 'Error generando el PDF.'], 500);
         }
-
-        $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-        $cotizacion->detalles = $detalles;
-        $cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
-
-        // Convertir total a letras (usando kwn/number-to-words)
-        $numberToWords = new NumberToWords();
-        $numberTransformer = $numberToWords->getNumberTransformer('es');
-        // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
-        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
-
-        // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-        // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
-        return response()->json([
-            'cotizacion' => $cotizacion,
-            'totalEnLetras' => $totalEnLetras,
-        ]);
     }
 
     public function guardarDetalle(Request $request, $cotizacion)
@@ -647,5 +746,14 @@ class CotizacionController extends Controller
         $cotizacion->save();
 
         return response()->json(['message' => 'Cotización rechazada correctamente.']);
+    }
+
+    public function historialEnvios($id)
+    {
+        $historial = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
+            ->orderByDesc('fecha_envio')
+            ->get();
+
+        return response()->json($historial);
     }
 }

@@ -30,6 +30,7 @@ import CuentasPorCobrarFiltro from './components/CuentasPorCobrarFiltro';
 import ReciboRegistro from './components/ReciboRegistro';
 import ReciboEditar from './components/ReciboRegistro';
 import ReciboConsulta from './components/RecibosConsulta';
+import ConsultaCotizacionesContabilidad from './components/CotizacionesConsultaContabilidad';
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -84,6 +85,7 @@ function App() {
                     <Route path="/recibos/crear" element={<ProtectedRoute><ReciboRegistro /></ProtectedRoute>} />
                     <Route path="/recibos/editar/:id" element={<ProtectedRoute><ReciboEditar /></ProtectedRoute>} />
                     <Route path="/recibos/lista" element={<ProtectedRoute><ReciboConsulta /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/cotizaciones" element={<ProtectedRoute><ConsultaCotizacionesContabilidad /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

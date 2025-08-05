@@ -168,6 +168,10 @@ function Home() {
                     to = `/recibos/lista`;
                     text = 'Consulta de recibos';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Cotizaciones Reportes-Contabilidad' && opcion.accion === 'cotizaciones') {
+                    to = `/reportes/contabilidad/cotizaciones`;
+                    text = 'Consulta de cotizaciones';
+                    icon = <FiSearch />;
                 }
 
 

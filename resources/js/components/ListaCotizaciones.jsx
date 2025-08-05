@@ -44,6 +44,10 @@ function ListaCotizaciones() {
     const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
     const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
 
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [fechaPdf, setFechaPdf] = useState("");
+    const [historialEnvios, setHistorialEnvios] = useState([]);
+
     useEffect(() => {
         fetch("/i18n/Spanish.json")
             .then((response) => response.json())
@@ -286,25 +290,53 @@ function ListaCotizaciones() {
 
                 handleFacturar(id, cotizacionSeleccionada, 5);
             } else if (button.classList.contains("pdf-btn")) {
-                if (token) {
-                    try {
-                        const response = await fetch(
-                            `/api/cotizaciones/${id}/pdf`,
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                },
-                            }
-                        );
-                        const data = await response.json();
-                        setPdfData(data);
-                    } catch (error) {
-                        alertify.error("Error al generar el PDF.");
-                    }
-                } else {
-                    alertify.error("Token no encontrado para generar PDF.");
+                const id = button.getAttribute("data-id");
+                const cot = cotizacionesRef.current.find(
+                    (c) => Number(c.idcotizacion) === Number(id)
+                );
+
+                if (!cot) {
+                    alertify.error("Cotización no encontrada.");
+                    return;
                 }
-            } else if (button.classList.contains("detalle-btn")) {
+
+                // Establecer primero el registro
+                setRegistroSeleccionado(cot);
+
+                // Convertir y establecer la fecha
+                let fecha = cot.fecha_cotizacion || "";
+                if (!fecha) {
+                    fecha = new Date().toISOString().split("T")[0];
+                } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
+                    const [d, m, y] = fecha.split("-");
+                    fecha = `${y}-${m}-${d}`;
+                }
+
+                setFechaPdf(fecha); // ✅ establecer la fecha antes de abrir el modal
+
+                await obtenerHistorialEnvios(cot.idcotizacion);
+
+                setShowPdfModal(true); // ✅ abrir modal al final
+            }
+            // if (token) {
+            //     try {
+            //         const response = await fetch(
+            //             `/api/cotizaciones/${id}/pdf`,
+            //             {
+            //                 headers: {
+            //                     Authorization: `Bearer ${token}`,
+            //                 },
+            //             }
+            //         );
+            //         const data = await response.json();
+            //         setPdfData(data);
+            //     } catch (error) {
+            //         alertify.error("Error al generar el PDF.");
+            //     }
+            // } else {
+            //     alertify.error("Token no encontrado para generar PDF.");
+            // }
+            else if (button.classList.contains("detalle-btn")) {
                 obtenerDetalleCotizacion(id);
             } else if (button.classList.contains("nota-envio-btn")) {
                 const token = localStorage.getItem("token");
@@ -390,6 +422,35 @@ function ListaCotizaciones() {
             new bootstrap.Tooltip(el);
         });
     }, []);
+
+//     useEffect(() => {
+//     if (registroSeleccionado?.fecha_cotizacion) {
+//         let f = registroSeleccionado.fecha_cotizacion;
+//         if (/^\d{2}-\d{2}-\d{4}$/.test(f)) {
+//             const [d, m, y] = f.split("-");
+//             setFechaPdf(`${y}-${m}-${d}`);
+//         } else {
+//             setFechaPdf(f); // ya en formato correcto
+//         }
+//     } else {
+//         setFechaPdf(new Date().toISOString().split("T")[0]);
+//     }
+// }, [registroSeleccionado]);
+
+useEffect(() => {
+    if (showPdfModal && registroSeleccionado) {
+        let fecha = registroSeleccionado.fecha_cotizacion;
+
+        if (!fecha) {
+            fecha = new Date().toISOString().split("T")[0];
+        } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
+            const [d, m, y] = fecha.split("-");
+            fecha = `${y}-${m}-${d}`;
+        }
+
+        setFechaPdf(fecha); // ✅ se asegura que el input lo muestre
+    }
+}, [showPdfModal, registroSeleccionado]);
 
     const limpiarFiltro = () => setFiltro("");
     /*
@@ -489,18 +550,52 @@ function ListaCotizaciones() {
         }
     };
 
+    // const generarPDF = async (id) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token) return alertify.error("Token no encontrado");
+    //     try {
+    //         const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
+    //             headers: { Authorization: `Bearer ${token}` },
+    //         });
+    //         const data = await response.json();
+    //         setPdfData(data);
+    //     } catch(error) {
+    //         console.log("Error al generar PDF:", error);
+    //         alertify.error("Error al generar PDF.");
+    //     }
+    // };
     const generarPDF = async (id) => {
         const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado");
-        try {
-            const response = await fetch(`/api/cotizaciones/${id}/pdf`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            setPdfData(data);
-        } catch {
-            alertify.error("Error al generar PDF.");
+        if (!token) {
+            alertify.error("Token no encontrado.");
+            return;
         }
+
+        const res = await fetch(
+            `/api/cotizaciones/${registroSeleccionado.idcotizacion}/pdf`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ fecha_cotizacion: fechaPdf }),
+            }
+        );
+
+        let data;
+        try {
+            data = await res.json();
+        } catch (err) {
+            alertify.error("La respuesta del servidor no es válida.");
+            return;
+        }
+
+        if (!res.ok) {
+            return alertify.error(data.message || "Error generando PDF.");
+        }
+
+        setPdfData(data);
     };
 
     const generarNotaEnvio = async (id) => {
@@ -570,6 +665,23 @@ function ListaCotizaciones() {
             cot.observaciones_costeo?.toLowerCase().includes(texto)
         );
     });
+
+    const obtenerHistorialEnvios = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado");
+        try {
+            const res = await fetch(
+                `/api/cotizaciones/${id}/historial-envios`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const data = await res.json();
+            setHistorialEnvios(data);
+        } catch {
+            alertify.error("No se pudo obtener el historial de envíos.");
+        }
+    };
 
     return (
         <div className="mt-4 px-3 px-md-4">
@@ -783,7 +895,7 @@ function ListaCotizaciones() {
                             >
                                 <i className="fas fa-trash"></i> Eliminar
                             </button>
-                            <button
+                            {/* <button
                                 className="btn btn-primary btn-sm toolbar-btn"
                                 disabled={!registroSeleccionado}
                                 onClick={() =>
@@ -794,6 +906,32 @@ function ListaCotizaciones() {
                                 // data-bs-toggle="tooltip"
                                 // data-bs-placement="top"
                                 // title="Generar el PDF del registro seleccionado"
+                            >
+                                <i className="fas fa-file-pdf"></i> PDF
+                            </button> */}
+                            <button
+                                className="btn btn-primary btn-sm toolbar-btn"
+                                disabled={!registroSeleccionado}
+                                onClick={async () => {
+                                    const cot = registroSeleccionado;
+                                    if (!cot)
+                                        return alertify.error(
+                                            "Cotización no seleccionada"
+                                        );
+
+                                    // Convertir fecha solo si es necesario
+                                    let fecha = cot.fecha_cotizacion || "";
+                                    if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
+                                        const [d, m, y] = fecha.split("-");
+                                        fecha = `${y}-${m}-${d}`;
+                                    }
+
+                                    setFechaPdf(fecha); // ✅ se establece ANTES de abrir el modal
+                                    await obtenerHistorialEnvios(
+                                        cot.idcotizacion
+                                    );
+                                    setShowPdfModal(true);
+                                }}
                             >
                                 <i className="fas fa-file-pdf"></i> PDF
                             </button>
@@ -1130,6 +1268,115 @@ function ListaCotizaciones() {
                                     onClick={confirmarRechazo}
                                 >
                                     Rechazar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showPdfModal && (
+                <div
+                    className="modal d-block"
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                >
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5>Generar PDF</h5>
+                                <button
+                                    className="btn-close"
+                                    onClick={() => setShowPdfModal(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <label>Fecha de cotización:</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    value={fechaPdf}
+                                    onChange={(e) =>
+                                        setFechaPdf(e.target.value)
+                                    }
+                                />
+                                {historialEnvios.length > 0 && (
+                                    <div className="mt-3">
+                                        <h6>Historial de Envíos</h6>
+                                        <ul className="list-group">
+                                            {historialEnvios.map((item) => (
+                                                <li
+                                                    key={item.idhistorialenvio}
+                                                    className="list-group-item d-flex justify-content-between"
+                                                >
+                                                    <span>
+                                                        📄 Fecha cotización:{" "}
+                                                        {item.fecha_cotizacion}
+                                                    </span>
+                                                    <span>
+                                                        🕒 Enviado:{" "}
+                                                        {new Date(
+                                                            item.fecha_envio
+                                                        )
+                                                            .toISOString()
+                                                            .slice(0, 10)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={async () => {
+                                        try {
+                                            if (
+                                                !registroSeleccionado?.idcotizacion
+                                            ) {
+                                                alertify.error(
+                                                    "Cotización no seleccionada."
+                                                );
+                                                return;
+                                            }
+                                            const token =
+                                                localStorage.getItem("token");
+                                            const res = await fetch(
+                                                `/api/cotizaciones/${registroSeleccionado.idcotizacion}/pdf`,
+                                                {
+                                                    method: "POST",
+                                                    headers: {
+                                                        "Content-Type":
+                                                            "application/json",
+                                                        Authorization: `Bearer ${token}`,
+                                                    },
+                                                    body: JSON.stringify({
+                                                        fecha_cotizacion:
+                                                            fechaPdf,
+                                                    }),
+                                                }
+                                            );
+                                            const data = await res.json();
+                                            if (!res.ok)
+                                                throw new Error(data.message);
+                                            setPdfData(data);
+                                        } catch (err) {
+                                            alertify.error(
+                                                err.message ||
+                                                    "Error generando PDF"
+                                            );
+                                        } finally {
+                                            setShowPdfModal(false);
+                                        }
+                                    }}
+                                >
+                                    Generar
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowPdfModal(false)}
+                                >
+                                    Cancelar
                                 </button>
                             </div>
                         </div>
