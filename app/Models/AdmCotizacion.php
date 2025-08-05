@@ -52,8 +52,14 @@ class AdmCotizacion extends Model
         'idmotivorechazo',
         'fecha_rechazo',
         'usuario_rechazo',
+        'fecha_prefacturacion',
+        'fecha_facturacion',
     ];
 
+    protected $casts = [
+        'fecha_prefacturacion' => 'datetime',
+        'fecha_facturacion'    => 'datetime',
+    ];
     public function tipoPago()
     {
         return $this->belongsTo(AdmTipoPago::class, 'idtipopago', 'idtipopago');

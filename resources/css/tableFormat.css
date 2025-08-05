@@ -85,6 +85,10 @@ table.dataTable td {
   white-space: nowrap; /* evita que los datos se partan en dos líneas */
 }
 
+table.dataTable tbody tr.selected {
+    background-color: #b4e1fa !important;
+}
+
 .btn-accion {
   color: #fff;
   font-size: 0.75rem;

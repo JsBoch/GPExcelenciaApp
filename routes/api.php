@@ -19,6 +19,7 @@ use App\Http\Controllers\CotizacionConsultasController;
 use App\Http\Controllers\PedidosProduccionController;
 use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\AdmRecibosController;
+use App\Http\Controllers\ReportesContabilidadController;
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -92,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cotizaciones/detalle/{id}', [CotizacionController::class, 'detalle']);
     Route::post('/cotizaciones/{cotizacion}/detalle/guardar', [CotizacionController::class, 'guardarDetalle']);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
-    Route::get('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
+    Route::post('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
     Route::put('/cotizaciones/rechazar/{id}', [CotizacionController::class, 'rechazar']);
@@ -103,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lista_contactos', [CotizacionController::class, 'listarContactos']);
     Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);
     Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);
+    Route::get('/cotizaciones/{id}/historial-envios', [CotizacionController::class, 'historialEnvios']);
 });
 
 //COSTEO COTIZACIONES
@@ -156,7 +158,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //PEDIDOS A PRODUCCIÓN
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);       
+    Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);
     Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
     Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
     Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
@@ -164,18 +166,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pedidosproduccion/{id}/pdf', [PedidosProduccionController::class, 'generarPdf']);
     Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
     Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
-    Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);     
+    Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
 });
 
 // CUENTAS POR COBRAR
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/cuentas-por-cobrar', CuentasPorCobrarController::class);
-    
+
     // Si quieres agregar rutas personalizadas (ejemplo: desactivar, filtros, etc.)
     // Route::put('/cuentas-por-cobrar/desactivar/{id}', [CuentasPorCobrarController::class, 'desactivar']);
     Route::get('/cuentas-por-cobrar/estado-cuenta/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaPDF']);
-// Estado de cuenta con cuentas por cobrar + recibos relacionados
-Route::get('/cuentas-por-cobrar/estado-cuenta-con-recibos/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaConRecibosPDF']);
+    // Estado de cuenta con cuentas por cobrar + recibos relacionados
+    Route::get('/cuentas-por-cobrar/estado-cuenta-con-recibos/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaConRecibosPDF']);
 });
 
 //RECIBOS
@@ -188,4 +190,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/fecha-servidor', function () {
     return response()->json(['fecha' => now()->format('Y-m-d')]);
+});
+
+//REPORTES CONTABILIDAD
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/reportes-contabilidad/cotizaciones', [ReportesContabilidadController::class, 'cotizacionesPorFiltro']);
+    Route::get('/reportes-contabilidad/vendedores', [ReportesContabilidadController::class, 'vendedoresActivos']);
+    Route::get('/reportes-contabilidad/export/excel', [ReportesContabilidadController::class, 'exportCotizacionesExcel']);
+    Route::get('/reportes-contabilidad/export/pdf', [ReportesContabilidadController::class, 'exportCotizacionesPdf']);
 });
