@@ -40,6 +40,8 @@ class Clientes extends Model
         'telefono_tres',
         'fecha_modificacion',
         'extranjero',
+        'pasaporte',
+        'excento_iva',
     ];
 
     public function empleados(){

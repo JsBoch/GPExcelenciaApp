@@ -178,6 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cuentas-por-cobrar/estado-cuenta/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaPDF']);
     // Estado de cuenta con cuentas por cobrar + recibos relacionados
     Route::get('/cuentas-por-cobrar/estado-cuenta-con-recibos/pdf', [CuentasPorCobrarController::class, 'generarEstadoCuentaConRecibosPDF']);
+    Route::get('/cuentas-por-cobrar/saldos/pdf', [CuentasPorCobrarController::class, 'generarSaldosClientePDF']);
 });
 
 //RECIBOS

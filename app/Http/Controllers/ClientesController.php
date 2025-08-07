@@ -42,7 +42,10 @@ class ClientesController extends Controller
             'clientes.usuario_registro',
             'clientes.usuario_modifica',            
             'clientes.fecha_modificacion',    
-            'clientes.estado',        
+            'clientes.estado',    
+            'clientes.pasaporte',   
+            'clientes.excento_iva',
+            'clientes.extranjero', 
         )        
         ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais') 
         ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')        
@@ -133,6 +136,9 @@ class ClientesController extends Controller
             'clientes.usuario_modifica',
             'clientes.fecha_modificacion',
             'clientes.estado',
+            'clientes.pasaporte',
+            'clientes.excento_iva',
+            'clientes.extranjero',
         )
         ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
         ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')

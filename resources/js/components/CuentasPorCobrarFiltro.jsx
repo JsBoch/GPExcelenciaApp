@@ -78,6 +78,27 @@ const CuentasPorCobrarFiltro = () => {
         }
     };
 
+    const handleSaldos = async () => {
+        if (!idCliente || !fechaInicio || !fechaFin) {
+            return alertify.error("Todos los campos son obligatorios");
+        }
+
+        const token = localStorage.getItem("token");
+
+        try {            
+            const response = await fetch(
+                `/api/cuentas-por-cobrar/saldos/pdf?idcliente=${idCliente}&fecha_inicio=${fechaInicio}&fecha_final=${fechaFin}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setPdfUrl(url);
+        } catch (error) {
+            alertify.error("Error al generar PDF");
+        }
+    };
+
     return (
         <div className="container mt-4">
             <Header title={"Estado de Cuenta"} />
@@ -122,6 +143,14 @@ const CuentasPorCobrarFiltro = () => {
                         onClick={handleGenerar}
                     >
                         Generar PDF
+                    </button>
+                </div>
+                <div className="col-md-2 d-flex align-items-end">
+                    <button
+                        className="btn btn-primary w-100"
+                        onClick={handleSaldos}
+                    >
+                        Saldos
                     </button>
                 </div>
             </div>
