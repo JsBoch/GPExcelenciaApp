@@ -182,7 +182,10 @@ class MonitorFacturacionController extends Controller
             m.nombre as municipio,
             dp.nombre as departamento,
             'GT' as pais,
-            date(c.fecha_registro) as fecha_vencimiento
+            date(c.fecha_registro) as fecha_vencimiento,
+            cl.extranjero,
+            cl.pasaporte,
+            cl.excento_iva
         FROM adm_cotizacion c 
         JOIN adm_detalle_cotizacion d on c.idcotizacion = d.idcotizacion 
         JOIN clientes cl on c.idcliente = cl.idcliente
@@ -243,7 +246,50 @@ class MonitorFacturacionController extends Controller
 
         $Receptor = $doc->createElement('dte:Receptor');
         $Receptor->setAttribute('CorreoReceptor', $detalle->correo ?? '');
-        $Receptor->setAttribute('IDReceptor', $detalle->nit);
+        // $Receptor->setAttribute('IDReceptor', $detalle->nit);
+        $clienteTieneNIT = false;
+        $clienteTieneCUI = false;
+        $clienteEsExtranjero = false;
+        $clienteExentoIVA = "N";
+
+        if (isset($detalle->excento_iva) && $detalle->excento_iva == "S") {
+            $clienteExentoIVA = "S";
+        }
+
+        /**
+         * Verifica si el cliente tiene NIT, CUI o es extranjero
+         */
+        if (!empty($detalle->nit)) {
+            $nitDepurado = preg_replace('/[^0-9]/', '', $detalle->nit);
+            if (strlen($nitDepurado) >= 8) {
+                $clienteTieneNIT = true;
+            }
+        }
+        if (!empty($detalle->cui)) {
+            $cuiDepurado = preg_replace('/[^0-9]/', '', $detalle->cui);
+            if (strlen($cuiDepurado) >= 13) {
+                $clienteTieneCUI = true;
+            }
+        }
+        if (!empty($detalle->pasaporte) && !empty($detalle->extranjero) && $detalle->extranjero == "S") {
+            $pasaporte = strtoupper(trim($detalle->pasaporte));
+            $clienteEsExtranjero = true;
+        }
+
+        if ($clienteTieneCUI) {
+            $Receptor->setAttribute('IDReceptor', $cuiDepurado);
+            $TipoEspecial = $doc->createElement('dte:TipoEspecial', 'CUI');
+            $Receptor->appendChild($TipoEspecial);
+        } elseif ($clienteTieneNIT) {
+            $Receptor->setAttribute('IDReceptor', $nitDepurado);
+            // Sin TipoEspecial
+        } elseif ($clienteEsExtranjero) {
+            $Receptor->setAttribute('IDReceptor', strtoupper($pasaporte));
+            $TipoEspecial = $doc->createElement('dte:TipoEspecial', 'Número de documento de identificación del extranjero');
+            $Receptor->appendChild($TipoEspecial);
+        }
+
+        /************************************************************** */
         $Receptor->setAttribute('NombreReceptor', $detalle->nombre);
         $DatosEmision->appendChild($Receptor);
 
@@ -257,10 +303,19 @@ class MonitorFacturacionController extends Controller
 
         $Frases = $doc->createElement('dte:Frases');
         $DatosEmision->appendChild($Frases);
-        $Frase = $doc->createElement('dte:Frase');
-        $Frase->setAttribute('CodigoEscenario', '1');
-        $Frase->setAttribute('TipoFrase', '1');
-        $Frases->appendChild($Frase);
+        // Frase estándar obligatoria (siempre va)
+        $Frase1 = $doc->createElement('dte:Frase');
+        $Frase1->setAttribute('CodigoEscenario', '1');
+        $Frase1->setAttribute('TipoFrase', '1');
+        $Frases->appendChild($Frase1);
+
+        // Frase adicional si el cliente es exento
+        if ($clienteExentoIVA === "S") {
+            $Frase2 = $doc->createElement('dte:Frase');
+            $Frase2->setAttribute('TipoFrase', '4'); // Exento o no afecto al IVA
+            $Frase2->setAttribute('CodigoEscenario', '2'); // No exportación (u otro si aplica)
+            $Frases->appendChild($Frase2);
+        }
 
         $Items = $doc->createElement('dte:Items');
         $DatosEmision->appendChild($Items);
@@ -281,8 +336,18 @@ class MonitorFacturacionController extends Controller
             $Impuesto = $doc->createElement('dte:Impuesto');
             $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
             $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
-            $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 3, '.', '')));
-            $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 3, '.', '')));
+
+            if ($clienteExentoIVA === "S") {
+                $Impuesto->appendChild($doc->createElement('dte:MontoGravable', '0.00'));
+                $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', '0.00'));
+            } else {
+                $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 3, '.', '')));
+                $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 3, '.', '')));
+            }
+            // $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 3, '.', '')));
+            // $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 3, '.', '')));
+
+
             $Impuestos->appendChild($Impuesto);
             $Item->appendChild($Impuestos);
 
@@ -296,8 +361,18 @@ class MonitorFacturacionController extends Controller
         $TotalImpuesto = $doc->createElement('dte:TotalImpuesto');
         $TotalImpuesto->setAttribute('NombreCorto', 'IVA');
 
-        $sumaImpuestos = array_sum(array_column($detalles, 'monto_impuesto'));
-        $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($sumaImpuestos, 2, '.', ''));
+        // $sumaImpuestos = array_sum(array_column($detalles, 'monto_impuesto'));        
+        // $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($sumaImpuestos, 2, '.', ''));
+        $TotalImpuesto->setAttribute(
+            'TotalMontoImpuesto',
+            number_format(
+                $clienteExentoIVA === "S" ? 0.00 : array_sum(array_column($detalles, 'monto_impuesto')),
+                2,
+                '.',
+                ''
+            )
+        );
+
         $TotalImpuestos->appendChild($TotalImpuesto);
         $Totales->appendChild($TotalImpuestos);
         $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($detalle->gran_total, 2, '.', '')));
@@ -347,42 +422,7 @@ class MonitorFacturacionController extends Controller
             // Log::info($json);
             //Se graba en la base de datos la respuesta del SAT
             $cotizacion = AdmCotizacion::find($idcotizacion);
-            // if ($cotizacion) {
-            //     if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
 
-            //         //Se obtiene el correlativo para la factura, utilizado en la impresión como número interno
-            //         $correlativo = Correlativo::find('nofactura');
-
-            //         if (!$correlativo) {
-            //             return response()->json(['message' => 'No se encontró el correlativo para el numero interno'], 400);
-            //         }
-
-            //         $noFactura = $correlativo->correlativo + $correlativo->incremento;
-            //         $correlativo->correlativo = $noFactura;
-            //         $correlativo->save();
-
-            //         $cotizacion->update([
-            //             'resultado'            => 'S',
-            //             'uuid'                 => $json['uuid'],
-            //             'serie'                => $json['serie'],
-            //             'numero'               => $json['numero'],
-            //             'descripcion'          => $json['descripcion'],
-            //             'fecha_certificacion'  => $json['fecha'],
-            //             'xml_certificado'      => base64_encode($json['xml_certificado']),
-            //             'alertas'              => $json['descripcion_alertas_infile'] ?? null,
-            //             'identificador'        => $identificador,
-            //             'estado' => 6,
-            //             'nofactura' => $noFactura,
-            //         ]);
-            //     } else {
-            //         // Log::info($json);
-            //         $cotizacion->update([
-            //             'resultado'     => 'N',
-            //             'errores'       => $json['descripcion_errores'],
-            //             'identificador' => $identificador,
-            //         ]);
-            //     }
-            // }
             if ($cotizacion) {
                 if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
 

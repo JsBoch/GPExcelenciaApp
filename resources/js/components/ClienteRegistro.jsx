@@ -49,6 +49,9 @@ function ClienteRegistro() {
         telefono_dos: "",
         telefono_tres: "",
         fecha_modificacion: "",
+        pasaporte: "",
+        extranjero: "",
+        excento_iva: "N",
     });
 
     const [departamentosPais, setDepartamentosPais] = useState([]);
@@ -97,6 +100,9 @@ function ClienteRegistro() {
                         fecharegistro: data.fecharegistro || "",
                         fecha_modificacion: data.fecha_modificacion || "",
                         estado: data.estado || "",
+                        extranjero: data.extranjero || "",
+                        pasaporte: data.pasaporte || "",
+                        excento_iva: data.excento_iva || "",
                     });
 
                     // Cargar listas desplegables después de cargar los datos del empleado
@@ -273,7 +279,9 @@ function ClienteRegistro() {
             fecharegistro: "",
             estado: "",
             codigo: "",
-            iddepartamento: deptoGuatemala ? deptoGuatemala.iddepartamentopais : "", // ← aquí se asigna GUATEMALA
+            iddepartamento: deptoGuatemala
+                ? deptoGuatemala.iddepartamentopais
+                : "", // ← aquí se asigna GUATEMALA
             razonsocial: "",
             monto_credito: "",
             id_empleado: "",
@@ -288,6 +296,9 @@ function ClienteRegistro() {
             telefono_dos: "",
             telefono_tres: "",
             fecha_modificacion: "",
+            extranjero: "",
+            pasaporte: "",
+            excento_iva: "",
         });
         setModoEdicion(false); // Oculta el botón Agregar Contacto
     };
@@ -413,6 +424,72 @@ function ClienteRegistro() {
                                         placeholder="Correo"
                                         className="form-control form-control-sm"
                                     />
+                                </div>
+                            </div>
+                            <div className="row g-2">
+                                <div className="col-md-4">
+                                    <label className="form-label">
+                                        Tipo de Cliente
+                                    </label>
+                                    <select
+                                        className="form-control form-control-sm"
+                                        name="extranjero"
+                                        value={cliente.extranjero}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setCliente((prev) => ({
+                                                ...prev,
+                                                extranjero: value,
+                                                pasaporte:
+                                                    value === "S"
+                                                        ? prev.pasaporte
+                                                        : "",
+                                            }));
+                                        }}
+                                    >
+                                        <option value="">Seleccione</option>
+                                        <option value="N">LOCAL</option>
+                                        <option value="S">EXTRANJERO</option>
+                                    </select>
+                                </div>
+                                {cliente.extranjero === "S" && (
+                                    <div className="col-md-4">
+                                        <label className="form-label">
+                                            Pasaporte
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="form-control form-control-sm"
+                                            name="pasaporte"
+                                            value={cliente.pasaporte}
+                                            onChange={handleChange}
+                                            placeholder="Número de pasaporte"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="row g-2">
+                                <div className="col-md-4 form-check mt-3">
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id="excentoIva"
+                                        checked={cliente.excento_iva === "S"}
+                                        onChange={(e) => {
+                                            setCliente((prev) => ({
+                                                ...prev,
+                                                excento_iva: e.target.checked
+                                                    ? "S"
+                                                    : "N",
+                                            }));
+                                        }}
+                                    />
+                                    <label
+                                        className="form-check-label"
+                                        htmlFor="excentoIva"
+                                    >
+                                        Cliente exento de IVA
+                                    </label>
                                 </div>
                             </div>
                             <div className="row g-2">
