@@ -20,6 +20,7 @@ use App\Http\Controllers\PedidosProduccionController;
 use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\AdmRecibosController;
 use App\Http\Controllers\ReportesContabilidadController;
+use App\Http\Controllers\ClienteContactoController;
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -73,6 +74,12 @@ Route::middleware('auth:sanctum')->group(function () {
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
     Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
+     /**
+     * Este endpoint devuelve las opciones de facturación para un cliente específico.
+     * Permite obtener información como si el cliente tiene NIT, CUI, o si es Consumidor Final.
+     * Y los emails y direcciones asociadas
+     */
+    Route::get('/clientes/{id}/facturacion-opciones', [ClientesController::class, 'facturacionOpciones']);
 });
 
 //CONTACTO CLIENTE
@@ -127,12 +134,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/monitorfacturacion', MonitorFacturacionController::class);
     Route::put('/monitorfacturacion/desactivar/{id}', [MonitorFacturacionController::class, 'desactivar']);
     Route::get('/monitorfacturacion/{id}/pdf', [MonitorFacturacionController::class, 'generarPdf']);
-    Route::get('/facturar/{id}', [MonitorFacturacionController::class, 'generarXmlFactura']);
-    Route::get('/notacredito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaCredito']);
-    Route::get('/notadebito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaDebito']);
+    Route::post('/facturar/{id}', [MonitorFacturacionController::class, 'generarXmlFactura']);
+    Route::post('/notacredito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaCredito']);
+    Route::post('/notadebito/{id}', [MonitorFacturacionController::class, 'generarXmlNotaDebito']);
     Route::put('/facturar/{id}/anular', [MonitorFacturacionController::class, 'anularFactura']);
 
-    Route::get('/monitorfacturacion/{id}/facturapdf', [MonitorFacturacionController::class, 'generarImpresionFactura']);
+    Route::get('/monitorfacturacion/{id}/facturapdf', [MonitorFacturacionController::class, 'generarImpresionFactura']);       
 });
 
 //CONSULTA COTIZACIONES COSTEO
@@ -199,4 +206,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reportes-contabilidad/vendedores', [ReportesContabilidadController::class, 'vendedoresActivos']);
     Route::get('/reportes-contabilidad/export/excel', [ReportesContabilidadController::class, 'exportCotizacionesExcel']);
     Route::get('/reportes-contabilidad/export/pdf', [ReportesContabilidadController::class, 'exportCotizacionesPdf']);
+
+    Route::get('/reportes-contabilidad/cartera', [ReportesContabilidadController::class, 'index']);
+    Route::post('/reportes-contabilidad/cartera/html', [ReportesContabilidadController::class, 'html']);
+    Route::get('/reportes-contabilidad/cartera/pdf',  [ReportesContabilidadController::class, 'pdf']);
+});
+
+//CLIENTES CONTACTO CONTROLLER
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/clientes-contacto/options', [ClienteContactoController::class, 'clientesOptions']);
+    Route::get('/clientes-contacto/{idcliente}/contactos', [ClienteContactoController::class, 'show']);
+    Route::post('/clientes-contacto/{idcliente}/contactos', [ClienteContactoController::class, 'storeOrUpdate']);
+    Route::get('/departamentos/options', [ClienteContactoController::class, 'departamentosOptions']);
 });

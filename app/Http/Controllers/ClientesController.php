@@ -17,39 +17,39 @@ class ClientesController extends Controller
         //$empleados = Empleado::where('estado',1)->get();
         $clientes = Clientes::where('clientes.estado', 1)
             ->select(
-                'clientes.idcliente', 
+                'clientes.idcliente',
                 'clientes.codigo',
-            'clientes.nit', 
-            'clientes.cui',
-            'clientes.nombre',
-            'clientes.razonsocial',
-            'clientes.direccion',
-            'clientes.codigo_postal',
-            'adm_departamentopais.nombre as departamento',
-            'clientes.telefono_uno',
-            'clientes.telefono_dos',
-            'clientes.telefono_tres',
-            'clientes.email', 
-            'clientes.monto_credito',
-            'clientes.dias_credito', 
-            'clientes.comentario',                                                                                      
-            'adm_empleados.nombre as vendedor', 
-            'clientes.id_empleado',             
-            'clientes.id_municipio',
-            'clientes.idtipocliente',
-            'clientes.iddepartamento',
-            'clientes.fecharegistro', 
-            'clientes.usuario_registro',
-            'clientes.usuario_modifica',            
-            'clientes.fecha_modificacion',    
-            'clientes.estado',    
-            'clientes.pasaporte',   
-            'clientes.excento_iva',
-            'clientes.extranjero', 
-        )        
-        ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais') 
-        ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')        
-        ->orderBy('clientes.nombre')
+                'clientes.nit',
+                'clientes.cui',
+                'clientes.nombre',
+                'clientes.razonsocial',
+                'clientes.direccion',
+                'clientes.codigo_postal',
+                'adm_departamentopais.nombre as departamento',
+                'clientes.telefono_uno',
+                'clientes.telefono_dos',
+                'clientes.telefono_tres',
+                'clientes.email',
+                'clientes.monto_credito',
+                'clientes.dias_credito',
+                'clientes.comentario',
+                'adm_empleados.nombre as vendedor',
+                'clientes.id_empleado',
+                'clientes.id_municipio',
+                'clientes.idtipocliente',
+                'clientes.iddepartamento',
+                'clientes.fecharegistro',
+                'clientes.usuario_registro',
+                'clientes.usuario_modifica',
+                'clientes.fecha_modificacion',
+                'clientes.estado',
+                'clientes.pasaporte',
+                'clientes.excento_iva',
+                'clientes.extranjero',
+            )
+            ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+            ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->orderBy('clientes.nombre')
             ->get();
         return response()->json($clientes);
     }
@@ -58,18 +58,18 @@ class ClientesController extends Controller
     {
         try {
             DB::beginTransaction(); // Inicia una transacción para asegurar la integridad de los datos
-    
+
             $correlativo = Correlativo::find('adm_clientes'); // Obtiene el registro de correlativo para la tabla 'adm_empleados'
-    
+
             if (!$correlativo) {
                 return response()->json(['message' => 'No se encontró el correlativo para clientes'], 400);
             }
-    
+
             $idCliente = $correlativo->correlativo + $correlativo->incremento; // Genera el nuevo ID del empleado
             $correlativo->correlativo = $idCliente; // Actualiza el correlativo en la base de datos
             $correlativo->save();
 
-             $codigoCliente = Correlativo::find('codigo_cliente'); // Obtiene el registro de correlativo para la tabla 'codigo_empleado'
+            $codigoCliente = Correlativo::find('codigo_cliente'); // Obtiene el registro de correlativo para la tabla 'codigo_empleado'
             if (! $codigoCliente) {
                 return response()->json(['message' => 'No se encontró el correlativo para el código del cliente'], 400);
             }
@@ -77,7 +77,7 @@ class ClientesController extends Controller
             $codigoC                         = $codigoCliente->correlativo + $codigoCliente->incremento;
             $codigoCliente->correlativo = $codigoC;
             $codigoCliente->save();
-    
+
             $datosCliente = $request->all();
             $datosCliente['idcliente'] = $idCliente; // Asigna el ID generado al empleado
             $datosCliente['usuario_registro'] = auth()->user()->name; // Asigna el usuario registrado
@@ -87,11 +87,11 @@ class ClientesController extends Controller
             $datosCliente['idtipocliente'] = 1; // Asigna el estado
             $datosCliente['codigo_postal'] = ''; // Asigna el estado
             $datosCliente['codigo'] = $codigoC; // Asigna el estado
-    
+
             $cliente = Clientes::create($datosCliente);
-    
+
             DB::commit(); // Confirma la transacción
-    
+
             return response()->json($cliente, 201); //devuelve una copia del objeto empleado
             // $respuesta = array("estado"=>"Creado con éxito"); 
             // return response()->json($respuesta,201);
@@ -109,59 +109,59 @@ class ClientesController extends Controller
         // }
         // return response()->json($cliente);
         $cliente = Clientes::where('clientes.idcliente', $id)
-        ->select(
-            'clientes.idcliente',
-            'clientes.codigo',
-            'clientes.nit',
-            'clientes.cui',
-            'clientes.nombre',
-            'clientes.razonsocial',
-            'clientes.direccion',
-            'clientes.codigo_postal',
-            'adm_departamentopais.nombre as departamento',
-            'clientes.telefono_uno',
-            'clientes.telefono_dos',
-            'clientes.telefono_tres',
-            'clientes.email',
-            'clientes.monto_credito',
-            'clientes.dias_credito',
-            'clientes.comentario',
-            'adm_empleados.nombre as vendedor',
-            'clientes.id_empleado',
-            'clientes.id_municipio',
-            'clientes.idtipocliente',
-            'clientes.iddepartamento',
-            'clientes.fecharegistro',
-            'clientes.usuario_registro',
-            'clientes.usuario_modifica',
-            'clientes.fecha_modificacion',
-            'clientes.estado',
-            'clientes.pasaporte',
-            'clientes.excento_iva',
-            'clientes.extranjero',
-        )
-        ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-        ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
-        ->first(); // Usa first() en lugar de get() para obtener un solo resultado
+            ->select(
+                'clientes.idcliente',
+                'clientes.codigo',
+                'clientes.nit',
+                'clientes.cui',
+                'clientes.nombre',
+                'clientes.razonsocial',
+                'clientes.direccion',
+                'clientes.codigo_postal',
+                'adm_departamentopais.nombre as departamento',
+                'clientes.telefono_uno',
+                'clientes.telefono_dos',
+                'clientes.telefono_tres',
+                'clientes.email',
+                'clientes.monto_credito',
+                'clientes.dias_credito',
+                'clientes.comentario',
+                'adm_empleados.nombre as vendedor',
+                'clientes.id_empleado',
+                'clientes.id_municipio',
+                'clientes.idtipocliente',
+                'clientes.iddepartamento',
+                'clientes.fecharegistro',
+                'clientes.usuario_registro',
+                'clientes.usuario_modifica',
+                'clientes.fecha_modificacion',
+                'clientes.estado',
+                'clientes.pasaporte',
+                'clientes.excento_iva',
+                'clientes.extranjero',
+            )
+            ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+            ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->first(); // Usa first() en lugar de get() para obtener un solo resultado
 
-    if (!$cliente) {
-        return response()->json(['message' => 'Cliente no encontrado'], 404);
-    }
-    return response()->json($cliente);
+        if (!$cliente) {
+            return response()->json(['message' => 'Cliente no encontrado'], 404);
+        }
+        return response()->json($cliente);
     }
 
     public function update(Request $request, $id)
-    {       
+    {
         try {
             DB::beginTransaction(); // Inicia una transacción para asegurar la integridad de los datos
-    
+
             $cliente = Clientes::find($id);
             if (!$cliente) {
                 return response()->json(['message' => 'Cliente no encontrado'], 404);
             }
-    
+
             $datosCliente = $request->all();
-    
+
             // Aplica valores predeterminados si no se proporcionan en la solicitud
             $datosCliente['usuario_modifica'] = auth()->user()->name; // Asigna el usuario registrado
             $datosCliente['fecha_modificacion'] = date('Y-m-d H:i:s'); // Asigna la fecha de registro
@@ -169,11 +169,11 @@ class ClientesController extends Controller
             $datosCliente['id_municipio'] = $datosCliente['id_municipio'] ?? 0; // Asigna 0 si no se proporciona, o el valor proporcionado
             $datosCliente['idtipocliente'] = $datosCliente['idtipocliente'] ?? 1; // Asigna 1 si no se proporciona, o el valor proporcionado
             $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? ''; // Asigna '' si no se proporciona, o el valor proporcionado
-    
+
             $cliente->update($datosCliente);
-    
+
             DB::commit(); // Confirma la transacción
-    
+
             return response()->json($cliente);
         } catch (\Exception $e) {
             DB::rollback(); // Revierte la transacción en caso de error
@@ -211,9 +211,9 @@ class ClientesController extends Controller
 
     public function getDepartamentosPais()
     {
-        $departamentosPais = DepartamentoPais::where('estado',1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
+        $departamentosPais = DepartamentoPais::where('estado', 1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
         return response()->json($departamentosPais);
-    }  
+    }
     public function getVendedores()
     {
         $vendedores = Empleado::where('estado', 1)
@@ -224,5 +224,126 @@ class ClientesController extends Controller
             ->get(['id_empleado', 'nombre']);
 
         return response()->json($vendedores);
-    }  
+    }
+
+    /**
+     * Esta función devuelve las opciones de facturación para un cliente específico.
+     * Permite obtener información como si el cliente tiene NIT, CUI, o si es Consumidor Final.
+     * Y los emails y direcciones asociadas
+     * @param mixed $idcliente
+     * @return \Illuminate\Http\JsonResponse
+     */
+    // public function facturacionOpciones($idcliente)
+    // {
+    //     $cliente = DB::table('clientes')->where('idcliente', $idcliente)->first();
+
+    //     if (!$cliente) {
+    //         return response()->json(['message' => 'Cliente no encontrado'], 404);
+    //     }
+
+    //     $direcciones = DB::table('cliente_direcciones')
+    //         ->where('idcliente', $idcliente)
+    //         ->pluck('direccion')
+    //         ->toArray();
+
+    //     $emails = DB::table('cliente_emails')
+    //         ->where('idcliente', $idcliente)
+    //         ->pluck('email')
+    //         ->toArray();
+
+    //     // Fallbacks si no hay registros en tablas hijas
+    //     if (empty($direcciones) && !empty($cliente->direccion)) {
+    //         $direcciones = [$cliente->direccion];
+    //     }
+    //     if (empty($emails) && !empty($cliente->email)) {
+    //         $emails = [$cliente->email];
+    //     }
+
+    //     return response()->json([
+    //         'cliente' => [
+    //             'idcliente'  => $cliente->idcliente,
+    //             'nombre'     => $cliente->nombre,
+    //             'nit'        => $cliente->nit,
+    //             'cui'        => $cliente->cui,
+    //             'pasaporte'  => $cliente->pasaporte,
+    //             'extranjero' => $cliente->extranjero, // "S" / "N"
+    //         ],
+    //         'direcciones' => $direcciones,
+    //         'emails'      => $emails,
+    //     ]);
+    // }
+    public function facturacionOpciones($idcliente)
+    {
+        $cliente = DB::table('clientes')->where('idcliente', $idcliente)->first();
+
+        if (!$cliente) {
+            return response()->json(['message' => 'Cliente no encontrado'], 404);
+        }
+
+        // 1) Hijos primero (principal al inicio si existe el campo)
+        $direccionesHijas = DB::table('cliente_direcciones')
+            ->where('idcliente', $idcliente)
+            ->when(DB::getSchemaBuilder()->hasColumn('cliente_direcciones', 'es_principal'), function ($q) {
+                $q->orderByDesc('es_principal');
+            })
+            ->whereNotNull('direccion')
+            ->where('direccion', '!=', '')
+            ->pluck('direccion')
+            ->toArray();
+
+        $emailsHijos = DB::table('cliente_emails')
+            ->where('idcliente', $idcliente)
+            ->when(DB::getSchemaBuilder()->hasColumn('cliente_emails', 'es_principal'), function ($q) {
+                $q->orderByDesc('es_principal');
+            })
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->pluck('email')
+            ->toArray();
+
+        // 2) Añade los de la ficha base del cliente al final (para no pisar al principal)
+        $direcciones = $direccionesHijas;
+        if (!empty($cliente->direccion)) {
+            $direcciones[] = $cliente->direccion;
+        }
+
+        $emails = $emailsHijos;
+        if (!empty($cliente->email)) {
+            $emails[] = $cliente->email;
+        }
+
+        // 3) Limpia y deduplica preservando orden
+        $direcciones = array_values(array_unique(array_map(function ($d) {
+            return trim((string)$d);
+        }, array_filter($direcciones)), SORT_STRING));
+
+        // Deduplicación case-insensitive para emails
+        $emails = (function (array $arr) {
+            $out = [];
+            $seen = [];
+            foreach ($arr as $e) {
+                $e = trim((string)$e);
+                if ($e === '') continue;
+                $k = mb_strtolower($e, 'UTF-8');
+                if (!isset($seen[$k])) {
+                    $seen[$k] = true;
+                    $out[] = $e;
+                }
+            }
+            return $out;
+        })($emails);
+
+        return response()->json([
+            'cliente' => [
+                'idcliente'  => $cliente->idcliente,
+                'nombre'     => $cliente->nombre,
+                'nit'        => $cliente->nit,
+                'cui'        => $cliente->cui,
+                'pasaporte'  => $cliente->pasaporte,
+                'extranjero' => $cliente->extranjero, // "S" / "N"
+            ],
+            'direcciones' => $direcciones, // unión sin duplicados
+            'emails'      => $emails,      // unión sin duplicados (case-insensitive)
+        ]);
+    }
 }

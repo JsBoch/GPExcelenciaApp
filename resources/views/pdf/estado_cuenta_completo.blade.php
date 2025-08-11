@@ -70,11 +70,12 @@
     @endphp
 
     @if ($cuenta->recibos->count())
-        <p><strong>Recibos Asociados:</strong></p>
+        <p><strong>Documentos Asociados:</strong></p>
         <table>
             <thead>
                 <tr>
                     <th class="desc" style="width: 20%;">Fecha</th>
+                    <th class="desc" style="width: 20%;">Documento</th>
                     <th class="desc" style="width: 20%;">Método</th>
                     <th style="width: 20%;">Monto</th>
                     <th style="width: 40%;">Referencia</th>
@@ -84,6 +85,7 @@
                 @foreach ($cuenta->recibos as $recibo)
                     <tr>
                         <td class="desc">{{ \Carbon\Carbon::parse($recibo->fecha_recibo)->format('d/m/Y') }}</td>
+                        <td>{{ $recibo->serie.'-'.$recibo->numero }}</td>
                         <td class="desc">{{ $recibo->metodo_pago }}</td>
                         <td>Q {{ number_format($recibo->monto_recibido, 2) }}</td>
                         <td>{{ $recibo->referencia }}</td>

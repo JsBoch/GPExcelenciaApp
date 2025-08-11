@@ -87,7 +87,7 @@
         <tbody>
             @foreach ($recibos as $recibo)
             <tr>
-                <td>{{ $recibo->idrecibo }}</td>
+                <td>{{$recibo->serie . "-" . $recibo->numero }}</td>
                 <td class="fecha-col">{{ $recibo->fecha_recibo }}</td>
                 <td>{{ $recibo->idcuentaporcobrar }}</td>
                 <td class="monto-col">Q {{ number_format($recibo->monto_recibido, 2) }}</td>

@@ -106,7 +106,22 @@ const RecibosConsulta = () => {
     const columns = [
         {
             accessorKey: "idrecibo",
-            header: "Recibo No.",
+            header: "ID",
+            size: 80,
+        },
+        {
+            accessorKey: "serie",
+            header: "SERIE",
+            size: 40,
+        },
+        {
+            accessorKey: "numero",
+            header: "NÚMERO",
+            size: 80,
+        },
+        {
+            accessorKey: "tipo",
+            header: "TIPO",
             size: 80,
         },
         // {

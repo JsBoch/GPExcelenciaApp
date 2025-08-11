@@ -23,6 +23,7 @@ import "../../css/monitor_cotizaciones.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from "reactstrap";
+import ClienteContactosForm from "./ClienteContactosForm";
 
 DataTable.use(DT);
 
@@ -35,12 +36,57 @@ function MonitorFacturacion() {
     const [pdfData, setPdfData] = useState(null);
     const navigate = useNavigate();
     //const today = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
-    const [fechaInicio, setFechaInicio] = useState();
-    const [fechaFinal, setFechaFinal] = useState();
+    const [fechaInicio, setFechaInicio] = useState("");
+    const [fechaFinal, setFechaFinal] = useState("");
     const [mostrarModalErrores, setMostrarModalErrores] = useState(false);
     const [cliente, setCliente] = useState(null);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [estadoFiltro, setEstadoFiltro] = useState("");
+
+    /**
+     * ESTADOS PARA EL MODAL DE INFORMACIÓN DEL CLIENTE
+     */
+    const [showCertModal, setShowCertModal] = useState(false);
+    const [certLoading, setCertLoading] = useState(false);
+    const [opcionesFact, setOpcionesFact] = useState({
+        direcciones: [],
+        emails: [],
+        cliente: null,
+    });
+
+    const [certForm, setCertForm] = useState({
+        documento_tipo: "NIT", // NIT | CUI | PASAPORTE | CF
+        documento_valor: "", // valor del doc según tipo
+        nombre: "",
+        direccion: "",
+        email: "",
+    });
+
+    /** fin del modal para estados de información del cliente */
+
+    /**
+     * Estado y handler para abrir en modal el componente que permite asociar
+     * correos y direcciones al cliente seleccionado
+     */
+    const [showClienteForm, setShowClienteForm] = useState(false);
+    const [idClienteActual, setIdClienteActual] = useState(null);
+
+    const abrirClienteForm = () => {
+        if (!registroSeleccionado?.idcliente) return;
+        setIdClienteActual(registroSeleccionado.idcliente);
+        setShowClienteForm(true);
+    };
+
+    /*************************************************************** */
+
+    /**
+     * Estados para el modal NC y ND
+     */
+    const [showNotaModal, setShowNotaModal] = useState(false);
+    const [notaTipo, setNotaTipo] = useState("NCRE"); // NCRE | NDEB
+    const [notaLoading, setNotaLoading] = useState(false);
+    const [notaForm, setNotaForm] = useState({ motivo: "", monto: "" });
+    /*************************************************************** */
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -52,22 +98,22 @@ function MonitorFacturacion() {
     }, []);
 
     useEffect(() => {
-    const token = localStorage.getItem("token");
-    axios
-        .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-            setFechaInicio(res.data.fecha);
-            setFechaFinal(res.data.fecha);
-        })
-        .catch(() => {
-            // fallback por si falla
-            const today = new Date().toISOString().split("T")[0];
-            setFechaInicio(today);
-            setFechaFinal(today);
-        });
-}, []);
+        const token = localStorage.getItem("token");
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+                setFechaInicio(res.data.fecha);
+                setFechaFinal(res.data.fecha);
+            })
+            .catch(() => {
+                // fallback por si falla
+                const today = new Date().toISOString().split("T")[0];
+                setFechaInicio(today);
+                setFechaFinal(today);
+            });
+    }, []);
 
     const fetchCotizaciones = () => {
         setLoading(true);
@@ -178,6 +224,7 @@ function MonitorFacturacion() {
                     setErroresCertificacion(data.errores);
                     setMostrarModalErrores(true);
                 } else {
+                    //console.log(data);
                     alertify.error("Error al certificar.");
                 }
                 return;
@@ -190,24 +237,57 @@ function MonitorFacturacion() {
         }
     };
 
+    // const abrirFacturaPDF = async (id) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token)
+    //         return alertify.error("Token no encontrado para abrir PDF.");
+    //     try {
+    //         const response = await fetch(
+    //             `${
+    //                 import.meta.env.VITE_API_URL
+    //             }/monitorfacturacion/${id}/facturapdf`,
+    //             {
+    //                 headers: { Authorization: `Bearer ${token}` },
+    //             }
+    //         );
+    //         const blob = await response.blob();
+    //         const url = URL.createObjectURL(blob);
+    //         window.open(url, "_blank");
+    //         URL.revokeObjectURL(url);
+    //     } catch {
+    //         alertify.error("Error al abrir el PDF.");
+    //     }
+    // };
     const abrirFacturaPDF = async (id) => {
         const token = localStorage.getItem("token");
         if (!token)
             return alertify.error("Token no encontrado para abrir PDF.");
+
         try {
             const response = await fetch(
                 `${
                     import.meta.env.VITE_API_URL
                 }/monitorfacturacion/${id}/facturapdf`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                { headers: { Authorization: `Bearer ${token}` } }
             );
+
+            if (!response.ok) {
+                return alertify.error("No se pudo generar el PDF.");
+            }
+
+            // Opcional: verificar content-type
+            const ct = response.headers.get("content-type") || "";
+            if (!ct.includes("application/pdf")) {
+                return alertify.error("El servidor no devolvió un PDF.");
+            }
+
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             window.open(url, "_blank");
-            URL.revokeObjectURL(url);
-        } catch {
+
+            // No lo revoques inmediatamente; espera un poco
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (e) {
             alertify.error("Error al abrir el PDF.");
         }
     };
@@ -318,7 +398,7 @@ function MonitorFacturacion() {
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
         const headers = { Authorization: `Bearer ${token}` };
-
+        console.log("ID Cliente:", idcliente);
         try {
             const { data } = await axios.get(`/api/clientes/${idcliente}`, {
                 headers,
@@ -506,6 +586,162 @@ function MonitorFacturacion() {
         },
     };
 
+    /**
+     * FUNCIÓN para abrir el modal de información del cliente
+     */
+    const abrirModalCertificar = async () => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro.");
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            const { data } = await axios.get(
+                `/api/clientes/${registroSeleccionado.idcliente}/facturacion-opciones`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setOpcionesFact(data);
+
+            // Prefill: por defecto usa NIT si hay; si no, CUI; si no, PASAPORTE; si ninguno, CF
+            let tipo = "CF",
+                valor = "";
+            if (data.cliente?.nit) {
+                tipo = "NIT";
+                valor = data.cliente.nit;
+            } else if (data.cliente?.cui) {
+                tipo = "CUI";
+                valor = data.cliente.cui;
+            } else if (data.cliente?.pasaporte) {
+                tipo = "PASAPORTE";
+                valor = data.cliente.pasaporte;
+            }
+
+            setCertForm({
+                documento_tipo: tipo,
+                documento_valor: valor,
+                nombre: data.cliente?.nombre || "",
+                direccion: data.direcciones?.[0] || "",
+                email: data.emails?.[0] || "",
+            });
+
+            setShowCertModal(true);
+        } catch (e) {
+            console.error(e);
+            alertify.error("No se pudieron cargar opciones del cliente.");
+        }
+    };
+
+    /***************************************************************** */
+
+    /**
+     * FUNCIÓN para enviar a certificar usando los datos del modal
+     */
+    const confirmarCertificacion = async () => {
+        if (!registroSeleccionado) return;
+
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+        setCertLoading(true);
+
+        try {
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/facturar/${
+                    registroSeleccionado.idcotizacion
+                }`,
+                certForm,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (data?.resultado) {
+                alertify.success(`Factura generada. UUID: ${data.uuid}`);
+                setShowCertModal(false);
+                fetchCotizaciones();
+            } else {
+                alertify.error(data?.errores || "No certificado");
+            }
+        } catch (e) {
+            // errores de validación 422
+            if (e.response?.status === 422 && e.response?.data?.errors) {
+                const errs = e.response.data.errors;
+                const primero =
+                    Object.values(errs)[0]?.[0] || "Error de validación";
+                alertify.error(primero);
+            } else {
+                alertify.error("Error al certificar.");
+            }
+        } finally {
+            setCertLoading(false);
+        }
+    };
+    /************************************************** */
+
+    const abrirNota = (tipo) => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro");
+        setNotaTipo(tipo);
+        // prefija el monto con el total de la factura (puedes dejarlo vacío si prefieres)
+        setNotaForm({
+            motivo: "",
+            monto: Number(registroSeleccionado.total_general || 0).toFixed(2),
+        });
+        setShowNotaModal(true);
+    };
+
+    const confirmarNota = async () => {
+        if (!registroSeleccionado) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        const monto = parseFloat(notaForm.monto);
+        if (!notaForm.motivo?.trim())
+            return alertify.error("Ingresa el motivo.");
+        if (isNaN(monto) || monto <= 0)
+            return alertify.error("Monto inválido.");
+        // opcional: no permitir mayor al total
+        // if (monto > Number(registroSeleccionado.total_general)) return alertify.error("El monto supera el total de la factura.");
+
+        setNotaLoading(true);
+        try {
+            const url =
+                notaTipo === "NCRE"
+                    ? `${import.meta.env.VITE_API_URL}/notacredito/${
+                          registroSeleccionado.idcotizacion
+                      }`
+                    : `${import.meta.env.VITE_API_URL}/notadebito/${
+                          registroSeleccionado.idcotizacion
+                      }`;
+
+            const { data } = await axios.post(
+                url,
+                { motivo: notaForm.motivo, monto },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (data?.resultado) {
+                alertify.success(
+                    `${
+                        notaTipo === "NCRE"
+                            ? "Nota de crédito"
+                            : "Nota de débito"
+                    } certificada. UUID: ${data.uuid}`
+                );
+                setShowNotaModal(false);
+                fetchCotizaciones();
+            } else {
+                alertify.error(data?.errores || "No certificado");
+            }
+        } catch (e) {
+            const msg =
+                e.response?.data?.errores ||
+                e.response?.data?.message ||
+                "Error al certificar la nota.";
+            alertify.error(msg);
+        } finally {
+            setNotaLoading(false);
+        }
+    };
+
     const estado = Number(registroSeleccionado?.estado);
 
     const puedeRegresarVenta = estado === 4;
@@ -549,7 +785,6 @@ function MonitorFacturacion() {
                     </div>
                 </div>
             )}
-
             <div className="card">
                 <Header title="Lista de Cotizaciones para facturar" />
                 <div className="row mb-3">
@@ -655,7 +890,8 @@ function MonitorFacturacion() {
                         className="btn btn-warning btn-sm"
                         disabled={!puedeFacturar}
                         onClick={() =>
-                            generarFactura(registroSeleccionado?.idcotizacion)
+                            //generarFactura(registroSeleccionado?.idcotizacion)
+                            abrirModalCertificar()
                         }
                         data-bs-toggle="tooltip"
                         data-bs-placement="top"
@@ -696,7 +932,7 @@ function MonitorFacturacion() {
                         className="btn btn-danger btn-sm me-2"
                         disabled={
                             !registroSeleccionado ||
-                            !registroSeleccionado.resultado === "S" ||
+                            !registroSeleccionado.resultado !== "S" ||
                             !registroSeleccionado.uuid
                         }
                         onClick={handleAnularFactura}
@@ -710,11 +946,12 @@ function MonitorFacturacion() {
                             !registroSeleccionado ||
                             registroSeleccionado.estado !== 6
                         }
-                        onClick={() =>
-                            generarNotaCredito(
-                                registroSeleccionado?.idcotizacion
-                            )
-                        }
+                        // onClick={() =>
+                        //     generarNotaCredito(
+                        //         registroSeleccionado?.idcotizacion
+                        //     )
+                        // }
+                        onClick={() => abrirNota("NCRE")}
                         data-bs-toggle="tooltip"
                         title="Certificar una Nota de Crédito para esta factura"
                     >
@@ -726,21 +963,25 @@ function MonitorFacturacion() {
                             !registroSeleccionado ||
                             registroSeleccionado.estado !== 6
                         }
-                        onClick={() =>
-                            generarNotaDebito(
-                                registroSeleccionado?.idcotizacion
-                            )
-                        }
+                        // onClick={() =>
+                        //     generarNotaDebito(
+                        //         registroSeleccionado?.idcotizacion
+                        //     )
+                        // }
+                        onClick={() => abrirNota("NDEB")}
                         data-bs-toggle="tooltip"
                         title="Certificar una Nota de Débito para esta factura"
                     >
                         🧾 Nota Débito
                     </button>
                     <Button
-                        variant="warning"
-                        onClick={() =>
-                            handleEditarCliente(registroSeleccionado.idcliente)
-                        }
+                        color="warning"
+                        onClick={() => {
+                            if (!registroSeleccionado?.idcliente)
+                                return alertify.error("Seleccione un registro");
+                            setIdClienteActual(registroSeleccionado.idcliente);
+                            setShowClienteForm(true);
+                        }}
                         disabled={!registroSeleccionado}
                     >
                         Información del cliente
@@ -888,7 +1129,7 @@ function MonitorFacturacion() {
                 </div>
             )}
             {/* Modal para mostrar los datos del cliente del registro seleccionado*/}
-            <Modal
+            {/* <Modal
                 isOpen={mostrarModalCliente}
                 toggle={() => setMostrarModalCliente(false)}
                 size="lg" // más ancho
@@ -1019,7 +1260,281 @@ function MonitorFacturacion() {
                         Guardar Cambios
                     </Button>
                 </ModalFooter>
+            </Modal> */}
+            <Modal
+                isOpen={showCertModal}
+                toggle={() => setShowCertModal(false)}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={() => setShowCertModal(false)}>
+                    Datos para certificación
+                </ModalHeader>
+                <ModalBody>
+                    <div className="mb-2">
+                        <label className="form-label">Tipo de documento</label>
+                        <select
+                            className="form-select"
+                            value={certForm.documento_tipo}
+                            onChange={(e) => {
+                                const tipo = e.target.value;
+                                // Cambia el valor del input según el tipo escogido (desde base)
+                                let valor = "";
+                                const c = opcionesFact.cliente || {};
+                                if (tipo === "NIT") valor = c.nit || "";
+                                if (tipo === "CUI") valor = c.cui || "";
+                                if (tipo === "PASAPORTE")
+                                    valor = c.pasaporte || "";
+                                if (tipo === "CF") valor = "";
+                                setCertForm({
+                                    ...certForm,
+                                    documento_tipo: tipo,
+                                    documento_valor: valor,
+                                });
+                            }}
+                        >
+                            <option value="NIT">NIT</option>
+                            <option value="CUI">DPI/CUI</option>
+                            <option value="PASAPORTE">PASAPORTE</option>
+                            <option value="CF">CONSUMIDOR FINAL</option>
+                        </select>
+                    </div>
+
+                    {/* Input del documento */}
+                    {certForm.documento_tipo !== "CF" && (
+                        <div className="mb-2">
+                            <label className="form-label">Número</label>
+                            <input
+                                className="form-control"
+                                value={certForm.documento_valor}
+                                onChange={(e) =>
+                                    setCertForm({
+                                        ...certForm,
+                                        documento_valor: e.target.value,
+                                    })
+                                }
+                                placeholder={
+                                    certForm.documento_tipo === "NIT"
+                                        ? "NIT"
+                                        : certForm.documento_tipo === "CUI"
+                                        ? "DPI/CUI (12-13 dígitos)"
+                                        : "Pasaporte"
+                                }
+                            />
+                        </div>
+                    )}
+
+                    <div className="mb-2">
+                        <label className="form-label">Nombre del cliente</label>
+                        <input
+                            className="form-control"
+                            value={certForm.nombre}
+                            onChange={(e) =>
+                                setCertForm({
+                                    ...certForm,
+                                    nombre: e.target.value,
+                                })
+                            }
+                        />
+                    </div>
+
+                    <div className="mb-2">
+                        <label className="form-label">Dirección</label>
+                        <select
+                            className="form-select"
+                            value={certForm.direccion}
+                            onChange={(e) =>
+                                setCertForm({
+                                    ...certForm,
+                                    direccion: e.target.value,
+                                })
+                            }
+                        >
+                            {(opcionesFact.direcciones || []).map((d, i) => (
+                                <option key={i} value={d}>
+                                    {d}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="mb-2">
+                        <label className="form-label">Correo</label>
+                        <select
+                            className="form-select"
+                            value={certForm.email}
+                            onChange={(e) =>
+                                setCertForm({
+                                    ...certForm,
+                                    email: e.target.value,
+                                })
+                            }
+                        >
+                            {(opcionesFact.emails || []).map((em, i) => (
+                                <option key={i} value={em}>
+                                    {em}
+                                </option>
+                            ))}
+                            <option value="">(sin correo)</option>
+                        </select>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowCertModal(false)}
+                        disabled={certLoading}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        color="warning"
+                        onClick={confirmarCertificacion}
+                        disabled={certLoading}
+                    >
+                        {certLoading ? "Enviando…" : "Certificar"}
+                    </Button>
+                </ModalFooter>
             </Modal>
+            {/* Modal para editar la información del cliente */}
+            <Modal
+                isOpen={showClienteForm}
+                toggle={() => setShowClienteForm(false)}
+                centered
+                // size="xl"
+                className="modal-xxl"
+            >
+                <ModalHeader toggle={() => setShowClienteForm(false)}>
+                    Información del cliente
+                </ModalHeader>
+                <ModalBody>
+                    {idClienteActual != null && (
+                        <ClienteContactosForm
+                            idclienteInicial={idClienteActual} // ← precarga el cliente
+                            bloquearSeleccion={false} // ← pon true si NO quieres que cambie
+                            onClose={() => setShowClienteForm(false)}
+                            onSaved={() => {
+                                setShowClienteForm(false);
+                                fetchCotizaciones();
+                            }}
+                        />
+                    )}
+                </ModalBody>
+            </Modal>
+            {/* Modal para colocar los datos de la nota de crédito y débito */}
+            <Modal
+                isOpen={showNotaModal}
+                toggle={() => setShowNotaModal(false)}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={() => setShowNotaModal(false)}>
+                    {notaTipo === "NCRE" ? "Nota de Crédito" : "Nota de Débito"}{" "}
+                    – Ajuste
+                </ModalHeader>
+                <ModalBody>
+                    {registroSeleccionado && (
+                        <>
+                            <div className="mb-3">
+                                <div className="small text-muted">Cliente</div>
+                                <div className="fw-semibold">
+                                    {registroSeleccionado.cliente}
+                                </div>
+                            </div>
+
+                            <div className="row g-3 mb-3">
+                                <div className="col-md-6">
+                                    <div className="small text-muted">FEL</div>
+                                    <div className="fw-semibold">
+                                        {registroSeleccionado.serie || "-"}-
+                                        {registroSeleccionado.numero || "-"}
+                                    </div>
+                                    <div
+                                        className="text-muted"
+                                        style={{ fontSize: "0.8rem" }}
+                                    >
+                                        {registroSeleccionado.uuid}
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="small text-muted">
+                                        Total Factura
+                                    </div>
+                                    <div className="fw-semibold">
+                                        {Number(
+                                            registroSeleccionado.total_general ||
+                                                0
+                                        ).toLocaleString("es-GT", {
+                                            style: "currency",
+                                            currency: "GTQ",
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="mb-3">
+                        <label className="form-label">Motivo del ajuste</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            maxLength={200}
+                            value={notaForm.motivo}
+                            onChange={(e) =>
+                                setNotaForm({
+                                    ...notaForm,
+                                    motivo: e.target.value,
+                                })
+                            }
+                            placeholder="Ej. Descuento por devolución parcial"
+                        />
+                    </div>
+
+                    <div className="mb-2">
+                        <label className="form-label">
+                            Monto a ajustar (GTQ)
+                        </label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            step="0.01"
+                            min="0.01"
+                            value={notaForm.monto}
+                            onChange={(e) =>
+                                setNotaForm({
+                                    ...notaForm,
+                                    monto: e.target.value,
+                                })
+                            }
+                        />
+                        <div className="form-text">
+                            Se emitirá la {notaTipo === "NCRE" ? "NC" : "ND"}{" "}
+                            con <strong>una sola línea</strong> por este monto.
+                        </div>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowNotaModal(false)}
+                        disabled={notaLoading}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        color={notaTipo === "NCRE" ? "info" : "secondary"}
+                        onClick={confirmarNota}
+                        disabled={notaLoading}
+                    >
+                        {notaLoading
+                            ? "Enviando…"
+                            : notaTipo === "NCRE"
+                            ? "Certificar NC"
+                            : "Certificar ND"}
+                    </Button>
+                </ModalFooter>
+            </Modal>          
         </div>
     );
 }

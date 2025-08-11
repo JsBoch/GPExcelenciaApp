@@ -15,3 +15,15 @@
 .estado-6 td {
     color: #333 !important;
 }
+
+/* Modal extra-ancho para ClienteContactos */
+.modal-dialog.modal-xxl {
+  max-width: 96vw;   /* casi toda la pantalla */
+  width: 96vw;
+}
+
+@media (min-width: 1600px) {
+  .modal-dialog.modal-xxl {
+    max-width: 1500px; /* tope razonable en monitores grandes */
+  }
+}
