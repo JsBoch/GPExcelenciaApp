@@ -192,9 +192,7 @@ class ClientesController extends Controller
     }
 
     /**
-     * Desactivar un empleado
-     * @param $id El ID del empleado a desactivar
-     * @return Una respuesta JSON con un mensaje de éxito o error
+     * Desactivar un empleado     
      */
     public function desactivar($id)
     {
