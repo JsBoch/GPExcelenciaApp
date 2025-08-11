@@ -29,6 +29,9 @@ class AdmRecibo extends Model
         'usuario_modificacion',
         'fecha_modificacion',
         'estado',
+        'serie',
+        'numero',
+        'tipo',
     ];
 
     public function cuenta()

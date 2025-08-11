@@ -172,6 +172,14 @@ function Home() {
                     to = `/reportes/contabilidad/cotizaciones`;
                     text = 'Consulta de cotizaciones';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Cartera Reportes-Contabilidad' && opcion.accion === 'cartera') {
+                    to = `/reportes/contabilidad/cartera`;
+                    text = 'Consulta cartera de clientes';
+                    icon = <FiSearch />;
+                }else if (opcion.nombre === 'Contactos clientes' && opcion.accion === 'contactos') {
+                    to = `/clientes/datos`;
+                    text = 'Asignar información de contacto';
+                    icon = <FiSearch />;
                 }
 
 

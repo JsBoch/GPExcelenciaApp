@@ -31,6 +31,8 @@ import ReciboRegistro from './components/ReciboRegistro';
 import ReciboEditar from './components/ReciboRegistro';
 import ReciboConsulta from './components/RecibosConsulta';
 import ConsultaCotizacionesContabilidad from './components/CotizacionesConsultaContabilidad';
+import CarteraClientesContabilidad from './components/reportes/contabilidad/ReporteCartera';
+import ClienteContactosForm from './components/ClienteContactosForm'; 
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -86,6 +88,8 @@ function App() {
                     <Route path="/recibos/editar/:id" element={<ProtectedRoute><ReciboEditar /></ProtectedRoute>} />
                     <Route path="/recibos/lista" element={<ProtectedRoute><ReciboConsulta /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/cotizaciones" element={<ProtectedRoute><ConsultaCotizacionesContabilidad /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/cartera" element={<ProtectedRoute><CarteraClientesContabilidad /></ProtectedRoute>} />
+                    <Route path="/clientes/datos" element={<ProtectedRoute><ClienteContactosForm /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

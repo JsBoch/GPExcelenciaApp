@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar er
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CotizacionController extends Controller
 {
@@ -628,7 +629,7 @@ class CotizacionController extends Controller
             return response()->json([
                 'cotizacion' => $cotizacion,
                 'totalEnLetras' => $totalEnLetras
-            ]);
+            ]);                        
         } catch (\Throwable $e) {
             Log::error('Error generando PDF cotización: ' . $e->getMessage());
             return response()->json(['message' => 'Error generando el PDF.'], 500);

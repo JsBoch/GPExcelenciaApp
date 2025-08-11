@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use App\Support\NitUtils;
 
 class MonitorFacturacionController extends Controller
 {
@@ -55,6 +57,8 @@ class MonitorFacturacionController extends Controller
                     ELSE 'DESCONOCIDO'
                 END as estado_texto"),
                 'c.uuid',
+                'c.serie',
+                'c.numero',
                 'c.errores',
                 'c.resultado',
             )
@@ -139,7 +143,23 @@ class MonitorFacturacionController extends Controller
 
         //$pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
         //return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
-        return response()->json(['cotizacion' => $cotizacion, 'totalEnLetras' => $totalEnLetras]);
+        // return response()->json(['cotizacion' => $cotizacion, 'totalEnLetras' => $totalEnLetras]);
+        $pdf = Pdf::loadView('pdf.cotizacion', [
+            'cotizacion'    => $cotizacion,
+            'detalles'      => $detalles,
+            'totalEnLetras' => $totalEnLetras,
+        ])->setPaper('letter');
+
+        // Opción A: ver en el navegador
+        return $pdf->stream('cotizacion_' . $cotizacion->nocotizacion . '.pdf');
+
+        // Opción B: forzar descarga
+        // return $pdf->download('cotizacion_'.$cotizacion->nocotizacion.'.pdf');
+
+        // Si prefieres headers explícitos:
+        // return response($pdf->output(), 200)
+        //   ->header('Content-Type', 'application/pdf')
+        //   ->header('Content-Disposition', 'inline; filename="cotizacion_'.$cotizacion->nocotizacion.'.pdf"');
     }
 
     public function desactivar($id)
@@ -155,9 +175,18 @@ class MonitorFacturacionController extends Controller
         return response()->json(['message' => 'Cotización desactivada']);
     }
 
-    public function generarXMLFactura($idcotizacion)
+    public function generarXMLFactura(Request $request, $idcotizacion)
     {
-        // Log::info($idcotizacion);
+        // 1) Validación de payload recibido del modal
+        $validated = $request->validate([
+            'documento_tipo'  => 'required|in:NIT,CUI,PASAPORTE,CF',
+            'documento_valor' => 'nullable|string|max:30',
+            'nombre'          => 'required|string|max:200',
+            'direccion'       => 'required|string|max:255',
+            'email'           => 'nullable|email|max:150',
+        ]);
+
+        // 2) Consulta de detalles (igual a lo que ya está) — SIN usar datos de cliente para Receptor
         $detalles = DB::select("
         SELECT 
             ROW_NUMBER() OVER (ORDER BY d.iddetallecotizacion) AS numero_linea,
@@ -201,6 +230,60 @@ class MonitorFacturacionController extends Controller
 
         $detalle = $detalles[0];
 
+        // 3) SE LEEN Y PREPARAN LOS DATOS DEL MODAL PARA EL RECEPTOR
+        $docTipo   = $validated['documento_tipo'];        // NIT | CUI | PASAPORTE | CF
+        $docValor  = trim((string)($validated['documento_valor'] ?? ''));
+        $nombre    = $validated['nombre'];
+        $direccion = $validated['direccion'];
+        $correo    = $validated['email'] ?? '';
+
+        // Reglas y normalización por tipo
+        $clienteExentoIVA = "N"; // Si quieres, podrías traerlo aparte según tu lógica
+        if (isset($detalle->excento_iva) && $detalle->excento_iva == "S") {
+            $clienteExentoIVA = "S";
+        }
+        $idReceptor = '';
+        $tipoEspecial = null;
+
+        switch ($docTipo) {
+            case 'CF':
+                $idReceptor = 'CF';
+                break;
+
+            case 'NIT':
+                if (!NitUtils::esValido($docValor)) {
+                    throw ValidationException::withMessages([
+                        'documento_valor' => ['NIT no válido para Guatemala.'],
+                    ]);
+                }
+                $idReceptor = NitUtils::normalizarParaFEL($docValor); // dígitos y K, sin guión
+                break;
+
+            case 'CUI':
+                $cui = preg_replace('/\D/', '', $docValor);
+                if (strlen($cui) < 12 || strlen($cui) > 13) {
+                    throw ValidationException::withMessages([
+                        'documento_valor' => ['CUI/DPI debe tener 12 o 13 dígitos.'],
+                    ]);
+                }
+                $idReceptor = $cui;
+                $tipoEspecial = 'CUI';
+                break;
+
+            case 'PASAPORTE':
+                if ($docValor === '') {
+                    throw ValidationException::withMessages([
+                        'documento_valor' => ['Ingrese un número de pasaporte.'],
+                    ]);
+                }
+                $idReceptor = strtoupper($docValor);
+                $tipoEspecial = 'Número de documento de identificación del extranjero';
+                break;
+        }
+
+        /** FINALIZACIÓN DE LOS DATOS DEL MODAL PARA EL RECEPTOR */
+
+        //4
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
 
@@ -244,62 +327,30 @@ class MonitorFacturacionController extends Controller
         $dirEmisor->appendChild($doc->createElement('dte:Departamento', 'GUATEMALA'));
         $dirEmisor->appendChild($doc->createElement('dte:Pais', 'GT'));
 
-        $Receptor = $doc->createElement('dte:Receptor');
-        $Receptor->setAttribute('CorreoReceptor', $detalle->correo ?? '');
-        // $Receptor->setAttribute('IDReceptor', $detalle->nit);
-        $clienteTieneNIT = false;
-        $clienteTieneCUI = false;
-        $clienteEsExtranjero = false;
-        $clienteExentoIVA = "N";
-
-        if (isset($detalle->excento_iva) && $detalle->excento_iva == "S") {
-            $clienteExentoIVA = "S";
-        }
-
         /**
-         * Verifica si el cliente tiene NIT, CUI o es extranjero
+         * DATOS DEL MODAL PARA RECEPTOR
          */
-        if (!empty($detalle->nit)) {
-            $nitDepurado = preg_replace('/[^0-9]/', '', $detalle->nit);
-            if (strlen($nitDepurado) >= 8) {
-                $clienteTieneNIT = true;
-            }
-        }
-        if (!empty($detalle->cui)) {
-            $cuiDepurado = preg_replace('/[^0-9]/', '', $detalle->cui);
-            if (strlen($cuiDepurado) >= 13) {
-                $clienteTieneCUI = true;
-            }
-        }
-        if (!empty($detalle->pasaporte) && !empty($detalle->extranjero) && $detalle->extranjero == "S") {
-            $pasaporte = strtoupper(trim($detalle->pasaporte));
-            $clienteEsExtranjero = true;
-        }
+        $Receptor = $doc->createElement('dte:Receptor');
+        $Receptor->setAttribute('CorreoReceptor', $correo ?? '');
+        $Receptor->setAttribute('IDReceptor', $idReceptor);
 
-        if ($clienteTieneCUI) {
-            $Receptor->setAttribute('IDReceptor', $cuiDepurado);
-            $TipoEspecial = $doc->createElement('dte:TipoEspecial', 'CUI');
-            $Receptor->appendChild($TipoEspecial);
-        } elseif ($clienteTieneNIT) {
-            $Receptor->setAttribute('IDReceptor', $nitDepurado);
-            // Sin TipoEspecial
-        } elseif ($clienteEsExtranjero) {
-            $Receptor->setAttribute('IDReceptor', strtoupper($pasaporte));
-            $TipoEspecial = $doc->createElement('dte:TipoEspecial', 'Número de documento de identificación del extranjero');
+        if ($tipoEspecial) {
+            $TipoEspecial = $doc->createElement('dte:TipoEspecial', $tipoEspecial);
             $Receptor->appendChild($TipoEspecial);
         }
 
-        /************************************************************** */
-        $Receptor->setAttribute('NombreReceptor', $detalle->nombre);
+        $Receptor->setAttribute('NombreReceptor', $nombre);
         $DatosEmision->appendChild($Receptor);
 
         $dirReceptor = $doc->createElement('dte:DireccionReceptor');
         $Receptor->appendChild($dirReceptor);
-        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $detalle->direccion));
+        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $direccion));
         $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
         $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
         $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
         $dirReceptor->appendChild($doc->createElement('dte:Pais', $detalle->pais));
+
+        /** AQUÍ TERMINAN LOS DATOS DEL MODAL PARA RECEPTOR */
 
         $Frases = $doc->createElement('dte:Frases');
         $DatosEmision->appendChild($Frases);
@@ -447,6 +498,12 @@ class MonitorFacturacionController extends Controller
                         'identificador'        => $identificador,
                         'estado'               => 6,
                         'nofactura'            => $noFactura,
+                        'numero_crtf'          => $idReceptor,          // CF, NIT normalizado, CUI, PASAPORTE
+                        'tipo_crtf'            => $docTipo,             // NIT | CUI | PASAPORTE | CF
+                        'tipo_especial_crtf'   => $tipoEspecial,        // 'CUI' o 'Número de documento...' o NULL
+                        'nombre_crtf'          => $nombre,
+                        'email_crtf'           => $correo,
+                        'direccion_crtf'       => $direccion,
                     ]);
 
                     // === Crear cuenta por cobrar ===
@@ -735,74 +792,321 @@ class MonitorFacturacionController extends Controller
     }
 
 
-    public function generarXMLNotaCredito($idcotizacion)
+    // public function generarXMLNotaCredito($idcotizacion)
+    // {
+
+    //     $xmlString = $this->construirXMLNota($idcotizacion, 'NCRED', 'DOCUMENTO DE MUESTRA NCRED');
+
+    //     if (!$xmlString) {
+    //         return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
+    //     }
+    //     // Envío y manejo idéntico al de FCAM
+    //     return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'NCRE');
+    // }
+
+    // // Función Laravel para generar Nota de Débito
+    // public function generarXMLNotaDebito($idcotizacion)
+    // {
+    //     // Esta función es prácticamente igual a generarXMLNotaCredito
+    //     // pero cambia el tipo a NDEB y el motivo del ajuste.
+
+    //     $xmlString = $this->construirXMLNota($idcotizacion, 'NDEB', 'DOCUMENTO DE MUESTRA NDEB');
+
+    //     if (!$xmlString) {
+    //         return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
+    //     }
+
+    //     return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'ndeb');
+    // }
+    // public function generarXMLNotaCredito(Request $request, $idcotizacion)
+    // {
+    //     $validated = $request->validate([
+    //         'motivo' => 'required|string|max:200',
+    //         'monto'  => 'required|numeric|min:0.01',
+    //     ]);
+
+    //     $xmlString = $this->construirXMLNotaAjuste(
+    //         $idcotizacion,
+    //         'NCRE',
+    //         $validated['motivo'],
+    //         (float) $validated['monto']
+    //     );
+
+    //     if (!$xmlString) {
+    //         return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
+    //     }
+
+    //     return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'NCRE');
+    // }
+
+    // public function generarXMLNotaDebito(Request $request, $idcotizacion)
+    // {
+    //     $validated = $request->validate([
+    //         'motivo' => 'required|string|max:200',
+    //         'monto'  => 'required|numeric|min:0.01',
+    //     ]);
+
+    //     $xmlString = $this->construirXMLNotaAjuste(
+    //         $idcotizacion,
+    //         'NDEB',
+    //         $validated['motivo'],
+    //         (float) $validated['monto']
+    //     );
+
+    //     if (!$xmlString) {
+    //         return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
+    //     }
+
+    //     return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'NDEB');
+    // }
+
+    // private function construirXMLNota($idcotizacion, $tipo, $motivo)
+    // {
+    //     $detalles = DB::select("
+    //     SELECT 
+    //         ROW_NUMBER() OVER (ORDER BY d.iddetallecotizacion) AS numero_linea,
+    //         d.cantidad,
+    //         IF(CHAR_LENGTH(d.unidad_medida) > 3, LEFT(d.unidad_medida, 3), d.unidad_medida) AS unidad_medida,
+    //         d.descripcion,
+    //         ROUND(d.precio, 3) AS precio_unitario,
+    //         ROUND(d.total, 3) AS precio,
+    //         0 AS descuento,
+    //         ROUND(d.total / 1.12, 3) AS monto_gravable,
+    //         ROUND(d.total - (d.total / 1.12), 3) AS monto_impuesto,
+    //         ROUND(d.total, 3) AS total,
+    //         ROUND(c.total_general, 3) AS gran_total,
+    //         cl.nombre,
+    //         cl.nit,
+    //         cl.cui,
+    //         cl.direccion,
+    //         cl.codigo_postal,
+    //         cl.email as correo,
+    //         m.nombre as municipio,
+    //         dp.nombre as departamento,
+    //         'GT' as pais,
+    //         date(c.fecha_certificacion) as fecha_emision,
+    //         c.numero as numero_origen,
+    //         c.serie as serie_origen,
+    //         c.uuid as uuid_origen
+    //     FROM adm_cotizacion c
+    //     JOIN adm_detalle_cotizacion d ON c.idcotizacion = d.idcotizacion
+    //     JOIN clientes cl ON c.idcliente = cl.idcliente
+    //     JOIN adm_municipio m ON cl.id_municipio = m.id_municipio
+    //     JOIN adm_departamentopais dp ON cl.iddepartamento = dp.iddepartamentopais
+    //     WHERE d.estado = 1 AND d.idcotizacion = ?
+    // ", [$idcotizacion]);
+
+    //     if (empty($detalles)) {
+    //         return response()->json(['error' => 'Cotización no encontrada'], 404);
+    //     }
+
+    //     $detalle = $detalles[0];
+    //     $doc = new \DOMDocument('1.0', 'UTF-8');
+    //     $doc->formatOutput = true;
+
+    //     $GTDocumento = $doc->createElementNS('http://www.sat.gob.gt/dte/fel/0.2.0', 'dte:GTDocumento');
+    //     $GTDocumento->setAttribute('xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
+    //     $GTDocumento->setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+    //     $GTDocumento->setAttribute('Version', '0.1');
+    //     $GTDocumento->setAttribute('xsi:schemaLocation', 'http://www.sat.gob.gt/dte/fel/0.2.0');
+    //     $doc->appendChild($GTDocumento);
+
+    //     $SAT = $doc->createElement('dte:SAT');
+    //     $SAT->setAttribute('ClaseDocumento', 'dte');
+    //     $GTDocumento->appendChild($SAT);
+
+    //     $DTE = $doc->createElement('dte:DTE');
+    //     $DTE->setAttribute('ID', 'DatosCertificados');
+    //     $SAT->appendChild($DTE);
+
+    //     $DatosEmision = $doc->createElement('dte:DatosEmision');
+    //     $DatosEmision->setAttribute('ID', 'DatosEmision');
+    //     $DTE->appendChild($DatosEmision);
+
+    //     $DatosGenerales = $doc->createElement('dte:DatosGenerales');
+    //     $DatosGenerales->setAttribute('CodigoMoneda', 'GTQ');
+    //     $DatosGenerales->setAttribute('FechaHoraEmision', now()->format('Y-m-d\TH:i:s'));
+    //     $DatosGenerales->setAttribute('Tipo', $tipo);
+    //     $DatosEmision->appendChild($DatosGenerales);
+
+    //     // Emisor (personaliza con tus datos)
+    //     $Emisor = $doc->createElement('dte:Emisor');
+    //     $Emisor->setAttribute('AfiliacionIVA', 'GEN');
+    //     $Emisor->setAttribute('CodigoEstablecimiento', '1');
+    //     $Emisor->setAttribute('CorreoEmisor', 'ventas@gpexcelencia.com');
+    //     $Emisor->setAttribute('NITEmisor', '11201359K');
+    //     $Emisor->setAttribute('NombreComercial', 'GP EXCELENCIA');
+    //     $Emisor->setAttribute('NombreEmisor', 'GP EXCELENCIA');
+    //     $DatosEmision->appendChild($Emisor);
+
+    //     $dirEmisor = $doc->createElement('dte:DireccionEmisor');
+    //     $dirEmisor->appendChild($doc->createElement('dte:Direccion', '11 CALLE 41-20 COLONIA EL NARANJITO ZONA 6 APARTAMENTO A'));
+    //     $dirEmisor->appendChild($doc->createElement('dte:CodigoPostal', '01057'));
+    //     $dirEmisor->appendChild($doc->createElement('dte:Municipio', 'MIXCO'));
+    //     $dirEmisor->appendChild($doc->createElement('dte:Departamento', 'GUATEMALA'));
+    //     $dirEmisor->appendChild($doc->createElement('dte:Pais', 'GT'));
+    //     $Emisor->appendChild($dirEmisor);
+
+    //     // Receptor
+    //     $Receptor = $doc->createElement('dte:Receptor');
+    //     $Receptor->setAttribute('CorreoReceptor', $detalle->correo ?? '');
+    //     $Receptor->setAttribute('IDReceptor', $detalle->nit);
+    //     $Receptor->setAttribute('NombreReceptor', $detalle->nombre);
+    //     $DatosEmision->appendChild($Receptor);
+
+    //     $dirReceptor = $doc->createElement('dte:DireccionReceptor');
+    //     $dirReceptor->appendChild($doc->createElement('dte:Direccion', $detalle->direccion));
+    //     $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
+    //     $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
+    //     $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
+    //     $dirReceptor->appendChild($doc->createElement('dte:Pais', 'GT'));
+    //     $Receptor->appendChild($dirReceptor);
+
+    //     // Frase
+    //     $Frases = $doc->createElement('dte:Frases');
+    //     $Frase = $doc->createElement('dte:Frase');
+    //     $Frase->setAttribute('CodigoEscenario', '1');
+    //     $Frase->setAttribute('TipoFrase', '1');
+    //     $Frases->appendChild($Frase);
+    //     $DatosEmision->appendChild($Frases);
+
+    //     // Items
+    //     $Items = $doc->createElement('dte:Items');
+    //     foreach ($detalles as $d) {
+    //         $Item = $doc->createElement('dte:Item');
+    //         $Item->setAttribute('BienOServicio', 'B');
+    //         $Item->setAttribute('NumeroLinea', $d->numero_linea);
+    //         $Item->appendChild($doc->createElement('dte:Cantidad', $d->cantidad));
+    //         $Item->appendChild($doc->createElement('dte:UnidadMedida', $d->unidad_medida));
+    //         $Item->appendChild($doc->createElement('dte:Descripcion', $d->descripcion));
+    //         $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($d->precio_unitario, 2, '.', '')));
+    //         $Item->appendChild($doc->createElement('dte:Precio', number_format($d->precio, 2, '.', '')));
+    //         $Item->appendChild($doc->createElement('dte:Descuento', '0.00'));
+
+    //         $Impuestos = $doc->createElement('dte:Impuestos');
+    //         $Impuesto = $doc->createElement('dte:Impuesto');
+    //         $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
+    //         $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
+    //         $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 2, '.', '')));
+    //         $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 2, '.', '')));
+    //         $Impuestos->appendChild($Impuesto);
+    //         $Item->appendChild($Impuestos);
+
+    //         $Item->appendChild($doc->createElement('dte:Total', number_format($d->total, 2, '.', '')));
+    //         $Items->appendChild($Item);
+    //     }
+    //     $DatosEmision->appendChild($Items);
+
+    //     // Totales
+    //     $Totales = $doc->createElement('dte:Totales');
+    //     $TotalImpuestos = $doc->createElement('dte:TotalImpuestos');
+    //     $TotalImpuesto = $doc->createElement('dte:TotalImpuesto');
+    //     $TotalImpuesto->setAttribute('NombreCorto', 'IVA');
+    //     $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format(array_sum(array_column($detalles, 'monto_impuesto')), 2, '.', ''));
+    //     $TotalImpuestos->appendChild($TotalImpuesto);
+    //     $Totales->appendChild($TotalImpuestos);
+    //     $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($detalle->gran_total, 2, '.', '')));
+    //     $DatosEmision->appendChild($Totales);
+
+    //     // Complemento Nota de Crédito
+    //     $Complementos = $doc->createElement('dte:Complementos');
+    //     $Complemento = $doc->createElement('dte:Complemento');
+    //     $Complemento->setAttribute('IDComplemento', 'Notas');
+    //     $Complemento->setAttribute('NombreComplemento', 'Notas');
+    //     $Complemento->setAttribute('URIComplemento', 'http://www.sat.gob.gt/fel/notas.xsd');
+
+    //     $ReferenciasNota = $doc->createElementNS('http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0', 'cno:ReferenciasNota');
+    //     $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', $detalle->fecha_emision);
+    //     $ReferenciasNota->setAttribute('MotivoAjuste', $motivo);
+    //     $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $detalle->uuid_origen);
+    //     $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $detalle->numero_origen);
+    //     $ReferenciasNota->setAttribute('SerieDocumentoOrigen', $detalle->serie_origen);
+    //     $ReferenciasNota->setAttribute('Version', '0.0');
+    //     $ReferenciasNota->setAttribute('xsi:schemaLocation', 'http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0 http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0.xsd');
+
+    //     $Complemento->appendChild($ReferenciasNota);
+    //     $Complementos->appendChild($Complemento);
+    //     $DatosEmision->appendChild($Complementos);
+
+    //     return $doc->saveXML();
+    // }
+
+    public function generarXMLNotaCredito(Request $request, $idcotizacion)
     {
+        $validated = $request->validate([
+            'motivo' => 'required|string|max:200',
+            'monto'  => 'required|numeric|min:0.01',
+        ]);
 
-        $xmlString = $this->construirXMLNota($idcotizacion, 'NCRED', 'DOCUMENTO DE MUESTRA NCRED');
+        $res = $this->construirXMLNotaAjuste($idcotizacion, 'NCRE', $validated['motivo'], (float)$validated['monto']);
+        if (!$res) return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
 
-        if (!$xmlString) {
-            return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
-        }
-        // Envío y manejo idéntico al de FCAM
-        return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'NCRE');
+        return $this->enviarXMLAFEL($idcotizacion, $res['xml'], 'NCRE', $res['meta']);
     }
 
-    // Función Laravel para generar Nota de Débito
-    public function generarXMLNotaDebito($idcotizacion)
+    public function generarXMLNotaDebito(Request $request, $idcotizacion)
     {
-        // Esta función es prácticamente igual a generarXMLNotaCredito
-        // pero cambia el tipo a NDEB y el motivo del ajuste.
+        $validated = $request->validate([
+            'motivo' => 'required|string|max:200',
+            'monto'  => 'required|numeric|min:0.01',
+        ]);
 
-        $xmlString = $this->construirXMLNota($idcotizacion, 'NDEB', 'DOCUMENTO DE MUESTRA NDEB');
+        $res = $this->construirXMLNotaAjuste($idcotizacion, 'NDEB', $validated['motivo'], (float)$validated['monto']);
+        if (!$res) return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
 
-        if (!$xmlString) {
-            return response()->json(['resultado' => false, 'errores' => 'No se pudo generar XML'], 422);
-        }
-
-        return $this->enviarXMLAFEL($idcotizacion, $xmlString, 'ndeb');
+        return $this->enviarXMLAFEL($idcotizacion, $res['xml'], 'NDEB', $res['meta']);
     }
 
-    private function construirXMLNota($idcotizacion, $tipo, $motivo)
+    private function construirXMLNotaAjuste($idcotizacion, $tipo, $motivo, $monto)
     {
-        $detalles = DB::select("
-        SELECT 
-            ROW_NUMBER() OVER (ORDER BY d.iddetallecotizacion) AS numero_linea,
-            d.cantidad,
-            IF(CHAR_LENGTH(d.unidad_medida) > 3, LEFT(d.unidad_medida, 3), d.unidad_medida) AS unidad_medida,
-            d.descripcion,
-            ROUND(d.precio, 3) AS precio_unitario,
-            ROUND(d.total, 3) AS precio,
-            0 AS descuento,
-            ROUND(d.total / 1.12, 3) AS monto_gravable,
-            ROUND(d.total - (d.total / 1.12), 3) AS monto_impuesto,
-            ROUND(d.total, 3) AS total,
-            ROUND(c.total_general, 3) AS gran_total,
-            cl.nombre,
-            cl.nit,
-            cl.cui,
-            cl.direccion,
-            cl.codigo_postal,
-            cl.email as correo,
-            m.nombre as municipio,
-            dp.nombre as departamento,
-            'GT' as pais,
-            date(c.fecha_certificacion) as fecha_emision,
-            c.numero as numero_origen,
-            c.serie as serie_origen,
-            c.uuid as uuid_origen
-        FROM adm_cotizacion c
-        JOIN adm_detalle_cotizacion d ON c.idcotizacion = d.idcotizacion
-        JOIN clientes cl ON c.idcliente = cl.idcliente
-        JOIN adm_municipio m ON cl.id_municipio = m.id_municipio
-        JOIN adm_departamentopais dp ON cl.iddepartamento = dp.iddepartamentopais
-        WHERE d.estado = 1 AND d.idcotizacion = ?
-    ", [$idcotizacion]);
+        // Trae datos mínimos del documento origen y del receptor
+        $row = DB::table('adm_cotizacion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('adm_municipio as m', 'cl.id_municipio', '=', 'm.id_municipio')
+            ->join('adm_departamentopais as dp', 'cl.iddepartamento', '=', 'dp.iddepartamentopais')
+            ->where('c.idcotizacion', $idcotizacion)
+            ->select(
+                'c.idcliente',
+                'c.uuid as uuid_origen',
+                'c.serie as serie_origen',
+                'c.numero as numero_origen',
+                DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
+                'c.nombre_crtf as nombre',
+                'c.numero_crtf as nit',
+                'c.direccion_crtf as direccion',
+                'cl.codigo_postal',
+                'c.email_crtf as correo',
+                'c.tipo_crtf as tipo',
+                'c.tipo_especial_crtf as tipo_especial',
+                'm.nombre as municipio',
+                'dp.nombre as departamento',
+                DB::raw("'GT' as pais"),
+                'cl.excento_iva'
+            )
+            ->first();
 
-        if (empty($detalles)) {
-            return response()->json(['error' => 'Cotización no encontrada'], 404);
+        if (!$row || empty($row->uuid_origen)) {
+            return null; // Debe existir un DTE origen certificado
         }
 
-        $detalle = $detalles[0];
+        // Normaliza montos
+        $monto = round($monto, 2);
+        if ($monto <= 0) {
+            return null;
+        }
+
+        $exento = ($row->excento_iva ?? 'N') === 'S';
+
+        // Cálculo de base/IVA para una sola línea
+        if ($exento) {
+            $monto_gravable = 0.00;
+            $monto_impuesto = 0.00;
+        } else {
+            $monto_gravable = round($monto / 1.12, 2);
+            $monto_impuesto = round($monto - $monto_gravable, 2);
+        }
+
+        // ——— XML ———
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
 
@@ -810,7 +1114,6 @@ class MonitorFacturacionController extends Controller
         $GTDocumento->setAttribute('xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
         $GTDocumento->setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
         $GTDocumento->setAttribute('Version', '0.1');
-        $GTDocumento->setAttribute('xsi:schemaLocation', 'http://www.sat.gob.gt/dte/fel/0.2.0');
         $doc->appendChild($GTDocumento);
 
         $SAT = $doc->createElement('dte:SAT');
@@ -828,16 +1131,16 @@ class MonitorFacturacionController extends Controller
         $DatosGenerales = $doc->createElement('dte:DatosGenerales');
         $DatosGenerales->setAttribute('CodigoMoneda', 'GTQ');
         $DatosGenerales->setAttribute('FechaHoraEmision', now()->format('Y-m-d\TH:i:s'));
-        $DatosGenerales->setAttribute('Tipo', $tipo);
+        $DatosGenerales->setAttribute('Tipo', $tipo); // NCRE | NDEB
         $DatosEmision->appendChild($DatosGenerales);
 
-        // Emisor (personaliza con tus datos)
+        // Emisor (tus datos)
         $Emisor = $doc->createElement('dte:Emisor');
         $Emisor->setAttribute('AfiliacionIVA', 'GEN');
         $Emisor->setAttribute('CodigoEstablecimiento', '1');
         $Emisor->setAttribute('CorreoEmisor', 'ventas@gpexcelencia.com');
         $Emisor->setAttribute('NITEmisor', '11201359K');
-        $Emisor->setAttribute('NombreComercial', 'GP EXCELENCIA');
+        $Emisor->setAttribute('NombreComercial', 'GP EXCELENCIA, SOCIEDAD ANÓNIMA');
         $Emisor->setAttribute('NombreEmisor', 'GP EXCELENCIA');
         $DatosEmision->appendChild($Emisor);
 
@@ -849,22 +1152,22 @@ class MonitorFacturacionController extends Controller
         $dirEmisor->appendChild($doc->createElement('dte:Pais', 'GT'));
         $Emisor->appendChild($dirEmisor);
 
-        // Receptor
+        // Receptor (del documento original)
         $Receptor = $doc->createElement('dte:Receptor');
-        $Receptor->setAttribute('CorreoReceptor', $detalle->correo ?? '');
-        $Receptor->setAttribute('IDReceptor', $detalle->nit);
-        $Receptor->setAttribute('NombreReceptor', $detalle->nombre);
+        $Receptor->setAttribute('CorreoReceptor', $row->correo ?? '');
+        $Receptor->setAttribute('IDReceptor', $row->nit ?: 'CF');
+        $Receptor->setAttribute('NombreReceptor', $row->nombre);
         $DatosEmision->appendChild($Receptor);
 
         $dirReceptor = $doc->createElement('dte:DireccionReceptor');
-        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $detalle->direccion));
-        $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
-        $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
-        $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
+        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $row->direccion));
+        $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $row->codigo_postal ?? '01001'));
+        $dirReceptor->appendChild($doc->createElement('dte:Municipio', $row->municipio));
+        $dirReceptor->appendChild($doc->createElement('dte:Departamento', $row->departamento));
         $dirReceptor->appendChild($doc->createElement('dte:Pais', 'GT'));
         $Receptor->appendChild($dirReceptor);
 
-        // Frase
+        // Frases
         $Frases = $doc->createElement('dte:Frases');
         $Frase = $doc->createElement('dte:Frase');
         $Frase->setAttribute('CodigoEscenario', '1');
@@ -872,31 +1175,32 @@ class MonitorFacturacionController extends Controller
         $Frases->appendChild($Frase);
         $DatosEmision->appendChild($Frases);
 
-        // Items
+        // Ítems: UNA sola línea de ajuste
         $Items = $doc->createElement('dte:Items');
-        foreach ($detalles as $d) {
-            $Item = $doc->createElement('dte:Item');
-            $Item->setAttribute('BienOServicio', 'B');
-            $Item->setAttribute('NumeroLinea', $d->numero_linea);
-            $Item->appendChild($doc->createElement('dte:Cantidad', $d->cantidad));
-            $Item->appendChild($doc->createElement('dte:UnidadMedida', $d->unidad_medida));
-            $Item->appendChild($doc->createElement('dte:Descripcion', $d->descripcion));
-            $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($d->precio_unitario, 2, '.', '')));
-            $Item->appendChild($doc->createElement('dte:Precio', number_format($d->precio, 2, '.', '')));
-            $Item->appendChild($doc->createElement('dte:Descuento', '0.00'));
+        $Item = $doc->createElement('dte:Item');
+        $Item->setAttribute('BienOServicio', 'B');
+        $Item->setAttribute('NumeroLinea', 1);
+        $Item->appendChild($doc->createElement('dte:Cantidad', '1'));
+        $Item->appendChild($doc->createElement('dte:UnidadMedida', 'UND'));
+        $Item->appendChild($doc->createElement(
+            'dte:Descripcion',
+            ($tipo === 'NCRE' ? 'Ajuste Nota de Crédito: ' : 'Ajuste Nota de Débito: ') . $motivo
+        ));
+        $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($monto, 2, '.', '')));
+        $Item->appendChild($doc->createElement('dte:Precio', number_format($monto, 2, '.', '')));
+        $Item->appendChild($doc->createElement('dte:Descuento', '0.00'));
 
-            $Impuestos = $doc->createElement('dte:Impuestos');
-            $Impuesto = $doc->createElement('dte:Impuesto');
-            $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
-            $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
-            $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 2, '.', '')));
-            $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 2, '.', '')));
-            $Impuestos->appendChild($Impuesto);
-            $Item->appendChild($Impuestos);
+        $Impuestos = $doc->createElement('dte:Impuestos');
+        $Impuesto = $doc->createElement('dte:Impuesto');
+        $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
+        $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
+        $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($monto_gravable, 2, '.', '')));
+        $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($monto_impuesto, 2, '.', '')));
+        $Impuestos->appendChild($Impuesto);
+        $Item->appendChild($Impuestos);
 
-            $Item->appendChild($doc->createElement('dte:Total', number_format($d->total, 2, '.', '')));
-            $Items->appendChild($Item);
-        }
+        $Item->appendChild($doc->createElement('dte:Total', number_format($monto, 2, '.', '')));
+        $Items->appendChild($Item);
         $DatosEmision->appendChild($Items);
 
         // Totales
@@ -904,13 +1208,13 @@ class MonitorFacturacionController extends Controller
         $TotalImpuestos = $doc->createElement('dte:TotalImpuestos');
         $TotalImpuesto = $doc->createElement('dte:TotalImpuesto');
         $TotalImpuesto->setAttribute('NombreCorto', 'IVA');
-        $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format(array_sum(array_column($detalles, 'monto_impuesto')), 2, '.', ''));
+        $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($monto_impuesto, 2, '.', ''));
         $TotalImpuestos->appendChild($TotalImpuesto);
         $Totales->appendChild($TotalImpuestos);
-        $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($detalle->gran_total, 2, '.', '')));
+        $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($monto, 2, '.', '')));
         $DatosEmision->appendChild($Totales);
 
-        // Complemento Nota de Crédito
+        // Complemento Referencias Nota (obligatorio)
         $Complementos = $doc->createElement('dte:Complementos');
         $Complemento = $doc->createElement('dte:Complemento');
         $Complemento->setAttribute('IDComplemento', 'Notas');
@@ -918,11 +1222,11 @@ class MonitorFacturacionController extends Controller
         $Complemento->setAttribute('URIComplemento', 'http://www.sat.gob.gt/fel/notas.xsd');
 
         $ReferenciasNota = $doc->createElementNS('http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0', 'cno:ReferenciasNota');
-        $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', $detalle->fecha_emision);
+        $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', $row->fecha_emision);
         $ReferenciasNota->setAttribute('MotivoAjuste', $motivo);
-        $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $detalle->uuid_origen);
-        $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $detalle->numero_origen);
-        $ReferenciasNota->setAttribute('SerieDocumentoOrigen', $detalle->serie_origen);
+        $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $row->uuid_origen);
+        $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $row->numero_origen);
+        $ReferenciasNota->setAttribute('SerieDocumentoOrigen', $row->serie_origen);
         $ReferenciasNota->setAttribute('Version', '0.0');
         $ReferenciasNota->setAttribute('xsi:schemaLocation', 'http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0 http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0.xsd');
 
@@ -930,10 +1234,37 @@ class MonitorFacturacionController extends Controller
         $Complementos->appendChild($Complemento);
         $DatosEmision->appendChild($Complementos);
 
-        return $doc->saveXML();
+        $xml = $doc->saveXML();
+        return [
+            'xml'  => $xml,
+            'meta' => [
+                'idcliente'       => $row->idcliente,
+                'tipo'            => $tipo,           // NCRE | NDEB
+                'motivo'          => $motivo,
+                'monto_total'     => $monto,
+                'monto_gravable'  => $monto_gravable,
+                'monto_impuesto'  => $monto_impuesto,
+                'exento_iva'      => $exento ? 'S' : 'N',
+                'receptor' => [
+                    'numero'        => $row->nit ?: 'CF',
+                    'tipo'          => $row->tipo,
+                    'tipo_especial' => $row->tipo_especial,
+                    'nombre'        => $row->nombre,
+                    'email'         => $row->correo,
+                    'direccion'     => $row->direccion,
+                ],
+                'origen' => [
+                    'uuid'          => $row->uuid_origen,
+                    'serie'         => $row->serie_origen,
+                    'numero'        => $row->numero_origen,
+                    'fecha_emision' => $row->fecha_emision,
+                ],
+            ],
+        ];
     }
 
-    private function enviarXMLAFEL($idcotizacion, $xmlString, $tipo)
+
+    private function enviarXMLAFEL($idcotizacion, $xmlString, $tipo, $notaMeta = null)
     {
         $identificador = Str::uuid()->toString();
         $headers = [
@@ -985,7 +1316,67 @@ class MonitorFacturacionController extends Controller
             //         ]);
             //     }
             // }
+            // === Persistencia para Notas ===
+            if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta)) {
+                $now = now();
+                $base = [
+                    'idcotizacion'       => $idcotizacion,
+                    'idcliente'          => $notaMeta['idcliente'] ?? null,
+                    'tipo'               => $tipo,
+                    'motivo'             => $notaMeta['motivo'] ?? '',
+                    'monto_total'        => $notaMeta['monto_total'] ?? 0,
+                    'monto_gravable'     => $notaMeta['monto_gravable'] ?? 0,
+                    'monto_impuesto'     => $notaMeta['monto_impuesto'] ?? 0,
+                    'exento_iva'         => $notaMeta['exento_iva'] ?? 'N',
+                    'receptor_numero'    => $notaMeta['receptor']['numero'] ?? null,
+                    'receptor_tipo'      => $notaMeta['receptor']['tipo'] ?? null,
+                    'receptor_tipo_especial' => $notaMeta['receptor']['tipo_especial'] ?? null,
+                    'receptor_nombre'    => $notaMeta['receptor']['nombre'] ?? null,
+                    'receptor_email'     => $notaMeta['receptor']['email'] ?? null,
+                    'receptor_direccion' => $notaMeta['receptor']['direccion'] ?? null,
+                    'uuid_origen'        => $notaMeta['origen']['uuid'] ?? null,
+                    'serie_origen'       => $notaMeta['origen']['serie'] ?? null,
+                    'numero_origen'      => $notaMeta['origen']['numero'] ?? null,
+                    'fecha_emision_origen' => $notaMeta['origen']['fecha_emision'] ?? $now->toDateString(),
+                    'identificador'      => $identificador,
+                    'xml_enviado'        => $xmlString,
+                    'created_by'         => optional(auth()->user())->id,
+                    'created_at'         => $now,
+                    'updated_at'         => $now,
+                ];
 
+                if ($json['resultado'] === true) {
+                    $save = array_merge($base, [
+                        'resultado'          => 'S',
+                        'uuid_origen'               => $json['uuid'] ?? null,
+                        'serie_origen'              => $json['serie'] ?? null,
+                        'numero_origen'             => $json['numero'] ?? null,
+                        'descripcion'        => $json['descripcion'] ?? null,
+                        'fecha_emision_origen' => $json['fecha'] ?? null,
+                        'xml_certificado'    => isset($json['xml_certificado']) ? base64_encode($json['xml_certificado']) : null,
+                        'alertas_infile'     => isset($json['descripcion_alertas_infile']) ? json_encode($json['descripcion_alertas_infile']) : null,
+                        'alertas_sat'        => isset($json['descripcion_alertas_sat']) ? json_encode($json['descripcion_alertas_sat']) : null,
+                        'errores'            => null,
+                    ]);
+                } else {
+                    $save = array_merge($base, [
+                        'resultado'          => 'N',
+                        'uuid_origen'               => null,
+                        'serie_origen'              => null,
+                        'numero_origen'             => null,
+                        'descripcion'        => $json['descripcion'] ?? null,
+                        'fecha_emision_origen' => null,
+                        'xml_certificado'    => null,
+                        'alertas_infile'     => isset($json['descripcion_alertas_infile']) ? json_encode($json['descripcion_alertas_infile']) : null,
+                        'alertas_sat'        => isset($json['descripcion_alertas_sat']) ? json_encode($json['descripcion_alertas_sat']) : null,
+                        'errores'            => isset($json['descripcion_errores']) ? json_encode($json['descripcion_errores']) : json_encode(['Error desconocido']),
+                    ]);
+                }
+
+                DB::table('adm_notas_fel')->insert($save);
+            }
+
+            // === Respuesta HTTP (sin cambios)
             if ($json['resultado'] === true) {
                 return response()->json([
                     'resultado' => true,
@@ -998,10 +1389,12 @@ class MonitorFacturacionController extends Controller
                     'alertas' => $json['descripcion_alertas_infile'] ?? null,
                 ]);
             } else {
-                return response()->json([
-                    'resultado' => false,
-                    'errores' => $json['descripcion_errores'] ?? 'Error desconocido',
-                ], 422);
+                // return response()->json([
+                //     'resultado' => false,
+                //     'errores' => $json['descripcion_errores'] ?? 'Error desconocido',
+                // ], 422);
+                // 👇 mensaje genérico para el usuario + detalle técnico opcional
+                return $this->respuestaErrorNota($tipo, $json, 422);
             }
         } catch (\Exception $e) {
             Log::error('Error al certificar XML tipo ' . $tipo, [
@@ -1009,10 +1402,67 @@ class MonitorFacturacionController extends Controller
                 'exception' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'resultado' => false,
-                'errores' => $e->getMessage(),
+            // Si es nota, guarda intento fallido también
+            if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta ?? null)) {
+                DB::table('adm_notas_fel')->insert([
+                    'idcotizacion'   => $idcotizacion,
+                    'idcliente'      => $notaMeta['idcliente'] ?? null,
+                    'tipo'           => $tipo,
+                    'motivo'         => $notaMeta['motivo'] ?? '',
+                    'monto_total'    => $notaMeta['monto_total'] ?? 0,
+                    'monto_gravable' => $notaMeta['monto_gravable'] ?? 0,
+                    'monto_impuesto' => $notaMeta['monto_impuesto'] ?? 0,
+                    'exento_iva'     => $notaMeta['exento_iva'] ?? 'N',
+                    'receptor_numero'    => $notaMeta['receptor']['numero'] ?? null,
+                    'receptor_tipo'      => $notaMeta['receptor']['tipo'] ?? null,
+                    'receptor_tipo_especial' => $notaMeta['receptor']['tipo_especial'] ?? null,
+                    'receptor_nombre'    => $notaMeta['receptor']['nombre'] ?? null,
+                    'receptor_email'     => $notaMeta['receptor']['email'] ?? null,
+                    'receptor_direccion' => $notaMeta['receptor']['direccion'] ?? null,
+                    'uuid_origen'    => $notaMeta['origen']['uuid'] ?? null,
+                    'serie_origen'   => $notaMeta['origen']['serie'] ?? null,
+                    'numero_origen'  => $notaMeta['origen']['numero'] ?? null,
+                    'fecha_emision_origen' => $notaMeta['origen']['fecha_emision'] ?? now()->toDateString(),
+                    'resultado'      => 'N',
+                    'errores'        => json_encode([$e->getMessage()]),
+                    'identificador'  => $identificador,
+                    'xml_enviado'    => $xmlString,
+                    'created_by'     => optional(auth()->user())->id,
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ]);
+            }
+
+            // return response()->json([
+            //     'resultado' => false,
+            //     'errores' => $e->getMessage(),
+            // ], 500);
+            // 👇 mensaje genérico y detalle con el error de servidor
+            return $this->respuestaErrorNota($tipo, [
+                'descripcion' => 'Excepción en servidor',
+                'descripcion_errores' => [$e->getMessage()],
             ], 500);
         }
+    }
+
+    private function respuestaErrorNota(string $tipo, array $json = null, int $status = 422)
+    {
+        // Mensaje genérico para el usuario
+        $payload = [
+            'resultado' => false,
+            'mensaje'   => 'No se pudo certificar la NC o ND.',
+        ];
+
+        // Adjunta detalle técnico (útil para logs/front si lo necesitas)
+        // if ($json) {
+        //     $payload['detalle'] = [
+        //         'descripcion' => $json['descripcion'] ?? null,
+        //         'errores'     => $json['descripcion_errores'] ?? null,
+        //         'alertas_infile' => $json['descripcion_alertas_infile'] ?? null,
+        //         'alertas_sat'    => $json['descripcion_alertas_sat'] ?? null,
+        //     ];
+        // }
+
+        return response()->json($payload, $status);
     }
 }

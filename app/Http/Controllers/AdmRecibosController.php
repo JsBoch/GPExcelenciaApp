@@ -67,6 +67,9 @@ class AdmRecibosController extends Controller
             'fecha_creacion' => now(),
             'moneda' => $request->moneda ?? 'GTQ',
             'estado' => 1,
+            'serie' => $request->serie ?? 'A',
+            'numero' => $request->numero,
+            'tipo' => $request->tipo ?? 'RECIBO',
         ]);
 
         // Rebaja saldo
@@ -115,10 +118,13 @@ class AdmRecibosController extends Controller
             'metodo_pago' => $request->metodo_pago,
             'referencia' => $request->referencia,
             'observaciones' => $request->observaciones,
+            'serie' => $request->serie ?? 'A',
+            'numero' => $request->numero,
             'moneda' => $request->moneda ?? 'GTQ',
             'idusuario_modificacion' => auth()->user()->id,
             'usuario_modificacion' => auth()->user()->name,
             'fecha_modificacion' => now(),
+            'tipo' => $request->tipo ?? 'RECIBO',
         ]);
 
         // Aplicar el nuevo abono

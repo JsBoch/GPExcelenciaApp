@@ -52,4 +52,16 @@ class Clientes extends Model
     {
         return $this->hasMany(ContactoCliente::class, 'idcliente', 'idcliente');
     }
+
+     public function emails()
+    {
+        // cliente_emails.idcliente -> clientes.idcliente
+        return $this->hasMany(ClienteEmail::class, 'idcliente', 'idcliente');
+    }
+
+    public function direcciones()
+    {
+        // cliente_direcciones.idcliente -> clientes.idcliente
+        return $this->hasMany(ClienteDireccion::class, 'idcliente', 'idcliente');
+    }
 }

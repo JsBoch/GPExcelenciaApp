@@ -423,34 +423,34 @@ function ListaCotizaciones() {
         });
     }, []);
 
-//     useEffect(() => {
-//     if (registroSeleccionado?.fecha_cotizacion) {
-//         let f = registroSeleccionado.fecha_cotizacion;
-//         if (/^\d{2}-\d{2}-\d{4}$/.test(f)) {
-//             const [d, m, y] = f.split("-");
-//             setFechaPdf(`${y}-${m}-${d}`);
-//         } else {
-//             setFechaPdf(f); // ya en formato correcto
-//         }
-//     } else {
-//         setFechaPdf(new Date().toISOString().split("T")[0]);
-//     }
-// }, [registroSeleccionado]);
+    //     useEffect(() => {
+    //     if (registroSeleccionado?.fecha_cotizacion) {
+    //         let f = registroSeleccionado.fecha_cotizacion;
+    //         if (/^\d{2}-\d{2}-\d{4}$/.test(f)) {
+    //             const [d, m, y] = f.split("-");
+    //             setFechaPdf(`${y}-${m}-${d}`);
+    //         } else {
+    //             setFechaPdf(f); // ya en formato correcto
+    //         }
+    //     } else {
+    //         setFechaPdf(new Date().toISOString().split("T")[0]);
+    //     }
+    // }, [registroSeleccionado]);
 
-useEffect(() => {
-    if (showPdfModal && registroSeleccionado) {
-        let fecha = registroSeleccionado.fecha_cotizacion;
+    useEffect(() => {
+        if (showPdfModal && registroSeleccionado) {
+            let fecha = registroSeleccionado.fecha_cotizacion;
 
-        if (!fecha) {
-            fecha = new Date().toISOString().split("T")[0];
-        } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
-            const [d, m, y] = fecha.split("-");
-            fecha = `${y}-${m}-${d}`;
+            if (!fecha) {
+                fecha = new Date().toISOString().split("T")[0];
+            } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
+                const [d, m, y] = fecha.split("-");
+                fecha = `${y}-${m}-${d}`;
+            }
+
+            setFechaPdf(fecha); // ✅ se asegura que el input lo muestre
         }
-
-        setFechaPdf(fecha); // ✅ se asegura que el input lo muestre
-    }
-}, [showPdfModal, registroSeleccionado]);
+    }, [showPdfModal, registroSeleccionado]);
 
     const limpiarFiltro = () => setFiltro("");
     /*
@@ -597,6 +597,7 @@ useEffect(() => {
 
         setPdfData(data);
     };
+    
 
     const generarNotaEnvio = async (id) => {
         const token = localStorage.getItem("token");
