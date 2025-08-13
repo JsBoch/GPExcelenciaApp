@@ -622,8 +622,31 @@ class MonitorFacturacionController extends Controller
         }
 
         // Crear número interno
-        $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
-        $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
+        // $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
+        // $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
+        // Año de la factura (usa fecha de emisión si existe, sino el año actual)
+        $anio = $cotizacion->fecha_emision
+            ? \Carbon\Carbon::parse($cotizacion->fecha_emision)->year
+            : now()->year;
+
+        // Generar número de factura si no existe
+        DB::transaction(function () use (&$cotizacion, $anio) {
+            if (empty($cotizacion->nofactura)) {
+                $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
+                AdmCotizacion::where('idcotizacion', $cotizacion->idcotizacion)
+                    ->update(['nofactura' => $nuevoNoFactura]);
+                $cotizacion->nofactura = $nuevoNoFactura;
+            }
+        });
+
+        // Formato: GP-{AÑO}-{FACTURA}-{COTIZACION}
+        $anioStr       = (string) $anio;
+        $facturaStr    = $this->pad((int) $cotizacion->nofactura, 6);
+        $cotizacionStr = $this->pad((int) $cotizacion->nocotizacion, 6);
+
+        $cotizacion->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
+
+
 
         // Convertir total a letras (usando kwn/number-to-words)
         $numberToWords     = new NumberToWords();
@@ -1054,7 +1077,7 @@ class MonitorFacturacionController extends Controller
                 'response' => $json
             ]);
 
-           
+
             // === Persistencia para Notas ===
             if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta)) {
                 $now = now();
@@ -1128,7 +1151,7 @@ class MonitorFacturacionController extends Controller
                     'alertas' => $json['descripcion_alertas_infile'] ?? null,
                 ]);
             } else {
-               
+
                 return $this->respuestaErrorNota($tipo, $json, 422);
             }
         } catch (\Exception $e) {
@@ -1167,7 +1190,7 @@ class MonitorFacturacionController extends Controller
                     'updated_at'     => now(),
                 ]);
             }
-          
+
             return $this->respuestaErrorNota($tipo, [
                 'descripcion' => 'Excepción en servidor',
                 'descripcion_errores' => [$e->getMessage()],
@@ -1184,5 +1207,41 @@ class MonitorFacturacionController extends Controller
         ];
 
         return response()->json($payload, $status);
+    }
+
+    /**
+     * Obtiene el siguiente correlativo para la 'tabla' indicada.
+     * - Para 'nofactura': filtra por $anio (reinicio anual).
+     * - Para 'nocotizacion': ignora el año (global).
+     *
+     * Concurrency-safe: usa transacción + lockForUpdate().
+     */
+    private function siguienteCorrelativoFactura(int $anio): int
+    {
+        return DB::transaction(function () use ($anio) {
+            $row = Correlativo::where('tabla', 'nofactura')
+                ->where('anio', $anio)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$row) {
+                $row = Correlativo::create([
+                    'tabla'       => 'nofactura',
+                    'correlativo' => 0,
+                    'incremento'  => 1,
+                    'anio'        => $anio,
+                ]);
+            }
+
+            $row->correlativo = (int) $row->correlativo + 1;
+            $row->save();
+
+            return (int) $row->correlativo;
+        });
+    }
+
+    private function pad(int $valor, int $width = 6): string
+    {
+        return str_pad((string) $valor, $width, '0', STR_PAD_LEFT);
     }
 }
