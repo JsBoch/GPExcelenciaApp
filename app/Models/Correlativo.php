@@ -13,5 +13,5 @@ class Correlativo extends Model
     protected $primaryKey = 'tabla'; // Asumiendo que 'tabla' es la clave primaria
     public $timestamps = false;
 
-    protected $fillable = ['correlativo', 'incremento'];
+    protected $fillable = ['tabla','correlativo', 'incremento','anio'];
 }
