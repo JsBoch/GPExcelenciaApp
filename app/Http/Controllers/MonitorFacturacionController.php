@@ -315,7 +315,7 @@ class MonitorFacturacionController extends Controller
         $Emisor->setAttribute('CodigoEstablecimiento', '1');
         $Emisor->setAttribute('CorreoEmisor', 'ventas@gpexcelencia.com');
         $Emisor->setAttribute('NombreComercial', 'GP EXCELENCIA');
-        $Emisor->setAttribute('NITEmisor', '11201359K');
+        $Emisor->setAttribute('NITEmisor', '109126599');
         $Emisor->setAttribute('NombreEmisor', 'GP EXCELENCIA, SOCIEDAD ANÓNIMA');
         $DatosEmision->appendChild($Emisor);
 
@@ -675,7 +675,7 @@ class MonitorFacturacionController extends Controller
 
         $uuid = strtoupper(trim($cotizacion->uuid));
         $motivo = $request->motivo;
-        $nitEmisor = '11201359K';
+        $nitEmisor = '109126599';
         $idReceptor = $cotizacion->receptor_nit ?: 'CF';
         $fechaEmision = date('Y-m-d\TH:i:s', strtotime($cotizacion->fecha_certificacion));
         $fechaAnulacion = now()->format('Y-m-d\TH:i:s');
@@ -900,7 +900,7 @@ class MonitorFacturacionController extends Controller
         $Emisor->setAttribute('AfiliacionIVA', 'GEN');
         $Emisor->setAttribute('CodigoEstablecimiento', '1');
         $Emisor->setAttribute('CorreoEmisor', 'ventas@gpexcelencia.com');
-        $Emisor->setAttribute('NITEmisor', '11201359K');
+        $Emisor->setAttribute('NITEmisor', '109126599');
         $Emisor->setAttribute('NombreComercial', 'GP EXCELENCIA');
         $Emisor->setAttribute('NombreEmisor', 'GP EXCELENCIA, SOCIEDAD ANÓNIMA');
         $DatosEmision->appendChild($Emisor);
