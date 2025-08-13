@@ -609,6 +609,7 @@ class MonitorFacturacionController extends Controller
                 'd.precio as precio_unitario',
                 'd.total as precio_total',
                 'c.nofactura',
+                'c.nocotizacion',
             )
             ->from('adm_cotizacion as c')
             ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')
@@ -622,7 +623,7 @@ class MonitorFacturacionController extends Controller
 
         // Crear número interno
         $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
-        $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nofactura;
+        $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
 
         // Convertir total a letras (usando kwn/number-to-words)
         $numberToWords     = new NumberToWords();
