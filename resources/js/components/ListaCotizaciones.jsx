@@ -782,7 +782,7 @@ function ListaCotizaciones() {
                             <CotizacionPDF
                                 cotizacion={pdfData.cotizacion}
                                 totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGP.png"
+                                logoSrc="/images/LogoGP.jpg"
                             />
                         </PDFViewer>
                     </div>
@@ -793,7 +793,7 @@ function ListaCotizaciones() {
                                 <CotizacionPDF
                                     cotizacion={pdfData.cotizacion}
                                     totalEnLetras={pdfData.totalEnLetras}
-                                    logoSrc="/images/LogoGP.png"
+                                    logoSrc="/images/LogoGP.jpg"
                                 />
                             }
                             fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
