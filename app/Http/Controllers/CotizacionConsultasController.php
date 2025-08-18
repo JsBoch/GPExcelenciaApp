@@ -20,9 +20,10 @@ class CotizacionConsultasController extends Controller
         $cotizacionesQuery = AdmCotizacion::select(
             'adm_cotizacion.idcotizacion',
             DB::raw('CONCAT(\'CT\',CAST(adm_cotizacion.nocotizacion AS CHAR)) as nocotizacion'),
-            DB::raw('DATE(adm_cotizacion.fecha_cotizacion) as fecha_cotizacion'),
+            DB::raw('DATE(adm_cotizacion.fecha_prefacturacion) as fecha_prefacturacion'),
             'adm_cotizacion.estado',
             'adm_tipo_pago.tipo as tipo_pago',
+            'clientes.nombre as cliente',
             'adm_cotizacion.total_general',
             'adm_cotizacion.direccion_entrega',
             'adm_cotizacion.observaciones_cliente',
@@ -41,12 +42,14 @@ class CotizacionConsultasController extends Controller
             )
         )
             ->join('adm_tipo_pago', 'adm_cotizacion.idtipopago', '=', 'adm_tipo_pago.idtipopago')
+            ->join('clientes', 'adm_cotizacion.idcliente', '=', 'clientes.idcliente')
             ->where('adm_cotizacion.estado', 4);
         // ✅ Solo filtramos por usuario si NO tiene permiso para ver todas
         if (!$verTodas) {
             $cotizacionesQuery->where('adm_cotizacion.idusuario', $userId);
         }
 
+        $cotizacionesQuery->orderByDesc('adm_cotizacion.fecha_prefacturacion');
         $cotizaciones = $cotizacionesQuery->get();
 
         return response()->json($cotizaciones);

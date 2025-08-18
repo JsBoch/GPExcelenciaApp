@@ -6,7 +6,7 @@
     <style>
         /* deja espacio reservado para el footer en la página */
         @page {
-            margin: 15mm 12mm 36mm;
+            margin: 15mm 12mm 28mm;
             /* margen inferior >= altura del footer visible */
         }
 
@@ -19,7 +19,7 @@
 
         /* por si el motor ignora @page, reserva espacio manual también */
         .content {
-            margin-bottom: 36mm;
+            margin-bottom: 0;
             /* igual o mayor que altura del footer */
         }
 
@@ -65,7 +65,8 @@
 
         .footer .wrap {
             position: relative;
-            padding: 8px 20px 14mm;
+            /* padding: 8px 20px 14mm; */
+            padding: 6px 20px 6mm;
             /* deja despeje sobre la onda */
             z-index: 2;
             /* contenido por encima de la onda */
@@ -107,17 +108,99 @@
         .bold {
             font-weight: 700;
         }
+
+        /* --- Pie FEL como imagen con datos encima --- */
+        .fel-footer {
+            position: relative;
+            width: 100%;
+            height: 36mm;
+            /* alto del bloque de la imagen del pie */
+            margin-top: 2mm;
+            /* separa del bloque anterior */
+        }
+
+        .fel-footer-bg {
+            position: absolute;
+            inset: 0;
+            /* top/right/bottom/left = 0 */
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* que la imagen se estire ancho completo */
+        }
+
+        /* Los tres valores que se imprimen sobre la imagen */
+        .fel-field {
+            position: absolute;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: .2px;
+        }
+
+        /* Coordenadas: ajústalas a tu imagen hasta calzar con las líneas  */
+        .fel-fecha {
+            left: 29mm;
+            top: 7mm;
+        }
+
+        /* FECHA DE VENCIMIENTO */
+        .fel-nabono {
+            left: 30mm;
+            top: 10mm;
+        }
+
+        /* NÚMERO DE ABONO */
+        .fel-monto {
+            left: 26mm;
+            top: 12mm;
+        }
+
+        /* --- Marca de agua en todas las páginas --- */
+        .watermark {
+            position: fixed;
+            /* aparece en todas las páginas */
+            top: 140mm;
+            left: 50%;
+            width: 140mm;
+            /* ajusta al tamaño que te guste */
+            height: 140mm;
+            /* pon un alto fijo para poder centrarla */
+            margin-left: -80mm;
+            /* -width/2  -> centra horizontal */
+            margin-top: -70mm;
+            /* -height/2 -> centra vertical */
+            opacity: 0.06;
+            /* transparencia */
+            z-index: 1;
+            /* debajo del contenido y del footer */
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .footer {
+            position: fixed;
+            z-index: 3;
+        }
+
+        /* ya lo tienes fixed */
+
+
+        /* MONTO DE ABONO */
     </style>
 </head>
 
 <body>
+<img src="{{ public_path('images/marca_agua_gp.png') }}" class="watermark" alt="Marca de agua">
 
     <div class="content">
         <!-- Encabezado -->
         <table width="100%" style="border-collapse: collapse; margin-bottom: 10px;">
             <tr>
                 <td style="width: 15%; text-align: left;">
-                    <img src="{{ public_path('images/LogoGP.png') }}" style="height: 180px;">
+                    <img src="{{ public_path('images/LogoGP.jpg') }}" style="height: 180px;">
                 </td>
 
                 <td style="width: 45%; text-align: center; font-size: 11px;">
@@ -125,9 +208,9 @@
                     Tel: 2309-9419 &nbsp;&nbsp; 2294-9257<br>
                     11 calle, 41-20 Aldea “El Naranjito”,<br>
                     Zona 6 de Mixco, Guatemala<br>
-                    <span style="color: red;">Ventas: serviciocliente@gpexcelencia.com</span><br>
+                    <span>Ventas: serviciocliente@gpexcelencia.com</span><br>
                     Contabilidad: creditos@gpexcelencia.com<br>
-                    <span style="color: #0074cc;">Número Interno: {{ $cotizacion->numero_interno }}</span>
+                    <span>Número Interno: {{ $cotizacion->numero_interno }}</span>
                 </td>
 
                 <td style="width: 40%; text-align: right; font-size: 10px;">
@@ -222,12 +305,12 @@
                         </div>
                     </td>
                 </tr>
-                <tr>
+                <!-- <tr>
                     <td colspan="2"><strong>CERTIFICADOR: INFILE, S.A. NIT: 12521337</strong></td>
-                </tr>
+                </tr> -->
             </table>
 
-            <table width="100%" style="margin-top:6px; font-size:10px;">
+            <!-- <table width="100%" style="margin-top:6px; font-size:10px;">
                 <tr>
                     <td style="width:30%; vertical-align:top;">
                         <table style="width:100%; border:1px solid #ccc; border-collapse:collapse;">
@@ -275,7 +358,23 @@
                         </table>
                     </td>
                 </tr>
-            </table>
+            </table> -->
+            <div class="fel-footer">
+                <img src="{{ public_path('images/footer_gp.jpg') }}" class="fel-footer-bg" alt="Pie FEL">
+
+                <!-- FECHA DE VENCIMIENTO -->
+                <div class="fel-field fel-fecha">
+                    {{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}
+                </div>
+
+                <!-- NÚMERO DE ABONO -->
+                <div class="fel-field fel-nabono">1</div>
+
+                <!-- MONTO DE ABONO -->
+                <div class="fel-field fel-monto">
+                    Q{{ number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}
+                </div>
+            </div>
         </div>
         <!-- Imagen ondulada al fondo, pegada al borde -->
         <!-- <img class="onda" src="{{ public_path('images/final_line.png') }}" alt=""> -->
@@ -283,7 +382,7 @@
     <!-- Imagen ondulada al fondo, pegada al borde -->
     <!-- <img class="onda" src="{{ public_path('images/final_line.png') }}" alt=""> -->
     <!-- Marca de agua -->
-    <img src="{{ public_path('images/marca_agua_gp.png') }}" class="bg-logo">
+    <!-- <img src="{{ public_path('images/marca_agua_gp.png') }}" class="bg-logo"> -->
 
 </body>
 

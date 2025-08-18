@@ -81,16 +81,65 @@ class ReportesContabilidadController extends Controller
         return response()->json(['fecha' => now()->toDateString()]);
     }
 
+    // private function construirConsultaCotizaciones(array $filtros)
+    // {
+    //     $query = DB::table('adm_cotizacion as ac')
+    //         ->select(
+    //             'ac.idcotizacion',
+    //             DB::raw('CONCAT(\'CT\',CAST(ac.nocotizacion AS CHAR)) as nocotizacion'),
+    //             DB::raw("
+    //             CASE
+    //                 WHEN ac.estado = 4 THEN ac.fecha_prefacturacion
+    //                 WHEN ac.estado = 5 THEN ac.fecha_facturacion
+    //                 ELSE ac.fecha_cotizacion
+    //             END as fecha_cotizacion
+    //         "),
+    //             'ae.nombre as vendedor',
+    //             'c.nombre as cliente',
+    //             'ac.total_general',
+    //             'ac.estado'
+    //         )
+    //         ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+    //         ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+    //         ->where('ac.estado', '>', 0);
+
+    //     if ($filtros['estado'] ?? null && $filtros['estado'] === 4) {
+    //         $query->whereBetween(DB::raw('date(ac.fecha_prefacturacion)'), [$filtros['desde'], $filtros['hasta']]);
+    //     } else if ($filtros['estado'] ?? null && $filtros['estado'] === 5) {
+    //         $query->whereBetween(DB::raw('date(ac.fecha_facturacion)'), [$filtros['desde'], $filtros['hasta']]);
+    //     } else {
+    //         $query->whereBetween(DB::raw('date(ac.fecha_cotizacion)'), [$filtros['desde'], $filtros['hasta']]);
+    //     }
+
+
+    //     if (!empty($filtros['vendedor_id'])) {
+    //         $query->where('ae.id_empleado', $filtros['vendedor_id']);
+    //     }
+
+    //     if (!empty($filtros['estado'])) {
+    //         $query->where('ac.estado', $filtros['estado']);
+    //     }
+
+    //     if (!empty($filtros['search'])) {
+    //         $query->where(function ($q) use ($filtros) {
+    //             $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+    //                 ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+    //         });
+    //     }
+
+    //     return $query;
+    // }
     private function construirConsultaCotizaciones(array $filtros)
     {
         $query = DB::table('adm_cotizacion as ac')
             ->select(
                 'ac.idcotizacion',
-                DB::raw('CONCAT(\'CT\',CAST(ac.nocotizacion AS CHAR)) as nocotizacion'),
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
+                // ← FECHA QUE SALE AL FRONT (columna 'fecha_cotizacion' ya usada en el componente)
                 DB::raw("
                 CASE
-                    WHEN ac.estado = 4 THEN ac.fecha_prefacturacion
-                    WHEN ac.estado = 5 THEN ac.fecha_facturacion
+                    WHEN ac.estado = 4 THEN COALESCE(ac.fecha_prefacturacion, ac.fecha_cotizacion)
+                    WHEN ac.estado = 6 THEN COALESCE(ac.fecha_certificacion, ac.fecha_cotizacion)
                     ELSE ac.fecha_cotizacion
                 END as fecha_cotizacion
             "),
@@ -103,23 +152,31 @@ class ReportesContabilidadController extends Controller
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->where('ac.estado', '>', 0);
 
-        if ($filtros['estado'] ?? null && $filtros['estado'] === 4) {
-            $query->whereBetween(DB::raw('date(ac.fecha_prefacturacion)'), [$filtros['desde'], $filtros['hasta']]);
-        } else if ($filtros['estado'] ?? null && $filtros['estado'] === 5) {
-            $query->whereBetween(DB::raw('date(ac.fecha_facturacion)'), [$filtros['desde'], $filtros['hasta']]);
-        } else {
-            $query->whereBetween(DB::raw('date(ac.fecha_cotizacion)'), [$filtros['desde'], $filtros['hasta']]);
+        // Filtro por rango de fechas usando la columna adecuada
+        $desde = $filtros['desde'] ?? null;
+        $hasta = $filtros['hasta'] ?? null;
+
+        if ($desde && $hasta) {
+            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
+            } else {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+            }
         }
 
-
+        // Filtro por vendedor
         if (!empty($filtros['vendedor_id'])) {
             $query->where('ae.id_empleado', $filtros['vendedor_id']);
         }
 
+        // Filtro por estado (independiente del filtro de fecha)
         if (!empty($filtros['estado'])) {
-            $query->where('ac.estado', $filtros['estado']);
+            $query->where('ac.estado', (int)$filtros['estado']);
         }
 
+        // Búsqueda libre
         if (!empty($filtros['search'])) {
             $query->where(function ($q) use ($filtros) {
                 $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
@@ -155,6 +212,7 @@ class ReportesContabilidadController extends Controller
                 emp.nombre as vendedor,
                 cot.idcotizacion,
                 cot.nocotizacion,
+                cot.nofactura,
                 cot.numero,
                 'FCAM' as tipo,
                 cxc.idcuentaporcobrar,
@@ -309,5 +367,147 @@ class ReportesContabilidadController extends Controller
         );
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Genera PDF de cotizaciones (prefacturación) filtrado por fecha y vendedor.
+     * Request esperado: { desde: Y-m-d, hasta: Y-m-d, vendedor_id?: int }
+     */
+    public function cotizacionesPrefacturacionPdf(Request $request)
+    {
+        $request->validate([
+            'desde'       => 'required|date',
+            'hasta'       => 'required|date|after_or_equal:desde',
+            'vendedor_id' => 'nullable|integer|exists:adm_empleados,id_empleado',
+        ]);
+
+        $desde = $request->date('desde')->toDateString();
+        $hasta = $request->date('hasta')->toDateString();
+        $vendedorId = $request->input('vendedor_id');
+
+        $rows = DB::table('adm_cotizacion as ac')
+            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+            ->join('adm_tipo_pago as atp', 'ac.idtipopago', '=', 'atp.idtipopago')
+            ->leftJoin('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+            ->selectRaw("
+            ac.idcotizacion,
+            CONCAT('CT', ac.nocotizacion) as nocotizacion,
+            ac.nofactura,
+            DATE(ac.fecha_prefacturacion) as fecha_prefacturacion,
+            ac.total_general as total,
+            atp.tipo as tipo_pago,
+            c.nombre as cliente,
+            ae.nombre as vendedor,
+            CASE
+                WHEN ac.estado = 1 THEN 'REGISTRO'
+                WHEN ac.estado = 2 THEN 'COSTEO'
+                WHEN ac.estado = 3 THEN 'COSTEADA'
+                WHEN ac.estado = 4 THEN 'PRE-FACTURACION'
+                WHEN ac.estado = 5 THEN 'PARA FACTURAR'
+                WHEN ac.estado = 6 THEN 'FACTURADA'
+                WHEN ac.estado = 7 THEN 'ANULADA'
+                WHEN ac.estado = 8 THEN 'RECHAZADA'
+                ELSE 'NO APLICA'
+            END as estado
+        ")
+            ->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta])
+            ->when($vendedorId, function ($q) use ($vendedorId) {
+                $q->where('ae.id_empleado', $vendedorId);
+            })
+            ->orderBy('fecha_prefacturacion')
+            ->orderBy('nocotizacion')
+            ->get();
+
+        // Datos de encabezado para la vista
+        $encabezado = [
+            'titulo' => 'REPORTE DE COTIZACIONES (PREFacturación)',
+            'rango'  => sprintf('%s a %s', $desde, $hasta),
+            'vendedor' => $vendedorId
+                ? optional(DB::table('adm_empleados')->where('id_empleado', $vendedorId)->first())->nombre
+                : 'Todos',
+            'generado' => now()->format('Y-m-d H:i'),
+        ];
+
+        $html = view('reportes.cotizaciones_prefacturacion', [
+            'rows' => $rows,
+            'encabezado' => $encabezado,
+            'totales' => [
+                'total_general' => $rows->sum('total'),
+                'conteo' => $rows->count(),
+            ],
+        ])->render();
+
+        $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
+
+        $filename = sprintf(
+            'cotizaciones_prefacturacion_%s_%s.pdf',
+            str_replace('-', '', $desde),
+            str_replace('-', '', $hasta)
+        );
+
+        // Puedes usar ->stream($filename) si prefieres abrir directamente en el navegador.
+        return $pdf->download($filename);
+    }
+
+    public function cotizacionesPrefacturacionData(Request $request)
+    {
+        $request->validate([
+            'desde'       => 'required|date',
+            'hasta'       => 'required|date|after_or_equal:desde',
+            'vendedor_id' => 'nullable|integer|exists:adm_empleados,id_empleado',
+        ]);
+
+        $desde = $request->date('desde')->toDateString();
+        $hasta = $request->date('hasta')->toDateString();
+        $vendedorId = $request->integer('vendedor_id');
+
+        $rows = DB::table('adm_cotizacion as ac')
+            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+            ->join('adm_tipo_pago as atp', 'ac.idtipopago', '=', 'atp.idtipopago')
+            ->leftJoin('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+            ->selectRaw("
+            ac.idcotizacion,
+            CONCAT('CT', ac.nocotizacion) as nocotizacion,
+            ac.nofactura,
+            DATE(ac.fecha_prefacturacion) as fecha_prefacturacion,
+            ac.total_general as total,
+            atp.tipo as tipo_pago,
+            c.nombre as cliente,
+            ae.nombre as vendedor,
+            CASE
+                WHEN ac.estado = 1 THEN 'REGISTRO'
+                WHEN ac.estado = 2 THEN 'COSTEO'
+                WHEN ac.estado = 3 THEN 'COSTEADA'
+                WHEN ac.estado = 4 THEN 'PRE-FACTURACION'
+                WHEN ac.estado = 5 THEN 'PARA FACTURAR'
+                WHEN ac.estado = 6 THEN 'FACTURADA'
+                WHEN ac.estado = 7 THEN 'ANULADA'
+                WHEN ac.estado = 8 THEN 'RECHAZADA'
+                ELSE 'NO APLICA'
+            END as estado
+        ")
+            ->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta])
+            ->when($vendedorId, fn($q) => $q->where('ae.id_empleado', $vendedorId))
+            ->orderBy('fecha_prefacturacion')
+            ->orderBy('nocotizacion')
+            ->get();
+
+        $vendedorNombre = $vendedorId
+            ? optional(DB::table('adm_empleados')->where('id_empleado', $vendedorId)->first())->nombre
+            : 'Todos';
+
+        return response()->json([
+            'encabezado' => [
+                'titulo'   => 'REPORTE DE COTIZACIONES (PREFACTURACIÓN)',
+                'rango'    => sprintf('%s a %s', $desde, $hasta),
+                'vendedor' => $vendedorNombre,
+                'generado' => now()->format('Y-m-d H:i'),
+            ],
+            'rows' => $rows,
+            'totales' => [
+                'total_general' => $rows->sum('total'),
+                'conteo'        => $rows->count(),
+            ],
+        ]);
     }
 }

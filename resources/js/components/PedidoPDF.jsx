@@ -32,35 +32,27 @@ const styles = StyleSheet.create({
         padding: 30,
         paddingBottom: 60,
         fontFamily: "Roboto",
-        fontSize: 10,
+        fontSize: 9, // ← más pequeño (antes 10)
     },
+
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-start",
         marginBottom: 10,
     },
-    logo: {
-        width: 100,
-        height: "auto",
-    },
+    logo: { width: 100, height: "auto" },
     headerCenter: {
         flex: 1,
         textAlign: "center",
-        fontSize: 10,
+        fontSize: 9,
         marginTop: 5,
         marginLeft: 10,
         marginRight: 10,
-    },
-    headerRight: {
-        width: 120,
-        alignItems: "flex-start",
-        fontSize: 9,
-    },
-    cotizacionLabel: {
-        fontSize: 10,
-        marginBottom: 4,
-    },
+    }, // ← un punto menos
+    headerRight: { width: 120, alignItems: "flex-start", fontSize: 9 },
+    cotizacionLabel: { fontSize: 10, marginBottom: 4 },
+
     fechaEncabezado: {
         backgroundColor: "rgb(39,50,56)",
         color: "white",
@@ -70,59 +62,53 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     fechaBox: {
-        border: "1px solid black",
+        // border: "1px solid black",     // ✗ shorthand no soportado
+        borderWidth: 1, // ← usa propiedades explícitas
+        borderColor: "#000",
+        borderStyle: "solid",
         padding: 4,
         textAlign: "center",
         width: "100%",
     },
-    customerInfo: {
-        marginBottom: 15,
-        fontSize: 10,
-        lineHeight: 1.2,
-    },
 
+    customerInfo: { marginBottom: 15, fontSize: 9, lineHeight: 1.2 }, // ← un punto menos
     row: {
         flexDirection: "row",
         justifyContent: "space-between",
         marginBottom: 2,
     },
+    label: { width: "49%" },
+    boldText: { fontWeight: "bold" },
 
-    label: {
-        width: "49%",
-    },
-
-    boldText: {
-        fontWeight: "bold",
-    },
     table: {
-        display: "table",
+        flexDirection: "column",
         width: "auto",
-        borderRightWidth: 0,
-        borderBottomWidth: 0,
     },
+
+    // Cabecera de la tabla
     tableRow: {
         flexDirection: "row",
         backgroundColor: "rgb(39,50,56)",
         color: "white",
     },
+
+    // FILA DE DATOS con línea inferior
     tableRowData: {
         flexDirection: "row",
+        paddingVertical: 4,
+        borderBottomWidth: 0.8, // ← línea por fila
+        borderBottomColor: "#c9c9c9",
+        borderBottomStyle: "solid",
     },
-    tableCol: {
-        borderLeftWidth: 0,
-        borderTopWidth: 0,
-        padding: 5,
-    },
+
+    tableCol: { padding: 5 },
+
     tableCell: {
-        //margin: "auto",
-        //marginTop: 5,
-        marginVertical: 2,
-        fontSize: 10,
+        marginVertical: 0, // ← menos aire
+        fontSize: 9, // ← acompaña tamaño general
     },
-    footer: {
-        marginTop: 20,
-        alignItems: "flex-end",
-    },
+
+    footer: { marginTop: 20, alignItems: "flex-end" },
 });
 
 const formatoMoneda = new Intl.NumberFormat("en-US", {
@@ -319,11 +305,7 @@ const PedidoPDF = ({ pedido, totalEnLetras, logoSrc }) => (
                 </View>
                 {pedido.detalles.map((detalle, index) => (
                     // <View style={styles.tableRowData} key={index}>
-                    <View
-                        style={[styles.tableRowData, { flexDirection: "row" }]}
-                        key={index}
-                        wrap={false}
-                    >
+                    <View style={styles.tableRowData} key={index} wrap={false}>
                         <View style={[styles.tableCol, { width: "8%" }]}>
                             <Text style={styles.tableCell}>
                                 {detalle.cantidad}
@@ -404,9 +386,9 @@ const PedidoPDF = ({ pedido, totalEnLetras, logoSrc }) => (
                             <Text style={styles.tableCell}>
                                 {detalle.version}
                             </Text>
-                            
-                            {detalle.imagen && detalle.imagen.trim() !== "" && (                                
-                                <Image                                
+
+                            {detalle.imagen && detalle.imagen.trim() !== "" && (
+                                <Image
                                     //src={`http://localhost:8000/images_pedidosproduccion/${detalle.imagen}`}
                                     src={`https://sistemagpe.app/images_pedidosproduccion/${detalle.imagen}`}
                                     style={{

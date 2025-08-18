@@ -1,5 +1,5 @@
 // 👇 Refactor del componente MonitorFacturacion con mejoras similares a ListaCotizaciones
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-bs5";
@@ -15,7 +15,7 @@ import {
     FaUndo,
 } from "react-icons/fa";
 import CotizacionPDF from "./CotizacionPDF";
-import { PDFViewer } from "@react-pdf/renderer";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "./Header";
 import "../../css/tableFormat.css";
 import "../../css/monitor_cotizaciones.css";
@@ -29,7 +29,7 @@ DataTable.use(DT);
 
 function MonitorFacturacion() {
     const [cotizaciones, setCotizaciones] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [spanishTranslation, setSpanishTranslation] = useState(null);
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [filtro, setFiltro] = useState("");
@@ -88,6 +88,16 @@ function MonitorFacturacion() {
     const [notaForm, setNotaForm] = useState({ motivo: "", monto: "" });
     /*************************************************************** */
 
+    // ====== Estado para listado de notas FEL ======
+    const [showNotasModal, setShowNotasModal] = useState(false);
+    const [notas, setNotas] = useState([]); // array de notas devueltas por el backend
+    const [notasLoading, setNotasLoading] = useState(false);
+    const [notaFiltroTipo, setNotaFiltroTipo] = useState(""); // '', 'NCRE', 'NDEB'
+
+    // helper
+    const toYMD = (d) => d.toISOString().slice(0, 10);
+    const fetchingRef = useRef(false);
+
     useEffect(() => {
         fetch("/i18n/Spanish.json")
             .then((response) => response.json())
@@ -106,51 +116,57 @@ function MonitorFacturacion() {
             .then((res) => {
                 setFechaInicio(res.data.fecha);
                 setFechaFinal(res.data.fecha);
+                // 🚀 disparamos la consulta del primer load SOLO con la fecha actual
+                fetchCotizaciones(res.data.fecha, res.data.fecha, estadoFiltro);
             })
             .catch(() => {
                 // fallback por si falla
                 const today = new Date().toISOString().split("T")[0];
                 setFechaInicio(today);
                 setFechaFinal(today);
+                // 🚀 también consultamos con HOY si falló el endpoint
+                fetchCotizaciones(today, today, estadoFiltro);
             });
     }, []);
 
-    const fetchCotizaciones = () => {
+    const fetchCotizaciones = async (
+        fi = fechaInicio,
+        ff = fechaFinal,
+        est = estadoFiltro
+    ) => {
+        if (fetchingRef.current) return; // evita dobles clics
+        fetchingRef.current = true;
         setLoading(true);
-        const token = localStorage.getItem("token");
 
-        if (!token) {
-            alertify.error("Token de autenticación no encontrado");
-            setCotizaciones([]);
-            setLoading(false);
-            return;
-        }
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alertify.error("Token de autenticación no encontrado");
+                setCotizaciones([]);
+                return; // ← salgo, el finally apaga el candado
+            }
 
-        const params = {};
-        if (fechaInicio) params.fechaInicio = fechaInicio;
-        if (fechaFinal) params.fechaFinal = fechaFinal;
-        if (estadoFiltro) params.estado = estadoFiltro;
+            const hoy = new Date().toISOString().slice(0, 10);
+            const params = { fechaInicio: fi || hoy, fechaFinal: ff || hoy };
+            if (est) params.estado = est;
 
-        axios
-            .get("/api/monitorfacturacion", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-                params, // envia las fechas como query params
-            })
-            .then((response) => {
-                setCotizaciones(response.data);
-                setLoading(false);
-            })
-            .catch(() => {
-                alertify.error("Error al obtener las cotizaciones.");
-                setLoading(false);
+            const { data } = await axios.get("/api/monitorfacturacion", {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
             });
+
+            setCotizaciones(data);
+        } catch (e) {
+            alertify.error("Error al obtener las cotizaciones.");
+        } finally {
+            setLoading(false);
+            fetchingRef.current = false; // ← SIEMPRE lo apago
+        }
     };
 
-    useEffect(() => {
-        fetchCotizaciones();
-    }, []);
+    // useEffect(() => {
+    //     fetchCotizaciones();
+    // }, []);
 
     const cotizacionesFiltradas = cotizaciones.filter((cot) => {
         const texto = filtro.toLowerCase();
@@ -162,13 +178,13 @@ function MonitorFacturacion() {
         );
     });
 
-    const handleDesactivar = (id) => {
+    const handleDesactivar = (id, estado) => {
         const token = localStorage.getItem("token");
         if (token) {
             axios
                 .put(
                     `/api/monitorfacturacion/desactivar/${id}`,
-                    {},
+                    { estado: estado },
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -187,19 +203,40 @@ function MonitorFacturacion() {
         }
     };
 
+    // const generarPDF = async (id) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token)
+    //         return alertify.error("Token no encontrado para generar PDF.");
+    //     try {
+    //         const response = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
+    //             headers: { Authorization: `Bearer ${token}` },
+    //         });
+    //         const data = await response.json();
+    //         setPdfData(data);
+    //     } catch(err) {
+    //         console.error("Error al generar el PDF:", err);
+    //         alertify.error("Error al generar el PDF.");
+    //     }
+    // };
     const generarPDF = async (id) => {
         const token = localStorage.getItem("token");
-        if (!token)
-            return alertify.error("Token no encontrado para generar PDF.");
-        try {
-            const response = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            setPdfData(data);
-        } catch {
-            alertify.error("Error al generar el PDF.");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        const res = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            console.error(`HTTP ${res.status}`, text);
+            return alertify.error("No se pudo generar el PDF.");
         }
+
+        const data = await res.json(); // { cotizacion, totalEnLetras }
+        setPdfData(data);
     };
 
     const generarFactura = async (id) => {
@@ -668,6 +705,7 @@ function MonitorFacturacion() {
                     Object.values(errs)[0]?.[0] || "Error de validación";
                 alertify.error(primero);
             } else {
+                console.log(e);
                 alertify.error("Error al certificar.");
             }
         } finally {
@@ -745,10 +783,133 @@ function MonitorFacturacion() {
     const estado = Number(registroSeleccionado?.estado);
 
     const puedeRegresarVenta = estado === 4;
+    const puedeRegresarPreFacturacion = estado === 5;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 5;
     const puedeGenerarPDFFactura = estado === 6;
+
+    const abrirPdfNota = async (tipo /* 'NCRE' | 'NDEB' */) => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro");
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            // 1) Traer la última nota del tipo solicitado
+            const resList = await fetch(
+                `/api/cotizaciones/${registroSeleccionado.idcotizacion}/notasfel?tipo=${tipo}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const notas = await resList.json();
+
+            if (!Array.isArray(notas) || notas.length === 0) {
+                return alertify.error(
+                    `No hay notas ${tipo} para esta factura.`
+                );
+            }
+
+            const idnota = notas[0].idnota; // la más reciente (ordenada desc en el backend)
+
+            // 2) Pedir el PDF de esa nota
+            const resPdf = await fetch(`/api/notasfel/${idnota}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!resPdf.ok) {
+                return alertify.error("No se pudo generar el PDF de la nota.");
+            }
+
+            const ct = resPdf.headers.get("content-type") || "";
+            if (!ct.includes("application/pdf")) {
+                return alertify.error("El servidor no devolvió un PDF.");
+            }
+
+            const blob = await resPdf.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (e) {
+            console.error(e);
+            alertify.error("Error al abrir el PDF de la nota.");
+        }
+    };
+
+    // abre modal y carga notas (por tipo si hay filtro)
+    const abrirNotasModal = async () => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro");
+        setShowNotasModal(true);
+        await cargarNotasFel(notaFiltroTipo);
+    };
+
+    const cerrarNotasModal = () => {
+        setShowNotasModal(false);
+        setNotas([]);
+    };
+
+    // carga desde backend
+    const cargarNotasFel = async (tipo = "") => {
+        if (!registroSeleccionado) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        setNotasLoading(true);
+        try {
+            const qs = tipo ? `?tipo=${tipo}` : "";
+            const res = await fetch(
+                `/api/cotizaciones/${registroSeleccionado.idcotizacion}/notasfel${qs}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error("HTTP error", res.status, txt);
+                alertify.error("No se pudieron cargar las notas.");
+                setNotas([]);
+                return;
+            }
+            const data = await res.json();
+            setNotas(Array.isArray(data) ? data : []);
+        } catch (e) {
+            console.error(e);
+            alertify.error("Error al cargar notas.");
+            setNotas([]);
+        } finally {
+            setNotasLoading(false);
+        }
+    };
+
+    // refetch cuando cambie el filtro de tipo mientras el modal esté abierto
+    useEffect(() => {
+        if (showNotasModal) cargarNotasFel(notaFiltroTipo);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [notaFiltroTipo, showNotasModal]);
+
+    // imprimir una nota concreta
+    const imprimirNota = async (idnota) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            const res = await fetch(`/api/notasfel/${idnota}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                return alertify.error("No se pudo generar el PDF de la nota.");
+            }
+            const ct = res.headers.get("content-type") || "";
+            if (!ct.includes("application/pdf")) {
+                return alertify.error("El servidor no devolvió un PDF.");
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (e) {
+            console.error(e);
+            alertify.error("Error al abrir el PDF de la nota.");
+        }
+    };
 
     return (
         <div className="container-fluid mt-4">
@@ -827,9 +988,16 @@ function MonitorFacturacion() {
                     <div className="col-md-3 d-flex align-items-end">
                         <button
                             className="btn btn-primary w-100"
-                            onClick={fetchCotizaciones}
+                            disabled={loading || fetchingRef.current}
+                            onClick={() =>
+                                fetchCotizaciones(
+                                    fechaInicio,
+                                    fechaFinal,
+                                    estadoFiltro
+                                )
+                            }
                         >
-                            Consultar
+                            {loading ? "Consultando…" : "Consultar"}
                         </button>
                     </div>
                 </div>
@@ -864,13 +1032,31 @@ function MonitorFacturacion() {
                         className="btn btn-danger btn-sm"
                         disabled={!puedeRegresarVenta}
                         onClick={() =>
-                            handleDesactivar(registroSeleccionado?.idcotizacion)
+                            handleDesactivar(
+                                registroSeleccionado?.idcotizacion,
+                                1
+                            )
                         }
                         data-bs-toggle="tooltip"
                         data-bs-placement="top"
                         title="Regresar la cotización a ventas"
                     >
                         <FaUndo /> Regresar a Venta
+                    </button>
+                    <button
+                        className="btn btn-danger btn-sm"
+                        disabled={!puedeRegresarPreFacturacion}
+                        onClick={() =>
+                            handleDesactivar(
+                                registroSeleccionado?.idcotizacion,
+                                4
+                            )
+                        }
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Regresar a Pre-Facturación"
+                    >
+                        <FaUndo /> Regresar a Pre-facturación
                     </button>
 
                     <button
@@ -974,6 +1160,44 @@ function MonitorFacturacion() {
                     >
                         🧾 Nota Débito
                     </button>
+                    <button
+                        className="btn btn-outline-info btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                        onClick={() => abrirPdfNota("NCRE")}
+                        data-bs-toggle="tooltip"
+                        title="Imprimir la última Nota de Crédito certificada"
+                    >
+                        PDF NCRE
+                    </button>
+
+                    <button
+                        className="btn btn-outline-secondary btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                        onClick={() => abrirPdfNota("NDEB")}
+                        data-bs-toggle="tooltip"
+                        title="Imprimir la última Nota de Débito certificada"
+                    >
+                        PDF NDEB
+                    </button>
+                    <button
+                        className="btn btn-outline-dark btn-sm"
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                        onClick={() => abrirNotasModal()}
+                        data-bs-toggle="tooltip"
+                        title="Ver e imprimir las notas (NC/ND) emitidas para esta factura"
+                    >
+                        🧾 Notas FEL…
+                    </button>
+
                     <Button
                         color="warning"
                         onClick={() => {
@@ -989,7 +1213,7 @@ function MonitorFacturacion() {
                 </div>
 
                 <div className="card-body">
-                    {loading || !spanishTranslation ? (
+                    {loading ? (
                         <p className="text-center">Cargando cotizaciones...</p>
                     ) : cotizacionesFiltradas.length === 0 ? (
                         <div className="alert alert-warning text-center">
@@ -1007,6 +1231,7 @@ function MonitorFacturacion() {
                                     paging: true,
                                     pageLength: 10,
                                     lengthChange: false,
+                                    order: [], // 👈 no ordenar en el cliente (usa el orden del backend)
                                 }}
                                 className="table table-hover table-bordered"
                                 onRowClick={(rowData, rowMeta) => {
@@ -1534,7 +1759,232 @@ function MonitorFacturacion() {
                             : "Certificar ND"}
                     </Button>
                 </ModalFooter>
-            </Modal>          
+            </Modal>
+            {/* PDF Viewer para mostrar la cotización*/}
+            {pdfData && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2000 }}
+                >
+                    <div
+                        className="bg-white rounded shadow"
+                        style={{
+                            width: "80%",
+                            height: "80%",
+                            position: "relative",
+                        }}
+                    >
+                        <PDFViewer width="100%" height="100%">
+                            <CotizacionPDF
+                                cotizacion={pdfData.cotizacion}
+                                totalEnLetras={pdfData.totalEnLetras}
+                                logoSrc="/images/LogoGP.png"
+                            />
+                        </PDFViewer>
+
+                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
+                            <PDFDownloadLink
+                                document={
+                                    <CotizacionPDF
+                                        cotizacion={pdfData.cotizacion}
+                                        totalEnLetras={pdfData.totalEnLetras}
+                                        logoSrc="/images/LogoGP.png"
+                                    />
+                                }
+                                fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
+                                className="btn btn-primary btn-sm"
+                            >
+                                {({ loading }) =>
+                                    loading ? "Preparando…" : "Descargar PDF"
+                                }
+                            </PDFDownloadLink>
+
+                            <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => setPdfData(null)}
+                            >
+                                Cerrar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <Modal
+                isOpen={showNotasModal}
+                toggle={cerrarNotasModal}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={cerrarNotasModal}>
+                    Notas FEL de la factura&nbsp;
+                    <span className="fw-semibold">
+                        {registroSeleccionado?.serie || "-"}-
+                        {registroSeleccionado?.numero || "-"}
+                    </span>
+                </ModalHeader>
+
+                <ModalBody>
+                    {/* Filtros de tipo */}
+                    <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+                        <span className="small text-muted">Filtrar:</span>
+                        <div
+                            className="btn-group"
+                            role="group"
+                            aria-label="Filtro tipo nota"
+                        >
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${
+                                    notaFiltroTipo === ""
+                                        ? "btn-primary"
+                                        : "btn-outline-primary"
+                                }`}
+                                onClick={() => setNotaFiltroTipo("")}
+                            >
+                                Todas
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${
+                                    notaFiltroTipo === "NCRE"
+                                        ? "btn-info"
+                                        : "btn-outline-info"
+                                }`}
+                                onClick={() => setNotaFiltroTipo("NCRE")}
+                            >
+                                NCRE
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${
+                                    notaFiltroTipo === "NDEB"
+                                        ? "btn-secondary"
+                                        : "btn-outline-secondary"
+                                }`}
+                                onClick={() => setNotaFiltroTipo("NDEB")}
+                            >
+                                NDEB
+                            </button>
+                        </div>
+
+                        {/* Accesos rápidos para crear nuevas (reutiliza tu modal existente) */}
+                        <div className="ms-auto d-flex gap-2">
+                            <button
+                                className="btn btn-outline-info btn-sm"
+                                onClick={() => {
+                                    setShowNotasModal(false);
+                                    abrirNota("NCRE");
+                                }}
+                            >
+                                + Nueva NC
+                            </button>
+                            <button
+                                className="btn btn-outline-secondary btn-sm"
+                                onClick={() => {
+                                    setShowNotasModal(false);
+                                    abrirNota("NDEB");
+                                }}
+                            >
+                                + Nueva ND
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Tabla de notas */}
+                    {notasLoading ? (
+                        <div className="text-center py-4">Cargando notas…</div>
+                    ) : notas.length === 0 ? (
+                        <div className="alert alert-warning">
+                            No hay notas para mostrar.
+                        </div>
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Serie/No.</th>
+                                        <th>Fecha</th>
+                                        <th>Motivo</th>
+                                        <th className="text-end">Monto</th>
+                                        <th>UUID</th>
+                                        <th style={{ width: 110 }}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {notas.map((n) => (
+                                        <tr key={n.idnota}>
+                                            <td>
+                                                <span
+                                                    className={`badge ${
+                                                        n.tipo === "NCRE"
+                                                            ? "bg-info"
+                                                            : "bg-secondary"
+                                                    }`}
+                                                >
+                                                    {n.tipo}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {(n.serie_nota || "SN") +
+                                                    "-" +
+                                                    (n.numero_nota || "0")}
+                                            </td>
+                                            <td>{n.fecha_nota || ""}</td>
+                                            <td
+                                                className="text-truncate"
+                                                style={{ maxWidth: 260 }}
+                                                title={n.motivo || ""}
+                                            >
+                                                {n.motivo || ""}
+                                            </td>
+                                            <td className="text-end">
+                                                {Number(
+                                                    n.monto || 0
+                                                ).toLocaleString("es-GT", {
+                                                    style: "currency",
+                                                    currency: "GTQ",
+                                                })}
+                                            </td>
+                                            <td
+                                                className="small text-wrap"
+                                                style={{ maxWidth: 220 }}
+                                            >
+                                                {n.uuid_nota || "-"}
+                                            </td>
+                                            <td>
+                                                <div className="btn-group btn-group-sm">
+                                                    <button
+                                                        className="btn btn-outline-primary"
+                                                        onClick={() =>
+                                                            imprimirNota(
+                                                                n.idnota
+                                                            )
+                                                        }
+                                                    >
+                                                        PDF
+                                                    </button>
+                                                    {/* Si quisieras más acciones futuras, déjalas aquí */}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </ModalBody>
+
+                <ModalFooter>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={cerrarNotasModal}
+                    >
+                        Cerrar
+                    </button>
+                </ModalFooter>
+            </Modal>
         </div>
     );
 }

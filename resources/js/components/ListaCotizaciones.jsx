@@ -48,6 +48,20 @@ function ListaCotizaciones() {
     const [fechaPdf, setFechaPdf] = useState("");
     const [historialEnvios, setHistorialEnvios] = useState([]);
 
+    const [estadoFiltro, setEstadoFiltro] = useState(""); // '' = todos
+
+    const ESTADOS = [
+        { value: "", label: "Todos" },
+        { value: "1", label: "REGISTRO" },
+        { value: "2", label: "PARA COSTEO" },
+        { value: "3", label: "COSTEADA" },
+        { value: "4", label: "PRE-FACTURACIÓN" },
+        { value: "5", label: "PARA FACTURAR" },
+        { value: "6", label: "FACTURADA" },
+        { value: "7", label: "ANULADA" },
+        { value: "8", label: "RECHAZADA" },
+    ];
+
     useEffect(() => {
         fetch("/i18n/Spanish.json")
             .then((response) => response.json())
@@ -89,7 +103,7 @@ function ListaCotizaciones() {
     }, []);
     //20250407 Código para enviar los parámetros de fecha
 
-    const fetchCotizaciones = (startDate = "", endDate = "") => {
+    const fetchCotizaciones = (startDate = "", endDate = "", estado = "") => {
         setLoading(true);
         const token = localStorage.getItem("token");
         const params = new URLSearchParams();
@@ -99,7 +113,7 @@ function ListaCotizaciones() {
         if (endDate) {
             params.append("fecha_fin", endDate);
         }
-
+        if (estado) params.append("estado", estado); // 👈 enviar estado
         if (token && startDate && endDate) {
             axios
                 .get(`/api/cotizaciones?${params.toString()}`, {
@@ -130,7 +144,7 @@ function ListaCotizaciones() {
     };
 
     const handleFiltrar = () => {
-        fetchCotizaciones(fechaInicio, fechaFin);
+        fetchCotizaciones(fechaInicio, fechaFin, estadoFiltro);
     };
 
     const obtenerDetalleCotizacion = async (id) => {
@@ -263,6 +277,44 @@ function ListaCotizaciones() {
         { data: "version", title: "Version", visible: false },
         { data: "estado", title: "Estado", visible: false },
         { data: "estado_texto", title: "Estado" },
+        {
+            data: "fecha_prefacturacion",
+            title: "Fecha Prefacturación",
+            render: (data) => {
+                if (data) {
+                    try {
+                        const date = new Date(data);
+                        return format(date, "dd-MM-yyyy"); // Formatea la fecha al formato AAAA-MM-DD
+                        // Otros formatos que podrías usar:
+                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
+                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
+                    } catch (error) {
+                        console.error("Error al formatear la fecha:", error);
+                        return ""; // Devuelve una cadena vacía o algún otro valor en caso de error
+                    }
+                }
+                return ""; // O algún otro valor por defecto si la fecha es nula
+            },
+        },
+        {
+            data: "fecha_certificacion",
+            title: "Fecha Certificación",
+            render: (data) => {
+                if (data) {
+                    try {
+                        const date = new Date(data);
+                        return format(date, "dd-MM-yyyy"); // Formatea la fecha al formato AAAA-MM-DD
+                        // Otros formatos que podrías usar:
+                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
+                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
+                    } catch (error) {
+                        console.error("Error al formatear la fecha:", error);
+                        return ""; // Devuelve una cadena vacía o algún otro valor en caso de error
+                    }
+                }
+                return ""; // O algún otro valor por defecto si la fecha es nula
+            },
+        },
     ];
 
     useEffect(() => {
@@ -378,7 +430,7 @@ function ListaCotizaciones() {
             { targets: 2, width: "120px" },
         ],
         language: spanishTranslation, // Agrega la traducción aquí
-        order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
+        order: [], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {
             row.classList.remove(
                 "estado-1",
@@ -439,16 +491,17 @@ function ListaCotizaciones() {
 
     useEffect(() => {
         if (showPdfModal && registroSeleccionado) {
-            let fecha = registroSeleccionado.fecha_cotizacion;
+            // let fecha = registroSeleccionado.fecha_cotizacion;
 
-            if (!fecha) {
-                fecha = new Date().toISOString().split("T")[0];
-            } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
-                const [d, m, y] = fecha.split("-");
-                fecha = `${y}-${m}-${d}`;
-            }
+            // if (!fecha) {
+            //     fecha = new Date().toISOString().split("T")[0];
+            // } else if (/^\d{2}-\d{2}-\d{4}$/.test(fecha)) {
+            //     const [d, m, y] = fecha.split("-");
+            //     fecha = `${y}-${m}-${d}`;
+            // }
+            setFechaPdf(toDateInput(registroSeleccionado.fecha_cotizacion));
 
-            setFechaPdf(fecha); // ✅ se asegura que el input lo muestre
+            // setFechaPdf(fecha); // ✅ se asegura que el input lo muestre
         }
     }, [showPdfModal, registroSeleccionado]);
 
@@ -597,7 +650,6 @@ function ListaCotizaciones() {
 
         setPdfData(data);
     };
-    
 
     const generarNotaEnvio = async (id) => {
         const token = localStorage.getItem("token");
@@ -682,6 +734,29 @@ function ListaCotizaciones() {
         } catch {
             alertify.error("No se pudo obtener el historial de envíos.");
         }
+    };
+
+    /**
+     * Para mostrar la fecha correctamente en el input del modal de la cotización
+     */
+    // utils/fecha.ts o dentro del componente
+    const toDateInput = (value) => {
+        if (!value) return new Date().toISOString().slice(0, 10);
+        const s = String(value).trim();
+
+        // dd-mm-yyyy -> yyyy-mm-dd
+        const m1 = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
+
+        // yyyy-mm-dd (con o sin hora) o yyyy/mm/dd
+        const m2 = s.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+        if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+
+        // Fallback: parsear Date
+        const d = new Date(s.includes(" ") ? s.replace(" ", "T") : s);
+        if (!isNaN(d)) return d.toISOString().slice(0, 10);
+
+        return ""; // deja vacío si nada aplica
     };
 
     return (
@@ -840,6 +915,30 @@ function ListaCotizaciones() {
                                 />
                             </div>
                             <div className="col-auto">
+                                <label
+                                    htmlFor="estadoFiltro"
+                                    className="form-label"
+                                >
+                                    Estado:
+                                </label>
+                            </div>
+                            <div className="col-md-3">
+                                <select
+                                    id="estadoFiltro"
+                                    className="form-select form-select-sm"
+                                    value={estadoFiltro}
+                                    onChange={(e) =>
+                                        setEstadoFiltro(e.target.value)
+                                    }
+                                >
+                                    {ESTADOS.map((op) => (
+                                        <option key={op.value} value={op.value}>
+                                            {op.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-auto">
                                 <button
                                     className="btn btn-primary btn-sm"
                                     onClick={handleFiltrar}
@@ -927,7 +1026,10 @@ function ListaCotizaciones() {
                                         fecha = `${y}-${m}-${d}`;
                                     }
 
-                                    setFechaPdf(fecha); // ✅ se establece ANTES de abrir el modal
+                                    // setFechaPdf(fecha); // ✅ se establece ANTES de abrir el modal
+                                    setFechaPdf(
+                                        toDateInput(cot.fecha_cotizacion)
+                                    );
                                     await obtenerHistorialEnvios(
                                         cot.idcotizacion
                                     );
@@ -1295,7 +1397,7 @@ function ListaCotizaciones() {
                                 <input
                                     type="date"
                                     className="form-control"
-                                    value={fechaPdf}
+                                    value={fechaPdf || ""}
                                     onChange={(e) =>
                                         setFechaPdf(e.target.value)
                                     }

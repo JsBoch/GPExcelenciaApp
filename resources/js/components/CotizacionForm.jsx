@@ -90,7 +90,7 @@ function CotizacionForm() {
 
     //Estado del detalle de la cotización
     const [detalle, setDetalle] = useState({
-        unidad_medida: "",
+        unidad_medida: "UNIDAD",
         descripcion: "",
         cantidad: 0,
         ancho: 0,
@@ -584,7 +584,7 @@ function CotizacionForm() {
         }
 
         setDetalle({
-            unidad_medida: "",
+            unidad_medida: "UNIDAD",
             descripcion: "",
             cantidad: 0,
             ancho: 0,
@@ -626,7 +626,7 @@ function CotizacionForm() {
                 );
                 setDetalleSeleccionado(null);
                 setDetalle({
-                    unidad_medida: "",
+                    unidad_medida: "UNIDAD",
                     descripcion: "",
                     cantidad: 0,
                     ancho: 0,
@@ -1014,7 +1014,7 @@ function CotizacionForm() {
         });
         setDetalles([]);
         setDetalle({
-            unidad_medida: "",
+            unidad_medida: "UNIDAD",
             descripcion: "",
             cantidad: 0,
             ancho: 0,
@@ -1209,7 +1209,7 @@ function CotizacionForm() {
                                         onChange={handleDetalleChange}
                                         className="form-select form-select-sm"
                                     >
-                                        <option value="">Seleccionar</option>
+                                        {/* <option value="">Seleccionar</option> */}
                                         {unidadesMedida.map((um) => (
                                             <option
                                                 key={um.idunidadmedida}

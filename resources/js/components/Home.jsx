@@ -180,6 +180,10 @@ function Home() {
                     to = `/clientes/datos`;
                     text = 'Asignar información de contacto';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Ventas Reportes-Contabilidad' && opcion.accion === 'ventas') {
+                    to = `/reportes/contabilidad/prefacturacion`;
+                    text = 'Reporte de ventas prefacturación';
+                    icon = <FiSearch />;
                 }
 
 

@@ -16,20 +16,110 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Support\NitUtils;
+use Carbon\Carbon;
+
 
 class MonitorFacturacionController extends Controller
 {
+    // public function index(Request $request)
+    // {
+    //     $fechaInicio = $request->query('fechaInicio');
+    //     $fechaFinal = $request->query('fechaFinal');
+    //     $estado = $request->query('estado');
+
+    //     $query = AdmCotizacion::whereIn('c.estado', [4, 5, 6])
+    //         ->select(
+    //             'c.idcotizacion',
+    //             DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
+    //             'c.fecha_cotizacion',
+    //             't.tipo as tipo_pago',
+    //             'c.total_general',
+    //             'c.costear',
+    //             'cl.nombre as cliente',
+    //             'ct.nombre as contacto',
+    //             'c.direccion_entrega',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.costeo_observaciones',
+    //             'c.idcotizacionoriginal',
+    //             'c.idcliente',
+    //             'c.idcontacto',
+    //             'c.trabajo',
+    //             'c.version',
+    //             'c.idtipopago',
+    //             'c.estado',
+    //             DB::raw("CASE
+    //                 WHEN c.estado = 1 THEN 'REGISTRO'
+    //                 WHEN c.estado = 2 THEN 'COSTEO'
+    //                 WHEN c.estado = 3 THEN 'COSTEADA'
+    //                 WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+    //                 WHEN c.estado = 5 THEN 'PARA FACTURAR'
+    //                 WHEN c.estado = 6 THEN 'FACTURADA'
+    //                 WHEN c.estado = 7 THEN 'ANULADA'
+    //                 ELSE 'DESCONOCIDO'
+    //             END as estado_texto"),
+    //             'c.uuid',
+    //             'c.serie',
+    //             'c.numero',
+    //             'c.errores',
+    //             'c.resultado',
+    //         )
+    //         ->from('adm_cotizacion as c')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+
+    //     // 👇 Aplica el filtro por fechas si están definidos
+    //     if ($estado) {
+    //         $query->where('c.estado', $estado);
+
+    //         // Si estado = 5 (PARA FACTURAR), no aplicar filtro de fecha
+    //         if ($estado != 5 && $fechaInicio && $fechaFinal) {
+    //             $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+    //         }
+    //     } elseif ($fechaInicio && $fechaFinal) {
+    //         $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+    //     }
+    //     // if ($fechaInicio && $fechaFinal) {
+    //     //     $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+    //     // }
+
+    //     // Log::info($query);
+    //     $cotizaciones = $query->get();
+    //     // Decodificar errores para cada cotización
+    //     foreach ($cotizaciones as $cot) {
+    //         if (is_string($cot->errores) && $this->isJson($cot->errores)) {
+    //             $cot->errores = json_decode($cot->errores, true);
+    //         }
+    //     }
+    //     return response()->json($cotizaciones);
+    // }
     public function index(Request $request)
     {
+        $estado      = $request->query('estado');
         $fechaInicio = $request->query('fechaInicio');
-        $fechaFinal = $request->query('fechaFinal');
-        $estado = $request->query('estado');
+        $fechaFinal  = $request->query('fechaFinal');
 
-        $query = AdmCotizacion::whereIn('c.estado', [4, 5, 6])
+        $end   = $fechaFinal  ? Carbon::parse($fechaFinal)  : Carbon::today();
+        $start = $fechaInicio ? Carbon::parse($fechaInicio) : $end->copy();
+
+        $desde = $start->copy()->startOfDay()->toDateTimeString();
+        $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
+
+        // ⬇️ Fecha dinámica SIN comparar con '0000-00-00 ...'
+        $fechaDinamica = "
+        CASE
+            WHEN c.estado = 4 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_prefacturacion),0))
+            WHEN c.estado = 6 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_certificacion),0))
+            ELSE FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_cotizacion),0))
+        END
+    ";
+
+        $query = AdmCotizacion::from('adm_cotizacion as c')
             ->select(
                 'c.idcotizacion',
-                DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
-                'c.fecha_cotizacion',
+                DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
+                DB::raw("$fechaDinamica AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
                 'c.total_general',
                 'c.costear',
@@ -47,44 +137,40 @@ class MonitorFacturacionController extends Controller
                 'c.idtipopago',
                 'c.estado',
                 DB::raw("CASE
-                    WHEN c.estado = 1 THEN 'REGISTRO'
-                    WHEN c.estado = 2 THEN 'COSTEO'
-                    WHEN c.estado = 3 THEN 'COSTEADA'
-                    WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-                    WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                    WHEN c.estado = 6 THEN 'FACTURADA'
-                    WHEN c.estado = 7 THEN 'ANULADA'
-                    ELSE 'DESCONOCIDO'
-                END as estado_texto"),
+                WHEN c.estado = 1 THEN 'REGISTRO'
+                WHEN c.estado = 2 THEN 'COSTEO'
+                WHEN c.estado = 3 THEN 'COSTEADA'
+                WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+                WHEN c.estado = 5 THEN 'PARA FACTURAR'
+                WHEN c.estado = 6 THEN 'FACTURADA'
+                WHEN c.estado = 7 THEN 'ANULADA'
+                WHEN c.estado = 8 THEN 'RECHAZADA'
+                ELSE 'DESCONOCIDO'
+            END as estado_texto"),
                 'c.uuid',
                 'c.serie',
                 'c.numero',
                 'c.errores',
-                'c.resultado',
+                'c.resultado'
             )
-            ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
 
-        // 👇 Aplica el filtro por fechas si están definidos
-        if ($estado) {
-            $query->where('c.estado', $estado);
-
-            // Si estado = 5 (PARA FACTURAR), no aplicar filtro de fecha
-            if ($estado != 5 && $fechaInicio && $fechaFinal) {
-                $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
-            }
-        } elseif ($fechaInicio && $fechaFinal) {
-            $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
+        if ($estado !== null && $estado !== '') {
+            $query->where('c.estado', (int)$estado);
+        } else {
+            $query->whereIn('c.estado', [4, 5, 6]);
         }
-        // if ($fechaInicio && $fechaFinal) {
-        //     $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
-        // }
 
-        // Log::info($query);
+        // ⬇️ filtra solo cuando la fecha dinámica es válida
+        $query->whereRaw("($fechaDinamica) IS NOT NULL AND ($fechaDinamica) >= ? AND ($fechaDinamica) < ?", [$desde, $hasta]);
+
+        // Si tu MySQL no deja ordenar por alias, usa orderByRaw:
+        $query->orderByRaw("($fechaDinamica) DESC");
+
         $cotizaciones = $query->get();
-        // Decodificar errores para cada cotización
+
         foreach ($cotizaciones as $cot) {
             if (is_string($cot->errores) && $this->isJson($cot->errores)) {
                 $cot->errores = json_decode($cot->errores, true);
@@ -92,6 +178,8 @@ class MonitorFacturacionController extends Controller
         }
         return response()->json($cotizaciones);
     }
+
+
 
     private function isJson($string)
     {
@@ -162,14 +250,79 @@ class MonitorFacturacionController extends Controller
         //   ->header('Content-Disposition', 'inline; filename="cotizacion_'.$cotizacion->nocotizacion.'.pdf"');
     }
 
-    public function desactivar($id)
+    public function generarPdfJson(Request $request, $id)
     {
+        try {
+            // Si algún día quieres permitir cambiar la fecha desde el front,
+            // puedes recibir 'fecha_cotizacion' como en el otro componente:
+            $fechaInput = $request->input('fecha_cotizacion');
+
+            $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+                ->select(
+                    'c.idcotizacion',
+                    'c.nocotizacion',
+                    'c.fecha_cotizacion',
+                    't.tipo as tipo_pago',
+                    'c.total_general',
+                    'c.costear',
+                    'cl.nombre as cliente',
+                    'cl.nit as nit',
+                    'ct.nombre as contacto',
+                    'e.nombre as vendedor',
+                    'e.movil as telefono_vendedor',
+                    'e.correo_personal as correo_vendedor',
+                    'c.direccion_entrega',
+                    'c.observaciones_costeo',
+                    'c.observaciones_cliente',
+                    'c.costeo_observaciones',
+                    'c.trabajo',
+                    'c.version'
+                )
+                ->from('adm_cotizacion as c')
+                ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+                ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+                ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+                ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+                ->first();
+
+            if (!$cotizacion) {
+                return response()->json(['message' => 'Cotización no encontrada'], 404);
+            }
+
+            $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+            $cotizacion->detalles = $detalles;
+
+            // Si te mandan fecha por request y pasa el formato, úsala; si no, deja la original
+            if ($fechaInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaInput)) {
+                $cotizacion->fecha_cotizacion = $fechaInput;
+            }
+
+            // Total a letras:
+            $numberToWords     = new NumberToWords();
+            $numberTransformer = $numberToWords->getNumberTransformer('es');
+            $entero = floor($cotizacion->total_general);
+            $centavos = round(($cotizacion->total_general - $entero) * 100);
+            $totalEnLetras = strtoupper($numberTransformer->toWords($entero) . ' CON ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100');
+
+            return response()->json([
+                'cotizacion'    => $cotizacion,
+                'totalEnLetras' => $totalEnLetras,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error generando PDF (JSON) en MonitorFacturación: ' . $e->getMessage());
+            return response()->json(['message' => 'Error generando el PDF.'], 500);
+        }
+    }
+
+    public function desactivar(Request $request, $id)
+    {
+        $estado = $request->input('estado', 1); // Por defecto, desactivar a estado 1 (REGISTRO)
         $cotizacion = AdmCotizacion::find($id);
         if (! $cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        $cotizacion->estado = 1;
+        $cotizacion->estado = $estado;
         $cotizacion->save();
 
         return response()->json(['message' => 'Cotización desactivada']);
@@ -1243,5 +1396,111 @@ class MonitorFacturacionController extends Controller
     private function pad(int $valor, int $width = 6): string
     {
         return str_pad((string) $valor, $width, '0', STR_PAD_LEFT);
+    }
+
+    public function listarNotasFel(Request $request, int $idcotizacion)
+    {
+        $tipo = $request->query('tipo'); // NCRE | NDEB (opcional)
+
+        $rows = DB::table('adm_notas_fel as nf')
+            ->leftJoin('adm_cotizacion as c', 'nf.idcotizacion', '=', 'c.idcotizacion')
+            ->selectRaw("
+            nf.idnota,
+            nf.idcotizacion,
+            nf.tipo,
+            nf.motivo,
+            nf.monto_total  as monto,
+            nf.monto_gravable,
+            nf.monto_impuesto,
+            nf.exento_iva,
+            nf.receptor_nombre as cliente,
+            nf.receptor_numero as receptor_numero,
+            nf.receptor_direccion as direccion,
+            -- en tu persistencia estos campos terminan guardando la info de la nota certificada
+            nf.uuid_origen   as uuid_nota,
+            nf.serie_origen  as serie_nota,
+            nf.numero_origen as numero_nota,
+            DATE(COALESCE(nf.fecha_emision_origen, nf.created_at)) as fecha_nota,
+            -- referencia a la factura origen (por si quieres mostrarla)
+            c.serie  as serie_factura,
+            c.numero as numero_factura,
+            c.uuid   as uuid_factura,
+            DATE(c.fecha_certificacion) as fecha_factura
+        ")
+            ->where('nf.idcotizacion', $idcotizacion)
+            ->when($tipo, fn($q) => $q->where('nf.tipo', $tipo))
+            ->orderByDesc('nf.created_at')
+            ->get();
+
+        return response()->json($rows);
+    }
+
+    public function generarPdfNotaFel(int $idnota)
+    {
+        $nota = DB::table('adm_notas_fel as nf')
+            ->leftJoin('adm_cotizacion as c', 'nf.idcotizacion', '=', 'c.idcotizacion')
+            ->selectRaw("
+            nf.idnota,
+            nf.idcotizacion,
+            nf.tipo,
+            nf.motivo,
+            nf.monto_total  as monto,
+            nf.monto_gravable,
+            nf.monto_impuesto,
+            nf.exento_iva,
+            nf.receptor_nombre  as cliente,
+            nf.receptor_numero  as receptor_numero,
+            nf.receptor_direccion as direccion,
+            nf.uuid_origen   as uuid_nota,
+            nf.serie_origen  as serie_nota,
+            nf.numero_origen as numero_nota,
+            DATE(COALESCE(nf.fecha_emision_origen, nf.created_at)) as fecha_nota,
+            c.serie  as serie_factura,
+            c.numero as numero_factura,
+            c.uuid   as uuid_factura,
+            DATE(c.fecha_certificacion) as fecha_factura
+        ")
+            ->where('nf.idnota', $idnota)
+            ->first();
+
+        if (!$nota) {
+            return response()->json(['message' => 'Nota no encontrada'], 404);
+        }
+
+        // Datos fijos de la empresa (ajusta a los tuyos)
+        $empresa = [
+            'nombre'   => 'GP EXCELENCIA, S.A.',
+            'nit'      => '109126599',
+            'direccion' => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
+            'telefonos' => '2309-9419 / 2294-9257',
+            'email'    => 'ventas@gpexcelencia.com',
+            'web'      => 'www.gpexcelencia.com',
+        ];
+
+        $html = view('pdf.nota_fel', [
+            'nota'    => $nota,
+            'empresa' => $empresa,
+            'esCredito' => $nota->tipo === 'NCRE',
+        ])->render();
+
+        $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
+
+        $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
+        return $pdf->stream($fn);
+    }
+
+    public function generarPdfUltimaNotaPorTipo(Request $request, int $idcotizacion)
+    {
+        $tipo = $request->query('tipo', 'NCRE'); // NCRE | NDEB
+        $idnota = DB::table('adm_notas_fel')
+            ->where('idcotizacion', $idcotizacion)
+            ->where('tipo', $tipo)
+            ->orderByDesc('created_at')
+            ->value('idnota');
+
+        if (!$idnota) {
+            return response()->json(['message' => 'No hay notas de ese tipo para esta factura'], 404);
+        }
+        return $this->generarPdfNotaFel((int)$idnota);
     }
 }
