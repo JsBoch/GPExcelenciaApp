@@ -20,16 +20,84 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class CotizacionController extends Controller
 {
+    // public function index(Request $request)
+    // {
+    //     $user = Auth::user();              // Obtiene el usuario autenticado
+    //     $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
+
+    //     $query = AdmCotizacion::query()
+    //         ->select(
+    //             'c.idcotizacion',
+    //             DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
+    //             'c.fecha_cotizacion',
+    //             'c.fecha_prefacturacion',
+    //             'c.fecha_certificacion',
+    //             't.tipo as tipo_pago',
+    //             'c.total_general',
+    //             'c.costear',
+    //             'cl.nombre as cliente',
+    //             'ct.nombre as contacto',
+    //             'c.direccion_entrega',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.costeo_observaciones',
+    //             'c.idcotizacionoriginal',
+    //             'c.idcliente',
+    //             'c.idcontacto',
+    //             'c.trabajo',
+    //             'c.version',
+    //             'c.idtipopago',
+    //             'c.estado',
+    //             DB::raw("CASE
+    //                 WHEN c.estado = 1 THEN 'REGISTRO'
+    //                 WHEN c.estado = 2 THEN 'COSTEO'
+    //                 WHEN c.estado = 3 THEN 'COSTEADA'
+    //                 WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+    //                 WHEN c.estado = 5 THEN 'PARA FACTURAR'
+    //                 WHEN c.estado = 6 THEN 'FACTURADA'
+    //                 WHEN c.estado = 7 THEN 'ANULADA'
+    //                 WHEN c.estado = 8 THEN 'RECHAZADA'
+    //                 ELSE 'DESCONOCIDO'
+    //             END as estado_texto")
+    //         )
+    //         ->from('adm_cotizacion as c')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+
+    //     $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
+    //     //}
+
+    //     // Filtro por rango de fechas
+    //     if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
+    //         $query->whereBetween('c.fecha_cotizacion', [$request->fecha_inicio, $request->fecha_fin]);
+    //     } elseif ($request->has('fecha_inicio')) {
+    //         $query->where('c.fecha_cotizacion', '>=', $request->fecha_inicio);
+    //     } elseif ($request->has('fecha_fin')) {
+    //         $query->where('c.fecha_cotizacion', '<=', $request->fecha_fin);
+    //     }
+
+    //     // Aplica el filtro condicional basado en cotizaciones_todas
+    //     if ($cotizacionesTodas == 'N') {
+    //         $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
+    //     }
+
+    //     $cotizaciones = $query->orderBy('c.nocotizacion', 'desc')->get();
+    //     //$cotizaciones = $query->get();
+    //     return response()->json($cotizaciones);
+    // }
     public function index(Request $request)
     {
-        $user = Auth::user();              // Obtiene el usuario autenticado
-        $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
+        $user = Auth::user();
+        $cotizacionesTodas = $user->cotizaciones_todas;
 
         $query = AdmCotizacion::query()
             ->select(
                 'c.idcotizacion',
-                DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
+                DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 'c.fecha_cotizacion',
+                'c.fecha_prefacturacion',
+                'c.fecha_certificacion',
                 't.tipo as tipo_pago',
                 'c.total_general',
                 'c.costear',
@@ -47,43 +115,52 @@ class CotizacionController extends Controller
                 'c.idtipopago',
                 'c.estado',
                 DB::raw("CASE
-                    WHEN c.estado = 1 THEN 'REGISTRO'
-                    WHEN c.estado = 2 THEN 'COSTEO'
-                    WHEN c.estado = 3 THEN 'COSTEADA'
-                    WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-                    WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                    WHEN c.estado = 6 THEN 'FACTURADA'
-                    WHEN c.estado = 7 THEN 'ANULADA'
-                    WHEN c.estado = 8 THEN 'RECHAZADA'
-                    ELSE 'DESCONOCIDO'
-                END as estado_texto")
+                WHEN c.estado = 1 THEN 'REGISTRO'
+                WHEN c.estado = 2 THEN 'COSTEO'
+                WHEN c.estado = 3 THEN 'COSTEADA'
+                WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+                WHEN c.estado = 5 THEN 'PARA FACTURAR'
+                WHEN c.estado = 6 THEN 'FACTURADA'
+                WHEN c.estado = 7 THEN 'ANULADA'
+                WHEN c.estado = 8 THEN 'RECHAZADA'
+                ELSE 'DESCONOCIDO'
+            END as estado_texto")
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->where('c.estado', '!=', 0);
 
-        $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
-        //}
-
-        // Filtro por rango de fechas
-        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-            $query->whereBetween('c.fecha_cotizacion', [$request->fecha_inicio, $request->fecha_fin]);
-        } elseif ($request->has('fecha_inicio')) {
-            $query->where('c.fecha_cotizacion', '>=', $request->fecha_inicio);
-        } elseif ($request->has('fecha_fin')) {
-            $query->where('c.fecha_cotizacion', '<=', $request->fecha_fin);
+        // Rango de fechas
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $query->whereBetween(DB::raw('DATE(c.fecha_cotizacion)'), [$request->fecha_inicio, $request->fecha_fin]);
+        } elseif ($request->filled('fecha_inicio')) {
+            $query->whereDate('c.fecha_cotizacion', '>=', $request->fecha_inicio);
+        } elseif ($request->filled('fecha_fin')) {
+            $query->whereDate('c.fecha_cotizacion', '<=', $request->fecha_fin);
         }
 
-        // Aplica el filtro condicional basado en cotizaciones_todas
+        // Filtro por estado (si viene)
+        if ($request->filled('estado') && $request->estado !== 'todos') {
+            $query->where('c.estado', (int) $request->estado);
+        }
+
+        // Filtro por usuario si aplica
         if ($cotizacionesTodas == 'N') {
-            $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
+            $query->where('c.idusuario', $user->id);
         }
 
-        $cotizaciones = $query->orderBy('c.nocotizacion', 'desc')->get();
-        //$cotizaciones = $query->get();
+        // Orden
+        $cotizaciones = $query
+            ->orderBy('c.fecha_cotizacion', 'asc')
+            ->orderBy('c.nocotizacion', 'asc')
+            ->get();
+
         return response()->json($cotizaciones);
     }
+
+
 
     public function store(Request $request)
     {
@@ -453,9 +530,9 @@ class CotizacionController extends Controller
 
         $cotizacion->estado = $estado;
 
-        // Si es pre-facturación (4), setear fecha_prefacturacion
+        // Si es pre-facturación (4), y aún no tiene fecha, setear fecha_prefacturacion
         //if ($estado === 4 && is_null($cotizacion->fecha_prefacturacion)) {
-        if ($estado === 4) {
+        if ($estado === 4 && empty($cotizacion->fecha_prefacturacion)) {
             $cotizacion->fecha_prefacturacion = $ahora;
         }
 
@@ -629,7 +706,7 @@ class CotizacionController extends Controller
             return response()->json([
                 'cotizacion' => $cotizacion,
                 'totalEnLetras' => $totalEnLetras
-            ]);                        
+            ]);
         } catch (\Throwable $e) {
             Log::error('Error generando PDF cotización: ' . $e->getMessage());
             return response()->json(['message' => 'Error generando el PDF.'], 500);
@@ -718,6 +795,66 @@ class CotizacionController extends Controller
 
         return response()->json($nota);
     }
+
+    // public function notaEnvioPdf($id)
+    // {
+    //     // Trae la misma info que usabas para la nota de envío (tu query actual):
+    //     $nota = DB::table('adm_cotizacion as ct')
+    //         ->join('clientes as cl', 'ct.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ctt', 'ct.idcontacto', '=', 'ctt.id_contactocliente')
+    //         ->join('adm_detalle_cotizacion as dc', 'ct.idcotizacion', '=', 'dc.idcotizacion')
+    //         ->where('ct.idcotizacion', $id)
+    //         ->where('cl.estado', 1)
+    //         ->where('ctt.estado', 1)
+    //         ->where('dc.estado', 1)
+    //         ->select(
+    //             DB::raw("CONCAT('CT', ct.nocotizacion) as noenvio"),
+    //             'cl.nombre as cliente',
+    //             'ct.direccion_entrega',
+    //             'ct.fecha_cotizacion',
+    //             'ctt.nombre as contacto',
+    //             'ctt.telefono',
+    //             'dc.cantidad',
+    //             'dc.descripcion'
+    //         )
+    //         ->get();
+
+    //     if ($nota->isEmpty()) {
+    //         return response()->json(['message' => 'No se encontró la cotización o sus detalles'], 404);
+    //     }
+
+    //     // --- Logo en base64 (asegúrate de tenerlo en public/images/LogoGP.png)
+    //     $logoPath = public_path('images/LogoGP.png');
+    //     $logoBase64 = null;
+    //     if (is_file($logoPath)) {
+    //         $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+    //     }
+
+    //     // Si hay pocos ítems, media carta
+    //     $SMALL_THRESHOLD = 6; // ajusta a tu gusto
+    //     $isHalf = $nota->count() <= $SMALL_THRESHOLD;
+
+    //     $html = view('pdf.nota_envio', [
+    //         'encabezado' => $nota->first(),
+    //         'items'      => $nota,
+    //         'logoBase64' => $logoBase64,
+    //         'isHalf'     => $isHalf,
+    //     ])->render();
+
+    //     $pdf = Pdf::loadHTML($html);
+
+    //     // Papel dinámico
+    //     if ($isHalf) {
+    //         // 8.5 x 5.5 in -> 612 x 396 pt
+    //         $pdf->setPaper([0, 0, 612, 396], 'portrait');
+    //     } else {
+    //         $pdf->setPaper('letter', 'portrait');
+    //     }
+
+    //     $filename = 'nota-envio-' . $nota->first()->noenvio . '.pdf';
+    //     return $pdf->stream($filename); // o ->download($filename)
+    // }
+
 
     public function motivosRechazo()
     {

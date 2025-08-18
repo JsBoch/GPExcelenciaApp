@@ -23,7 +23,7 @@ import {
 import "../../css/tableFormat.css";
 import ImagenModal from "./ImagenModal";
 
-const DetallePedidoModal = ({ detalle, estadoPedido,nopedido, onClose }) => {
+const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
     const [detalleItems, setDetalleItems] = useState([]);
     const [totalGeneral, setTotalGeneral] = useState(0);
     const [porcentajeGlobal, setPorcentajeGlobal] = useState(0);
@@ -71,7 +71,9 @@ const DetallePedidoModal = ({ detalle, estadoPedido,nopedido, onClose }) => {
     const [selectedImageUrl, setSelectedImageUrl] = useState(null);
 
     const handleViewImage = (imagen_ruta) => {
-        const url = imagen_ruta ? `/images_pedidosproduccion/${imagen_ruta}` : null;
+        const url = imagen_ruta
+            ? `/images_pedidosproduccion/${imagen_ruta}`
+            : null;
         setSelectedImageUrl(url || null);
         setIsImageModalOpen(true);
     };
@@ -261,10 +263,36 @@ const DetallePedidoModal = ({ detalle, estadoPedido,nopedido, onClose }) => {
                     enableSorting
                     enablePagination
                     enableBottomToolbar
+                    initialState={{ density: "compact" }} // menos padding
                     muiTableProps={{
                         sx: {
-                            zIndex: 1040,
                             tableLayout: "auto",
+                        },
+                    }}
+                    muiTableHeadCellProps={{
+                        sx: {
+                            fontSize: "0.75rem", // header más pequeño
+                            borderBottom: "2px solid rgba(0,0,0,0.24)", // separador del header
+                            backgroundColor: "#fafafa",
+                        },
+                    }}
+                    muiTableBodyRowProps={{
+                        sx: {
+                            "& td": {
+                                borderBottom: "1px solid rgba(0,0,0,0.12)", // ← línea inferior por registro
+                                borderTop: 0,
+                                borderLeft: 0,
+                                borderRight: 0,
+                            },
+                            "&:last-of-type td": {
+                                borderBottom: "1px solid rgba(0,0,0,0.12)", // asegura línea en la última fila
+                            },
+                        },
+                    }}
+                    muiTableBodyCellProps={{
+                        sx: {
+                            fontSize: "0.80rem", // cuerpo más pequeño (~12-13px)
+                            py: 0.5, // menos alto de fila
                         },
                     }}
                 />

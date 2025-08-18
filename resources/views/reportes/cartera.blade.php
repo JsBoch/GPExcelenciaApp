@@ -138,7 +138,7 @@
             <tbody>
                 @foreach ($g['items'] as $it)
                 <tr>
-                    <td>{{ $it->nocotizacion }}</td>
+                    <td>{{ $it->nofactura }}</td>
                     <td>{{ $it->numero }}</td>
                     <td>{{ $it->tipo }}</td>
                     <td>{{ \Illuminate\Support\Str::of($it->fecha_emision)->limit(10, '') }}</td>

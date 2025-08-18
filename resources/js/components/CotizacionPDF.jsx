@@ -130,6 +130,31 @@ const formatoMoneda = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
 });
 
+// Encima del componente
+const fechaDMY = (valor) => {
+    if (!valor) return "N/A";
+    const s = String(valor).trim();
+
+    // Caso común: "YYYY-MM-DD" o "YYYY-MM-DD HH:mm:ss"
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        const y = s.slice(0, 4);
+        const m = s.slice(5, 7);
+        const d = s.slice(8, 10);
+        return `${d}/${m}/${y}`;
+    }
+
+    // Fallback: intentar parsear como Date
+    const iso = s.includes(" ") ? s.replace(" ", "T") : s;
+    const d = new Date(iso);
+    if (!isNaN(d)) {
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yy = d.getFullYear();
+        return `${dd}/${mm}/${yy}`;
+    }
+    return s;
+};
+
 const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
     <Document>
         <Page style={styles.page}>
@@ -157,7 +182,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         <Text>DIA MES AÑO</Text>
                     </View>
                     <View style={styles.fechaBox}>
-                        <Text>
+                        {/* <Text>
                             {cotizacion.fecha_cotizacion
                                 ? (() => {
                                       const [y, m, d] =
@@ -167,7 +192,8 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                       return `${d}/${m}/${y}`;
                                   })()
                                 : "N/A"}
-                        </Text>
+                        </Text> */}
+                         <Text>{fechaDMY(cotizacion.fecha_cotizacion)}</Text>
                     </View>
                 </View>
             </View>

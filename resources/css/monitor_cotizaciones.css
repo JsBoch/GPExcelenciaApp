@@ -27,3 +27,23 @@
     max-width: 1500px; /* tope razonable en monitores grandes */
   }
 }
+
+/* fix-botones.css  — importar DESPUÉS de tus CSS */
+.btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: var(--bs-btn-color) !important;
+  background-color: var(--bs-btn-bg) !important;
+  border-color: var(--bs-btn-border-color) !important;
+}
+
+/* Estados de hover según Bootstrap */
+.btn:hover {
+  color: var(--bs-btn-hover-color) !important;
+  background-color: var(--bs-btn-hover-bg) !important;
+  border-color: var(--bs-btn-hover-border-color) !important;
+}
+
+.modal .btn, .card .btn { /* por si algún contenedor hereda color */
+  color: var(--bs-btn-color) !important;
+}

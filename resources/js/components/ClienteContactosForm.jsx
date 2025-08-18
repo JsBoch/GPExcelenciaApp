@@ -38,8 +38,8 @@ export default function ClienteContactosForm({
     idclienteInicial = null, //si viene se preselecciona
     bloquearSeleccion = false, //si es true, no se puede cambiar el cliente
     onClose,
-    onSaved,} = {}) {
-
+    onSaved,
+} = {}) {
     const [clientes, setClientes] = useState([]);
     const [clienteId, setClienteId] = useState(
         idclienteInicial ? Number(idclienteInicial) : ""
@@ -543,16 +543,54 @@ export default function ClienteContactosForm({
             setEliminarEmails([]);
             setEliminarDirecciones([]);
             alertify.success("Guardado correctamente.");
-             onSaved?.();   // ← notifica al padre si lo envían
+            onSaved?.(); // ← notifica al padre si lo envían
         } catch (err) {
-            alertify.error("Error al guardar cambios.");
+            if (err.response) {
+                const { status, data } = err.response;
+
+                // Si es error de validación Laravel (422)
+                if (status === 422) {
+                    if (data.errors) {
+                        // Recorre todos los mensajes y los muestra
+                        Object.values(data.errors)
+                            .flat()
+                            .forEach((msg) => {
+                                alertify.error(msg);
+                            });
+                    } else if (data.message) {
+                        // Si no hay errors[] pero sí message
+                        alertify.error(data.message);
+                    } else {
+                        alertify.error("Error de validación en el servidor.");
+                    }
+                }
+                // Si es otro tipo de error (500, 403, etc.)
+                else if (data.message) {
+                    alertify.error(data.message);
+                } else {
+                    alertify.error("Ocurrió un error en el servidor.");
+                }
+            } else {
+                // Error de red o sin respuesta
+                alertify.error("No se pudo conectar con el servidor.");
+            }
+
             console.error(err);
         }
     };
 
     return (
         // <Box sx={{ p: 2, maxWidth: 1200, mx: "auto", display: "grid", gap: 2 }}>
-        <Box sx={{ p: 2, maxWidth: '100%', width: '100%', mx: "auto", display: "grid", gap: 2 }}>
+        <Box
+            sx={{
+                p: 2,
+                maxWidth: "100%",
+                width: "100%",
+                mx: "auto",
+                display: "grid",
+                gap: 2,
+            }}
+        >
             <Header title="Datos de contacto por cliente" />
             <Typography variant="h6">
                 Registro de correos y direcciones por cliente

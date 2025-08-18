@@ -173,22 +173,28 @@ class CuentasPorCobrarController extends Controller
     public function generarSaldosClientePDF(Request $request)
     {
         $request->validate([
-            'idcliente' => 'required|integer',
+            'idcliente'    => 'required|integer',
             'fecha_inicio' => 'required|date',
-            'fecha_final' => 'required|date',
+            'fecha_final'  => 'required|date',
         ]);
 
         $cliente = Clientes::findOrFail($request->idcliente);
 
-        $cuentas = AdmCuentasPorCobrar::where('idcliente', $request->idcliente)
+        $cuentas = AdmCuentasPorCobrar::query()
+            ->with(['cotizacion' => function ($q) {
+                // Trae solo lo necesario
+                $q->select('idcotizacion', 'nocotizacion');
+            }])
+            ->where('idcliente', $request->idcliente)
             ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+            ->orderBy('fecha_emision')
             ->get();
 
         $pdf = Pdf::loadView('pdf.saldos_cliente', [
-            'cliente' => $cliente,
-            'cuentas' => $cuentas,
+            'cliente'     => $cliente,
+            'cuentas'     => $cuentas,
             'fechaInicio' => $request->fecha_inicio,
-            'fechaFinal' => $request->fecha_final,
+            'fechaFinal'  => $request->fecha_final,
         ]);
 
         return $pdf->stream("saldos_{$cliente->nombre}.pdf");

@@ -25,6 +25,26 @@ import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
 
+// Convierte "2025-08-13T06:00:00.000000Z" o "2025-08-13" -> "13/08/2025"
+const fmtDMY = (value) => {
+    if (!value) return "";
+    const s = String(value).trim();
+
+    // Si viene como "YYYY-MM-DD..." (con o sin hora), uso los primeros 10 chars para evitar desfases por TZ
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+
+    // Fallback: parseo con Date
+    const d = new Date(s.includes(" ") ? s.replace(" ", "T") : s);
+    if (!isNaN(d)) {
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yy = d.getFullYear();
+        return `${dd}/${mm}/${yy}`;
+    }
+    return s; // si todo falla, deja el valor tal cual
+};
+
 function CotizacionesEstado4() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -72,9 +92,18 @@ function CotizacionesEstado4() {
             size: 120,
         },
         {
-            accessorKey: "fecha_cotizacion",
+            accessorKey: "fecha_prefacturacion",
             header: "Fecha",
-            size: 100,
+            size: 110,
+            Cell: ({ cell }) => fmtDMY(cell.getValue()),
+            // (opcional) para ordenar por fecha real aunque muestres texto:
+            sortingFn: (rowA, rowB, columnId) => {
+                const a = rowA.getValue(columnId);
+                const b = rowB.getValue(columnId);
+                const da = new Date(a);
+                const db = new Date(b);
+                return da - db;
+            },
         },
         // {
         //   accessorKey: "estado",
@@ -82,10 +111,14 @@ function CotizacionesEstado4() {
         //   size: 80,
         // },
         {
-            accessorKey: "tipo_pago",
-            header: "Tipo de Pago",
-            size: 150,
+            accessorKey: "cliente",
+            header: "Cliente",
         },
+        // {
+        //     accessorKey: "tipo_pago",
+        //     header: "Tipo de Pago",
+        //     size: 150,
+        // },
         {
             accessorKey: "total_general",
             header: "Total",
@@ -96,21 +129,21 @@ function CotizacionesEstado4() {
                     currency: "GTQ",
                 }),
         },
-        {
-            accessorKey: "direccion_entrega",
-            header: "Dirección Entrega",
-            size: 250,
-        },
-        {
-            accessorKey: "observaciones_cliente",
-            header: "Observaciones",
-            size: 250,
-        },
-        {
-            accessorKey: "estado_texto",
-            header: "Estado",
-            size: 100,
-        },
+        // {
+        //     accessorKey: "direccion_entrega",
+        //     header: "Dirección Entrega",
+        //     size: 250,
+        // },
+        // {
+        //     accessorKey: "observaciones_cliente",
+        //     header: "Observaciones",
+        //     size: 250,
+        // },
+        // {
+        //     accessorKey: "estado_texto",
+        //     header: "Estado",
+        //     size: 100,
+        // },
     ];
 
     const table = useMaterialReactTable({
