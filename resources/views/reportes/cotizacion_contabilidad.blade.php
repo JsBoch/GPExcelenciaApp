@@ -11,7 +11,7 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10px;
+            font-size: 9px;
         }
 
         header {
@@ -111,7 +111,7 @@
                 <tr>
                     <th>No. Cotización</th>
                     <th>Fecha</th>
-                    <th>Días desde prefacturación</th>
+                    <th>Días Vencidos</th>
                     <th>Vendedor</th>
                     <th>Cliente</th>
                     <th>Total</th>

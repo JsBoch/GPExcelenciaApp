@@ -251,7 +251,7 @@ const CotizacionesConsultaContabilidad = () => {
                             {/* <TableCell>ID</TableCell> */}
                             <TableCell>No. Cotización</TableCell>
                             <TableCell>Fecha</TableCell>
-                            <TableCell>Días desde prefacturación</TableCell>
+                            <TableCell>Días Vencidos</TableCell>
                             <TableCell>Vendedor</TableCell>
                             <TableCell>Cliente</TableCell>
                             <TableCell>Estado</TableCell>

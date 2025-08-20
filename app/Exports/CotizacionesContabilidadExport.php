@@ -92,6 +92,6 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
     public function headings(): array
     {
-        return ['No. Cotización', 'Fecha', 'Dias desde prefacturación','Vendedor', 'Cliente', 'Total'];
+        return ['No. Cotización', 'Fecha', 'Dias Vencidos','Vendedor', 'Cliente', 'Total'];
     }
 }
