@@ -6,8 +6,12 @@
     <style>
         /* deja espacio reservado para el footer en la página */
         @page {
-            margin: 15mm 12mm 28mm;
+            margin: 15mm 12mm 36mm;
+
             /* margen inferior >= altura del footer visible */
+            @bottom-center {
+                content: element(footer);
+            }
         }
 
         body {
@@ -49,24 +53,12 @@
             font-size: 11px;
         }
 
-        /* ===== Footer fijo con línea ondulada como background ===== */
-        .footer {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 32mm;
-            /* alto total del área del pie */
-            /* padding:10px 20px 35px;    deja espacio sobre la onda */
-            font-size: 10px;
-            /* background: url('{{ public_path("images/final_line.png") }}') no-repeat bottom center;
-      background-size: 100% 45px; ajusta a tu imagen */
-        }
 
         .footer .wrap {
             position: relative;
             /* padding: 8px 20px 14mm; */
-            padding: 6px 20px 6mm;
+            /* padding: 6px 20px 6mm; */
+            padding-bottom: 0mm;
             /* deja despeje sobre la onda */
             z-index: 2;
             /* contenido por encima de la onda */
@@ -107,16 +99,6 @@
 
         .bold {
             font-weight: 700;
-        }
-
-        /* --- Pie FEL como imagen con datos encima --- */
-        .fel-footer {
-            position: relative;
-            width: 100%;
-            height: 36mm;
-            /* alto del bloque de la imagen del pie */
-            margin-top: 2mm;
-            /* separa del bloque anterior */
         }
 
         .fel-footer-bg {
@@ -181,19 +163,35 @@
         }
 
         .footer {
-            position: fixed;
-            z-index: 3;
+            position: relative;
+            margin-top: 0;
+            page-break-inside: avoid;
+            /* no cortar el footer en dos */
         }
 
         /* ya lo tienes fixed */
 
+        .tabla-detalles-head thead th {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+            /* evita borde claro sobre el fondo */
+        }
+
+        .tabla-detalles-head thead th:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        .tabla-detalles-head thead th:last-child {
+            border-top-right-radius: 8px;
+        }
 
         /* MONTO DE ABONO */
     </style>
 </head>
 
 <body>
-<img src="{{ public_path('images/marca_agua_gp.png') }}" class="watermark" alt="Marca de agua">
+    <img src="{{ public_path('images/marca_agua_gp.png') }}" class="watermark" alt="Marca de agua">
 
     <div class="content">
         <!-- Encabezado -->
@@ -248,7 +246,7 @@
         </table>
 
         <!-- Encabezado detalle -->
-        <table width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 12px; border: 1px solid #000; border-radius: 8px;">
+        <table class="tabla-detalles-head" width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 12px; border: 1px solid #000; border-radius: 8px;">
             <thead>
                 <tr>
                     <th style="width: 10%; border-right: 1px solid #000; padding: 4px; border-top-left-radius: 8px;">Cant.</th>
@@ -277,9 +275,12 @@
     <!-- Pie de página fijo -->
     <div class="footer">
 
-
         <!-- Contenido del pie -->
         <div class="wrap">
+            <!-- ↓ Empuje para bajar el bloque superior -->
+            <div style="height: 80mm;"></div> <!-- ajusta 16–24mm según necesites -->
+
+            <!-- Bloque superior: sujeto a pagos + total en letras -->
             <table width="100%" style="font-size:10px;">
                 <tr>
                     <td colspan="3"><strong>Sujeto a Pagos Trimestrales</strong></td>
@@ -289,8 +290,17 @@
                         <strong>Total en Letras</strong><br>
                         {{ $totalEnLetras }}
                     </td>
-                    <td style="width:40%; text-align:right; font-weight:700;">TOTAL Q.TOTAL Q. {{ number_format($cotizacion->total_general ?? $cotizacion->total, 2, '.', ',') }}</td>
+                    <td style="width:40%; text-align:right; font-weight:700;">
+                        TOTAL Q. {{ number_format($cotizacion->total_general ?? $cotizacion->total, 2, '.', ',') }}
+                    </td>
                 </tr>
+            </table>
+
+            <!-- ↓ Empuje para mantener “Número de Autorización / Fecha…” donde está -->
+            <div style="height: 2mm;"></div> <!-- 82mm - 20mm = 62mm -->
+
+            <!-- Bloque inferior: autorización y fecha -->
+            <table width="100%" style="font-size:10px;">
                 <tr>
                     <td style="width:50%;">
                         <strong>Número de Autorización</strong><br>
@@ -305,84 +315,58 @@
                         </div>
                     </td>
                 </tr>
-                <!-- <tr>
-                    <td colspan="2"><strong>CERTIFICADOR: INFILE, S.A. NIT: 12521337</strong></td>
-                </tr> -->
             </table>
-
-            <!-- <table width="100%" style="margin-top:6px; font-size:10px;">
-                <tr>
-                    <td style="width:30%; vertical-align:top;">
-                        <table style="width:100%; border:1px solid #ccc; border-collapse:collapse;">
-                            <tr>
-                                <td style="padding:4px; border:1px solid #ccc;">Fecha vencimiento:</td>
-                                <td style="padding:4px; border:1px solid #ccc;">
-                                    {{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding:4px; border:1px solid #ccc;">Número de abono:</td>
-                                <td style="padding:4px; border:1px solid #ccc;">1</td>
-                            </tr>
-                            <tr>
-                                <td style="padding:4px; border:1px solid #ccc;">Monto de abono:</td>
-                                <td style="padding:4px; border:1px solid #ccc;">Q{{ number_format($cotizacion->total, 2, '.', ',') }}</td>
-                            </tr>
-                        </table>
-                    </td>
-
-                    <td style="width:40%; vertical-align:top;">
-                        <table style="width:100%; border-collapse:collapse;">
-                            <tr>
-                                <td style="width:50%;">NOMBRE ________________</td>
-                                <td style="width:50%;">SELLO ___________</td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;&nbsp;&nbsp;FIRMA ________________</td>
-                                <td>FECHA ___________</td>
-                            </tr>
-                        </table>
-                    </td>
-
-                    <td style="width:30%; text-align:center; vertical-align:top;">
-                        <table style="margin:6px auto; border-collapse:collapse;">
-                            <tr>
-                                <td style="text-align:center; padding-right:20px;">
-                                    <img src="{{ public_path('images/qrfel.png') }}" width="80" height="80" alt="Código QR"><br>
-                                    <span style="font-size:10px;">Escanee el código QR</span>
-                                </td>
-                                <td style="text-align:center;">
-                                    <img src="{{ public_path('images/fel.jpg') }}" width="50" height="50" alt="FEL">
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table> -->
-            <div class="fel-footer">
-                <img src="{{ public_path('images/footer_gp.jpg') }}" class="fel-footer-bg" alt="Pie FEL">
-
-                <!-- FECHA DE VENCIMIENTO -->
-                <div class="fel-field fel-fecha">
-                    {{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}
-                </div>
-
-                <!-- NÚMERO DE ABONO -->
-                <div class="fel-field fel-nabono">1</div>
-
-                <!-- MONTO DE ABONO -->
-                <div class="fel-field fel-monto">
-                    Q{{ number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}
-                </div>
-            </div>
         </div>
+
+
         <!-- Imagen ondulada al fondo, pegada al borde -->
         <!-- <img class="onda" src="{{ public_path('images/final_line.png') }}" alt=""> -->
     </div>
-    <!-- Imagen ondulada al fondo, pegada al borde -->
-    <!-- <img class="onda" src="{{ public_path('images/final_line.png') }}" alt=""> -->
-    <!-- Marca de agua -->
-    <!-- <img src="{{ public_path('images/marca_agua_gp.png') }}" class="bg-logo"> -->
+
+
+    <script type="text/php">
+        if (isset($pdf)) {
+    $mm = 2.83465;
+    $footerHeightPt = 36 * $mm;
+    $footerImg      = public_path('images/footer_gp.jpg');
+
+    // Valores desde Blade
+    $fechaVenc = "{{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}";
+    $numAbono  = "1";
+    $montoAb   = "{{ 'Q' . number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}";
+
+    // >>> Desplazamiento hacia la derecha en milímetros (ajusta 4–10 mm a gusto)
+    $shiftRightMm = 7;
+
+    $pdf->page_script('
+        if ($PAGE_NUM == $PAGE_COUNT) {
+            $w = $pdf->get_width();
+            $h = $pdf->get_height();
+            $mm = 2.83465;
+
+            // Imagen del footer, pegada abajo
+            $img = "'.addslashes($footerImg).'";
+            $fh  = '.$footerHeightPt.';
+            $pdf->image($img, 0, $h - $fh, $w, $fh);
+
+            $font = $fontMetrics->getFont("DejaVu Sans", "bold");
+            $size = 7;
+
+            // Desplazamiento a la derecha
+            $dx = '.$shiftRightMm.' * $mm;
+
+            // Coordenadas (X + dx)
+            $x_fecha = (29 * $mm) + $dx;  $y_fecha = ($h - $fh) +  (7 * $mm);
+            $x_abono = (30 * $mm) + $dx;  $y_abono = ($h - $fh) + (10 * $mm);
+            $x_monto = (26 * $mm) + $dx;  $y_monto = ($h - $fh) + (12 * $mm);
+
+            $pdf->text($x_fecha, $y_fecha, "'.addslashes($fechaVenc).'", $font, $size);
+            $pdf->text($x_abono, $y_abono, "'.addslashes($numAbono).'",  $font, $size);
+            $pdf->text($x_monto, $y_monto, "'.addslashes($montoAb).'",   $font, $size);
+        }
+    ');
+}
+</script>
 
 </body>
 

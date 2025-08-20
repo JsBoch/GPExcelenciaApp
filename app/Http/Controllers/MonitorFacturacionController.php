@@ -398,9 +398,45 @@ class MonitorFacturacionController extends Controller
         $idReceptor = '';
         $tipoEspecial = null;
 
+        // switch ($docTipo) {
+        //     case 'CF':
+        //         $idReceptor = 'CF';
+        //         break;
+
+        //     case 'NIT':
+        //         if (!NitUtils::esValido($docValor)) {
+        //             throw ValidationException::withMessages([
+        //                 'documento_valor' => ['NIT no válido para Guatemala.'],
+        //             ]);
+        //         }
+        //         $idReceptor = NitUtils::normalizarParaFEL($docValor); // dígitos y K, sin guión
+        //         break;
+
+        //     case 'CUI':
+        //         $cui = preg_replace('/\D/', '', $docValor);
+        //         if (strlen($cui) < 12 || strlen($cui) > 13) {
+        //             throw ValidationException::withMessages([
+        //                 'documento_valor' => ['CUI/DPI debe tener 12 o 13 dígitos.'],
+        //             ]);
+        //         }
+        //         $idReceptor = $cui;
+        //         $tipoEspecial = 'CUI';
+        //         break;
+
+        //     case 'PASAPORTE':
+        //         if ($docValor === '') {
+        //             throw ValidationException::withMessages([
+        //                 'documento_valor' => ['Ingrese un número de pasaporte.'],
+        //             ]);
+        //         }
+        //         $idReceptor = strtoupper($docValor);
+        //         $tipoEspecial = 'EXT';
+        //         break;
+        // }
         switch ($docTipo) {
             case 'CF':
                 $idReceptor = 'CF';
+                $tipoEspecial = null; // sin TipoEspecial
                 break;
 
             case 'NIT':
@@ -410,6 +446,7 @@ class MonitorFacturacionController extends Controller
                     ]);
                 }
                 $idReceptor = NitUtils::normalizarParaFEL($docValor); // dígitos y K, sin guión
+                $tipoEspecial = null; // sin TipoEspecial
                 break;
 
             case 'CUI':
@@ -420,17 +457,25 @@ class MonitorFacturacionController extends Controller
                     ]);
                 }
                 $idReceptor = $cui;
-                $tipoEspecial = 'CUI';
+                $tipoEspecial = 'CUI'; // ⬅️ código esperado
                 break;
 
             case 'PASAPORTE':
-                if ($docValor === '') {
+                $pasaporte = strtoupper(trim($docValor));
+                if ($pasaporte === '') {
                     throw ValidationException::withMessages([
                         'documento_valor' => ['Ingrese un número de pasaporte.'],
                     ]);
                 }
-                $idReceptor = strtoupper($docValor);
-                $tipoEspecial = 'Número de documento de identificación del extranjero';
+                // Opcional: sanitiza según reglas comunes (A-Z/0-9, 3–18 chars)
+                $pasaporte = preg_replace('/[^A-Z0-9]/', '', $pasaporte);
+                if (strlen($pasaporte) < 3 || strlen($pasaporte) > 18) {
+                    throw ValidationException::withMessages([
+                        'documento_valor' => ['El pasaporte debe tener entre 3 y 18 caracteres alfanuméricos.'],
+                    ]);
+                }
+                $idReceptor   = $pasaporte;
+                $tipoEspecial = 'EXT'; // ⬅️ código correcto para extranjero
                 break;
         }
 
@@ -483,25 +528,54 @@ class MonitorFacturacionController extends Controller
         /**
          * DATOS DEL MODAL PARA RECEPTOR
          */
+        // $Receptor = $doc->createElement('dte:Receptor');
+        // $Receptor->setAttribute('CorreoReceptor', $correo ?? '');
+        // $Receptor->setAttribute('IDReceptor', $idReceptor);
+
+        // if ($tipoEspecial) {
+        //     $TipoEspecial = $doc->createElement('dte:TipoEspecial', $tipoEspecial);
+        //     $Receptor->appendChild($TipoEspecial);
+        // }
+
+        // $Receptor->setAttribute('NombreReceptor', $nombre);
+        // $DatosEmision->appendChild($Receptor);
+
+        // $dirReceptor = $doc->createElement('dte:DireccionReceptor');
+        // $Receptor->appendChild($dirReceptor);
+        // $dirReceptor->appendChild($doc->createElement('dte:Direccion', $direccion));
+        // $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
+        // $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
+        // $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
+        // $dirReceptor->appendChild($doc->createElement('dte:Pais', $detalle->pais));
+
         $Receptor = $doc->createElement('dte:Receptor');
         $Receptor->setAttribute('CorreoReceptor', $correo ?? '');
         $Receptor->setAttribute('IDReceptor', $idReceptor);
+        $Receptor->setAttribute('NombreReceptor', $nombre);
 
-        if ($tipoEspecial) {
-            $TipoEspecial = $doc->createElement('dte:TipoEspecial', $tipoEspecial);
-            $Receptor->appendChild($TipoEspecial);
+        // ⬅️ TipoEspecial va como ATRIBUTO (no elemento)
+        if (!empty($tipoEspecial)) {
+            // valores válidos típicos: "CUI" o "EXT"
+            $Receptor->setAttribute('TipoEspecial', $tipoEspecial);
         }
 
-        $Receptor->setAttribute('NombreReceptor', $nombre);
         $DatosEmision->appendChild($Receptor);
 
+        // El ÚNICO hijo permitido de Receptor es DireccionReceptor:
         $dirReceptor = $doc->createElement('dte:DireccionReceptor');
         $Receptor->appendChild($dirReceptor);
+
         $dirReceptor->appendChild($doc->createElement('dte:Direccion', $direccion));
         $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
         $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
         $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
-        $dirReceptor->appendChild($doc->createElement('dte:Pais', $detalle->pais));
+
+        // Sugerencia: si es extranjero (EXT) y NO reside en Guatemala, usa el país ISO real del receptor:
+        $paisReceptor = $detalle->pais;
+        if (($tipoEspecial ?? null) === 'EXT' && strtoupper($paisReceptor) === 'GT') {
+            // $paisReceptor = 'PAIS_ISO'; // si tienes el país real, colócalo aquí
+        }
+        $dirReceptor->appendChild($doc->createElement('dte:Pais', $paisReceptor));
 
         /** AQUÍ TERMINAN LOS DATOS DEL MODAL PARA RECEPTOR */
 
@@ -745,6 +819,82 @@ class MonitorFacturacionController extends Controller
         //     ->header('Content-Disposition', 'attachment; filename="FEL_' . $uuid . '.xml"');
     }
 
+    // public function generarImpresionFactura($id)
+    // {
+    //     $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+    //         ->select(
+    //             'c.serie',
+    //             'c.numero',
+    //             'c.uuid as numero_autorizacion',
+    //             DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
+    //             'c.total_general as total',
+    //             'cl.nit',
+    //             'cl.nombre',
+    //             'cl.direccion',
+    //             'd.cantidad',
+    //             'd.descripcion',
+    //             'd.precio as precio_unitario',
+    //             'd.total as precio_total',
+    //             'c.nofactura',
+    //             'c.nocotizacion',
+    //         )
+    //         ->from('adm_cotizacion as c')
+    //         ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->first();
+
+
+    //     if (!$cotizacion) {
+    //         return response()->json(['message' => 'Cotización no encontrada'], 404);
+    //     }
+
+    //     // Crear número interno
+    //     // $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
+    //     // $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
+    //     // Año de la factura (usa fecha de emisión si existe, sino el año actual)
+    //     $anio = $cotizacion->fecha_emision
+    //         ? Carbon::parse($cotizacion->fecha_emision)->year
+    //         : now()->year;
+
+    //     // Generar número de factura si no existe
+    //     DB::transaction(function () use (&$cotizacion, $anio) {
+    //         if (empty($cotizacion->nofactura)) {
+    //             $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
+    //             AdmCotizacion::where('idcotizacion', $cotizacion->idcotizacion)
+    //                 ->update(['nofactura' => $nuevoNoFactura]);
+    //             $cotizacion->nofactura = $nuevoNoFactura;
+    //         }
+    //     });
+
+    //     // Formato: GP-{AÑO}-{FACTURA}-{COTIZACION}
+    //     $anioStr       = (string) $anio;
+    //     $facturaStr    = $this->pad((int) $cotizacion->nofactura, 6);
+    //     $cotizacionStr = $this->pad((int) $cotizacion->nocotizacion, 6);
+
+    //     $cotizacion->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
+
+
+
+    //     // Convertir total a letras (usando kwn/number-to-words)
+    //     $numberToWords     = new NumberToWords();
+    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
+    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
+
+    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+
+    //     $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'))
+    //         ->setPaper('letter', 'portrait');
+
+    //     // ⭐ Habilita la ejecución de PHP en Dompdf para que corra <script type="text/php">
+    //     // (según versión de barryvdh; cualquiera de las dos líneas funciona)
+    //     $pdf->getDomPDF()->set_option('isPhpEnabled', true);
+    //     // $pdf->set_option('isPhpEnabled', true);
+
+    //     // Opcional: por si cargas imágenes desde ruta absoluta/remota
+    //     $pdf->getDomPDF()->set_option('isRemoteEnabled', true);
+
+    //     return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
+    // }
     public function generarImpresionFactura($id)
     {
         $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
@@ -769,20 +919,14 @@ class MonitorFacturacionController extends Controller
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->first();
 
-
         if (!$cotizacion) {
             return response()->json(['message' => 'Cotización no encontrada'], 404);
         }
 
-        // Crear número interno
-        // $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
-        // $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
-        // Año de la factura (usa fecha de emisión si existe, sino el año actual)
         $anio = $cotizacion->fecha_emision
-            ? \Carbon\Carbon::parse($cotizacion->fecha_emision)->year
+            ? Carbon::parse($cotizacion->fecha_emision)->year
             : now()->year;
 
-        // Generar número de factura si no existe
         DB::transaction(function () use (&$cotizacion, $anio) {
             if (empty($cotizacion->nofactura)) {
                 $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
@@ -792,26 +936,20 @@ class MonitorFacturacionController extends Controller
             }
         });
 
-        // Formato: GP-{AÑO}-{FACTURA}-{COTIZACION}
-        $anioStr       = (string) $anio;
         $facturaStr    = $this->pad((int) $cotizacion->nofactura, 6);
         $cotizacionStr = $this->pad((int) $cotizacion->nocotizacion, 6);
-
         $cotizacion->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
 
-
-
-        // Convertir total a letras (usando kwn/number-to-words)
-        $numberToWords     = new NumberToWords();
-        $numberTransformer = $numberToWords->getNumberTransformer('es');
         $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
-
         $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
 
-        $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'));
+        $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'))
+            ->setPaper('letter', 'portrait');
+
 
         return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
     }
+
 
     private function convertirNumeroALetrasConCentavos($numero)
     {
