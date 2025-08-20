@@ -77,12 +77,17 @@
         <table width="100%" class="header-table">
             <tr>
                 <td width="100" style="text-align: left;">
-                    <img src="{{ public_path('images/LogoGP.png') }}" alt="Logo" height="60">
+                    <img src="{{ public_path('images/LogoGP.jpg') }}" alt="Logo" height="60">
                 </td>
                 <td style="text-align: center;">
                     <h3 style="margin:0;">GP Excelencia S.A.</h3>
                     <div class="titulo">LISTADO DE COTIZACIONES</div>
-                    <small>Período: {{ \Carbon\Carbon::parse($rows->first()->fecha_cotizacion ?? now())->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($rows->last()->fecha_cotizacion ?? now())->format('d/m/Y') }}</small>
+                    <!-- <small>Período: {{ \Carbon\Carbon::parse($rows->first()->fecha_cotizacion ?? now())->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($rows->last()->fecha_cotizacion ?? now())->format('d/m/Y') }}</small> -->
+                    @php
+                    $desdeFecha = optional($rows->first())->fecha_cotizacion ?? now();
+                    $hastaFecha = optional($rows->last())->fecha_cotizacion ?? now();
+                    @endphp
+                    <small>Período: {{ \Carbon\Carbon::parse($desdeFecha)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($hastaFecha)->format('d/m/Y') }}</small>
                 </td>
                 <td width="100"></td>
             </tr>
@@ -106,6 +111,7 @@
                 <tr>
                     <th>No. Cotización</th>
                     <th>Fecha</th>
+                    <th>Días desde prefacturación</th>
                     <th>Vendedor</th>
                     <th>Cliente</th>
                     <th>Total</th>
@@ -116,13 +122,14 @@
                 <tr>
                     <td>{{ $row->nocotizacion }}</td>
                     <td>{{ \Carbon\Carbon::parse($row->fecha_cotizacion)->format('d/m/Y') }}</td>
+                    <td>{{ $row->dias_desde_prefacturacion }}</td>
                     <td>{{ $row->vendedor }}</td>
                     <td>{{ $row->cliente }}</td>
                     <td>{{ number_format($row->total_general, 2, '.', ',') }}</td>
                 </tr>
                 @endforeach
                 <tr>
-                    <td colspan="4" style="text-align: right; font-weight: bold;">TOTAL GENERAL</td>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">TOTAL GENERAL</td>
                     <td style="font-weight: bold;">
                         Q{{ number_format($rows->sum('total_general'), 2, '.', ',') }}
                     </td>
@@ -132,15 +139,13 @@
         </table>
     </main>
     
-</body>
-<script type="text/php">
+    <script type="text/php">
         if (isset($pdf)) {
-            $pdf->page_script(function ($pageNumber, $pageCount, $pdf) {
-                $text = "Página $pageNumber de $pageCount";
-                $x = 500;
-                $y = 810;
-                $pdf->text($x, $y, $text, null, 9);
-            });
-        }
-    </script>
+    $font = $fontMetrics->get_font("DejaVu Sans", "normal");
+    // Paginación fija en cada página (evita strings anidados)
+    $pdf->page_text(500, 810, "Página {PAGE_NUM} de {PAGE_COUNT}", $font, 9, [0,0,0]);
+}
+</script>
+</body>
+
 </html>

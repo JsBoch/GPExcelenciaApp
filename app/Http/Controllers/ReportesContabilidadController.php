@@ -135,7 +135,6 @@ class ReportesContabilidadController extends Controller
             ->select(
                 'ac.idcotizacion',
                 DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
-                // ← FECHA QUE SALE AL FRONT (columna 'fecha_cotizacion' ya usada en el componente)
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN COALESCE(ac.fecha_prefacturacion, ac.fecha_cotizacion)
@@ -146,7 +145,14 @@ class ReportesContabilidadController extends Controller
                 'ae.nombre as vendedor',
                 'c.nombre as cliente',
                 'ac.total_general',
-                'ac.estado'
+                'ac.estado',
+                // ⬇️ Días desde la prefacturación (NULL si no tiene prefacturación)
+                DB::raw("
+                CASE
+                    WHEN ac.fecha_prefacturacion IS NULL THEN NULL
+                    ELSE DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion))
+                END AS dias_desde_prefacturacion
+            ")
             )
             ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
@@ -166,23 +172,23 @@ class ReportesContabilidadController extends Controller
             }
         }
 
-        // Filtro por vendedor
         if (!empty($filtros['vendedor_id'])) {
             $query->where('ae.id_empleado', $filtros['vendedor_id']);
         }
 
-        // Filtro por estado (independiente del filtro de fecha)
         if (!empty($filtros['estado'])) {
             $query->where('ac.estado', (int)$filtros['estado']);
         }
 
-        // Búsqueda libre
         if (!empty($filtros['search'])) {
             $query->where(function ($q) use ($filtros) {
                 $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
                     ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
             });
         }
+
+        // Orden: prefacturación descendente (prefijado)
+        $query->orderBy('fecha_cotizacion', 'asc');
 
         return $query;
     }
