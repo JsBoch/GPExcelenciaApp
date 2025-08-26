@@ -24,6 +24,10 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from "reactstrap";
 import ClienteContactosForm from "./ClienteContactosForm";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+pdfMake.vfs = pdfFonts.vfs; // registra las fuentes embebidas (Roboto)
+import FacturaPDF from "./FacturaPDF";
 
 DataTable.use(DT);
 
@@ -97,6 +101,12 @@ function MonitorFacturacion() {
     // helper
     const toYMD = (d) => d.toISOString().slice(0, 10);
     const fetchingRef = useRef(false);
+
+    const [facturaDoc, setFacturaDoc] = useState(null); // { cotizacion, detalles, images }
+    const [showFacturaViewer, setShowFacturaViewer] = useState(false);
+
+    // util
+    const abs = (p) => new URL(p, window.location.origin).href;
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
@@ -295,39 +305,188 @@ function MonitorFacturacion() {
     //         alertify.error("Error al abrir el PDF.");
     //     }
     // };
-    const abrirFacturaPDF = async (id) => {
+    // const abrirFacturaPDF = async (id) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token)
+    //         return alertify.error("Token no encontrado para abrir PDF.");
+
+    //     try {
+    //         const response = await fetch(
+    //             `${
+    //                 import.meta.env.VITE_API_URL
+    //             }/monitorfacturacion/${id}/facturapdf`,
+    //             { headers: { Authorization: `Bearer ${token}` } }
+    //         );
+
+    //         if (!response.ok) {
+    //             return alertify.error("No se pudo generar el PDF.");
+    //         }
+
+    //         // Opcional: verificar content-type
+    //         const ct = response.headers.get("content-type") || "";
+    //         if (!ct.includes("application/pdf")) {
+    //             return alertify.error("El servidor no devolvió un PDF.");
+    //         }
+
+    //         const blob = await response.blob();
+    //         const url = URL.createObjectURL(blob);
+    //         window.open(url, "_blank");
+
+    //         // No lo revoques inmediatamente; espera un poco
+    //         setTimeout(() => URL.revokeObjectURL(url), 60000);
+    //     } catch (e) {
+    //         alertify.error("Error al abrir el PDF.");
+    //     }
+    // };
+    // monitorFactura.jsx
+    const abrirFactura = async (id) => {
         const token = localStorage.getItem("token");
         if (!token)
             return alertify.error("Token no encontrado para abrir PDF.");
 
         try {
-            const response = await fetch(
-                `${
-                    import.meta.env.VITE_API_URL
-                }/monitorfacturacion/${id}/facturapdf`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const url = `${
+                import.meta.env.VITE_API_URL
+            }/monitorfacturacion/${id}/facturapdf`;
 
-            if (!response.ok) {
-                return alertify.error("No se pudo generar el PDF.");
+            const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/pdf",
+                },
+                // si también usas cookies/sanctum además del token:
+                // credentials: "include",
+            });
+
+            if (!res.ok) {
+                return alertify.error("No se pudo generar/descargar el PDF.");
             }
 
-            // Opcional: verificar content-type
-            const ct = response.headers.get("content-type") || "";
-            if (!ct.includes("application/pdf")) {
-                return alertify.error("El servidor no devolvió un PDF.");
-            }
+            const blob = await res.blob();
+            const fileURL = URL.createObjectURL(blob);
 
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
+            const win = window.open(fileURL, "_blank", "noopener");
+            // if (!win) {
+            //     // fallback: crea un link “descargar”
+            //     const a = document.createElement("a");
+            //     a.href = fileURL;
+            //     a.download = `factura-${id}.pdf`;
+            //     document.body.appendChild(a);
+            //     a.click();
+            //     a.remove();
+            // }
 
-            // No lo revoques inmediatamente; espera un poco
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
-        } catch (e) {
+            // Limpieza del objeto en memoria (dale unos segundos si lo abres en nueva pestaña)
+            setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
+        } catch (err) {
+            console.error(err);
             alertify.error("Error al abrir el PDF.");
         }
     };
+    
+    // ✅ Reemplazo completo
+const abrirFacturaPDF = async (id) => {
+  const token = localStorage.getItem("token");
+  if (!token) return alertify.error("Token no encontrado para abrir PDF.");
+
+  // Helpers
+  const abs  = (p) => new URL(p, window.location.origin).href;
+  const fixMime = (dataUrl, ext = "jpg") => {
+    if (!dataUrl) return null;
+    if (dataUrl.startsWith("data:application/octet-stream")) {
+      const mime = ext === "png" ? "image/png" : "image/jpeg";
+      return dataUrl.replace("data:application/octet-stream", `data:${mime}`);
+    }
+    // Algunos servers devuelven Blob.type vacío → "data:;base64"
+    if (dataUrl.startsWith("data:;base64")) {
+      const mime = ext === "png" ? "image/png" : "image/jpeg";
+      return dataUrl.replace("data:;base64", `data:${mime};base64`);
+    }
+    return dataUrl;
+  };
+  // Carga URL → DataURL (base64)
+  const toDataURLSafe = async (url) => {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) return null;
+      const blob = await r.blob();
+      return await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onloadend = () => res(fr.result);
+        fr.onerror = rej;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  try {
+    // 1) Datos
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/monitorfacturacion/${id}/factura-data`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("HTTP", res.status, txt);
+      return alertify.error("No se pudo obtener los datos de la factura.");
+    }
+    const { cotizacion, detalles } = await res.json();
+
+    // 2) Cargar imágenes → DataURL y normalizar mime
+    const [logoRaw, wmRaw] = await Promise.all([
+      toDataURLSafe(abs("/images/LogoGP.jpg?v=1")),
+      toDataURLSafe(abs("/images/marca_agua_gp.png?v=1")),
+    ]);
+
+    // footer con fallback .jpg → .png
+    let footerRaw = await toDataURLSafe(abs("/images/footer_gp.jpg?v=1"));
+    let footerExt = "jpg";
+    if (!footerRaw) {
+      footerRaw = await toDataURLSafe(abs("/images/footer_gp.png?v=1"));
+      footerExt = "png";
+    }
+
+    const logoSrc      = fixMime(logoRaw, "jpg");
+    const watermarkSrc = fixMime(wmRaw, "png");
+    const footerSrc    = fixMime(footerRaw, footerExt);
+
+    if (!footerSrc) {
+      console.warn("Footer no disponible en /images/footer_gp.(jpg|png)");
+    }
+
+    // 3) Mandar al visor React-PDF
+    setFacturaDoc({
+      cotizacion,
+      detalles,
+      images: { logoSrc, watermarkSrc, footerSrc },
+    });
+    setShowFacturaViewer(true);
+  } catch (e) {
+    console.error(e);
+    alertify.error("Error al preparar el PDF.");
+  }
+};
+
+
+    // (Opcional) helper para cargar imagen como base64 (onda, logos externos)
+    async function toDataURL(url) {
+        try {
+            const r = await fetch(url, { cache: "no-store" });
+            if (!r.ok) return null;
+            const blob = await r.blob();
+            return await new Promise((res, rej) => {
+                const reader = new FileReader();
+                reader.onloadend = () => res(reader.result); // "data:image/...;base64,...."
+                reader.onerror = rej;
+                reader.readAsDataURL(blob);
+            });
+        } catch {
+            return null;
+        }
+    }
 
     useEffect(() => {
         const tooltipTriggerList = [].slice.call(
@@ -1090,7 +1249,8 @@ function MonitorFacturacion() {
                         className="btn btn-primary btn-sm"
                         disabled={!puedeGenerarPDFFactura}
                         onClick={() =>
-                            abrirFacturaPDF(registroSeleccionado?.idcotizacion)
+                            // abrirFacturaPDF(registroSeleccionado?.idcotizacion)
+                            abrirFactura(registroSeleccionado?.idcotizacion)
                         }
                         data-bs-toggle="tooltip"
                         data-bs-placement="top"
@@ -1118,7 +1278,7 @@ function MonitorFacturacion() {
                         className="btn btn-danger btn-sm me-2"
                         disabled={
                             !registroSeleccionado ||
-                            !registroSeleccionado.resultado !== "S" ||
+                            (registroSeleccionado?.resultado ?? "").toUpperCase() !== "S" ||
                             !registroSeleccionado.uuid
                         }
                         onClick={handleAnularFactura}
@@ -1985,6 +2145,60 @@ function MonitorFacturacion() {
                     </button>
                 </ModalFooter>
             </Modal>
+
+            {showFacturaViewer && facturaDoc && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2100 }}
+                >
+                    <div
+                        className="bg-white rounded shadow"
+                        style={{
+                            width: "80%",
+                            height: "80%",
+                            position: "relative",
+                        }}
+                    >
+                        <PDFViewer width="100%" height="100%">
+                            <FacturaPDF
+                                cotizacion={facturaDoc.cotizacion}
+                                detalles={facturaDoc.detalles}
+                                images={facturaDoc.images}
+                            />
+                        </PDFViewer>
+
+                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
+                            <PDFDownloadLink
+                                document={
+                                    <FacturaPDF
+                                        cotizacion={facturaDoc.cotizacion}
+                                        detalles={facturaDoc.detalles}
+                                        images={facturaDoc.images}
+                                    />
+                                }
+                                fileName={`FACTURA-${
+                                    facturaDoc.cotizacion.serie || "S"
+                                }-${facturaDoc.cotizacion.numero || "0"}.pdf`}
+                                className="btn btn-primary btn-sm"
+                            >
+                                {({ loading }) =>
+                                    loading ? "Preparando…" : "Descargar PDF"
+                                }
+                            </PDFDownloadLink>
+
+                            <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => {
+                                    setShowFacturaViewer(false);
+                                    setFacturaDoc(null);
+                                }}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
