@@ -950,6 +950,83 @@ class MonitorFacturacionController extends Controller
         return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
     }
 
+    public function facturaData($id)
+    {
+        // 1) Cabecera (sin join al detalle)
+        $c = DB::table('adm_cotizacion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->where('c.idcotizacion', $id)
+            ->select(
+                'c.idcotizacion',
+                'c.serie',
+                'c.numero',
+                'c.uuid as numero_autorizacion',
+                DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
+                'c.total_general as total',
+                'cl.nit',
+                'cl.nombre',
+                'cl.direccion',
+                'c.nofactura',
+                'c.nocotizacion'
+            )
+            ->first();
+
+        if (!$c) {
+            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        }
+
+        // 2) Correlativo / No. factura (igual que antes)
+        $anio = $c->fecha_emision ? Carbon::parse($c->fecha_emision)->year : now()->year;
+
+        DB::transaction(function () use (&$c, $anio) {
+            if (empty($c->nofactura)) {
+                $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
+                DB::table('adm_cotizacion')
+                    ->where('idcotizacion', $c->idcotizacion)
+                    ->update(['nofactura' => $nuevoNoFactura]);
+                $c->nofactura = $nuevoNoFactura;
+            }
+        });
+
+        // 3) Número interno y total en letras
+        $facturaStr    = $this->pad((int) $c->nofactura, 6);
+        $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
+        $numeroInterno = "GP-{$facturaStr}-{$cotizacionStr}";
+
+        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($c->total);
+
+        // 4) Detalle (lista completa)
+        $detalles = DB::table('adm_detalle_cotizacion as d')
+            ->where('d.idcotizacion', $id)
+            ->select('d.cantidad', 'd.descripcion', DB::raw('d.precio as precio_unitario'), 'd.total')
+            ->orderBy('d.iddetallecotizacion', 'asc') // ajusta si tu PK es otra
+            ->get()
+            ->map(function ($d) {
+                return [
+                    'cantidad' => (int) $d->cantidad,
+                    'descripcion' => $d->descripcion,
+                    'precio' => round((float) $d->precio_unitario, 2),
+                    'total'  => round((float) $d->total, 2),
+                ];
+            });
+
+        // 5) Respuesta JSON para el front
+        return response()->json([
+            'cotizacion' => [
+                'serie'              => $c->serie,
+                'numero'             => $c->numero,
+                'numero_autorizacion' => $c->numero_autorizacion,
+                'fecha_emision'      => $c->fecha_emision ? Carbon::parse($c->fecha_emision)->format('d/m/Y') : null,
+                'total'              => (float) $c->total,
+                'nit'                => $c->nit,
+                'nombre'             => $c->nombre,
+                'direccion'          => $c->direccion,
+                'numero_interno'     => $numeroInterno,
+                'total_en_letras'    => $totalEnLetras,
+            ],
+            'detalles' => $detalles,
+        ]);
+    }
 
     private function convertirNumeroALetrasConCentavos($numero)
     {

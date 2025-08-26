@@ -103,7 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
-    
+
     Route::put('/cotizaciones/rechazar/{id}', [CotizacionController::class, 'rechazar']);
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
@@ -141,6 +141,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/facturar/{id}/anular', [MonitorFacturacionController::class, 'anularFactura']);
 
     Route::get('/monitorfacturacion/{id}/facturapdf', [MonitorFacturacionController::class, 'generarImpresionFactura']);
+    Route::get('/monitorfacturacion/{id}/factura-data', [MonitorFacturacionController::class, 'facturaData']);
 
     Route::get('/cotizaciones/{id}/notasfel', [MonitorFacturacionController::class, 'listarNotasFel']); // lista notas (opcionalmente por tipo)
     Route::get('/notasfel/{idnota}/pdf',       [MonitorFacturacionController::class, 'generarPdfNotaFel']); // imprime una nota por idnota

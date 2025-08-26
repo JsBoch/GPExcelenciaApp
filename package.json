@@ -17,7 +17,7 @@
         "filesaver": "^0.0.13",
         "jszip": "^3.10.1",
         "laravel-vite-plugin": "^1.2.0",
-        "pdfmake": "^0.2.19",
+        "pdfmake": "^0.2.20",
         "vite": "^6.3.4",
         "xlsx": "^0.18.5"
     },

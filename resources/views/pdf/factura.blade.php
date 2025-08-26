@@ -4,14 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* deja espacio reservado para el footer en la página */
+        /* === Margen inferior = altura REAL del pie === */
         @page {
-            margin: 15mm 12mm 36mm;
-
-            /* margen inferior >= altura del footer visible */
-            @bottom-center {
-                content: element(footer);
-            }
+            margin: 15mm 12mm 18mm;
+            /* antes 42mm */
         }
 
         body {
@@ -21,10 +17,11 @@
             margin: 0;
         }
 
-        /* por si el motor ignora @page, reserva espacio manual también */
+        /* Colchón para que el contenido nunca invada el pie */
         .content {
-            margin-bottom: 0;
-            /* igual o mayor que altura del footer */
+            position: relative;
+            z-index: 2;
+            /* padding-bottom: 75mm;   igual al margin-bottom de @page */
         }
 
         .empresa-info {
@@ -53,129 +50,32 @@
             font-size: 11px;
         }
 
-
-        .footer .wrap {
-            position: relative;
-            /* padding: 8px 20px 14mm; */
-            /* padding: 6px 20px 6mm; */
-            padding-bottom: 0mm;
-            /* deja despeje sobre la onda */
-            z-index: 2;
-            /* contenido por encima de la onda */
-            background: transparent;
-        }
-
-        .footer .onda {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 12mm;
-            /* alto visible de la onda */
-            object-fit: cover;
-            /* asegura estirado horizontal */
-            z-index: 1;
-        }
-
         .qr {
             width: 100px;
-        }
-
-        .bg-logo {
-            position: absolute;
-            top: 300px;
-            left: 25%;
-            opacity: 0.1;
-            width: 400px;
-        }
-
-        .encabezado-doc {
-            border: 1px solid #000;
-            padding: 6px;
-            display: inline-block;
-            font-size: 11px;
-        }
-
-        .bold {
-            font-weight: 700;
-        }
-
-        .fel-footer-bg {
-            position: absolute;
-            inset: 0;
-            /* top/right/bottom/left = 0 */
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            /* que la imagen se estire ancho completo */
-        }
-
-        /* Los tres valores que se imprimen sobre la imagen */
-        .fel-field {
-            position: absolute;
-            font-size: 7px;
-            font-weight: 700;
-            letter-spacing: .2px;
-        }
-
-        /* Coordenadas: ajústalas a tu imagen hasta calzar con las líneas  */
-        .fel-fecha {
-            left: 29mm;
-            top: 7mm;
-        }
-
-        /* FECHA DE VENCIMIENTO */
-        .fel-nabono {
-            left: 30mm;
-            top: 10mm;
-        }
-
-        /* NÚMERO DE ABONO */
-        .fel-monto {
-            left: 26mm;
-            top: 12mm;
         }
 
         /* --- Marca de agua en todas las páginas --- */
         .watermark {
             position: fixed;
-            /* aparece en todas las páginas */
             top: 140mm;
             left: 50%;
             width: 140mm;
-            /* ajusta al tamaño que te guste */
             height: 140mm;
-            /* pon un alto fijo para poder centrarla */
             margin-left: -80mm;
-            /* -width/2  -> centra horizontal */
             margin-top: -70mm;
-            /* -height/2 -> centra vertical */
-            opacity: 0.06;
-            /* transparencia */
+            opacity: .06;
             z-index: 1;
-            /* debajo del contenido y del footer */
         }
 
-        .content {
-            position: relative;
-            z-index: 2;
+        /* Encabezado de la tabla (repite al saltar de página) */
+        .tabla-detalles-head thead {
+            display: table-header-group;
         }
-
-        .footer {
-            position: relative;
-            margin-top: 0;
-            page-break-inside: avoid;
-            /* no cortar el footer en dos */
-        }
-
-        /* ya lo tienes fixed */
 
         .tabla-detalles-head thead th {
             background: #000;
             color: #fff;
             border-color: #000;
-            /* evita borde claro sobre el fondo */
         }
 
         .tabla-detalles-head thead th:first-child {
@@ -186,7 +86,14 @@
             border-top-right-radius: 8px;
         }
 
-        /* MONTO DE ABONO */
+        table tbody tr {
+            page-break-inside: avoid;
+        }
+
+        .tabla-detalles-body td {
+            font-size: 10px;
+            padding: 3px;
+        }
     </style>
 </head>
 
@@ -215,11 +122,11 @@
                     <span>DOCUMENTO TRIBUTARIO ELECTRONICO</span><br>
 
                     <div style="
-          display:inline-block; text-align:left; border:1px solid #000; border-radius:16px;
-          position:relative; padding:26px 14px 10px; font-size:12px; background:#fff; margin-top:10px;">
+            display:inline-block; text-align:left; border:1px solid #000; border-radius:16px;
+            position:relative; padding:26px 14px 10px; font-size:12px; background:#fff; margin-top:10px;">
                         <div style="
-            position:absolute; top:-10px; left:1px; right:1px; background:#fff;
-            border:1px solid #000; border-radius:18px; padding:4px 0; font-weight:700; text-align:center; white-space:nowrap;">
+              position:absolute; top:-10px; left:1px; right:1px; background:#fff;
+              border:1px solid #000; border-radius:18px; padding:4px 0; font-weight:700; text-align:center; white-space:nowrap;">
                             Factura Cambiaria Electrónica
                         </div>
                         <div style="padding:4px 6px 6px;">
@@ -235,7 +142,7 @@
         </table>
 
         <!-- Información del cliente -->
-        <table width="100%" style="border-collapse: separate; border-spacing: 0; margin-bottom: 10px; font-size: 12px; border: 1px solid #000; border-radius: 10px;">
+        <table width="100%" style="border-collapse: separate; border-spacing: 0; margin-bottom: 10px; font-size: 10px; border: 1px solid #000; border-radius: 10px;">
             <tr>
                 <td style="padding: 6px;">
                     <span>NIT:</span> {{ $cotizacion->nit }}<br>
@@ -246,7 +153,7 @@
         </table>
 
         <!-- Encabezado detalle -->
-        <table class="tabla-detalles-head" width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 12px; border: 1px solid #000; border-radius: 8px;">
+        <table class="tabla-detalles-head" width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 9px; border: 1px solid #000; border-radius: 8px;">
             <thead>
                 <tr>
                     <th style="width: 10%; border-right: 1px solid #000; padding: 4px; border-top-left-radius: 8px;">Cant.</th>
@@ -258,7 +165,7 @@
         </table>
 
         <!-- Detalle (sin bordes) -->
-        <table width="100%" style="border-collapse: collapse; font-size: 12px;">
+        <table width="100%" class="tabla-detalles-body" style="border-collapse: collapse;">
             <tbody>
                 @foreach ($detalles as $item)
                 <tr>
@@ -270,103 +177,128 @@
                 @endforeach
             </tbody>
         </table>
-    </div> <!-- /content -->
-
-    <!-- Pie de página fijo -->
-    <div class="footer">
-
-        <!-- Contenido del pie -->
-        <div class="wrap">
-            <!-- ↓ Empuje para bajar el bloque superior -->
-            <div style="height: 80mm;"></div> <!-- ajusta 16–24mm según necesites -->
-
-            <!-- Bloque superior: sujeto a pagos + total en letras -->
-            <table width="100%" style="font-size:10px;">
-                <tr>
-                    <td colspan="3"><strong>Sujeto a Pagos Trimestrales</strong></td>
-                </tr>
-                <tr>
-                    <td style="width:60%;">
-                        <strong>Total en Letras</strong><br>
-                        {{ $totalEnLetras }}
-                    </td>
-                    <td style="width:40%; text-align:right; font-weight:700;">
-                        TOTAL Q. {{ number_format($cotizacion->total_general ?? $cotizacion->total, 2, '.', ',') }}
-                    </td>
-                </tr>
-            </table>
-
-            <!-- ↓ Empuje para mantener “Número de Autorización / Fecha…” donde está -->
-            <div style="height: 2mm;"></div> <!-- 82mm - 20mm = 62mm -->
-
-            <!-- Bloque inferior: autorización y fecha -->
-            <table width="100%" style="font-size:10px;">
-                <tr>
-                    <td style="width:50%;">
-                        <strong>Número de Autorización</strong><br>
-                        <div style="border:1px solid #000; padding:3px; border-radius:8px;">
-                            {{ $cotizacion->numero_autorizacion }}
-                        </div>
-                    </td>
-                    <td style="width:50%;">
-                        <strong>Fecha certificación</strong><br>
-                        <div style="border:1px solid #000; padding:3px; border-radius:8px;">
-                            {{ $cotizacion->fecha_emision }}
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
+        <!-- Spacer SOLO para la última página (porque está al final del flujo) -->
+        <div class="last-page-spacer" style="height:47mm;"></div>
+    </div><!-- /content -->
 
 
-        <!-- Imagen ondulada al fondo, pegada al borde -->
-        <!-- <img class="onda" src="{{ public_path('images/final_line.png') }}" alt=""> -->
-    </div>
+    <!-- *** SIN footer HTML fijo *** -->
 
 
     <script type="text/php">
-        if (isset($pdf)) {
-    $mm = 2.83465;
-    $footerHeightPt = 36 * $mm;
-    $footerImg      = public_path('images/footer_gp.jpg');
+if (isset($pdf)) {
+  $mm = 2.83465;
 
-    // Valores desde Blade
-    $fechaVenc = "{{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}";
-    $numAbono  = "1";
-    $montoAb   = "{{ 'Q' . number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}";
+  // ==== Parámetros del pie (sin cambios de imágenes) ====
+  $bottomMargin_mm = 18;     // igual al @page margin-bottom
+  $imgH_mm         = 35;     // alto visible de la onda (footer_gp.jpg)
+  $overlayH_mm     = 30;     // alto de la imagen con títulos (sujeto_pagos_gp.jpg)
+  $txtPad_mm       = 2;      // padding superior para los valores
 
-    // >>> Desplazamiento hacia la derecha en milímetros (ajusta 4–10 mm a gusto)
-    $shiftRightMm = 7;
+  // Parte de la onda que invade el área de contenido por encima del margen inferior
+  $imgOverlap_mm   = max(0, $imgH_mm - $bottomMargin_mm);
 
-    $pdf->page_script('
-        if ($PAGE_NUM == $PAGE_COUNT) {
-            $w = $pdf->get_width();
-            $h = $pdf->get_height();
-            $mm = 2.83465;
+  // Reserva REAL para la última página (overlay + solape de onda)
+  $footerReserve_mm = $overlayH_mm + $imgOverlap_mm;   // 30 + (35-18)=47mm
+  $footerReserve    = $footerReserve_mm * $mm;
 
-            // Imagen del footer, pegada abajo
-            $img = "'.addslashes($footerImg).'";
-            $fh  = '.$footerHeightPt.';
-            $pdf->image($img, 0, $h - $fh, $w, $fh);
+  // Alturas en puntos
+  $imgH     = $imgH_mm     * $mm;
+  $overlayH = $overlayH_mm * $mm;
+  $txtPad   = $txtPad_mm   * $mm;
 
-            $font = $fontMetrics->getFont("DejaVu Sans", "bold");
-            $size = 7;
+  // Imágenes
+  $footerImg  = public_path('images/footer_gp.jpg');           // onda
+  $overlayImg = public_path('images/sujeto_pagos_gp.jpg');     // títulos
 
-            // Desplazamiento a la derecha
-            $dx = '.$shiftRightMm.' * $mm;
+  // ===== Offsets hacia la derecha (en mm) =====
+  // Aumenta estos valores si aún quieres correr más a la derecha.
+  $letrasShift_pt = 36 * $mm;   // desplazamiento para "Total en letras" (valor)
+  $autoShift_pt   = 25 * $mm;   // desplazamiento para "Número de autorización" (valor)
+  $fechaShift_pt  = 16 * $mm;   // desplazamiento para "Fecha certificación" (valor)
+  $montoRightPad_pt = 22 * $mm; // padding desde el borde derecho para el monto
 
-            // Coordenadas (X + dx)
-            $x_fecha = (29 * $mm) + $dx;  $y_fecha = ($h - $fh) +  (7 * $mm);
-            $x_abono = (30 * $mm) + $dx;  $y_abono = ($h - $fh) + (10 * $mm);
-            $x_monto = (26 * $mm) + $dx;  $y_monto = ($h - $fh) + (12 * $mm);
+  // Datos (solo valores)
+  $fechaVenc   = "{{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}";
+  $numAbono    = "1";
+  $montoAb     = "{{ 'Q' . number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}";
+  $totalNum    = "{{ number_format($cotizacion->total_general ?? $cotizacion->total, 2, '.', ',') }}";
+  $totalLetras = "{{ addslashes($totalEnLetras ?? '') }}";
+  $numAuto     = "{{ addslashes($cotizacion->numero_autorizacion ?? '') }}";
+  $fecCert     = "{{ addslashes($cotizacion->fecha_emision ?? '') }}";
 
-            $pdf->text($x_fecha, $y_fecha, "'.addslashes($fechaVenc).'", $font, $size);
-            $pdf->text($x_abono, $y_abono, "'.addslashes($numAbono).'",  $font, $size);
-            $pdf->text($x_monto, $y_monto, "'.addslashes($montoAb).'",   $font, $size);
-        }
-    ');
+  $shiftRightMm = 7;
+
+  // Pre-escapar strings que irán dentro del page_script
+  $txtMontoEsc  = addslashes($totalNum);
+  $txtLetrasEsc = addslashes($totalLetras);
+  $txtAutoEsc   = addslashes($numAuto);
+  $txtFechaEsc  = addslashes($fecCert);
+  $txtFELFecha  = addslashes($fechaVenc);
+  $txtFELMonto  = addslashes($montoAb);
+
+  $pdf->page_script('
+    if ($PAGE_NUM == $PAGE_COUNT) {
+      $mm = 2.83465;
+      $w  = $pdf->get_width();
+      $h  = $pdf->get_height();
+
+      $imgH          = ' . $imgH . ';
+      $overlayH      = ' . $overlayH . ';
+      $footerReserve = ' . $footerReserve . ';
+      $txtPad        = ' . $txtPad . ';
+      $footerImg     = "' . addslashes($footerImg)  . '";
+      $overlayImg    = "' . addslashes($overlayImg) . '";
+
+      // Offsets calculados en puntos
+      $letrasShift   = ' . $letrasShift_pt . ';
+      $autoShift     = ' . $autoShift_pt   . ';
+      $fechaShift    = ' . $fechaShift_pt  . ';
+      $montoRightPad = ' . $montoRightPad_pt . ';
+
+      // 1 Onda pegada abajo
+      $pdf->image($footerImg, 0, $h - $imgH, $w, $imgH);
+
+      // 2 Imagen con los títulos, justo encima de la onda
+      $overlayY = $h - $imgH - $overlayH;
+      $pdf->image($overlayImg, 0, $overlayY, $w, $overlayH);
+
+      // 3 Solo VALORES, posicionados sobre la imagen de títulos
+      $fontB = $fontMetrics->getFont("DejaVu Sans", "bold");
+      $fontN = $fontMetrics->getFont("DejaVu Sans", "normal");
+
+      $xL = 20 * $mm;                  // columna izquierda (ancla)
+      $xR = $w - (80 * $mm);           // columna derecha (ancla aproximada)
+      $yBase = $overlayY + $txtPad;    // base superior de la zona de textos
+
+      // --- Total en letras (valor) -> corrido a la derecha ---
+      $pdf->text($xL + $letrasShift, $yBase + (12 * $mm), "' . $txtLetrasEsc . '", $fontN, 8);
+
+      // --- TOTAL Q. (valor) -> alineado a la derecha de su caja ---
+      $montoTxt = "' . $txtMontoEsc . '";
+      $montoSize = 10;
+      $montoWidth = $fontMetrics->getTextWidth($montoTxt, $fontB, $montoSize);
+      $xMonto = $w - $montoRightPad - $montoWidth;   // right-align
+      $pdf->text($xMonto, $yBase + (10 * $mm), $montoTxt, $fontB, $montoSize);
+
+      // --- Número de autorización (valor) -> corrido a la derecha ---
+      $pdf->text($xL + $autoShift, $yBase + (22 * $mm), "' . $txtAutoEsc . '", $fontN, 7);
+
+      // --- Fecha certificación (valor) -> corrido a la derecha ---
+      $pdf->text($xR + $fechaShift, $yBase + (22 * $mm), "' . $txtFechaEsc . '", $fontN, 8);
+
+      // 4 Campos FEL sobre la onda (siguen igual)
+      $dx = (' . $shiftRightMm . ') * $mm;
+      $pdf->text((29*$mm)+$dx, ($h-$imgH)+(6.5*$mm),  "' . $txtFELFecha . '", $fontB, 7);
+      $pdf->text((30*$mm)+$dx, ($h-$imgH)+(9.5*$mm),  "1", $fontB, 7);
+      $pdf->text((26*$mm)+$dx, ($h-$imgH)+(12*$mm), "' . $txtFELMonto . '", $fontB, 7);
+    }
+  ');
 }
 </script>
+
+
+
 
 </body>
 
