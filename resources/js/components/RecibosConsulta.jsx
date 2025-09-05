@@ -31,12 +31,13 @@ const RecibosConsulta = () => {
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [selectedRecibo, setSelectedRecibo] = useState(null);
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
+    const [fechaInicio, setFechaInicio] = useState("");
+    const [fechaFin, setFechaFin] = useState("");
     const [clienteFiltro, setClienteFiltro] = useState("");
     const [clientes, setClientes] = useState([]);
     const [pdfUrl, setPdfUrl] = useState(null);
     const navigate = useNavigate();
+    const [tipoFiltro, setTipoFiltro] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -65,6 +66,7 @@ const RecibosConsulta = () => {
             if (fechaInicio) params.fecha_inicio = fechaInicio;
             if (fechaFin) params.fecha_fin = fechaFin;
             if (clienteFiltro) params.cliente = clienteFiltro;
+            if (tipoFiltro) params.tipo = tipoFiltro;
 
             const { data } = await axios.get(
                 `${import.meta.env.VITE_API_URL}/recibos`,
@@ -108,6 +110,12 @@ const RecibosConsulta = () => {
             accessorKey: "idrecibo",
             header: "ID",
             size: 80,
+        },
+        {
+            id: "nofactura",
+            header: "No. Interno",
+            accessorFn: (row) => row?.cuenta?.cotizacion?.nofactura ?? "",
+            size: 100,
         },
         {
             accessorKey: "serie",
@@ -195,6 +203,7 @@ const RecibosConsulta = () => {
         const params = new URLSearchParams();
         if (fechaInicio) params.append("fecha_inicio", fechaInicio);
         if (fechaFin) params.append("fecha_fin", fechaFin);
+        if (tipoFiltro) params.append("tipo", tipoFiltro);
 
         try {
             const response = await fetch(
@@ -280,6 +289,19 @@ const RecibosConsulta = () => {
                         value={fechaFin}
                         onChange={(e) => setFechaFin(e.target.value)}
                     />
+                    <FormControl sx={{ minWidth: 180 }}>
+                        <InputLabel>Tipo</InputLabel>
+                        <Select
+                            label="Tipo"
+                            value={tipoFiltro}
+                            onChange={(e) => setTipoFiltro(e.target.value)}
+                        >
+                            <MenuItem value="">TODAS</MenuItem>
+                            <MenuItem value="RECIBO">RECIBO</MenuItem>
+                            <MenuItem value="RETENCIÓN">RETENCIÓN</MenuItem>
+                            {/* si en DB usas "RETENCION" sin tilde, cambia el value a "RETENCION" */}
+                        </Select>
+                    </FormControl>
                     <FormControl fullWidth>
                         <InputLabel>Cliente</InputLabel>
                         <Select

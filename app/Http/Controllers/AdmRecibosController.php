@@ -13,7 +13,7 @@ class AdmRecibosController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AdmRecibo::with(['cuenta', 'cliente']); // Incluye la relación
+        $query = AdmRecibo::with(['cuenta.cotizacion:idcotizacion,nofactura', 'cliente']); // Incluye la relación
 
         if ($request->has('cliente')) {
             $query->where('idcliente', $request->cliente);
@@ -22,8 +22,10 @@ class AdmRecibosController extends Controller
         if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
             $query->whereBetween('fecha_recibo', [$request->fecha_inicio, $request->fecha_fin]);
         }
-
-        $query->where('estado', 1); 
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+        $query->where('estado', 1);
         return $query->orderByDesc('fecha_recibo')->get();
     }
 
@@ -193,6 +195,9 @@ class AdmRecibosController extends Controller
 
         if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
             $query->whereBetween('fecha_recibo', [$request->fecha_inicio, $request->fecha_fin]);
+        }
+        if ($request->filled('tipo')) {               
+            $query->where('tipo', $request->tipo);
         }
 
         $recibos = $query->orderBy('fecha_recibo')->get();

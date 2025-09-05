@@ -32,6 +32,7 @@ class AdmRecibo extends Model
         'serie',
         'numero',
         'tipo',
+        'nofactura',
     ];
 
     public function cuenta()
@@ -40,7 +41,7 @@ class AdmRecibo extends Model
     }
 
     public function cliente()
-{
-    return $this->belongsTo(Clientes::class, 'idcliente', 'idcliente');
-}
+    {
+        return $this->belongsTo(Clientes::class, 'idcliente', 'idcliente');
+    }
 }

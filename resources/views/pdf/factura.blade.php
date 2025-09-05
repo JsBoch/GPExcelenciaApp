@@ -216,7 +216,7 @@ if (isset($pdf)) {
   $letrasShift_pt = 36 * $mm;   // desplazamiento para "Total en letras" (valor)
   $autoShift_pt   = 25 * $mm;   // desplazamiento para "Número de autorización" (valor)
   $fechaShift_pt  = 16 * $mm;   // desplazamiento para "Fecha certificación" (valor)
-  $montoRightPad_pt = 22 * $mm; // padding desde el borde derecho para el monto
+  $montoRightPad_pt = 18 * $mm; // padding desde el borde derecho para el monto
 
   // Datos (solo valores)
   $fechaVenc   = "{{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}";
