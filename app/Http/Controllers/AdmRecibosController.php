@@ -31,56 +31,106 @@ class AdmRecibosController extends Controller
 
     public function store(Request $request)
     {
+        // Validación con mensaje claro para duplicados
         $request->validate([
             'idcuentaporcobrar' => 'required|exists:adm_cuentas_porcobrar,idcuentaporcobrar',
-            'idcliente' => 'required',
-            'fecha_recibo' => 'required|date',
-            'monto_recibido' => 'required|numeric|min:0.01',
-            'metodo_pago' => 'required|string|max:50',
+            'idcliente'         => 'required',
+            'fecha_recibo'      => 'required|date',
+            'monto_recibido'    => 'required|numeric|min:0.01',
+            'metodo_pago'       => 'required|string|max:50',
+
+            // Evitar duplicados entre activos (tipo+serie+numero con estado=1)
+            'serie'  => 'required|string|max:10',
+            'numero' => [
+                'required',
+                'integer',
+                'min:1',
+                \Illuminate\Validation\Rule::unique('adm_recibos', 'numero')
+                    ->where(
+                        fn($q) => $q
+                            ->where('serie', $request->serie)
+                            ->where('tipo',  $request->input('tipo', 'RECIBO'))
+                            ->where('estado', 1)
+                    ),
+            ],
+            'tipo'   => 'required|in:RECIBO,RETENCIÓN',
+        ], [
+            'numero.unique' => 'El número de documento ya existe para la serie y tipo especificados.',
         ]);
 
-        $cuenta = AdmCuentasPorCobrar::find($request->idcuentaporcobrar);
+        try {
+            $recibo = DB::transaction(function () use ($request) {
+                // Bloquea la CxC para evitar condiciones de carrera
+                /** @var \App\Models\AdmCuentasPorCobrar $cuenta */
+                $cuenta = AdmCuentasPorCobrar::where('idcuentaporcobrar', $request->idcuentaporcobrar)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-        if ($cuenta->saldo_pendiente < $request->monto_recibido) {
-            return response()->json(['error' => 'El monto recibido excede el saldo pendiente.'], 400);
+                // Revalidar saldo dentro de la transacción
+                if ($cuenta->saldo_pendiente < $request->monto_recibido) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'monto_recibido' => ['El monto recibido excede el saldo pendiente.'],
+                    ]);
+                }
+
+                // Correlativo
+                $correlativo = Correlativo::find('adm_recibos');
+                if (!$correlativo) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'correlativo' => ['No se encontró el correlativo para recibos.'],
+                    ]);
+                }
+
+                $idRecibo = $correlativo->correlativo + $correlativo->incremento;
+                $correlativo->correlativo = $idRecibo;
+                $correlativo->save();
+
+                // Crear recibo
+                $recibo = AdmRecibo::create([
+                    'idrecibo'            => $idRecibo,
+                    'idcuentaporcobrar'   => $request->idcuentaporcobrar,
+                    'idcliente'           => $request->idcliente,
+                    'fecha_recibo'        => $request->fecha_recibo,
+                    'monto_recibido'      => $request->monto_recibido,
+                    'metodo_pago'         => $request->metodo_pago,
+                    'referencia'          => $request->referencia,
+                    'observaciones'       => $request->observaciones,
+                    'idusuario_creacion'  => auth()->user()->id,
+                    'usuario_creacion'    => auth()->user()->name,
+                    'fecha_creacion'      => now(),
+                    'moneda'              => $request->moneda ?? 'GTQ',
+                    'estado'              => 1,
+                    'serie'               => $request->serie ?? 'A',
+                    'numero'              => (int) $request->numero,
+                    'tipo'                => $request->tipo ?? 'RECIBO',
+                ]);
+
+                // Actualizar saldos
+                $cuenta->monto_pagado   += $request->monto_recibido;
+                $cuenta->saldo_pendiente -= $request->monto_recibido;
+                $cuenta->save();
+
+                return $recibo;
+            });
+
+            return response()->json([
+                'message' => 'Recibo registrado exitosamente',
+                'recibo'  => $recibo,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Errores de validación (incluye saldo o correlativo)
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Choque con índice único de BD
+            if ($e->getCode() === '23000') {
+                return response()->json([
+                    'errors' => ['numero' => ['El número de documento ya existe para la serie y tipo especificados.']],
+                ], 422);
+            }
+            throw $e;
         }
-
-        $correlativo = Correlativo::find('adm_recibos'); // Obtiene el registro de correlativo para la tabla 'adm_empleados'
-
-        if (!$correlativo) {
-            return response()->json(['message' => 'No se encontró el correlativo para recibos'], 400);
-        }
-
-        $idRecibo = $correlativo->correlativo + $correlativo->incremento; // Genera el nuevo ID del empleado
-        $correlativo->correlativo = $idRecibo; // Actualiza el correlativo en la base de datos
-        $correlativo->save();
-
-        $recibo = AdmRecibo::create([
-            'idrecibo' => $idRecibo,
-            'idcuentaporcobrar' => $request->idcuentaporcobrar,
-            'idcliente' => $request->idcliente,
-            'fecha_recibo' => $request->fecha_recibo,
-            'monto_recibido' => $request->monto_recibido,
-            'metodo_pago' => $request->metodo_pago,
-            'referencia' => $request->referencia,
-            'observaciones' => $request->observaciones,
-            'idusuario_creacion' => auth()->user()->id,
-            'usuario_creacion' => auth()->user()->name,
-            'fecha_creacion' => now(),
-            'moneda' => $request->moneda ?? 'GTQ',
-            'estado' => 1,
-            'serie' => $request->serie ?? 'A',
-            'numero' => $request->numero,
-            'tipo' => $request->tipo ?? 'RECIBO',
-        ]);
-
-        // Rebaja saldo
-        $cuenta->monto_pagado += $request->monto_recibido;
-        $cuenta->saldo_pendiente -= $request->monto_recibido;
-        $cuenta->save();
-
-        return response()->json(['message' => 'Recibo registrado exitosamente', 'recibo' => $recibo]);
     }
+
 
     public function show($id)
     {
@@ -95,6 +145,22 @@ class AdmRecibosController extends Controller
             'fecha_recibo' => 'required|date',
             'monto_recibido' => 'required|numeric|min:0.01',
             'metodo_pago' => 'required|string|max:50',
+
+            'serie' => 'required|string|max:10',
+            'numero' => [
+                'required',
+                'integer',
+                'min:1',
+                \Illuminate\Validation\Rule::unique('adm_recibos', 'numero')
+                    ->ignore($id, 'idrecibo') // muy importante
+                    ->where(
+                        fn($q) => $q
+                            ->where('serie', $request->serie)
+                            ->where('tipo', $request->input('tipo', 'RECIBO'))
+                            ->where('estado', 1)    // Opción A; quita esta línea para Opción B
+                    ),
+            ],
+            'tipo' => 'required|in:RECIBO,RETENCIÓN',
         ]);
 
         $recibo = AdmRecibo::findOrFail($id);
@@ -196,7 +262,7 @@ class AdmRecibosController extends Controller
         if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
             $query->whereBetween('fecha_recibo', [$request->fecha_inicio, $request->fecha_fin]);
         }
-        if ($request->filled('tipo')) {               
+        if ($request->filled('tipo')) {
             $query->where('tipo', $request->tipo);
         }
 

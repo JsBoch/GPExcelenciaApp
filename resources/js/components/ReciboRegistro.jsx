@@ -236,8 +236,18 @@ const ReciboRegistro = () => {
                 );
                 // navigate("/recibos/consulta");
             })
-            .catch(() => {
-                alertify.error("Error al guardar el recibo");
+            .catch((err) => {
+                if (err.response?.status === 422) {
+                    const errs = err.response.data?.errors || {};
+                    const msg =
+                        Object.values(errs).flat().join("\n") ||
+                        "Datos inválidos.";
+                    alertify.error(msg);
+                } else if (err.response?.data?.error) {
+                    alertify.error(err.response.data.error);
+                } else {
+                    alertify.error("Error al guardar el recibo");
+                }
             });
     };
 
@@ -265,7 +275,7 @@ const ReciboRegistro = () => {
     );
 
     const handleNuevoRecibo = () => {
-      const hoy = fechaActual || new Date().toISOString().split("T")[0];
+        const hoy = fechaActual || new Date().toISOString().split("T")[0];
         setForm({
             idcuentaporcobrar: "",
             idcliente: "",
@@ -367,7 +377,7 @@ const ReciboRegistro = () => {
                             <MenuItem value="RECIBO">RECIBO</MenuItem>
                             <MenuItem value="RETENCIÓN">RETENCIÓN</MenuItem>
                         </Select>
-                    </FormControl>   
+                    </FormControl>
                     <TextField
                         name="fecha_recibo"
                         label="Fecha del recibo"
@@ -376,7 +386,7 @@ const ReciboRegistro = () => {
                         onChange={handleChange}
                         required
                         InputLabelProps={{ shrink: true }} // para que el label no tape el valor
-                    />                 
+                    />
                 </Box>
 
                 <TextField
