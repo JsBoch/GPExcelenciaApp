@@ -493,6 +493,7 @@ class ReportesContabilidadController extends Controller
             END as estado
         ")
             ->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta])
+            ->where('ac.estado', '>', 0) 
             ->when($vendedorId, fn($q) => $q->where('ae.id_empleado', $vendedorId))
             ->orderBy('fecha_prefacturacion')
             ->orderBy('nocotizacion')

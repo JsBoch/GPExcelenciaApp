@@ -75,7 +75,7 @@
     <table>
         <thead>
             <tr>
-                <th>No Recibo</th>
+                <th>No Documento</th>
                 <th class="fecha-col">Fecha</th>
                 <th>CxC</th>
                 <th class="monto-col">Monto</th>
