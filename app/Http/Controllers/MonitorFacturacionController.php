@@ -147,6 +147,7 @@ class MonitorFacturacionController extends Controller
                 WHEN c.estado = 8 THEN 'RECHAZADA'
                 ELSE 'DESCONOCIDO'
             END as estado_texto"),
+                'c.nofactura',
                 'c.uuid',
                 'c.serie',
                 'c.numero',
@@ -899,6 +900,7 @@ class MonitorFacturacionController extends Controller
     {
         $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
             ->select(
+                'c.idcotizacion',
                 'c.serie',
                 'c.numero',
                 'c.uuid as numero_autorizacion',
@@ -913,6 +915,7 @@ class MonitorFacturacionController extends Controller
                 'd.total as precio_total',
                 'c.nofactura',
                 'c.nocotizacion',
+                'c.estado',
             )
             ->from('adm_cotizacion as c')
             ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')

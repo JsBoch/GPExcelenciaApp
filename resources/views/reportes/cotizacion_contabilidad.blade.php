@@ -1,151 +1,123 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="utf-8">
-    <title>Listado de Cotizaciones</title>
-    <style>
-        @page {
-            margin: 120px 40px 80px 40px;
-        }
+  <meta charset="utf-8">
+  <title>Listado de Cotizaciones</title>
+  <style>
+    /* más espacio arriba para que el header fijo quepa */
+    @page { margin: 130px 40px 80px 40px; }
 
-        body {
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 9px;
-        }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 9px; }
 
-        header {
-            position: fixed;
-            top: -100px;
-            left: 0;
-            right: 0;
-            height: 100px;
-            text-align: center;
-        }
+    header{
+      position: fixed;
+      top: -110px;           /* ≈ altura del header */
+      left: 0; right: 0;
+      height: 110px;
+      text-align: center;
+      background:#fff;       /* evita que la tabla lo tape */
+      z-index:100;
+    }
+    footer { position: fixed; bottom: -60px; left: 0; right: 0; height: 60px; font-size: 9px; }
+    footer .footer-content { display: flex; justify-content: space-between; align-items: center; }
+    .footer-line { border-top: 1px solid #000; margin-bottom: 2px; }
 
-        footer {
-            position: fixed;
-            bottom: -60px;
-            left: 0;
-            right: 0;
-            height: 60px;
-            font-size: 9px;
-        }
+    /* Tabla */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+      /* forzar borde derecho en dompdf */
+      border-right: 1px solid #000;
+    }
+    th, td { border: 1px solid #000; padding: 4px; text-align: left; }
+    th { background-color: #f0f0f0; }
+    /* reasegura el borde derecho de la última celda */
+    th:last-child, td:last-child { border-right: 1px solid #000 !important; }
 
-        footer .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .footer-line {
-            border-top: 1px solid #000;
-            margin-bottom: 2px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5px;
-        }
-
-        th,
-        td {
-            border: 1px solid #000;
-            padding: 4px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f0f0f0;
-        }
-
-        .header-table td {
-            border: none;
-        }
-
-        .titulo {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0;
-        }
-    </style>
+    .header-table td { border: none; }
+    .titulo { font-size: 16px; font-weight: bold; margin: 0; }
+    .col-total { text-align: right; }
+  </style>
 </head>
-
 <body>
-    <header>
-        <table width="100%" class="header-table">
-            <tr>
-                <td width="100" style="text-align: left;">
-                    <img src="{{ public_path('images/LogoGP.jpg') }}" alt="Logo" height="60">
-                </td>
-                <td style="text-align: center;">
-                    <h3 style="margin:0;">GP Excelencia S.A.</h3>
-                    <div class="titulo">LISTADO DE COTIZACIONES</div>
-                    <!-- <small>Período: {{ \Carbon\Carbon::parse($rows->first()->fecha_cotizacion ?? now())->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($rows->last()->fecha_cotizacion ?? now())->format('d/m/Y') }}</small> -->
-                    @php
-                    $desdeFecha = optional($rows->first())->fecha_cotizacion ?? now();
-                    $hastaFecha = optional($rows->last())->fecha_cotizacion ?? now();
-                    @endphp
-                    <small>Período: {{ \Carbon\Carbon::parse($desdeFecha)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($hastaFecha)->format('d/m/Y') }}</small>
-                </td>
-                <td width="100"></td>
-            </tr>
-        </table>
-    </header>
+  <header>
+    <table width="100%" class="header-table">
+      <tr>
+        <td width="100" style="text-align:left;">
+          <img src="{{ public_path('images/LogoGP.jpg') }}" alt="Logo" height="60">
+        </td>
+        <td style="text-align:center;">
+          <h3 style="margin:0;">GP Excelencia S.A.</h3>
+          <div class="titulo">LISTADO DE COTIZACIONES</div>
+          @php
+            $desdeFecha = optional($rows->first())->fecha_cotizacion ?? now();
+            $hastaFecha = optional($rows->last())->fecha_cotizacion ?? now();
+          @endphp
+          <small>Período: {{ \Carbon\Carbon::parse($desdeFecha)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($hastaFecha)->format('d/m/Y') }}</small>
+        </td>
+        <td width="100"></td>
+      </tr>
+    </table>
+  </header>
 
-    <footer>
-        <div class="footer-line"></div>
-        <div class="footer-content">
-            <div>
-                Generado por: {{ Auth::user()->name ?? 'Usuario' }}<br>
-                {{ \Carbon\Carbon::now()->format('d/m/Y') }}
-            </div>
-        </div>
-    </footer>
+  <footer>
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <div>
+        Generado por: {{ Auth::user()->name ?? 'Usuario' }}<br>
+        {{ \Carbon\Carbon::now()->format('d/m/Y') }}
+      </div>
+    </div>
+  </footer>
 
+  <main>
+    <table>
+      <!-- Distribución de anchos SIN “Días vencidos” -->
+      <colgroup>
+        <col style="width:15%">   <!-- No. Cotización -->
+        <col style="width:12%">   <!-- Fecha -->
+        <col style="width:20%">   <!-- Vendedor -->
+        <col style="width:38%">   <!-- Cliente -->
+        <col style="width:15%">   <!-- Total -->
+      </colgroup>
 
-    <main>
-        <table>
-            <thead>
-                <tr>
-                    <th>No. Cotización</th>
-                    <th>Fecha</th>
-                    <th>Días Vencidos</th>
-                    <th>Vendedor</th>
-                    <th>Cliente</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rows as $row)
-                <tr>
-                    <td>{{ $row->nocotizacion }}</td>
-                    <td>{{ \Carbon\Carbon::parse($row->fecha_cotizacion)->format('d/m/Y') }}</td>
-                    <td>{{ $row->dias_desde_prefacturacion }}</td>
-                    <td>{{ $row->vendedor }}</td>
-                    <td>{{ $row->cliente }}</td>
-                    <td>{{ number_format($row->total_general, 2, '.', ',') }}</td>
-                </tr>
-                @endforeach
-                <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">TOTAL GENERAL</td>
-                    <td style="font-weight: bold;">
-                        Q{{ number_format($rows->sum('total_general'), 2, '.', ',') }}
-                    </td>
-                </tr>
+      <thead>
+        <tr>
+          <th>No. Cotización</th>
+          <th>Fecha</th>
+          <th>Vendedor</th>
+          <th>Cliente</th>
+          <th class="col-total">Total</th>
+        </tr>
+      </thead>
 
-            </tbody>
-        </table>
-    </main>
-    
-    <script type="text/php">
-        if (isset($pdf)) {
-    $font = $fontMetrics->get_font("DejaVu Sans", "normal");
-    // Paginación fija en cada página (evita strings anidados)
-    $pdf->page_text(500, 810, "Página {PAGE_NUM} de {PAGE_COUNT}", $font, 9, [0,0,0]);
-}
-</script>
+      <tbody>
+        @foreach($rows as $row)
+          <tr>
+            <td>{{ $row->nocotizacion }}</td>
+            <td>{{ \Carbon\Carbon::parse($row->fecha_cotizacion)->format('d/m/Y') }}</td>
+            <td>{{ $row->vendedor }}</td>
+            <td>{{ $row->cliente }}</td>
+            <td class="col-total">{{ number_format($row->total_general, 2, '.', ',') }}</td>
+          </tr>
+        @endforeach
+
+        <tr>
+          <td colspan="4" style="text-align:right; font-weight:bold;">TOTAL GENERAL</td>
+          <td class="col-total" style="font-weight:bold;">
+            Q{{ number_format($rows->sum('total_general'), 2, '.', ',') }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script type="text/php">
+    if (isset($pdf)) {
+      $font = $fontMetrics->get_font("DejaVu Sans", "normal");
+      $pdf->page_text(500, 810, "Página {PAGE_NUM} de {PAGE_COUNT}", $font, 9, [0,0,0]);
+    }
+  </script>
 </body>
-
 </html>

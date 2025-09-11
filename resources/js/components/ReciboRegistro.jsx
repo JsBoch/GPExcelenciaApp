@@ -14,10 +14,12 @@ import {
     MenuItem,
     InputLabel,
     FormControl,
+    Autocomplete,
 } from "@mui/material";
 import { MaterialReactTable } from "material-react-table";
 import Header from "./Header";
 import { useParams } from "react-router-dom";
+import { norm } from "../utils/text";
 
 const ReciboRegistro = () => {
     const [clientes, setClientes] = useState([]);
@@ -27,6 +29,7 @@ const ReciboRegistro = () => {
     const { id } = useParams();
     const [modoEdicion, setModoEdicion] = useState(!!id);
     const [fechaActual, setFechaActual] = useState("");
+    const [clienteInput, setClienteInput] = useState(""); // lo que el usuario escribe
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -132,12 +135,27 @@ const ReciboRegistro = () => {
     const handleBuscarCuentas = () => {
         if (!clienteSeleccionado) return;
         axios
-            .get(`/api/cuentas-por-cobrar?cliente=${clienteSeleccionado}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => setCuentas(res.data));
+            .get(
+                `/api/cuentas-por-cobrar/por-cliente?cliente=${clienteSeleccionado}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                        )}`,
+                    },
+                }
+            )
+            .then((res) => {
+                if (import.meta.env.DEV) {
+                    //console.log("status:", res.status);
+                    // si res.data es un array, esto es más claro:
+                    // Array.isArray(res.data)
+                    //     ? console.table(res.data)
+                    //     : console.dir(res.data, { depth: null });
+                    // console.groupEnd?.();
+                }
+                setCuentas(res.data);
+            });
     };
 
     const seleccionarCuenta = (cuenta) => {
@@ -251,12 +269,34 @@ const ReciboRegistro = () => {
             });
     };
 
+    const fmt2 = new Intl.NumberFormat("es-GT", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
     const columnas = useMemo(
         () => [
             { accessorKey: "idcuentaporcobrar", header: "ID CxC" },
+            { accessorKey: "nofactura", header: "No. Interno" },
             { accessorKey: "fecha_emision", header: "Fecha Emisión" },
-            { accessorKey: "monto_original", header: "Monto Original" },
-            { accessorKey: "saldo_pendiente", header: "Saldo Pendiente" },
+            {
+                id: "monto_original",
+                header: "Monto Original",
+                accessorFn: (row) =>
+                    Number.parseFloat(row?.monto_original ?? 0), // valor NUMÉRICO
+                Cell: ({ cell }) => fmt2.format(cell.getValue() ?? 0), // vista con 2 decimales
+                muiTableBodyCellProps: { align: "right" }, // alineación derecha
+                size: 120,
+            },
+            {
+                id: "saldo_pendiente",
+                header: "Saldo Pendiente",
+                accessorFn: (row) =>
+                    Number.parseFloat(row?.saldo_pendiente ?? 0),
+                Cell: ({ cell }) => fmt2.format(cell.getValue() ?? 0),
+                muiTableBodyCellProps: { align: "right" },
+                size: 120,
+            },
             {
                 id: "acciones",
                 header: "Seleccionar",
@@ -452,11 +492,11 @@ const ReciboRegistro = () => {
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
                 fullWidth
-                maxWidth="md"
+                maxWidth="xl"
             >
                 <DialogTitle>Seleccionar Cuenta por Cobrar</DialogTitle>
                 <DialogContent>
-                    <FormControl fullWidth sx={{ mb: 2 }}>
+                    {/* <FormControl fullWidth sx={{ mb: 2 }}>
                         <InputLabel>Cliente</InputLabel>
                         <Select
                             value={clienteSeleccionado}
@@ -474,7 +514,66 @@ const ReciboRegistro = () => {
                                 </MenuItem>
                             ))}
                         </Select>
-                    </FormControl>
+                    </FormControl> */}
+                    <Autocomplete
+                        fullWidth
+                        options={clientes} // [{idcliente, nombre}, ...]
+                        getOptionLabel={(o) => o?.nombre ?? ""}
+                        value={
+                            clientes.find(
+                                (c) =>
+                                    String(c.idcliente) ===
+                                    String(clienteSeleccionado)
+                            ) ?? null
+                        }
+                        onChange={(_, val) =>
+                            setClienteSeleccionado(val?.idcliente ?? "")
+                        }
+                        inputValue={clienteInput}
+                        onInputChange={(_, val) => setClienteInput(val)}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                label="Buscar cliente"
+                                placeholder="Escribe nombre..."
+                            />
+                        )}
+                        // filtro insensible a acentos y mayúsculas
+                        filterOptions={(options, state) => {
+                            const q = norm(state.inputValue);
+                            if (!q) return options.slice(0, 50); // limite de 50 para no saturar
+                            return options
+                                .filter((o) => norm(o.nombre).includes(q))
+                                .slice(0, 50);
+                        }}
+                        // resalta coincidencias (opcional)
+                        renderOption={(props, option, { inputValue }) => {
+                            const texto = option.nombre ?? "";
+                            const q = norm(inputValue);
+                            const idx = norm(texto).indexOf(q);
+                            if (q && idx >= 0) {
+                                const before = texto.slice(0, idx);
+                                const match = texto.slice(
+                                    idx,
+                                    idx + inputValue.length
+                                );
+                                const after = texto.slice(
+                                    idx + inputValue.length
+                                );
+                                return (
+                                    <li {...props}>
+                                        {before}
+                                        <strong>{match}</strong>
+                                        {after}
+                                    </li>
+                                );
+                            }
+                            return <li {...props}>{texto}</li>;
+                        }}
+                        clearOnBlur={false}
+                        openOnFocus
+                    />
+
                     <Button
                         variant="outlined"
                         onClick={handleBuscarCuentas}

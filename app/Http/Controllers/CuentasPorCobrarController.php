@@ -71,10 +71,56 @@ class CuentasPorCobrarController extends Controller
         }
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $cuenta = AdmCuentasPorCobrar::findOrFail($id);
-        return response()->json($cuenta);
+        // $cuenta = AdmCuentasPorCobrar::with(['cotizacion:idcotizacion,nofactura'])
+        // ->findOrFail($id);
+        // return response()->json($cuenta);
+        $clienteId = $request->query('cliente');
+
+        $cxc = AdmCuentasPorCobrar::query()
+            ->leftJoin('adm_cotizacion as ac', 'ac.idcotizacion', '=', 'adm_cuentas_porcobrar.idcotizacion')
+            ->where('adm_cuentas_porcobrar.idcliente', $clienteId)
+            ->where('adm_cuentas_porcobrar.estado', 1)
+            ->get([
+                'adm_cuentas_porcobrar.idcuentaporcobrar',
+                'adm_cuentas_porcobrar.idcotizacion',
+                'ac.nofactura AS nofactura',
+                'adm_cuentas_porcobrar.fecha_emision',
+                'adm_cuentas_porcobrar.monto_original',
+                'adm_cuentas_porcobrar.saldo_pendiente',
+            ]);
+
+        return response()->json($cxc);
+    }
+
+    // GET /api/cuentas-por-cobrar/por-cliente?cliente=375
+    public function porCliente(Request $request)
+    {
+        $clienteId = $request->query('cliente');
+        abort_if(!$clienteId, 422, 'Falta el parámetro cliente');
+
+        $q = AdmCuentasPorCobrar::query()
+            ->leftJoin('adm_cotizacion as ac', 'ac.idcotizacion', '=', 'adm_cuentas_porcobrar.idcotizacion')
+            ->where('adm_cuentas_porcobrar.idcliente', $clienteId)
+            ->where('adm_cuentas_porcobrar.estado', 1)
+            ->select([
+                'adm_cuentas_porcobrar.idcuentaporcobrar',
+                'adm_cuentas_porcobrar.idcotizacion',
+                // Si nofactura es numérica y puede llevar ceros a la izquierda, cástralo a texto:
+                DB::raw("CAST(ac.nofactura AS CHAR) AS nofactura"),
+                'adm_cuentas_porcobrar.fecha_emision',
+                'adm_cuentas_porcobrar.monto_original',
+                'adm_cuentas_porcobrar.saldo_pendiente',
+            ])
+            ->orderBy('adm_cuentas_porcobrar.fecha_emision', 'desc');
+
+        // opcional: solo pendientes => /por-cliente?cliente=375&solo_pendientes=1
+        if ($request->boolean('solo_pendientes')) {
+            $q->where('adm_cuentas_porcobrar.saldo_pendiente', '>', 0);
+        }
+
+        return response()->json($q->get());
     }
 
     public function update(Request $request, $id)
