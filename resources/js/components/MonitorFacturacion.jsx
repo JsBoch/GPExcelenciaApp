@@ -46,6 +46,8 @@ function MonitorFacturacion() {
     const [cliente, setCliente] = useState(null);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [estadoFiltro, setEstadoFiltro] = useState("");
+    const [showPrefModal, setShowPrefModal] = useState(false);
+    const [prefDate, setPrefDate] = useState("");
 
     /**
      * ESTADOS PARA EL MODAL DE INFORMACIÓN DEL CLIENTE
@@ -213,6 +215,57 @@ function MonitorFacturacion() {
         }
     };
 
+    const abrirPrefModal = () => {
+        if (
+            !registroSeleccionado ||
+            Number(registroSeleccionado.estado) !== 4
+        ) {
+            return alertify.error(
+                "Seleccione una cotización en PRE-FACTURACIÓN."
+            );
+        }
+        // Usa el valor existente o hoy por defecto
+        const hoy = new Date().toISOString().slice(0, 10);
+        setPrefDate(
+            (registroSeleccionado.fecha_prefacturacion || "").slice(0, 10) ||
+                hoy
+        );
+        setShowPrefModal(true);
+    };
+
+    const guardarFechaPref = async () => {
+        if (!prefDate) return alertify.error("Seleccione una fecha.");
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+
+        try {
+            const { data } = await axios.put(
+                `/api/cotizaciones/${registroSeleccionado.idcotizacion}/fecha-prefacturacion`,
+                { fecha_prefacturacion: prefDate },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            alertify.success("Fecha de prefacturación actualizada.");
+
+            // Actualiza en memoria la fila seleccionada para que el usuario lo vea al instante
+            setCotizaciones((prev) =>
+                prev.map((c) =>
+                    c.idcotizacion === registroSeleccionado.idcotizacion
+                        ? { ...c, fecha_prefacturacion: prefDate }
+                        : c
+                )
+            );
+
+            // Opcional: refrescar desde servidor
+            // await fetchCotizaciones(fechaInicio, fechaFinal, estadoFiltro);
+
+            setShowPrefModal(false);
+        } catch (e) {
+            const msg =
+                e.response?.data?.message || "Error al actualizar la fecha.";
+            alertify.error(msg);
+        }
+    };
     // const generarPDF = async (id) => {
     //     const token = localStorage.getItem("token");
     //     if (!token)
@@ -384,92 +437,105 @@ function MonitorFacturacion() {
             alertify.error("Error al abrir el PDF.");
         }
     };
-    
+
     // ✅ Reemplazo completo
-const abrirFacturaPDF = async (id) => {
-  const token = localStorage.getItem("token");
-  if (!token) return alertify.error("Token no encontrado para abrir PDF.");
+    const abrirFacturaPDF = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token)
+            return alertify.error("Token no encontrado para abrir PDF.");
 
-  // Helpers
-  const abs  = (p) => new URL(p, window.location.origin).href;
-  const fixMime = (dataUrl, ext = "jpg") => {
-    if (!dataUrl) return null;
-    if (dataUrl.startsWith("data:application/octet-stream")) {
-      const mime = ext === "png" ? "image/png" : "image/jpeg";
-      return dataUrl.replace("data:application/octet-stream", `data:${mime}`);
-    }
-    // Algunos servers devuelven Blob.type vacío → "data:;base64"
-    if (dataUrl.startsWith("data:;base64")) {
-      const mime = ext === "png" ? "image/png" : "image/jpeg";
-      return dataUrl.replace("data:;base64", `data:${mime};base64`);
-    }
-    return dataUrl;
-  };
-  // Carga URL → DataURL (base64)
-  const toDataURLSafe = async (url) => {
-    try {
-      const r = await fetch(url, { cache: "no-store" });
-      if (!r.ok) return null;
-      const blob = await r.blob();
-      return await new Promise((res, rej) => {
-        const fr = new FileReader();
-        fr.onloadend = () => res(fr.result);
-        fr.onerror = rej;
-        fr.readAsDataURL(blob);
-      });
-    } catch {
-      return null;
-    }
-  };
+        // Helpers
+        const abs = (p) => new URL(p, window.location.origin).href;
+        const fixMime = (dataUrl, ext = "jpg") => {
+            if (!dataUrl) return null;
+            if (dataUrl.startsWith("data:application/octet-stream")) {
+                const mime = ext === "png" ? "image/png" : "image/jpeg";
+                return dataUrl.replace(
+                    "data:application/octet-stream",
+                    `data:${mime}`
+                );
+            }
+            // Algunos servers devuelven Blob.type vacío → "data:;base64"
+            if (dataUrl.startsWith("data:;base64")) {
+                const mime = ext === "png" ? "image/png" : "image/jpeg";
+                return dataUrl.replace("data:;base64", `data:${mime};base64`);
+            }
+            return dataUrl;
+        };
+        // Carga URL → DataURL (base64)
+        const toDataURLSafe = async (url) => {
+            try {
+                const r = await fetch(url, { cache: "no-store" });
+                if (!r.ok) return null;
+                const blob = await r.blob();
+                return await new Promise((res, rej) => {
+                    const fr = new FileReader();
+                    fr.onloadend = () => res(fr.result);
+                    fr.onerror = rej;
+                    fr.readAsDataURL(blob);
+                });
+            } catch {
+                return null;
+            }
+        };
 
-  try {
-    // 1) Datos
-    const res = await fetch(
-      `${import.meta.env.VITE_API_URL}/monitorfacturacion/${id}/factura-data`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("HTTP", res.status, txt);
-      return alertify.error("No se pudo obtener los datos de la factura.");
-    }
-    const { cotizacion, detalles } = await res.json();
+        try {
+            // 1) Datos
+            const res = await fetch(
+                `${
+                    import.meta.env.VITE_API_URL
+                }/monitorfacturacion/${id}/factura-data`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error("HTTP", res.status, txt);
+                return alertify.error(
+                    "No se pudo obtener los datos de la factura."
+                );
+            }
+            const { cotizacion, detalles } = await res.json();
 
-    // 2) Cargar imágenes → DataURL y normalizar mime
-    const [logoRaw, wmRaw] = await Promise.all([
-      toDataURLSafe(abs("/images/LogoGP.jpg?v=1")),
-      toDataURLSafe(abs("/images/marca_agua_gp.png?v=1")),
-    ]);
+            // 2) Cargar imágenes → DataURL y normalizar mime
+            const [logoRaw, wmRaw] = await Promise.all([
+                toDataURLSafe(abs("/images/LogoGP.jpg?v=1")),
+                toDataURLSafe(abs("/images/marca_agua_gp.png?v=1")),
+            ]);
 
-    // footer con fallback .jpg → .png
-    let footerRaw = await toDataURLSafe(abs("/images/footer_gp.jpg?v=1"));
-    let footerExt = "jpg";
-    if (!footerRaw) {
-      footerRaw = await toDataURLSafe(abs("/images/footer_gp.png?v=1"));
-      footerExt = "png";
-    }
+            // footer con fallback .jpg → .png
+            let footerRaw = await toDataURLSafe(
+                abs("/images/footer_gp.jpg?v=1")
+            );
+            let footerExt = "jpg";
+            if (!footerRaw) {
+                footerRaw = await toDataURLSafe(
+                    abs("/images/footer_gp.png?v=1")
+                );
+                footerExt = "png";
+            }
 
-    const logoSrc      = fixMime(logoRaw, "jpg");
-    const watermarkSrc = fixMime(wmRaw, "png");
-    const footerSrc    = fixMime(footerRaw, footerExt);
+            const logoSrc = fixMime(logoRaw, "jpg");
+            const watermarkSrc = fixMime(wmRaw, "png");
+            const footerSrc = fixMime(footerRaw, footerExt);
 
-    if (!footerSrc) {
-      console.warn("Footer no disponible en /images/footer_gp.(jpg|png)");
-    }
+            if (!footerSrc) {
+                console.warn(
+                    "Footer no disponible en /images/footer_gp.(jpg|png)"
+                );
+            }
 
-    // 3) Mandar al visor React-PDF
-    setFacturaDoc({
-      cotizacion,
-      detalles,
-      images: { logoSrc, watermarkSrc, footerSrc },
-    });
-    setShowFacturaViewer(true);
-  } catch (e) {
-    console.error(e);
-    alertify.error("Error al preparar el PDF.");
-  }
-};
-
+            // 3) Mandar al visor React-PDF
+            setFacturaDoc({
+                cotizacion,
+                detalles,
+                images: { logoSrc, watermarkSrc, footerSrc },
+            });
+            setShowFacturaViewer(true);
+        } catch (e) {
+            console.error(e);
+            alertify.error("Error al preparar el PDF.");
+        }
+    };
 
     // (Opcional) helper para cargar imagen como base64 (onda, logos externos)
     async function toDataURL(url) {
@@ -698,6 +764,7 @@ const abrirFacturaPDF = async (id) => {
         { data: "trabajo", title: "Trabajo", visible: false },
         { data: "version", title: "Version", visible: false },
         { data: "estado", title: "Estado", visible: false },
+        { data: "nofactura", title: "No.Interno", },
         {
             data: "uuid",
             title: "Autorización",
@@ -946,7 +1013,7 @@ const abrirFacturaPDF = async (id) => {
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 5;
-    const puedeGenerarPDFFactura = estado === 6;
+    const puedeGenerarPDFFactura = estado === 6 || estado === 7;
 
     const abrirPdfNota = async (tipo /* 'NCRE' | 'NDEB' */) => {
         if (!registroSeleccionado)
@@ -1278,7 +1345,9 @@ const abrirFacturaPDF = async (id) => {
                         className="btn btn-danger btn-sm me-2"
                         disabled={
                             !registroSeleccionado ||
-                            (registroSeleccionado?.resultado ?? "").toUpperCase() !== "S" ||
+                            (
+                                registroSeleccionado?.resultado ?? ""
+                            ).toUpperCase() !== "S" ||
                             !registroSeleccionado.uuid
                         }
                         onClick={handleAnularFactura}
@@ -1369,6 +1438,20 @@ const abrirFacturaPDF = async (id) => {
                         disabled={!registroSeleccionado}
                     >
                         Información del cliente
+                    </Button>
+                    <Button
+                        color="primary"
+                        size="sm"
+                        className="d-inline-flex align-items-center gap-2"
+                        disabled={
+                            !registroSeleccionado ||
+                            Number(registroSeleccionado.estado) !== 4
+                        }
+                        onClick={abrirPrefModal}
+                        title="Cambiar la fecha de prefacturación"
+                    >
+                        <i className="bi bi-calendar3"></i>
+                        📅 Fecha de prefacturación
                     </Button>
                 </div>
 
@@ -2143,6 +2226,50 @@ const abrirFacturaPDF = async (id) => {
                     >
                         Cerrar
                     </button>
+                </ModalFooter>
+            </Modal>
+
+            <Modal
+                isOpen={showPrefModal}
+                toggle={() => setShowPrefModal(false)}
+                centered
+            >
+                <ModalHeader toggle={() => setShowPrefModal(false)}>
+                    Fecha de Prefacturación
+                </ModalHeader>
+                <ModalBody>
+                    <div className="mb-2">
+                        <div className="small text-muted mb-1">
+                            Cotización:{" "}
+                            <strong>
+                                {registroSeleccionado?.nocotizacion}
+                            </strong>
+                        </div>
+                        <label className="form-label">
+                            Seleccione la fecha
+                        </label>
+                        <input
+                            type="date"
+                            className="form-control"
+                            value={prefDate}
+                            onChange={(e) => setPrefDate(e.target.value)}
+                        />
+                        <div className="form-text">
+                            Solo disponible cuando la cotización está en{" "}
+                            <strong>PRE-FACTURACIÓN</strong>.
+                        </div>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowPrefModal(false)}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button color="primary" onClick={guardarFechaPref}>
+                        Aceptar
+                    </Button>
                 </ModalFooter>
             </Modal>
 

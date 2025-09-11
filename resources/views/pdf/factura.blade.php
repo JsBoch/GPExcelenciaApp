@@ -237,7 +237,36 @@ if (isset($pdf)) {
   $txtFELFecha  = addslashes($fechaVenc);
   $txtFELMonto  = addslashes($montoAb);
 
+  // === NUEVO: bandera para sello ANULADA ===
+  $__esAnulada = (int) {{ (int) $cotizacion->estado }} === 7 ? 1 : 0;
+
   $pdf->page_script('
+  // ====== SELLO ANULADA EN TODAS LAS PÁGINAS ======
+   if ('.$__esAnulada.') {
+  $w = $pdf->get_width();
+  $h = $pdf->get_height();
+  $font  = $fontMetrics->getFont("DejaVu Sans", "bold");
+  $text  = "ANULADA";
+  $size  = 70;
+  $angle = -30;
+
+  // Encapsula cambios
+  if (method_exists($pdf, "save")) { $pdf->save(); }
+
+  // Fuerza estado limpio y color rojo
+  if (method_exists($pdf, "set_opacity"))          { $pdf->set_opacity(1.0, "Normal"); } // SIN transparencia
+  if (method_exists($pdf, "set_text_rendering_mode")) { $pdf->set_text_rendering_mode(0); } // 0 = fill
+  if (method_exists($pdf, "set_text_color"))       { $pdf->set_text_color(255, 0, 0); }   // rojo puro
+  if (method_exists($pdf, "set_stroke_color"))     { $pdf->set_stroke_color(255, 0, 0); } // por si el adapter usa stroke
+
+  if (method_exists($pdf, "rotate")) { $pdf->rotate($angle, $w/2, $h/2); }
+
+  $tw = $fontMetrics->getTextWidth($text, $font, $size);
+  $pdf->text(($w/2) - ($tw/2), $h/2, $text, $font, $size);
+
+  // Restablece estado para no afectar nada más
+  if (method_exists($pdf, "restore")) { $pdf->restore(); }
+}
     if ($PAGE_NUM == $PAGE_COUNT) {
       $mm = 2.83465;
       $w  = $pdf->get_width();

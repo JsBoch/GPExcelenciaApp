@@ -444,6 +444,35 @@ class CotizacionController extends Controller
         }
     }
 
+    public function actualizarFechaPrefacturacion(Request $request, $id)
+    {
+        $request->validate([
+            'fecha_prefacturacion' => ['required', 'date', 'date_format:Y-m-d'],
+        ]);
+
+        /** @var AdmCotizacion $cot */
+        $cot = AdmCotizacion::findOrFail($id);
+
+        // Solo permitir cuando está en PRE-FACTURACIÓN (estado = 4)
+        if ((int)$cot->estado !== 4) {
+            return response()->json([
+                'message' => 'Solo se puede modificar la fecha en PRE-FACTURACIÓN.'
+            ], 422);
+        }
+
+        $cot->fecha_prefacturacion   = $request->fecha_prefacturacion;
+        $cot->usuario_modificacion   = auth()->user()->name ?? 'system';
+        $cot->fecha_modificacion     = now();
+
+        $cot->save();
+
+        return response()->json([
+            'ok' => true,
+            'idcotizacion' => $cot->idcotizacion,
+            'fecha_prefacturacion' => $cot->fecha_prefacturacion,
+        ]);
+    }
+
     public function destroy($id)
     {
         $cotizacion = AdmCotizacion::find($id);

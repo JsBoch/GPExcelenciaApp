@@ -105,6 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
 
     Route::put('/cotizaciones/rechazar/{id}', [CotizacionController::class, 'rechazar']);
+    Route::put('/cotizaciones/{id}/fecha-prefacturacion', [CotizacionController::class, 'actualizarFechaPrefacturacion']);
+
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones
@@ -184,6 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // CUENTAS POR COBRAR
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cuentas-por-cobrar/por-cliente', [CuentasPorCobrarController::class, 'porCliente']);
     Route::apiResource('/cuentas-por-cobrar', CuentasPorCobrarController::class);
 
     // Si quieres agregar rutas personalizadas (ejemplo: desactivar, filtros, etc.)
