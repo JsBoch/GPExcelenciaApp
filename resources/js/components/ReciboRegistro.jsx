@@ -30,6 +30,18 @@ const ReciboRegistro = () => {
     const [modoEdicion, setModoEdicion] = useState(!!id);
     const [fechaActual, setFechaActual] = useState("");
     const [clienteInput, setClienteInput] = useState(""); // lo que el usuario escribe
+    const [clienteSelObj, setClienteSelObj] = useState(null);
+
+    const clientesById = useMemo(() => {
+        const m = new Map();
+        for (const c of clientes) {
+            const id = String(c.idcliente).trim();
+            m.set(id, c);
+            const n = Number(id);
+            if (!Number.isNaN(n)) m.set(String(n), c); // robustez si llega número
+        }
+        return m;
+    }, [clientes]);
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -87,7 +99,29 @@ const ReciboRegistro = () => {
                 },
             })
             .then((res) => {
-                setClientes(res.data);
+                const lista = Array.isArray(res.data)
+                    ? res.data
+                    : res.data?.data ?? [];
+                // normaliza nombre
+                const normalizados = lista.map((c) => ({
+                    ...c,
+                    nombre:
+                        c.nombre ??
+                        c.cliente ??
+                        c.nombre_comercial ??
+                        c.razon_social ??
+                        c.cuenta ??
+                        "",
+                }));
+
+                console.log("Lista", lista);
+                // DEDUP por idcliente
+                const map = new Map();
+                for (const c of normalizados) {
+                    const id = String(c.idcliente).trim();
+                    if (!map.has(id)) map.set(id, c);
+                }
+                setClientes(Array.from(map.values()));
             })
             .catch((err) => {
                 console.error(
@@ -133,51 +167,54 @@ const ReciboRegistro = () => {
     }, [id]);
 
     const handleBuscarCuentas = () => {
-        if (!clienteSeleccionado) return;
+        const idCliente = clienteSelObj?.idcliente;
+        const nombreCliente = clienteSelObj?.nombre ?? "";
+        if (!idCliente) {
+            alertify.error("Selecciona un cliente de la lista");
+            return;
+        }
+
         axios
-            .get(
-                `/api/cuentas-por-cobrar/por-cliente?cliente=${clienteSeleccionado}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                }
-            )
+            .get(`/api/cuentas-por-cobrar/por-cliente?cliente=${idCliente}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            })
             .then((res) => {
-                if (import.meta.env.DEV) {
-                    //console.log("status:", res.status);
-                    // si res.data es un array, esto es más claro:
-                    // Array.isArray(res.data)
-                    //     ? console.table(res.data)
-                    //     : console.dir(res.data, { depth: null });
-                    // console.groupEnd?.();
-                }
-                setCuentas(res.data);
+                const data = Array.isArray(res.data) ? res.data : [];
+                const cuentasEnriquecidas = data.map((c) => ({
+                    ...c,
+                    idcliente: c.idcliente ?? idCliente,
+                    // si la API no trae nombre, lo metemos desde el Autocomplete
+                    cliente_nombre:
+                        c.cliente_nombre ?? c.cliente ?? nombreCliente,
+                }));
+                setCuentas(cuentasEnriquecidas);
+            })
+            .catch((err) => {
+                console.error(
+                    "❌ Error al cargar cuentas:",
+                    err.response?.data || err.message
+                );
+                alertify.error("No se pudo cargar las cuentas del cliente");
             });
     };
 
     const seleccionarCuenta = (cuenta) => {
-        setClientes((prevClientes) => {
-            const clienteObj = prevClientes.find(
-                (c) =>
-                    String(c.idcliente).trim() ===
-                    String(cuenta.idcliente).trim()
-            );
+        const idCliente = cuenta?.idcliente ?? clienteSelObj?.idcliente ?? "";
+        const nombreCliente =
+            cuenta?.cliente_nombre ??
+            clienteSelObj?.nombre ??
+            clientesById.get(String(idCliente).trim())?.nombre ??
+            "";
 
-            setForm((prevForm) => ({
-                ...prevForm,
-                idcuentaporcobrar: cuenta.idcuentaporcobrar,
-                idcliente: cuenta.idcliente,
-                cliente_nombre: clienteObj
-                    ? clienteObj.nombre
-                    : "No encontrado",
-                saldo_pendiente: cuenta.saldo_pendiente,
-            }));
-
-            return prevClientes;
-        });
+        setForm((prev) => ({
+            ...prev,
+            idcuentaporcobrar: cuenta.idcuentaporcobrar,
+            idcliente: String(idCliente),
+            cliente_nombre: nombreCliente, // ← ahora sí se pinta
+            saldo_pendiente: Number(cuenta.saldo_pendiente) || 0,
+        }));
 
         setModalOpen(false);
     };
@@ -333,6 +370,7 @@ const ReciboRegistro = () => {
             tipo: "RECIBO",
         });
         setClienteSeleccionado("");
+        setClienteSelObj(null); 
         setCuentas([]);
         setModalOpen(false);
         setModoEdicion(false);
@@ -517,18 +555,13 @@ const ReciboRegistro = () => {
                     </FormControl> */}
                     <Autocomplete
                         fullWidth
-                        options={clientes} // [{idcliente, nombre}, ...]
+                        options={clientes}
                         getOptionLabel={(o) => o?.nombre ?? ""}
-                        value={
-                            clientes.find(
-                                (c) =>
-                                    String(c.idcliente) ===
-                                    String(clienteSeleccionado)
-                            ) ?? null
+                        isOptionEqualToValue={(o, v) =>
+                            String(o.idcliente) === String(v.idcliente)
                         }
-                        onChange={(_, val) =>
-                            setClienteSeleccionado(val?.idcliente ?? "")
-                        }
+                        value={clienteSelObj}
+                        onChange={(_, val) => setClienteSelObj(val ?? null)}
                         inputValue={clienteInput}
                         onInputChange={(_, val) => setClienteInput(val)}
                         renderInput={(params) => (
@@ -538,37 +571,39 @@ const ReciboRegistro = () => {
                                 placeholder="Escribe nombre..."
                             />
                         )}
-                        // filtro insensible a acentos y mayúsculas
                         filterOptions={(options, state) => {
                             const q = norm(state.inputValue);
-                            if (!q) return options.slice(0, 50); // limite de 50 para no saturar
+                            if (!q) return options.slice(0, 50);
                             return options
                                 .filter((o) => norm(o.nombre).includes(q))
                                 .slice(0, 50);
                         }}
-                        // resalta coincidencias (opcional)
                         renderOption={(props, option, { inputValue }) => {
+                            // evita esparcir el key que viene en props
+                            const { key, ...rest } = props;
                             const texto = option.nombre ?? "";
                             const q = norm(inputValue);
                             const idx = norm(texto).indexOf(q);
-                            if (q && idx >= 0) {
-                                const before = texto.slice(0, idx);
-                                const match = texto.slice(
-                                    idx,
-                                    idx + inputValue.length
-                                );
-                                const after = texto.slice(
-                                    idx + inputValue.length
-                                );
-                                return (
-                                    <li {...props}>
-                                        {before}
-                                        <strong>{match}</strong>
-                                        {after}
-                                    </li>
-                                );
-                            }
-                            return <li {...props}>{texto}</li>;
+                            return (
+                                <li key={String(option.idcliente)} {...rest}>
+                                    {q && idx >= 0 ? (
+                                        <>
+                                            {texto.slice(0, idx)}
+                                            <strong>
+                                                {texto.slice(
+                                                    idx,
+                                                    idx + inputValue.length
+                                                )}
+                                            </strong>
+                                            {texto.slice(
+                                                idx + inputValue.length
+                                            )}
+                                        </>
+                                    ) : (
+                                        texto
+                                    )}
+                                </li>
+                            );
                         }}
                         clearOnBlur={false}
                         openOnFocus
@@ -577,7 +612,7 @@ const ReciboRegistro = () => {
                     <Button
                         variant="outlined"
                         onClick={handleBuscarCuentas}
-                        disabled={!clienteSeleccionado}
+                        disabled={!clienteSelObj}
                         sx={{ mb: 2 }}
                     >
                         Buscar Cuentas
