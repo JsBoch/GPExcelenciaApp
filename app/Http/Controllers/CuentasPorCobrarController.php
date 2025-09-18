@@ -188,34 +188,100 @@ class CuentasPorCobrarController extends Controller
         return $pdf->stream("estado_cuenta_{$cliente->nombre}.pdf");
     }
 
+    // public function generarEstadoCuentaConRecibosPDF(Request $request)
+    // {
+    //     $request->validate([
+    //         'idcliente' => 'required|integer',
+    //         'fecha_inicio' => 'required|date',
+    //         'fecha_final' => 'required|date',
+    //     ]);
+
+    //     $cliente = Clientes::findOrFail($request->idcliente);
+    //     $cuentas = AdmCuentasPorCobrar::with(['recibos' => function ($q) use ($request) {
+    //         $q->whereBetween('fecha_recibo', [$request->fecha_inicio, $request->fecha_final])
+    //             ->where('estado', 1)
+    //             ->orderBy('fecha_recibo');
+    //     }])
+    //         ->where('idcliente', $request->idcliente)
+    //         ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+    //         ->get();
+
+    //     $pdf = Pdf::loadView('pdf.estado_cuenta_completo', [
+    //         'cliente' => $cliente,
+    //         'cuentas' => $cuentas,
+    //         'fechaInicio' => $request->fecha_inicio,
+    //         'fechaFinal' => $request->fecha_final,
+    //     ]);
+
+    //     return $pdf->stream("estado_cuenta_con_recibos_{$cliente->nombre}.pdf");
+    // }
     public function generarEstadoCuentaConRecibosPDF(Request $request)
     {
         $request->validate([
-            'idcliente' => 'required|integer',
+            'idcliente'    => 'required|integer',
             'fecha_inicio' => 'required|date',
-            'fecha_final' => 'required|date',
+            'fecha_final'  => 'required|date',
         ]);
 
         $cliente = Clientes::findOrFail($request->idcliente);
-        $cuentas = AdmCuentasPorCobrar::with(['recibos' => function ($q) use ($request) {
-            $q->whereBetween('fecha_recibo', [$request->fecha_inicio, $request->fecha_final])
-                ->where('estado', 1)
-                ->orderBy('fecha_recibo');
-        }])
+
+        $cuentas = AdmCuentasPorCobrar::with([
+            // trae datos de factura si lo usas en el PDF
+            'cotizacion:idcotizacion,nofactura',
+            // NUEVO: recibos vía pivote, filtrados por fecha y activos
+            'recibos' => function ($q) use ($request) {
+                $q->select('adm_recibos.idrecibo', 'adm_recibos.fecha_recibo', 'adm_recibos.serie', 'adm_recibos.numero', 'adm_recibos.metodo_pago', 'adm_recibos.referencia', 'adm_recibos.estado')
+                    ->whereBetween('adm_recibos.fecha_recibo', [$request->fecha_inicio, $request->fecha_final])
+                    ->orderBy('adm_recibos.fecha_recibo', 'asc');
+            },
+        ])
             ->where('idcliente', $request->idcliente)
+            // si quieres filtrar también por fecha de emisión de la CxC, deja esta línea;
+            // si NO (para ver pagos a facturas más viejas dentro del rango), quítala.
             ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+            ->orderBy('fecha_emision')
             ->get();
 
         $pdf = Pdf::loadView('pdf.estado_cuenta_completo', [
-            'cliente' => $cliente,
-            'cuentas' => $cuentas,
-            'fechaInicio' => $request->fecha_inicio,
-            'fechaFinal' => $request->fecha_final,
+            'cliente'      => $cliente,
+            'cuentas'      => $cuentas,
+            'fechaInicio'  => $request->fecha_inicio,
+            'fechaFinal'   => $request->fecha_final,
         ]);
 
         return $pdf->stream("estado_cuenta_con_recibos_{$cliente->nombre}.pdf");
     }
 
+
+    // public function generarSaldosClientePDF(Request $request)
+    // {
+    //     $request->validate([
+    //         'idcliente'    => 'required|integer',
+    //         'fecha_inicio' => 'required|date',
+    //         'fecha_final'  => 'required|date',
+    //     ]);
+
+    //     $cliente = Clientes::findOrFail($request->idcliente);
+
+    //     $cuentas = AdmCuentasPorCobrar::query()
+    //         ->with(['cotizacion' => function ($q) {
+    //             // Trae solo lo necesario
+    //             $q->select('idcotizacion', 'nocotizacion');
+    //         }])
+    //         ->where('idcliente', $request->idcliente)
+    //         ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+    //         ->orderBy('fecha_emision')
+    //         ->get();
+
+    //     $pdf = Pdf::loadView('pdf.saldos_cliente', [
+    //         'cliente'     => $cliente,
+    //         'cuentas'     => $cuentas,
+    //         'fechaInicio' => $request->fecha_inicio,
+    //         'fechaFinal'  => $request->fecha_final,
+    //     ]);
+
+    //     return $pdf->stream("saldos_{$cliente->nombre}.pdf");
+    // }
     public function generarSaldosClientePDF(Request $request)
     {
         $request->validate([
@@ -226,15 +292,21 @@ class CuentasPorCobrarController extends Controller
 
         $cliente = Clientes::findOrFail($request->idcliente);
 
-        $cuentas = AdmCuentasPorCobrar::query()
-            ->with(['cotizacion' => function ($q) {
-                // Trae solo lo necesario
-                $q->select('idcotizacion', 'nocotizacion');
-            }])
+        $cuentas = AdmCuentasPorCobrar::with([
+            'cotizacion:idcotizacion,nofactura',
+            // traer pagos del rango (o quita whereBetween si quieres todos los pagos históricos)
+            'recibos' => function ($q) use ($request) {
+                $q->select('adm_recibos.idrecibo', 'adm_recibos.fecha_recibo', 'adm_recibos.serie', 'adm_recibos.numero')
+                    ->whereBetween('adm_recibos.fecha_recibo', [$request->fecha_inicio, $request->fecha_final]);
+            },
+        ])
             ->where('idcliente', $request->idcliente)
             ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
             ->orderBy('fecha_emision')
             ->get();
+
+        // Si el blade necesita "abonado_en_rango", puedes calcularlo ahí o aquí:
+        // $cuentas->each(fn($cxc) => $cxc->abonado_en_rango = $cxc->recibos->sum(fn($r) => $r->pivot->monto));
 
         $pdf = Pdf::loadView('pdf.saldos_cliente', [
             'cliente'     => $cliente,

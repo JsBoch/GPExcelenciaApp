@@ -40,9 +40,16 @@ class AdmCuentasPorCobrar extends Model
         return $this->belongsTo(AdmCotizacion::class, 'idcotizacion', 'idcotizacion');
     }
 
+    // public function recibos()
+    // {
+    //     return $this->hasMany(AdmRecibo::class, 'idcuentaporcobrar')
+    //         ->where('estado', 1);
+    // }
     public function recibos()
-{
-  return $this->hasMany(AdmRecibo::class, 'idcuentaporcobrar')
-              ->where('estado', 1);
-}
+    {
+        return $this->belongsToMany(\App\Models\AdmRecibo::class, 'adm_recibo_detalle', 'idcuentaporcobrar', 'idrecibo')
+            ->withPivot('monto')                 // <-- cuánto abonó este recibo a esta CxC
+            ->where('adm_recibos.estado', 1)     // solo recibos activos
+            ->withTimestamps();                  // si tu pivote tiene created_at/updated_at
+    }
 }
