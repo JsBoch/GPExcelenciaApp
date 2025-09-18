@@ -10,9 +10,13 @@ class AdmRecibo extends Model
     protected $primaryKey = 'idrecibo';
     public $timestamps = false;
 
+    // 👇 CLAVES:
+    public $incrementing = false;   // NO es autoincremental (usas correlativo)
+    protected $keyType = 'int';     // clave numérica
+
     protected $fillable = [
         'idrecibo',
-        'idcuentaporcobrar',
+        // 'idcuentaporcobrar', // si ya no usas, puedes quitarlo del fillable
         'idcliente',
         'fecha_recibo',
         'monto_recibido',
@@ -35,13 +39,14 @@ class AdmRecibo extends Model
         'nofactura',
     ];
 
-    public function cuenta()
-    {
-        return $this->belongsTo(AdmCuentasPorCobrar::class, 'idcuentaporcobrar', 'idcuentaporcobrar');
-    }
-
-    public function cliente()
-    {
-        return $this->belongsTo(Clientes::class, 'idcliente', 'idcliente');
-    }
+    public function cuenta()   { return $this->belongsTo(AdmCuentasPorCobrar::class, 'idcuentaporcobrar', 'idcuentaporcobrar'); }
+    public function cliente()  { return $this->belongsTo(Clientes::class, 'idcliente', 'idcliente'); }
+    public function detalles() { return $this->hasMany(AdmReciboDetalle::class, 'idrecibo', 'idrecibo'); }
+    public function cuentas()
+{
+    return $this->belongsToMany(\App\Models\AdmCuentasPorCobrar::class, 'adm_recibo_detalle', 'idrecibo', 'idcuentaporcobrar')
+        ->withPivot('monto')
+        ->withTimestamps();
 }
+}
+

@@ -69,7 +69,7 @@
         $totalPendiente += $cuenta->saldo_pendiente;
     @endphp
 
-    @if ($cuenta->recibos->count())
+    @if ($cuenta->recibos->isNotEmpty())
         <p><strong>Documentos Asociados:</strong></p>
         <table>
             <thead>
@@ -87,7 +87,7 @@
                         <td class="desc">{{ \Carbon\Carbon::parse($recibo->fecha_recibo)->format('d/m/Y') }}</td>
                         <td>{{ $recibo->serie.'-'.$recibo->numero }}</td>
                         <td class="desc">{{ $recibo->metodo_pago }}</td>
-                        <td>Q {{ number_format($recibo->monto_recibido, 2) }}</td>
+                        <td>Q {{ number_format($recibo->pivot->monto, 2) }}</td>
                         <td>{{ $recibo->referencia }}</td>
                     </tr>
                 @endforeach
