@@ -11,6 +11,11 @@ class AdmCotizacion extends Model
 
     protected $table = 'adm_cotizacion';
     protected $primaryKey = 'idcotizacion';
+    // Usas correlativo propio → no autoincrementes
+    public $incrementing = false;
+
+    // Si la PK es numérica, deja el cast:
+    protected $keyType = 'int';
     public $timestamps = false;
     protected $fillable = [
         'idcotizacion',
@@ -59,26 +64,44 @@ class AdmCotizacion extends Model
     protected $casts = [
         'fecha_prefacturacion' => 'datetime',
         'fecha_facturacion'    => 'datetime',
+        'total_general'        => 'float',
     ];
     public function tipoPago()
     {
         return $this->belongsTo(AdmTipoPago::class, 'idtipopago', 'idtipopago');
     }
 
-    public function detalles() { 
-        return $this->hasMany(AdmDetalleCotizacion::class, 'idcotizacion', 'idcotizacion'); 
+    public function detalles()
+    {
+        return $this->hasMany(AdmDetalleCotizacion::class, 'idcotizacion', 'idcotizacion');
     }
 
-    public function motivoRehazo() { 
-        return $this->hasMany(AdmMotivosRechazo::class, 'idmotivorechazo', 'idmotivorechazo'); 
+    public function motivoRehazo()
+    {
+        return $this->hasMany(AdmMotivosRechazo::class, 'idmotivorechazo', 'idmotivorechazo');
     }
 
-     public function comentarios_prefacturacion() { 
-        return $this->hasMany(ComentarioPreFacturacion::class, 'idcotizacion', 'idcotizacion'); 
+    public function comentarios_prefacturacion()
+    {
+        return $this->hasMany(ComentarioPreFacturacion::class, 'idcotizacion', 'idcotizacion');
     }
 
     public function cuentaPorCobrar()
     {
         return $this->hasOne(AdmCuentasPorCobrar::class, 'idcotizacion', 'idcotizacion');
+    }
+
+    public function comentariosPrefac()
+    {
+        return $this->hasMany(ComentarioPreFacturacion::class, 'idcotizacion', 'idcotizacion');
+    }
+
+    public function facturas()
+    {
+        return $this->hasMany(AdmFacturacion::class, 'idcotizacion')->orderByDesc('idfactura');
+    }
+    public function facturaVigente()
+    {
+        return $this->hasOne(AdmFacturacion::class, 'idcotizacion')->where('estado', 1)->latest('idfactura');
     }
 }

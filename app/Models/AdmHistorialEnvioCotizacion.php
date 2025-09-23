@@ -15,6 +15,15 @@ class AdmHistorialEnvioCotizacion extends Model
         'idcotizacion',
         'fecha_cotizacion',
         'fecha_envio',
+        'no_envio',
+        'direccion_envio'
+    ];
+
+    protected $casts = [
+        'idcotizacion' => 'int',
+        'no_envio'     => 'int',
+        'fecha_cotizacion' => 'date',
+        'fecha_envio'      => 'datetime',
     ];
 
     public function cotizacion()

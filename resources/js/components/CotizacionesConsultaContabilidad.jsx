@@ -268,7 +268,7 @@ const CotizacionesConsultaContabilidad = () => {
                                         row.fecha_cotizacion
                                     ).toLocaleDateString()}
                                 </TableCell>
-                                <TableCell>{row.dias_desde_prefacturacion}</TableCell>
+                                <TableCell>{row.dias_desde_prefacturacion ?? 0}</TableCell>
                                 <TableCell>{row.vendedor}</TableCell>
                                 <TableCell>{row.cliente}</TableCell>
                                 <TableCell>

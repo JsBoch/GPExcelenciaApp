@@ -101,11 +101,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cotizaciones/{cotizacion}/detalle/guardar', [CotizacionController::class, 'guardarDetalle']);
     Route::put('/cotizaciones/desactivar/{id}', [CotizacionController::class, 'desactivar']);
     Route::post('/cotizaciones/{id}/pdf', [CotizacionController::class, 'generarPdf']);
-    Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     Route::get('/cotizaciones/{id}/nota-envio', [CotizacionController::class, 'generarNotaEnvio']);
 
     Route::put('/cotizaciones/rechazar/{id}', [CotizacionController::class, 'rechazar']);
     Route::put('/cotizaciones/{id}/fecha-prefacturacion', [CotizacionController::class, 'actualizarFechaPrefacturacion']);
+
+    Route::get('/cotizaciones/{id}/nota-envio/config', [CotizacionController::class, 'notaEnvioConfig']);
+    Route::post('/cotizaciones/{id}/nota-envio/generar', [CotizacionController::class, 'notaEnvioGenerar']);     // asigna numero_envio a seleccionados y genera data para PDF
+    Route::post('/cotizaciones/{id}/nota-envio/reimprimir', [CotizacionController::class, 'notaEnvioReimprimir']); // reimprime envío N
+    Route::put('/cotizaciones/activarfacturacion/masivo', [CotizacionController::class, 'activarFacturacionMasivo']);
+    Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
+
 
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
@@ -148,6 +154,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cotizaciones/{id}/notasfel', [MonitorFacturacionController::class, 'listarNotasFel']); // lista notas (opcionalmente por tipo)
     Route::get('/notasfel/{idnota}/pdf',       [MonitorFacturacionController::class, 'generarPdfNotaFel']); // imprime una nota por idnota
     Route::get('/cotizaciones/{id}/notasfel/ultimo/pdf', [MonitorFacturacionController::class, 'generarPdfUltimaNotaPorTipo']);
+
+    Route::post('/monitorfacturacion/comentarios', [MonitorFacturacionController::class, 'storeComentario']);
+    Route::get('/monitorfacturacion/{idcotizacion}/comentarios', [MonitorFacturacionController::class, 'comentarios']);
 });
 
 //CONSULTA COTIZACIONES COSTEO
@@ -169,6 +178,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('cotizaciones-estado4', [CotizacionConsultasController::class, 'index']);
     Route::post('cotizaciones-estado4/agregar-comentario', [CotizacionConsultasController::class, 'storeComentario']);
     Route::get('cotizaciones-estado4/{idcotizacion}/comentarios', [CotizacionConsultasController::class, 'comentarios']);
+    //Nueva ruta para obtener comentarios de una cotización específica
+    Route::get('/cotizaciones/{idcotizacion}/comentarios', [CotizacionConsultasController::class, 'comentarios']);
 });
 
 //PEDIDOS A PRODUCCIÓN

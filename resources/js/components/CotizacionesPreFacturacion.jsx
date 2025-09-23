@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import Header from "./Header";
 import {
@@ -17,6 +17,8 @@ import {
     TextField,
     Snackbar,
     Alert,
+    Chip,
+    Tooltip,
 } from "@mui/material";
 import CommentIcon from "@mui/icons-material/Comment";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -45,7 +47,7 @@ const fmtDMY = (value) => {
     return s; // si todo falla, deja el valor tal cual
 };
 
-function CotizacionesEstado4() {
+function CotizacionesPreFacturacion() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -59,10 +61,29 @@ function CotizacionesEstado4() {
     });
     const [openComentarios, setOpenComentarios] = useState(false);
     const [comentarios, setComentarios] = useState([]);
-    const [search, setSearch] = useState("");
+    //const [search, setSearch] = useState("");
+    const [filtroNo, setFiltroNo] = useState("");
     const [comentariosPaginated, setComentariosPaginated] = useState(null);
     const [page, setPage] = useState(1);
     const [rowSelection, setRowSelection] = useState({});
+
+    // Filtra por No. Cotización (acepta "CT123" o "123")
+    const cotizacionesFiltradas = useMemo(() => {
+        if (!filtroNo.trim()) return cotizaciones;
+
+        const needle = filtroNo.trim().toLowerCase();
+        const needleNum = needle.replace(/^ct/i, "").replace(/\D/g, ""); // solo dígitos
+
+        return cotizaciones.filter((c) => {
+            const no = String(c.nocotizacion || "").toLowerCase(); // p.ej. "ct123"
+            const noNum = no.replace(/^ct/i, "").replace(/\D/g, "");
+
+            return (
+                no.includes(needle) ||
+                (!!needleNum && noNum.includes(needleNum))
+            );
+        });
+    }, [cotizaciones, filtroNo]);
 
     const fetchCotizaciones = async () => {
         const token = localStorage.getItem("token");
@@ -144,18 +165,55 @@ function CotizacionesEstado4() {
         //     header: "Estado",
         //     size: 100,
         // },
+        {
+            accessorKey: "comentarios_count",
+            header: "💬",
+            size: 60,
+            enableSorting: false,
+            enableColumnFilter: false,
+            Cell: ({ cell, row }) => {
+                const cnt = Number(cell.getValue() || 0);
+                if (!cnt) return null; // deja vacío cuando no hay mensajes
+                return (
+                    <Tooltip title="Ver comentarios">
+                        <Chip
+                            size="small"
+                            color="info"
+                            label={cnt}
+                            sx={{ cursor: "pointer" }}
+                            onClick={() => {
+                                // permite abrir directo el modal de comentarios desde el chip
+                                setSelectedCotizacion(row.original);
+                                obtenerComentarios(1, "");
+                            }}
+                        />
+                    </Tooltip>
+                );
+            },
+        },
     ];
 
+    // const table = useMaterialReactTable({
+    //     columns,
+    //     data: cotizaciones,
+    //     enableRowSelection: true,
+    //     enableColumnFilters: true,
+    //     enableGlobalFilter: true,
+    //     enablePagination: true,
+    //     muiTableContainerProps: { sx: { maxHeight: 600 } },
+    //     state: { isLoading: loading, rowSelection }, // 👈 importante
+    //     onRowSelectionChange: setRowSelection, // 👈 asignas directamente
+    // });
     const table = useMaterialReactTable({
         columns,
-        data: cotizaciones,
+        data: cotizacionesFiltradas,
         enableRowSelection: true,
-        enableColumnFilters: true,
-        enableGlobalFilter: true,
+        enableColumnFilters: false,
+        enableGlobalFilter: false,
         enablePagination: true,
         muiTableContainerProps: { sx: { maxHeight: 600 } },
-        state: { isLoading: loading, rowSelection }, // 👈 importante
-        onRowSelectionChange: setRowSelection, // 👈 asignas directamente
+        state: { isLoading: loading, rowSelection },
+        onRowSelectionChange: setRowSelection,
     });
 
     <Snackbar
@@ -199,7 +257,7 @@ function CotizacionesEstado4() {
         }
     };
 
-    const obtenerComentarios = async (pageParam = 1, searchParam = "") => {
+    const obtenerComentarios = async (pageParam = 1) => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
@@ -210,7 +268,7 @@ function CotizacionesEstado4() {
                 }/comentarios`,
                 {
                     headers,
-                    params: { page: pageParam, search: searchParam },
+                    params: { page: pageParam},
                 }
             );
             setComentariosPaginated(data);
@@ -226,33 +284,29 @@ function CotizacionesEstado4() {
         }
     };
 
-    useEffect(() => {
-        if (selectedCotizacion) obtenerComentarios(1, search);
-    }, [search]);
+    // useEffect(() => {
+    //     if (selectedCotizacion) obtenerComentarios(1, search);
+    // }, [search]);
 
     <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
         <Button
             disabled={!comentariosPaginated?.prev_page_url}
-            onClick={() => obtenerComentarios(page - 1, search)}
+            onClick={() => obtenerComentarios(page - 1)}
         >
             Anterior
         </Button>
         <Button
             disabled={!comentariosPaginated?.next_page_url}
-            onClick={() => obtenerComentarios(page + 1, search)}
+            onClick={() => obtenerComentarios(page + 1)}
         >
             Siguiente
         </Button>
     </Box>;
 
     useEffect(() => {
-        const selectedKey = Object.keys(rowSelection)[0];
-        if (selectedKey !== undefined) {
-            setSelectedCotizacion(cotizaciones[selectedKey]);
-        } else {
-            setSelectedCotizacion(null);
-        }
-    }, [rowSelection, cotizaciones]);
+        const rows = table.getSelectedRowModel().flatRows;
+        setSelectedCotizacion(rows.length ? rows[0].original : null);
+    }, [rowSelection, table]);
 
     const handleCambiarEstado = (cotizacion, estado) => {
         // if (!cotizacion) {
@@ -297,6 +351,55 @@ function CotizacionesEstado4() {
         }
     };
 
+    const handleCambiarEstadoMasivo = async (estado) => {
+        const ids = table
+            .getSelectedRowModel()
+            .flatRows.map((r) => r.original?.idcotizacion)
+            .filter((v) => Number.isInteger(Number(v)))
+            .map((v) => Number(v));
+
+        if (!ids.length) {
+            alertify.alert("Atención", "No hay filas válidas seleccionadas.");
+            return;
+        }
+
+        alertify.confirm(
+            "Confirmar",
+            `¿Enviar ${ids.length} cotización(es) a estado ${estado} (PARA FACTURAR)?`,
+            async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const { data } = await axios.put(
+                        `${
+                            import.meta.env.VITE_API_URL
+                        }/cotizaciones/activarfacturacion/masivo`,
+                        { ids, estado },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const { total, actualizadas, ignoradas, no_encontradas } =
+                        data;
+                    alertify.success(
+                        `Procesadas: ${total}. Actualizadas: ${actualizadas}. Omitidas: ${ignoradas}.` +
+                            (no_encontradas?.length
+                                ? ` No encontradas: ${no_encontradas.join(
+                                      ", "
+                                  )}`
+                                : "")
+                    );
+                    setRowSelection({});
+                    await fetchCotizaciones();
+                } catch (err) {
+                    console.error(err);
+                    alertify.error(
+                        err.response?.data?.message ||
+                            "Error al actualizar en lote."
+                    );
+                }
+            },
+            () => {}
+        );
+    };
+
     return (
         <Box sx={{ p: 2 }}>
             <Header title="Cotizaciones Aprobadas" />
@@ -333,7 +436,7 @@ function CotizacionesEstado4() {
                         Ver Comentarios
                     </Button>
 
-                    <Button
+                    {/* <Button
                         variant="outlined"
                         color="success"
                         disabled={!selectedCotizacion}
@@ -343,18 +446,29 @@ function CotizacionesEstado4() {
                         startIcon={<ReceiptIcon />}
                     >
                         Facturar
+                    </Button> */}
+                    <Button
+                        variant="contained"
+                        color="success"
+                        disabled={table.getSelectedRowModel().rows.length === 0}
+                        onClick={() => handleCambiarEstadoMasivo(5)}
+                        startIcon={<ReceiptIcon />}
+                    >
+                        Facturar seleccionadas
                     </Button>
                 </Box>
 
                 <TextField
                     fullWidth
                     variant="outlined"
-                    label="Buscar comentario"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    label="Buscar por No. Cotización (CT123 o 123)"
+                    value={filtroNo}
+                    onChange={(e) => setFiltroNo(e.target.value)}
                     sx={{ mb: 2 }}
                 />
-
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                    Seleccionadas: {table.getSelectedRowModel().rows.length}
+                </Typography>
                 <MaterialReactTable table={table} />
             </Paper>
             <Dialog
@@ -439,7 +553,7 @@ function CotizacionesEstado4() {
                                         !comentariosPaginated.prev_page_url
                                     }
                                     onClick={() =>
-                                        obtenerComentarios(page - 1, search)
+                                        obtenerComentarios(page - 1)
                                     }
                                 >
                                     Anterior
@@ -449,7 +563,7 @@ function CotizacionesEstado4() {
                                         !comentariosPaginated.next_page_url
                                     }
                                     onClick={() =>
-                                        obtenerComentarios(page + 1, search)
+                                        obtenerComentarios(page + 1)
                                     }
                                 >
                                     Siguiente
@@ -472,4 +586,4 @@ function CotizacionesEstado4() {
     );
 }
 
-export default CotizacionesEstado4;
+export default CotizacionesPreFacturacion;
