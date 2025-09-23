@@ -193,7 +193,7 @@ function MonitorFacturacion() {
                 headers: { Authorization: `Bearer ${token}` },
                 params,
             });
-
+            console.log("Cotizaciones fetched:", data);
             setCotizaciones(data || []);
         } catch (e) {
             alertify.error("Error al obtener las cotizaciones.");
@@ -750,23 +750,17 @@ function MonitorFacturacion() {
             headerName: "Fecha",
             minWidth: 120,
             sortable: false,
-            // 👇 Null-safe: evita desestructurar
-            valueGetter: (params) => {
-                const raw =
-                    params?.value ?? params?.row?.fecha_cotizacion ?? null;
-                // Si ya es Date, respétala; si es string válida, conviértela
-                if (raw instanceof Date) return raw;
-                if (typeof raw === "string" || typeof raw === "number") {
-                    const d = new Date(raw);
-                    return isNaN(d.getTime()) ? null : d;
-                }
-                return null;
-            },
-            valueFormatter: (params) => {
-                const v = params?.value;
-                if (!v) return "";
+            renderCell: ({ row }) => {
+                const raw = row?.fecha_cotizacion;
+                if (!raw) return "";
+                // Soporta 'YYYY-MM-DD', 'YYYY-MM-DD HH:mm:ss' y 'YYYY-MM-DDTHH:mm:ss'
+                const s = String(raw).trim();
+                const iso =
+                    s.length === 10 ? `${s}T00:00:00` : s.replace(" ", "T");
+                const d = new Date(iso);
+                if (isNaN(d.getTime())) return "";
                 try {
-                    return format(v, "dd-MM-yyyy");
+                    return format(d, "dd-MM-yyyy");
                 } catch {
                     return "";
                 }

@@ -76,7 +76,7 @@ class MonitorFacturacionController extends Controller
             ->select([
                 'c.idcotizacion',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
-                DB::raw("$fechaDinamica AS fecha_cotizacion"),
+                DB::raw("DATE_FORMAT($fechaDinamica, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
 
                 //   👇 Fuerza que venga numérico (sin tocar los decimales reales)                
@@ -1066,11 +1066,15 @@ class MonitorFacturacionController extends Controller
             ->where('c.idcotizacion', $idcotizacion)
             ->select(
                 'cl.idcliente',
+                'cl.nombre         as cliente_nombre',
+                'cl.direccion      as cliente_direccion',
+                'cl.email          as cliente_email',
                 'cl.codigo_postal',
                 'cl.excento_iva',
-                'm.nombre as municipio',
-                'dp.nombre as departamento'
-            )->first();
+                'm.nombre          as municipio',
+                'dp.nombre         as departamento'
+            )
+            ->first();
 
         // 3) Normalización de montos
         $monto = round((float)$monto, 2);
@@ -1132,17 +1136,31 @@ class MonitorFacturacionController extends Controller
         $Emisor->appendChild($dirEmisor);
 
         // Receptor: SIEMPRE desde la fotografía de la factura
+        $nombreReceptor    = trim((string)($cli->cliente_nombre   ?? ''));
+        $direccionReceptor = trim((string)($cli->cliente_direccion ?? ''));
+        $correoReceptor    = trim((string)($cli->cliente_email     ?? ''));
+
+        // fallback a la “foto” de la factura solo si algo vino vacío
+        if ($nombreReceptor    === '' && !empty($fact->nombre_crtf))    $nombreReceptor    = trim($fact->nombre_crtf);
+        if ($direccionReceptor === '' && !empty($fact->direccion_crtf)) $direccionReceptor = trim($fact->direccion_crtf);
+        if ($correoReceptor    === '' && !empty($fact->email_crtf))     $correoReceptor    = trim($fact->email_crtf);
+
+        // valores mínimos para pasar XSD
+        if ($nombreReceptor    === '') $nombreReceptor    = 'CONSUMIDOR FINAL';
+        if ($direccionReceptor === '') $direccionReceptor = 'CIUDAD';
+
         $Receptor = $doc->createElement('dte:Receptor');
-        $Receptor->setAttribute('CorreoReceptor', $fact->email_crtf ?? '');
+        $Receptor->setAttribute('CorreoReceptor', $correoReceptor);
         $Receptor->setAttribute('IDReceptor', $fact->numero_crtf ?: 'CF');
-        $Receptor->setAttribute('NombreReceptor', $fact->nombre_crtf ?? '');
+        $Receptor->setAttribute('NombreReceptor', mb_substr($nombreReceptor, 0, 200));
+
         if (!empty($fact->tipo_especial_crtf)) {
             $Receptor->setAttribute('TipoEspecial', $fact->tipo_especial_crtf); // CUI | EXT
         }
         $DatosEmision->appendChild($Receptor);
 
         $dirReceptor = $doc->createElement('dte:DireccionReceptor');
-        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $fact->direccion_crtf ?? 'CIUDAD'));
+        $dirReceptor->appendChild($doc->createElement('dte:Direccion', mb_substr($direccionReceptor, 0, 512)));
         $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $cli->codigo_postal ?? '01001'));
         $dirReceptor->appendChild($doc->createElement('dte:Municipio', $cli->municipio ?? 'GUATEMALA'));
         $dirReceptor->appendChild($doc->createElement('dte:Departamento', $cli->departamento ?? 'GUATEMALA'));
@@ -1262,11 +1280,11 @@ class MonitorFacturacionController extends Controller
             $json = $response->json() ?? [];
 
             // Log de la respuesta
-            Log::info('Respuesta INFILE - ' . strtoupper($tipo), [
-                'cotizacion_id' => $idcotizacion,
-                'identificador' => $identificador,
-                'response'      => $json,
-            ]);
+            // Log::info('Respuesta INFILE - ' . strtoupper($tipo), [
+            //     'cotizacion_id' => $idcotizacion,
+            //     'identificador' => $identificador,
+            //     'response'      => $json,
+            // ]);
 
             // === Persistencia para Notas FEL ===
             if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta)) {
