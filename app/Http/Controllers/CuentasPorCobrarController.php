@@ -7,6 +7,7 @@ use App\Models\AdmCuentasPorCobrar;
 use App\Models\Clientes;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CuentasPorCobrarController extends Controller
 {
@@ -112,7 +113,7 @@ class CuentasPorCobrarController extends Controller
         if ($request->boolean('solo_pendientes')) {
             $q->where('adm_cuentas_porcobrar.saldo_pendiente', '>', 0);
         }
-
+        //log::info('Cuentas por cobrar query: ' . $q->toSql() . ' con cliente=' . $clienteId);
         return response()->json($q->get());
     }
 

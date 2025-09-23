@@ -1247,9 +1247,9 @@ class MonitorFacturacionController extends Controller
                     'numero'        => $fact->numero_crtf ?: 'CF',
                     'tipo'          => $fact->tipo_crtf,
                     'tipo_especial' => $fact->tipo_especial_crtf,
-                    'nombre'        => $fact->nombre_crtf,
-                    'email'         => $fact->email_crtf,
-                    'direccion'     => $fact->direccion_crtf,
+                    'nombre'        => $nombreReceptor,
+                    'email'         => $correoReceptor,
+                    'direccion'     => $direccionReceptor,
                 ],
                 'origen' => [
                     'uuid'          => $fact->uuid,

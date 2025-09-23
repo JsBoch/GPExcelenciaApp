@@ -162,6 +162,7 @@ class ReportesContabilidadController extends Controller
         return DB::table('adm_cuentas_porcobrar as cxc')
             ->join('clientes as cli', 'cli.idcliente', '=', 'cxc.idcliente')
             ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
+            ->leftJoin('adm_facturacion as fac','cot.idcotizacion','=','fac.idcotizacion')
             ->leftJoin('adm_departamentopais as dep', 'dep.iddepartamentopais', '=', 'cli.iddepartamento')
             ->leftJoin('adm_empleados as emp', 'emp.iduser', '=', 'cot.idusuario')
             ->selectRaw("
@@ -174,8 +175,8 @@ class ReportesContabilidadController extends Controller
                 emp.nombre as vendedor,
                 cot.idcotizacion,
                 cot.nocotizacion,
-                cot.nofactura,
-                cot.numero,
+                fac.nofactura,
+                fac.numero,
                 'FCAM' as tipo,
                 cxc.idcuentaporcobrar,
                 cxc.fecha_emision,
