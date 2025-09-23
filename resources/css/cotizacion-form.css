@@ -1,0 +1,52 @@
+/* Barra de acciones inferior */
+.action-toolbar {
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+
+/* Botón base */
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .65rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  border: 0;
+  min-height: 42px;
+  min-width: 150px;
+  transition: transform .06s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease;
+}
+
+.btn-action:active { transform: translateY(1px); }
+
+/* Variantes */
+.btn-save {
+  background: linear-gradient(180deg, #0d6efd, #0b5ed7);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(13,110,253,.25);
+}
+.btn-save:hover {
+  background: linear-gradient(180deg, #0b5ed7, #0a58ca);
+  box-shadow: 0 6px 18px rgba(13,110,253,.35);
+}
+
+.btn-clean {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+.btn-clean:hover { background: #e2e8f0; }
+
+.btn-consult {
+  background: #111827;
+  color: #fff;
+}
+.btn-consult:hover { background: #0b1220; }

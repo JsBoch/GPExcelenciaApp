@@ -5,21 +5,17 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
   Image,
 } from "@react-pdf/renderer";
+import { format } from "date-fns";
 import logoBase64 from "../logoBase64";
 import whatsappIcon from "../whatsappIconBase64";
-import { format } from "date-fns";
 
 const styles = StyleSheet.create({
   page: {
     fontSize: 10,
     padding: 30,
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    marginBottom: 10,
+    fontFamily: "Helvetica",
   },
   title: {
     fontSize: 14,
@@ -30,9 +26,6 @@ const styles = StyleSheet.create({
   contact: {
     textAlign: "center",
     fontSize: 9,
-  },
-  section: {
-    marginBottom: 6,
   },
   row: {
     flexDirection: "row",
@@ -79,21 +72,21 @@ const styles = StyleSheet.create({
     width: "30%",
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 30,
     left: 30,
     right: 30,
   },
   contactPhonesRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 10,
     marginTop: 4,
   },
   contactPhoneText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   whatsappIcon: {
     width: 10,
@@ -101,16 +94,35 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   whatsappGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 
-const NotaEnvioPDF = ({ data }) => {
-  if (!data || data.length === 0) return null;
+function fmtFechaSafe(v) {
+  try {
+    if (!v) return "";
+    const d = new Date(v);
+    if (isNaN(d)) return "";
+    return format(d, "dd/MM/yyyy");
+  } catch {
+    return "";
+  }
+}
 
-  const encabezado = data[0];
-  const productos = data;
+const NotaEnvioPDF = ({ data }) => {
+  // Nuevo shape: { no_envio, direccion, cabecera, items }
+  if (!data) return null;
+
+  const { no_envio, direccion, cabecera, items } = data;
+
+  const cliente = cabecera?.cliente ?? "";
+  const contacto = cabecera?.contacto ?? "";
+  const telefono = cabecera?.telefono ?? "";
+  const fecha = fmtFechaSafe(cabecera?.fecha);
+  const noCotizacion = cabecera?.nocotizacion ?? ""; // Ej: "CT1234"
+
+  const productos = Array.isArray(items) ? items : [];
 
   return (
     <Document>
@@ -122,12 +134,16 @@ const NotaEnvioPDF = ({ data }) => {
             <Image src={logoBase64} style={{ width: 100 }} />
           </View>
 
-          {/* Columna centro: contacto */}
+          {/* Columna centro: contacto empresa */}
           <View style={{ width: "34%" }}>
-            <Text style={[styles.title, { textAlign: "center" }]}>GP Excelencia S.A.</Text>
+            <Text style={[styles.title, { textAlign: "center" }]}>
+              GP Excelencia S.A.
+            </Text>
             <Text style={styles.contact}>ventas@gpexcelencia.com</Text>
             <Text style={styles.contact}>www.gpexcelencia.com</Text>
-            <Text style={styles.contact}>11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco, Guatemala</Text>
+            <Text style={styles.contact}>
+              11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco, Guatemala
+            </Text>
             <View style={styles.contactPhonesRow}>
               <Text style={styles.contactPhoneText}>Tel: 2309-9419</Text>
               <View style={styles.whatsappGroup}>
@@ -137,34 +153,54 @@ const NotaEnvioPDF = ({ data }) => {
             </View>
           </View>
 
-          {/* Columna derecha: nota de envío */}
+          {/* Columna derecha: datos de la nota */}
           <View style={{ width: "33%", textAlign: "right" }}>
-            <Text style={{ fontSize: 14, fontWeight: "bold" }}>NOTA DE ENVÍO</Text>
-            <Text style={{ fontSize: 12, fontWeight: "bold" }}>N° {encabezado.noenvio}</Text>
+            <Text style={{ fontSize: 14, fontWeight: "bold" }}>
+              NOTA DE ENVÍO
+            </Text>
+            <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+              {noCotizacion ? `${noCotizacion} / Envío ${no_envio}` : `Envío ${no_envio}`}
+            </Text>
           </View>
         </View>
 
-        {/* Datos principales alineados a la izquierda */}
+        {/* Datos principales */}
         <View style={{ marginBottom: 10 }}>
-          <Text><Text style={styles.bold}>EMPRESA:</Text> {encabezado.cliente}</Text>
-          <Text><Text style={styles.bold}>DIRECCIÓN:</Text> {encabezado.direccion_entrega}</Text>
-          <Text><Text style={styles.bold}>FECHA:</Text> {format(new Date(encabezado.fecha_cotizacion), 'dd/MM/yyyy')}</Text>
-          <Text><Text style={styles.bold}>CONTACTO:</Text> {encabezado.contacto}</Text>
-          <Text><Text style={styles.bold}>TELÉFONO:</Text> {encabezado.telefono}</Text>
+          <Text>
+            <Text style={styles.bold}>EMPRESA:</Text> {cliente}
+          </Text>
+          <Text>
+            <Text style={styles.bold}>DIRECCIÓN:</Text> {direccion || "-"}
+          </Text>
+          <Text>
+            <Text style={styles.bold}>FECHA:</Text> {fecha}
+          </Text>
+          <Text>
+            <Text style={styles.bold}>CONTACTO:</Text> {contacto}
+          </Text>
+          <Text>
+            <Text style={styles.bold}>TELÉFONO:</Text> {telefono}
+          </Text>
         </View>
 
         {/* Encabezado de tabla */}
         <View style={styles.tableHeader}>
-          <Text style={styles.tableHeaderCell}>CANTIDAD</Text>
-          <Text style={styles.tableHeaderCell}>DESCRIPCIÓN</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 0.2 }]}>CANTIDAD</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 0.8 }]}>DESCRIPCIÓN</Text>
         </View>
 
         {/* Detalle de productos */}
-        {productos.map((item, index) => (
-          <View key={index} style={styles.tableRow}>
-            <Text>{item.cantidad} - {item.descripcion}</Text>
-          </View>
-        ))}
+        {productos.length === 0 ? (
+          <Text>No hay registros para este envío.</Text>
+        ) : (
+          productos.map((item, index) => (
+            <View key={index} style={styles.tableRow} wrap={false}>
+              <Text>
+                {item.cantidad} - {item.descripcion}
+              </Text>
+            </View>
+          ))
+        )}
 
         {/* Pie de página fijo */}
         <View style={styles.footer}>
@@ -174,7 +210,7 @@ const NotaEnvioPDF = ({ data }) => {
 
           <Text>OBSERVACIÓN: ___________________________________________</Text>
 
-          <View style={styles.signatureGroup}>
+          <View className="firmas" style={styles.signatureGroup}>
             <View style={styles.signatureBox}>
               <View style={styles.line} />
               <Text>NOMBRE DE QUIEN RECIBE</Text>

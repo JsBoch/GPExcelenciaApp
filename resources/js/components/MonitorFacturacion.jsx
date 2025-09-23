@@ -1,8 +1,9 @@
-// 👇 Refactor del componente MonitorFacturacion con mejoras similares a ListaCotizaciones
+// MonitorFacturacion.jsx
+// ✅ Versión completa usando MUI DataGrid (reemplaza DataTables)
+// ✅ Incluye TODAS las funciones del código original (certificación, NC/ND, notas, etc.)
+
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
 import alertify from "alertifyjs";
@@ -29,17 +30,48 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = pdfFonts.vfs; // registra las fuentes embebidas (Roboto)
 import FacturaPDF from "./FacturaPDF";
 
-DataTable.use(DT);
+// ✅ MUI DataGrid
+import {
+    Box,
+    Chip,
+    LinearProgress,
+    Button as MUIButton,
+    Menu,
+    MenuItem,
+    Divider,
+    ListItemIcon,
+    ListItemText,
+    Stack,
+    Tooltip,
+} from "@mui/material";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import { esES } from "@mui/x-data-grid/locales";
+import {
+    MoreVert,
+    PictureAsPdf,
+    ReceiptLong,
+    AssignmentTurnedIn,
+    Undo,
+    HourglassTop,
+    NoteAdd,
+    PostAdd,
+    Article,
+    ErrorOutline,
+    Cancel,
+    Comment,
+    Visibility,
+    Person,
+    CalendarMonth,
+    Description,
+} from "@mui/icons-material";
 
 function MonitorFacturacion() {
     const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [spanishTranslation, setSpanishTranslation] = useState(null);
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [pdfData, setPdfData] = useState(null);
     const navigate = useNavigate();
-    //const today = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
     const [fechaInicio, setFechaInicio] = useState("");
     const [fechaFinal, setFechaFinal] = useState("");
     const [mostrarModalErrores, setMostrarModalErrores] = useState(false);
@@ -49,9 +81,7 @@ function MonitorFacturacion() {
     const [showPrefModal, setShowPrefModal] = useState(false);
     const [prefDate, setPrefDate] = useState("");
 
-    /**
-     * ESTADOS PARA EL MODAL DE INFORMACIÓN DEL CLIENTE
-     */
+    // ====== Modal Certificación (datos cliente) ======
     const [showCertModal, setShowCertModal] = useState(false);
     const [certLoading, setCertLoading] = useState(false);
     const [opcionesFact, setOpcionesFact] = useState({
@@ -68,57 +98,56 @@ function MonitorFacturacion() {
         email: "",
     });
 
-    /** fin del modal para estados de información del cliente */
+    // ====== Comentarios ======
+    const [showAddComent, setShowAddComent] = useState(false);
+    const [newComentario, setNewComentario] = useState("");
+    const [showComentarios, setShowComentarios] = useState(false);
+    const [comentariosPaginated, setComentariosPaginated] = useState(null);
+    const [comentariosPage, setComentariosPage] = useState(1);
+    const [comentariosSearch, setComentariosSearch] = useState("");
 
-    /**
-     * Estado y handler para abrir en modal el componente que permite asociar
-     * correos y direcciones al cliente seleccionado
-     */
+    // ====== Modal Cliente form ======
     const [showClienteForm, setShowClienteForm] = useState(false);
     const [idClienteActual, setIdClienteActual] = useState(null);
 
-    const abrirClienteForm = () => {
-        if (!registroSeleccionado?.idcliente) return;
-        setIdClienteActual(registroSeleccionado.idcliente);
-        setShowClienteForm(true);
-    };
-
-    /*************************************************************** */
-
-    /**
-     * Estados para el modal NC y ND
-     */
+    // ====== Modal NC / ND ======
     const [showNotaModal, setShowNotaModal] = useState(false);
     const [notaTipo, setNotaTipo] = useState("NCRE"); // NCRE | NDEB
     const [notaLoading, setNotaLoading] = useState(false);
     const [notaForm, setNotaForm] = useState({ motivo: "", monto: "" });
-    /*************************************************************** */
 
-    // ====== Estado para listado de notas FEL ======
+    // ====== Listado de notas FEL ======
     const [showNotasModal, setShowNotasModal] = useState(false);
-    const [notas, setNotas] = useState([]); // array de notas devueltas por el backend
+    const [notas, setNotas] = useState([]);
     const [notasLoading, setNotasLoading] = useState(false);
     const [notaFiltroTipo, setNotaFiltroTipo] = useState(""); // '', 'NCRE', 'NDEB'
 
-    // helper
-    const toYMD = (d) => d.toISOString().slice(0, 10);
     const fetchingRef = useRef(false);
 
     const [facturaDoc, setFacturaDoc] = useState(null); // { cotizacion, detalles, images }
     const [showFacturaViewer, setShowFacturaViewer] = useState(false);
 
-    // util
+    const [actionsAnchor, setActionsAnchor] = useState(null);
+    const openActions = (e) => setActionsAnchor(e.currentTarget);
+    const closeActions = () => setActionsAnchor(null);
+
+    // ====== Helpers ======
     const abs = (p) => new URL(p, window.location.origin).href;
+    const asGTQ = (n) => {
+        const v = n ?? 0;
+        const num =
+            typeof v === "string"
+                ? Number(v.replace(/\s/g, "").replace(/,/g, ""))
+                : Number(v);
+        if (!isFinite(num)) return ""; // evita "NaN"
+        return num.toLocaleString("es-GT", {
+            style: "currency",
+            currency: "GTQ",
+            minimumFractionDigits: 2,
+        });
+    };
 
-    useEffect(() => {
-        fetch("/i18n/Spanish.json")
-            .then((response) => response.json())
-            .then((data) => setSpanishTranslation(data))
-            .catch((error) =>
-                console.error("Error al cargar la traducción:", error)
-            );
-    }, []);
-
+    // ====== Carga fecha del servidor y primer fetch ======
     useEffect(() => {
         const token = localStorage.getItem("token");
         axios
@@ -128,25 +157,23 @@ function MonitorFacturacion() {
             .then((res) => {
                 setFechaInicio(res.data.fecha);
                 setFechaFinal(res.data.fecha);
-                // 🚀 disparamos la consulta del primer load SOLO con la fecha actual
                 fetchCotizaciones(res.data.fecha, res.data.fecha, estadoFiltro);
             })
             .catch(() => {
-                // fallback por si falla
                 const today = new Date().toISOString().split("T")[0];
                 setFechaInicio(today);
                 setFechaFinal(today);
-                // 🚀 también consultamos con HOY si falló el endpoint
                 fetchCotizaciones(today, today, estadoFiltro);
             });
     }, []);
 
+    // ====== Fetch cotizaciones ======
     const fetchCotizaciones = async (
         fi = fechaInicio,
         ff = fechaFinal,
         est = estadoFiltro
     ) => {
-        if (fetchingRef.current) return; // evita dobles clics
+        if (fetchingRef.current) return;
         fetchingRef.current = true;
         setLoading(true);
 
@@ -155,7 +182,7 @@ function MonitorFacturacion() {
             if (!token) {
                 alertify.error("Token de autenticación no encontrado");
                 setCotizaciones([]);
-                return; // ← salgo, el finally apaga el candado
+                return;
             }
 
             const hoy = new Date().toISOString().slice(0, 10);
@@ -167,19 +194,16 @@ function MonitorFacturacion() {
                 params,
             });
 
-            setCotizaciones(data);
+            setCotizaciones(data || []);
         } catch (e) {
             alertify.error("Error al obtener las cotizaciones.");
         } finally {
             setLoading(false);
-            fetchingRef.current = false; // ← SIEMPRE lo apago
+            fetchingRef.current = false;
         }
     };
 
-    // useEffect(() => {
-    //     fetchCotizaciones();
-    // }, []);
-
+    // ====== Filtrado rápido (buscador) ======
     const cotizacionesFiltradas = cotizaciones.filter((cot) => {
         const texto = filtro.toLowerCase();
         return (
@@ -190,6 +214,7 @@ function MonitorFacturacion() {
         );
     });
 
+    // ====== Acciones varias ======
     const handleDesactivar = (id, estado) => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -197,11 +222,7 @@ function MonitorFacturacion() {
                 .put(
                     `/api/monitorfacturacion/desactivar/${id}`,
                     { estado: estado },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+                    { headers: { Authorization: `Bearer ${token}` } }
                 )
                 .then(() => {
                     setCotizaciones((prev) =>
@@ -224,7 +245,6 @@ function MonitorFacturacion() {
                 "Seleccione una cotización en PRE-FACTURACIÓN."
             );
         }
-        // Usa el valor existente o hoy por defecto
         const hoy = new Date().toISOString().slice(0, 10);
         setPrefDate(
             (registroSeleccionado.fecha_prefacturacion || "").slice(0, 10) ||
@@ -239,15 +259,13 @@ function MonitorFacturacion() {
         if (!token) return alertify.error("Token no encontrado.");
 
         try {
-            const { data } = await axios.put(
+            await axios.put(
                 `/api/cotizaciones/${registroSeleccionado.idcotizacion}/fecha-prefacturacion`,
                 { fecha_prefacturacion: prefDate },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             alertify.success("Fecha de prefacturación actualizada.");
-
-            // Actualiza en memoria la fila seleccionada para que el usuario lo vea al instante
             setCotizaciones((prev) =>
                 prev.map((c) =>
                     c.idcotizacion === registroSeleccionado.idcotizacion
@@ -255,10 +273,6 @@ function MonitorFacturacion() {
                         : c
                 )
             );
-
-            // Opcional: refrescar desde servidor
-            // await fetchCotizaciones(fechaInicio, fechaFinal, estadoFiltro);
-
             setShowPrefModal(false);
         } catch (e) {
             const msg =
@@ -266,21 +280,75 @@ function MonitorFacturacion() {
             alertify.error(msg);
         }
     };
-    // const generarPDF = async (id) => {
-    //     const token = localStorage.getItem("token");
-    //     if (!token)
-    //         return alertify.error("Token no encontrado para generar PDF.");
-    //     try {
-    //         const response = await fetch(`/api/monitorfacturacion/${id}/pdf`, {
-    //             headers: { Authorization: `Bearer ${token}` },
-    //         });
-    //         const data = await response.json();
-    //         setPdfData(data);
-    //     } catch(err) {
-    //         console.error("Error al generar el PDF:", err);
-    //         alertify.error("Error al generar el PDF.");
-    //     }
-    // };
+
+    const abrirAgregarComentario = () => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro.");
+        setNewComentario("");
+        setShowAddComent(true);
+    };
+
+    const guardarComentario = async () => {
+        if (!newComentario.trim()) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+        try {
+            await axios.post(
+                `/api/monitorfacturacion/comentarios`,
+                {
+                    idcotizacion: registroSeleccionado.idcotizacion,
+                    comentario: newComentario,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            alertify.success("Comentario guardado.");
+            setShowAddComent(false);
+
+            setCotizaciones((prev) =>
+                prev.map((c) =>
+                    c.idcotizacion === registroSeleccionado.idcotizacion
+                        ? {
+                              ...c,
+                              has_comentarios: 1,
+                              comentarios_count:
+                                  Number(c.comentarios_count || 0) + 1,
+                          }
+                        : c
+                )
+            );
+        } catch (e) {
+            alertify.error("Error al guardar comentario.");
+        }
+    };
+
+    const obtenerComentarios = async (page = 1, search = comentariosSearch) => {
+        if (!registroSeleccionado) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado.");
+        try {
+            const { data } = await axios.get(
+                `/api/monitorfacturacion/${registroSeleccionado.idcotizacion}/comentarios`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    params: { page, search },
+                }
+            );
+            setComentariosPaginated(data);
+            setComentariosPage(page);
+            setShowComentarios(true);
+        } catch (e) {
+            alertify.error("Error al obtener comentarios.");
+        }
+    };
+
+    useEffect(() => {
+        if (showComentarios && registroSeleccionado) {
+            obtenerComentarios(1, comentariosSearch);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [comentariosSearch]);
+
+    // ====== PDF Cotización ======
     const generarPDF = async (id) => {
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
@@ -302,96 +370,7 @@ function MonitorFacturacion() {
         setPdfData(data);
     };
 
-    const generarFactura = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token)
-            return alertify.error("Token no encontrado para generar XML.");
-        try {
-            const response = await fetch(
-                `${import.meta.env.VITE_API_URL}/facturar/${id}`,
-                {
-                    method: "GET",
-                    headers: { Authorization: `Bearer ${token}` },
-                    credentials: "include",
-                }
-            );
-
-            const data = await response.json();
-            console.log(data);
-
-            if (!response.ok) {
-                if (data.errores) {
-                    setErroresCertificacion(data.errores);
-                    setMostrarModalErrores(true);
-                } else {
-                    //console.log(data);
-                    alertify.error("Error al certificar.");
-                }
-                return;
-            }
-
-            alertify.success(`Factura generada. UUID: ${data.uuid}`);
-            fetchCotizaciones(); // Opcional: refrescar datos
-        } catch (error) {
-            alertify.error("Error al generar el XML.");
-        }
-    };
-
-    // const abrirFacturaPDF = async (id) => {
-    //     const token = localStorage.getItem("token");
-    //     if (!token)
-    //         return alertify.error("Token no encontrado para abrir PDF.");
-    //     try {
-    //         const response = await fetch(
-    //             `${
-    //                 import.meta.env.VITE_API_URL
-    //             }/monitorfacturacion/${id}/facturapdf`,
-    //             {
-    //                 headers: { Authorization: `Bearer ${token}` },
-    //             }
-    //         );
-    //         const blob = await response.blob();
-    //         const url = URL.createObjectURL(blob);
-    //         window.open(url, "_blank");
-    //         URL.revokeObjectURL(url);
-    //     } catch {
-    //         alertify.error("Error al abrir el PDF.");
-    //     }
-    // };
-    // const abrirFacturaPDF = async (id) => {
-    //     const token = localStorage.getItem("token");
-    //     if (!token)
-    //         return alertify.error("Token no encontrado para abrir PDF.");
-
-    //     try {
-    //         const response = await fetch(
-    //             `${
-    //                 import.meta.env.VITE_API_URL
-    //             }/monitorfacturacion/${id}/facturapdf`,
-    //             { headers: { Authorization: `Bearer ${token}` } }
-    //         );
-
-    //         if (!response.ok) {
-    //             return alertify.error("No se pudo generar el PDF.");
-    //         }
-
-    //         // Opcional: verificar content-type
-    //         const ct = response.headers.get("content-type") || "";
-    //         if (!ct.includes("application/pdf")) {
-    //             return alertify.error("El servidor no devolvió un PDF.");
-    //         }
-
-    //         const blob = await response.blob();
-    //         const url = URL.createObjectURL(blob);
-    //         window.open(url, "_blank");
-
-    //         // No lo revoques inmediatamente; espera un poco
-    //         setTimeout(() => URL.revokeObjectURL(url), 60000);
-    //     } catch (e) {
-    //         alertify.error("Error al abrir el PDF.");
-    //     }
-    // };
-    // monitorFactura.jsx
+    // ====== PDF Factura generada en backend ======
     const abrirFactura = async (id) => {
         const token = localStorage.getItem("token");
         if (!token)
@@ -401,15 +380,12 @@ function MonitorFacturacion() {
             const url = `${
                 import.meta.env.VITE_API_URL
             }/monitorfacturacion/${id}/facturapdf`;
-
             const res = await fetch(url, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: "application/pdf",
                 },
-                // si también usas cookies/sanctum además del token:
-                // credentials: "include",
             });
 
             if (!res.ok) {
@@ -418,19 +394,7 @@ function MonitorFacturacion() {
 
             const blob = await res.blob();
             const fileURL = URL.createObjectURL(blob);
-
-            const win = window.open(fileURL, "_blank", "noopener");
-            // if (!win) {
-            //     // fallback: crea un link “descargar”
-            //     const a = document.createElement("a");
-            //     a.href = fileURL;
-            //     a.download = `factura-${id}.pdf`;
-            //     document.body.appendChild(a);
-            //     a.click();
-            //     a.remove();
-            // }
-
-            // Limpieza del objeto en memoria (dale unos segundos si lo abres en nueva pestaña)
+            window.open(fileURL, "_blank", "noopener");
             setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
         } catch (err) {
             console.error(err);
@@ -438,133 +402,24 @@ function MonitorFacturacion() {
         }
     };
 
-    // ✅ Reemplazo completo
-    const abrirFacturaPDF = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token)
-            return alertify.error("Token no encontrado para abrir PDF.");
-
-        // Helpers
-        const abs = (p) => new URL(p, window.location.origin).href;
-        const fixMime = (dataUrl, ext = "jpg") => {
-            if (!dataUrl) return null;
-            if (dataUrl.startsWith("data:application/octet-stream")) {
-                const mime = ext === "png" ? "image/png" : "image/jpeg";
-                return dataUrl.replace(
-                    "data:application/octet-stream",
-                    `data:${mime}`
-                );
-            }
-            // Algunos servers devuelven Blob.type vacío → "data:;base64"
-            if (dataUrl.startsWith("data:;base64")) {
-                const mime = ext === "png" ? "image/png" : "image/jpeg";
-                return dataUrl.replace("data:;base64", `data:${mime};base64`);
-            }
-            return dataUrl;
-        };
-        // Carga URL → DataURL (base64)
-        const toDataURLSafe = async (url) => {
-            try {
-                const r = await fetch(url, { cache: "no-store" });
-                if (!r.ok) return null;
-                const blob = await r.blob();
-                return await new Promise((res, rej) => {
-                    const fr = new FileReader();
-                    fr.onloadend = () => res(fr.result);
-                    fr.onerror = rej;
-                    fr.readAsDataURL(blob);
-                });
-            } catch {
-                return null;
-            }
-        };
-
-        try {
-            // 1) Datos
-            const res = await fetch(
-                `${
-                    import.meta.env.VITE_API_URL
-                }/monitorfacturacion/${id}/factura-data`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (!res.ok) {
-                const txt = await res.text();
-                console.error("HTTP", res.status, txt);
-                return alertify.error(
-                    "No se pudo obtener los datos de la factura."
-                );
-            }
-            const { cotizacion, detalles } = await res.json();
-
-            // 2) Cargar imágenes → DataURL y normalizar mime
-            const [logoRaw, wmRaw] = await Promise.all([
-                toDataURLSafe(abs("/images/LogoGP.jpg?v=1")),
-                toDataURLSafe(abs("/images/marca_agua_gp.png?v=1")),
-            ]);
-
-            // footer con fallback .jpg → .png
-            let footerRaw = await toDataURLSafe(
-                abs("/images/footer_gp.jpg?v=1")
-            );
-            let footerExt = "jpg";
-            if (!footerRaw) {
-                footerRaw = await toDataURLSafe(
-                    abs("/images/footer_gp.png?v=1")
-                );
-                footerExt = "png";
-            }
-
-            const logoSrc = fixMime(logoRaw, "jpg");
-            const watermarkSrc = fixMime(wmRaw, "png");
-            const footerSrc = fixMime(footerRaw, footerExt);
-
-            if (!footerSrc) {
-                console.warn(
-                    "Footer no disponible en /images/footer_gp.(jpg|png)"
-                );
-            }
-
-            // 3) Mandar al visor React-PDF
-            setFacturaDoc({
-                cotizacion,
-                detalles,
-                images: { logoSrc, watermarkSrc, footerSrc },
-            });
-            setShowFacturaViewer(true);
-        } catch (e) {
-            console.error(e);
-            alertify.error("Error al preparar el PDF.");
-        }
-    };
-
-    // (Opcional) helper para cargar imagen como base64 (onda, logos externos)
-    async function toDataURL(url) {
-        try {
-            const r = await fetch(url, { cache: "no-store" });
-            if (!r.ok) return null;
-            const blob = await r.blob();
-            return await new Promise((res, rej) => {
-                const reader = new FileReader();
-                reader.onloadend = () => res(reader.result); // "data:image/...;base64,...."
-                reader.onerror = rej;
-                reader.readAsDataURL(blob);
-            });
-        } catch {
-            return null;
-        }
-    }
+    // ====== Tooltips bootstrap ======
+    useEffect(() => {
+        const tooltipTriggerList = [].slice.call(
+            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
+    }, []);
 
     useEffect(() => {
         const tooltipTriggerList = [].slice.call(
             document.querySelectorAll('[data-bs-toggle="tooltip"]')
         );
-        tooltipTriggerList.forEach((el) => {
-            new bootstrap.Tooltip(el);
-        });
-    }, []);
+        tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
+    }, [cotizacionesFiltradas]);
 
     const limpiarFiltro = () => setFiltro("");
 
+    // ====== Anular factura ======
     const handleAnularFactura = () => {
         alertify.prompt(
             "Anulación de factura",
@@ -578,17 +433,15 @@ function MonitorFacturacion() {
 
                 try {
                     const token = localStorage.getItem("token");
-                    const response = await axios.put(
+                    await axios.put(
                         `/api/facturar/${registroSeleccionado.idcotizacion}/anular`,
                         { motivo },
                         {
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
+                            headers: { Authorization: `Bearer ${token}` },
                         }
                     );
                     alertify.success("Factura anulada con éxito.");
-                    fetchCotizaciones(); // recargar datos
+                    fetchCotizaciones();
                 } catch (error) {
                     console.error(error);
                     alertify.error("Error al anular la factura.");
@@ -600,258 +453,7 @@ function MonitorFacturacion() {
         );
     };
 
-    const generarNotaCredito = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado.");
-
-        try {
-            const response = await fetch(
-                `${import.meta.env.VITE_API_URL}/notacredito/${id}`,
-                {
-                    method: "GET",
-                    headers: { Authorization: `Bearer ${token}` },
-                    credentials: "include",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.resultado) {
-                alertify.error("No certificado: " + (data.errores || "Error"));
-                return;
-            }
-
-            alertify.success(`Nota de crédito certificada. UUID: ${data.uuid}`);
-            fetchCotizaciones(); // refresca tabla
-        } catch (error) {
-            alertify.error("Error al generar nota de crédito.");
-        }
-    };
-
-    const generarNotaDebito = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado.");
-
-        try {
-            const response = await fetch(
-                `${import.meta.env.VITE_API_URL}/notadebito/${id}`,
-                {
-                    method: "GET",
-                    headers: { Authorization: `Bearer ${token}` },
-                    credentials: "include",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.resultado) {
-                alertify.error("No certificado: " + (data.errores || "Error"));
-                return;
-            }
-
-            alertify.success(`Nota de débito certificada. UUID: ${data.uuid}`);
-            fetchCotizaciones();
-        } catch (error) {
-            alertify.error("Error al generar nota de débito.");
-        }
-    };
-
-    const handleEditarCliente = async (idcliente) => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado.");
-        const headers = { Authorization: `Bearer ${token}` };
-        console.log("ID Cliente:", idcliente);
-        try {
-            const { data } = await axios.get(`/api/clientes/${idcliente}`, {
-                headers,
-            });
-            console.log(data);
-            setCliente(data);
-            setMostrarModalCliente(true);
-        } catch (error) {
-            console.log(error);
-            alertify.error("Error al obtener datos del cliente");
-        }
-    };
-
-    const handleGuardarCliente = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado.");
-        const headers = { Authorization: `Bearer ${token}` };
-        try {
-            await axios.put(`/api/clientes/${cliente.idcliente}`, cliente, {
-                headers,
-            });
-            alertify.success("Cliente actualizado");
-            setMostrarModalCliente(false);
-        } catch (error) {
-            alertify.error("Error al actualizar cliente");
-        }
-    };
-
-    const columns = [
-        { data: "idcotizacion", title: "ID", visible: false },
-        { data: "nocotizacion", title: "No.Cotizacion" },
-        {
-            data: "fecha_cotizacion",
-            title: "Fecha",
-            render: (data) => {
-                if (data) {
-                    try {
-                        const date = new Date(data);
-                        return format(date, "dd-MM-yyyy"); // Formatea la fecha al formato AAAA-MM-DD
-                        // Otros formatos que podrías usar:
-                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
-                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
-                    } catch (error) {
-                        console.error("Error al formatear la fecha:", error);
-                        return ""; // Devuelve una cadena vacía o algún otro valor en caso de error
-                    }
-                }
-                return ""; // O algún otro valor por defecto si la fecha es nula
-            },
-        },
-        { data: "tipo_pago", title: "Forma Pago" },
-        {
-            data: "total_general",
-            title: "Total",
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString("es-GT", {
-                            style: "currency",
-                            currency: "GTQ",
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ""; // O algún otro valor por defecto si el total es nulo o undefined
-            },
-        },
-        { data: "costear", title: "Costear", visible: false },
-        { data: "cliente", title: "Cliente" },
-        { data: "contacto", title: "Contacto" },
-        {
-            data: "direccion_entrega",
-            title: "Dirección entrega",
-            visible: false,
-        },
-        { data: "observaciones_costeo", title: "Obsv.Costeo", visible: false },
-        {
-            data: "observaciones_cliente",
-            title: "Obsv.Cliente",
-        },
-        {
-            data: "costeo_observaciones",
-            title: "Obsv.Vendedor",
-            visible: false,
-        },
-        {
-            data: "idcotizacionoriginal",
-            title: "ID CotizacionOriginal",
-            visible: false,
-        },
-        { data: "idcliente", title: "ID Cliente", visible: false },
-        { data: "idcontacto", title: "ID Contacto", visible: false },
-        { data: "trabajo", title: "Trabajo", visible: false },
-        { data: "version", title: "Version", visible: false },
-        { data: "estado", title: "Estado", visible: false },
-        { data: "nofactura", title: "No.Interno", },
-        {
-            data: "uuid",
-            title: "Autorización",
-            render: function (data, type, row) {
-                if (
-                    row.resultado === "N" &&
-                    Array.isArray(row.errores) &&
-                    row.errores.length > 0
-                ) {
-                    return `<span class="text-danger fw-bold">
-                <i class="bi bi-exclamation-circle me-1"></i> Error
-            </span>`;
-                }
-
-                return data ? `<span class="text-success">${data}</span>` : "";
-            },
-        },
-        { data: "errores", title: "ERRORES", visible: false },
-        { data: "resultado", title: "RESULTADO", visible: false },
-        {
-            data: "estado_texto",
-            title: "Estado",
-            render: function (data, type, row) {
-                let color = "secondary";
-                let icon = "bi-question-circle"; // ícono por defecto
-
-                if (
-                    row.resultado === "N" &&
-                    Array.isArray(row.errores) &&
-                    row.errores.length > 0
-                ) {
-                    color = "danger";
-                    icon = "bi-exclamation-triangle-fill";
-                    data = "Con errores";
-                } else {
-                    switch (row.estado) {
-                        case 4:
-                            color = "warning";
-                            icon = "bi-hourglass-split";
-                            break;
-                        case 5:
-                            color = "danger";
-                            icon = "bi-x-circle";
-                            break;
-                        case 6:
-                            color = "success";
-                            icon = "bi-check-circle";
-                            break;
-                    }
-                }
-
-                return `<span class="badge bg-${color}">
-                    <i class="bi ${icon} me-1"></i> ${data}
-                </span>`;
-            },
-        },
-    ];
-
-    const options = {
-        language: spanishTranslation, // Agrega la traducción aquí
-        rowCallback: (row, data) => {
-            row.classList.remove(
-                "estado-1",
-                "estado-2",
-                "estado-3",
-                "estado-4",
-                "estado-5",
-                "estado-6"
-            );
-
-            if (data.estado) {
-                row.classList.add(`estado-${data.estado}`);
-            }
-
-            // Manejo de selección de fila
-            row.onclick = () => {
-                const filas = row.parentNode.querySelectorAll("tr");
-                filas.forEach((r) => r.classList.remove("selected"));
-                row.classList.add("selected");
-                setRegistroSeleccionado(data);
-            };
-        },
-    };
-
-    /**
-     * FUNCIÓN para abrir el modal de información del cliente
-     */
+    // ====== Certificación: abrir modal (del ORIGINAL) ======
     const abrirModalCertificar = async () => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro.");
@@ -866,7 +468,7 @@ function MonitorFacturacion() {
 
             setOpcionesFact(data);
 
-            // Prefill: por defecto usa NIT si hay; si no, CUI; si no, PASAPORTE; si ninguno, CF
+            // Prefill: NIT → CUI → PASAPORTE → CF
             let tipo = "CF",
                 valor = "";
             if (data.cliente?.nit) {
@@ -895,11 +497,7 @@ function MonitorFacturacion() {
         }
     };
 
-    /***************************************************************** */
-
-    /**
-     * FUNCIÓN para enviar a certificar usando los datos del modal
-     */
+    // ====== Certificación: confirmar (del ORIGINAL) ======
     const confirmarCertificacion = async () => {
         if (!registroSeleccionado) return;
 
@@ -924,7 +522,6 @@ function MonitorFacturacion() {
                 alertify.error(data?.errores || "No certificado");
             }
         } catch (e) {
-            // errores de validación 422
             if (e.response?.status === 422 && e.response?.data?.errors) {
                 const errs = e.response.data.errors;
                 const primero =
@@ -938,13 +535,12 @@ function MonitorFacturacion() {
             setCertLoading(false);
         }
     };
-    /************************************************** */
 
+    // ====== Notas: abrir modal (del ORIGINAL) ======
     const abrirNota = (tipo) => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro");
         setNotaTipo(tipo);
-        // prefija el monto con el total de la factura (puedes dejarlo vacío si prefieres)
         setNotaForm({
             motivo: "",
             monto: Number(registroSeleccionado.total_general || 0).toFixed(2),
@@ -952,6 +548,7 @@ function MonitorFacturacion() {
         setShowNotaModal(true);
     };
 
+    // ====== Notas: confirmar (del ORIGINAL) ======
     const confirmarNota = async () => {
         if (!registroSeleccionado) return;
         const token = localStorage.getItem("token");
@@ -962,8 +559,6 @@ function MonitorFacturacion() {
             return alertify.error("Ingresa el motivo.");
         if (isNaN(monto) || monto <= 0)
             return alertify.error("Monto inválido.");
-        // opcional: no permitir mayor al total
-        // if (monto > Number(registroSeleccionado.total_general)) return alertify.error("El monto supera el total de la factura.");
 
         setNotaLoading(true);
         try {
@@ -1006,15 +601,7 @@ function MonitorFacturacion() {
         }
     };
 
-    const estado = Number(registroSeleccionado?.estado);
-
-    const puedeRegresarVenta = estado === 4;
-    const puedeRegresarPreFacturacion = estado === 5;
-    const puedeEliminar = estado === 1;
-    const puedePreFacturar = estado === 1 || estado === 3;
-    const puedeFacturar = estado === 5;
-    const puedeGenerarPDFFactura = estado === 6 || estado === 7;
-
+    // ====== Notas: PDF de la última NCRE/NDEB (del ORIGINAL) ======
     const abrirPdfNota = async (tipo /* 'NCRE' | 'NDEB' */) => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro");
@@ -1022,7 +609,6 @@ function MonitorFacturacion() {
         if (!token) return alertify.error("Token no encontrado.");
 
         try {
-            // 1) Traer la última nota del tipo solicitado
             const resList = await fetch(
                 `/api/cotizaciones/${registroSeleccionado.idcotizacion}/notasfel?tipo=${tipo}`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -1035,9 +621,8 @@ function MonitorFacturacion() {
                 );
             }
 
-            const idnota = notas[0].idnota; // la más reciente (ordenada desc en el backend)
+            const idnota = notas[0].idnota;
 
-            // 2) Pedir el PDF de esa nota
             const resPdf = await fetch(`/api/notasfel/${idnota}/pdf`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -1061,7 +646,7 @@ function MonitorFacturacion() {
         }
     };
 
-    // abre modal y carga notas (por tipo si hay filtro)
+    // ====== Notas: listado ======
     const abrirNotasModal = async () => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro");
@@ -1074,7 +659,6 @@ function MonitorFacturacion() {
         setNotas([]);
     };
 
-    // carga desde backend
     const cargarNotasFel = async (tipo = "") => {
         if (!registroSeleccionado) return;
         const token = localStorage.getItem("token");
@@ -1105,13 +689,11 @@ function MonitorFacturacion() {
         }
     };
 
-    // refetch cuando cambie el filtro de tipo mientras el modal esté abierto
     useEffect(() => {
         if (showNotasModal) cargarNotasFel(notaFiltroTipo);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [notaFiltroTipo, showNotasModal]);
 
-    // imprimir una nota concreta
     const imprimirNota = async (idnota) => {
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
@@ -1137,15 +719,316 @@ function MonitorFacturacion() {
         }
     };
 
+    const toNumberSafe = (v) => {
+        if (v === null || v === undefined) return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        const n = Number(String(v).replace(/[^\d.-]/g, ""));
+        return Number.isFinite(n) ? n : null;
+    };
+
+    // ====== DataGrid ======
+    const [paginationModel, setPaginationModel] = useState({
+        pageSize: 10,
+        page: 0,
+    });
+
+    const selectionModel = registroSeleccionado
+        ? [registroSeleccionado.idcotizacion]
+        : [];
+
+    const muiColumns = [
+        { field: "idcotizacion", headerName: "ID", hide: true },
+        {
+            field: "nocotizacion",
+            headerName: "No.Cotización",
+            minWidth: 160,
+            flex: 1,
+            sortable: false,
+        },
+        {
+            field: "fecha_cotizacion",
+            headerName: "Fecha",
+            minWidth: 120,
+            sortable: false,
+            // 👇 Null-safe: evita desestructurar
+            valueGetter: (params) => {
+                const raw =
+                    params?.value ?? params?.row?.fecha_cotizacion ?? null;
+                // Si ya es Date, respétala; si es string válida, conviértela
+                if (raw instanceof Date) return raw;
+                if (typeof raw === "string" || typeof raw === "number") {
+                    const d = new Date(raw);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                return null;
+            },
+            valueFormatter: (params) => {
+                const v = params?.value;
+                if (!v) return "";
+                try {
+                    return format(v, "dd-MM-yyyy");
+                } catch {
+                    return "";
+                }
+            },
+        },
+        {
+            field: "tipo_pago",
+            headerName: "Forma Pago",
+            minWidth: 140,
+            sortable: false,
+        },
+        {
+            field: "total_general",
+            headerName: "Total",
+            minWidth: 130,
+            align: "right",
+            headerAlign: "right",
+            sortable: false,
+            // 👇 NO asumas que params ni row existen en todos los ciclos
+            valueGetter: (params) =>
+                params?.row?.total_general ?? params?.value ?? null,
+
+            renderCell: (params) => {
+                const raw = params?.value ?? params?.row?.total_general ?? null;
+                const n = toNumberSafe(raw);
+                return n == null
+                    ? ""
+                    : n.toLocaleString("es-GT", {
+                          style: "currency",
+                          currency: "GTQ",
+                          minimumFractionDigits: 2,
+                      });
+            },
+        },
+        // {
+        //     field: "total_debug",
+        //     headerName: "Total(raw)",
+        //     width: 120,
+        //     sortable: false,
+        //     renderCell: ({ row }) => <code>{String(row.total_general)}</code>,
+        // },
+        {
+            field: "cliente",
+            headerName: "Cliente",
+            minWidth: 220,
+            flex: 1.2,
+            sortable: false,
+        },
+        {
+            field: "contacto",
+            headerName: "Contacto",
+            minWidth: 180,
+            flex: 1,
+            sortable: false,
+        },
+        {
+            field: "observaciones_cliente",
+            headerName: "Obsv.Cliente",
+            minWidth: 220,
+            flex: 1.2,
+            sortable: false,
+        },
+        {
+            field: "nofactura",
+            headerName: "No.Interno",
+            minWidth: 120,
+            sortable: false,
+        },
+
+        {
+            field: "uuid",
+            headerName: "Autorización",
+            minWidth: 220,
+            flex: 1,
+            sortable: false,
+            renderCell: ({ row, value }) => {
+                const hayErrores =
+                    row?.resultado === "N" &&
+                    Array.isArray(row?.errores) &&
+                    row.errores.length > 0;
+                if (hayErrores) {
+                    return (
+                        <span className="text-danger fw-bold">
+                            <i className="bi bi-exclamation-circle me-1" />{" "}
+                            Error
+                        </span>
+                    );
+                }
+                return value ? (
+                    <span className="text-success">{value}</span>
+                ) : (
+                    ""
+                );
+            },
+        },
+
+        {
+            field: "estado_texto",
+            headerName: "Estado",
+            minWidth: 160,
+            sortable: false,
+            renderCell: ({ row, value }) => {
+                const hayErrores =
+                    row?.resultado === "N" &&
+                    Array.isArray(row?.errores) &&
+                    row.errores.length > 0;
+                if (hayErrores) {
+                    return (
+                        <Chip
+                            size="small"
+                            color="error"
+                            label="Con errores"
+                            icon={
+                                <i className="bi bi-exclamation-triangle-fill" />
+                            }
+                        />
+                    );
+                }
+                let color = "default";
+                let icon = "bi-question-circle";
+                switch (row?.estado) {
+                    case 4:
+                        color = "warning";
+                        icon = "bi-hourglass-split";
+                        break;
+                    case 5:
+                        color = "error";
+                        icon = "bi-x-circle";
+                        break;
+                    case 6:
+                        color = "success";
+                        icon = "bi-check-circle";
+                        break;
+                    default:
+                        break;
+                }
+                return (
+                    <Chip
+                        size="small"
+                        color={color}
+                        label={value}
+                        icon={<i className={`bi ${icon}`} />}
+                    />
+                );
+            },
+        },
+
+        {
+            field: "comentarios_count",
+            headerName: "💬",
+            width: 70,
+            align: "center",
+            headerAlign: "center",
+            sortable: false,
+            renderCell: ({ row, value }) => {
+                const cnt = Number(value || 0);
+                if (!cnt) return "";
+                const tip = (row?.last_comentario_snippet || "").replace(
+                    /"/g,
+                    "&quot;"
+                );
+                return (
+                    <span
+                        className="badge bg-info"
+                        title={tip}
+                        data-bs-toggle="tooltip"
+                    >
+                        {cnt}
+                    </span>
+                );
+            },
+        },
+
+        // Ocultas
+        { field: "idcliente", headerName: "ID Cliente", hide: true },
+        { field: "idcontacto", headerName: "ID Contacto", hide: true },
+        { field: "estado", headerName: "Estado (num)", hide: true },
+    ];
+
+    // Mantener selección si la fila aún existe
+    useEffect(() => {
+        if (!registroSeleccionado) return;
+        const exists = cotizaciones.some(
+            (c) => c.idcotizacion === registroSeleccionado.idcotizacion
+        );
+        if (!exists) setRegistroSeleccionado(null);
+    }, [cotizaciones]);
+
+    // Asegurar que la fila seleccionada quede visible (cambia de página y scroll)
+    useEffect(() => {
+        if (!registroSeleccionado) return;
+        const id = registroSeleccionado.idcotizacion;
+        const idx = cotizacionesFiltradas.findIndex(
+            (r) => r.idcotizacion === id
+        );
+        if (idx === -1) return;
+
+        const pageForRow = Math.floor(idx / paginationModel.pageSize);
+        if (pageForRow !== paginationModel.page) {
+            setPaginationModel((pm) => ({ ...pm, page: pageForRow }));
+        }
+
+        setTimeout(() => {
+            const el = document.querySelector(`[data-id="${id}"]`);
+            if (el) el.scrollIntoView({ block: "nearest" });
+        }, 0);
+    }, [registroSeleccionado, cotizacionesFiltradas, paginationModel.pageSize]);
+
+    const estado = Number(registroSeleccionado?.estado);
+    const puedeRegresarVenta = estado === 4;
+    const puedeRegresarPreFacturacion = estado === 5;
+    const puedeEliminar = estado === 1;
+    const puedePreFacturar = estado === 1 || estado === 3;
+    const puedeFacturar = estado === 5;
+    const puedeGenerarPDFFactura = estado === 6 || estado === 7;
+
+    // CTA primaria según estado
+    const primaryAction = (() => {
+        if (!registroSeleccionado) {
+            return {
+                label: "Selecciona una cotización",
+                onClick: null,
+                color: "inherit",
+                icon: <MoreVert />,
+            };
+        }
+        switch (Number(registroSeleccionado.estado)) {
+            case 4:
+            case 5:
+                return {
+                    label: "Certificar",
+                    onClick: abrirModalCertificar,
+                    color: "warning",
+                    icon: <AssignmentTurnedIn />,
+                };
+            case 6:
+            case 7:
+                return {
+                    label: "PDF Factura",
+                    onClick: () =>
+                        abrirFactura(registroSeleccionado.idcotizacion),
+                    color: "primary",
+                    icon: <ReceiptLong />,
+                };
+            default:
+                return {
+                    label: "PDF Cotización",
+                    onClick: () =>
+                        generarPDF(registroSeleccionado.idcotizacion),
+                    color: "success",
+                    icon: <PictureAsPdf />,
+                };
+        }
+    })();
+
     return (
         <div className="container-fluid mt-4">
+            {/* ====== PDF Viewer Cotización ====== */}
             {pdfData && (
                 <div
                     className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                    style={{
-                        backgroundColor: "rgba(0,0,0,0.7)",
-                        zIndex: 1050,
-                    }}
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2000 }}
                 >
                     <div
                         className="bg-white rounded shadow"
@@ -1163,17 +1046,38 @@ function MonitorFacturacion() {
                             />
                         </PDFViewer>
 
-                        <button
-                            className="btn btn-danger position-absolute top-0 start-0 m-2"
-                            onClick={() => setPdfData(null)}
-                        >
-                            Cerrar PDF
-                        </button>
+                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
+                            <PDFDownloadLink
+                                document={
+                                    <CotizacionPDF
+                                        cotizacion={pdfData.cotizacion}
+                                        totalEnLetras={pdfData.totalEnLetras}
+                                        logoSrc="/images/LogoGP.jpg"
+                                    />
+                                }
+                                fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
+                                className="btn btn-primary btn-sm"
+                            >
+                                {({ loading }) =>
+                                    loading ? "Preparando…" : "Descargar PDF"
+                                }
+                            </PDFDownloadLink>
+
+                            <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => setPdfData(null)}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
+
             <div className="card">
                 <Header title="Lista de Cotizaciones para facturar" />
+
+                {/* Filtros superiores */}
                 <div className="row mb-3">
                     <div className="col-md-3">
                         <label className="form-label fw-bold">Estado:</label>
@@ -1227,7 +1131,8 @@ function MonitorFacturacion() {
                         </button>
                     </div>
                 </div>
-                {/* Buscador personalizado */}
+
+                {/* Buscador */}
                 <div className="mb-3">
                     <label htmlFor="buscador" className="form-label fw-bold">
                         🔍 Buscar cotización:
@@ -1252,97 +1157,265 @@ function MonitorFacturacion() {
                     </div>
                 </div>
 
-                {/* Barra de acciones */}
-                <div className="mb-3 d-flex flex-wrap gap-2">
-                    <button
-                        className="btn btn-danger btn-sm"
-                        disabled={!puedeRegresarVenta}
-                        onClick={() =>
-                            handleDesactivar(
-                                registroSeleccionado?.idcotizacion,
-                                1
-                            )
-                        }
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Regresar la cotización a ventas"
+                {/* Barra de acciones (compacta + menú) */}
+                <Stack
+                    direction="row"
+                    spacing={1.5}
+                    className="mb-3"
+                    alignItems="center"
+                    flexWrap="wrap"
+                >
+                    <MUIButton
+                        variant="contained"
+                        size="small"
+                        color={primaryAction.color}
+                        startIcon={primaryAction.icon}
+                        onClick={primaryAction.onClick || undefined}
+                        disabled={!primaryAction.onClick}
                     >
-                        <FaUndo /> Regresar a Venta
-                    </button>
-                    <button
-                        className="btn btn-danger btn-sm"
-                        disabled={!puedeRegresarPreFacturacion}
-                        onClick={() =>
-                            handleDesactivar(
-                                registroSeleccionado?.idcotizacion,
-                                4
-                            )
-                        }
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Regresar a Pre-Facturación"
-                    >
-                        <FaUndo /> Regresar a Pre-facturación
-                    </button>
+                        {primaryAction.label}
+                    </MUIButton>
 
-                    <button
-                        className="btn btn-success btn-sm"
+                    <MUIButton
+                        variant="contained"
+                        size="small"
+                        color="inherit"
+                        endIcon={<MoreVert />}
+                        onClick={openActions}
+                        disabled={!cotizacionesFiltradas.length}
+                    >
+                        Más acciones
+                    </MUIButton>
+
+                    {/* Tip de ayuda cuando no hay selección */}
+                    {!registroSeleccionado && (
+                        <span className="text-muted small ms-2">
+                            Selecciona una fila para habilitar acciones.
+                        </span>
+                    )}
+                </Stack>
+
+                <Menu
+                    anchorEl={actionsAnchor}
+                    open={Boolean(actionsAnchor)}
+                    onClose={closeActions}
+                >
+                    {/* DOCUMENTOS */}
+                    <MenuItem disabled>
+                        <ListItemText
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                        >
+                            Documentos
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            generarPDF(registroSeleccionado?.idcotizacion);
+                        }}
                         disabled={!registroSeleccionado}
-                        onClick={() =>
-                            generarPDF(registroSeleccionado?.idcotizacion)
-                        }
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Generar el PDF del registro seleccionado"
                     >
-                        <FaFilePdf /> PDF Cotización
-                    </button>
-
-                    <button
-                        className="btn btn-warning btn-sm"
-                        disabled={!puedeFacturar}
-                        onClick={() =>
-                            //generarFactura(registroSeleccionado?.idcotizacion)
-                            abrirModalCertificar()
-                        }
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Enviar el registro seleccionado a certificación"
-                    >
-                        <FaFileInvoiceDollar /> Certificar
-                    </button>
-
-                    <button
-                        className="btn btn-primary btn-sm"
-                        disabled={!puedeGenerarPDFFactura}
-                        onClick={() =>
-                            // abrirFacturaPDF(registroSeleccionado?.idcotizacion)
-                            abrirFactura(registroSeleccionado?.idcotizacion)
-                        }
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Generar el PDF de la factura certificada"
-                    >
-                        <FaFileInvoice /> PDF Factura
-                    </button>
-                    <button
-                        className="btn btn-danger btn-sm"
+                        <ListItemIcon>
+                            <PictureAsPdf fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="PDF Cotización"
+                            secondary={registroSeleccionado?.nocotizacion || ""}
+                        />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirModalCertificar();
+                        }}
                         disabled={
                             !registroSeleccionado ||
-                            registroSeleccionado.resultado !== "N" ||
-                            !registroSeleccionado.errores ||
-                            registroSeleccionado.errores.length === 0
+                            ![4, 5].includes(
+                                Number(registroSeleccionado.estado)
+                            )
                         }
-                        onClick={() => setMostrarModalErrores(true)}
-                        data-bs-toggle="tooltip"
-                        title="Ver errores de certificación"
                     >
-                        <i className="bi bi-exclamation-circle me-1"></i> ❗Ver
-                        errores
-                    </button>
+                        <ListItemIcon>
+                            <AssignmentTurnedIn fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Certificar…" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirFactura(registroSeleccionado?.idcotizacion);
+                        }}
+                        disabled={!puedeGenerarPDFFactura}
+                    >
+                        <ListItemIcon>
+                            <ReceiptLong fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="PDF Factura" />
+                    </MenuItem>
+                    <Divider />
 
-                    <button
-                        className="btn btn-danger btn-sm me-2"
+                    {/* NOTAS */}
+                    <MenuItem disabled>
+                        <ListItemText
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                        >
+                            Notas
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirNota("NCRE");
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <NoteAdd fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Nueva Nota de Crédito" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirNota("NDEB");
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <PostAdd fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Nueva Nota de Débito" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirPdfNota("NCRE");
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <PictureAsPdf fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="PDF última NC" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirPdfNota("NDEB");
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <PictureAsPdf fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="PDF última ND" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirNotasModal();
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.estado !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <Article fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Historial de Notas FEL…" />
+                    </MenuItem>
+                    <Divider />
+
+                    {/* COMENTARIOS */}
+                    <MenuItem disabled>
+                        <ListItemText
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                        >
+                            Comentarios
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirAgregarComentario();
+                        }}
+                        disabled={!registroSeleccionado}
+                    >
+                        <ListItemIcon>
+                            <Comment fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Agregar comentario" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            obtenerComentarios(1, "");
+                        }}
+                        disabled={!registroSeleccionado}
+                    >
+                        <ListItemIcon>
+                            <Visibility fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Ver comentarios…" />
+                    </MenuItem>
+                    <Divider />
+
+                    {/* ESTADO */}
+                    <MenuItem disabled>
+                        <ListItemText
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                        >
+                            Estado
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            handleDesactivar(
+                                registroSeleccionado.idcotizacion,
+                                1
+                            );
+                        }}
+                        disabled={!puedeRegresarVenta}
+                    >
+                        <ListItemIcon>
+                            <Undo fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Regresar a Venta" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            handleDesactivar(
+                                registroSeleccionado.idcotizacion,
+                                4
+                            );
+                        }}
+                        disabled={!puedeRegresarPreFacturacion}
+                    >
+                        <ListItemIcon>
+                            <HourglassTop fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Regresar a Pre-facturación" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            handleAnularFactura();
+                        }}
                         disabled={
                             !registroSeleccionado ||
                             (
@@ -1350,86 +1423,25 @@ function MonitorFacturacion() {
                             ).toUpperCase() !== "S" ||
                             !registroSeleccionado.uuid
                         }
-                        onClick={handleAnularFactura}
                     >
-                        <i className="bi bi-x-circle me-1"></i>
-                        Anular Factura
-                    </button>
-                    <button
-                        className="btn btn-info btn-sm"
-                        disabled={
-                            !registroSeleccionado ||
-                            registroSeleccionado.estado !== 6
-                        }
-                        // onClick={() =>
-                        //     generarNotaCredito(
-                        //         registroSeleccionado?.idcotizacion
-                        //     )
-                        // }
-                        onClick={() => abrirNota("NCRE")}
-                        data-bs-toggle="tooltip"
-                        title="Certificar una Nota de Crédito para esta factura"
-                    >
-                        🧾 Nota Crédito
-                    </button>
-                    <button
-                        className="btn btn-secondary btn-sm"
-                        disabled={
-                            !registroSeleccionado ||
-                            registroSeleccionado.estado !== 6
-                        }
-                        // onClick={() =>
-                        //     generarNotaDebito(
-                        //         registroSeleccionado?.idcotizacion
-                        //     )
-                        // }
-                        onClick={() => abrirNota("NDEB")}
-                        data-bs-toggle="tooltip"
-                        title="Certificar una Nota de Débito para esta factura"
-                    >
-                        🧾 Nota Débito
-                    </button>
-                    <button
-                        className="btn btn-outline-info btn-sm"
-                        disabled={
-                            !registroSeleccionado ||
-                            registroSeleccionado.estado !== 6
-                        }
-                        onClick={() => abrirPdfNota("NCRE")}
-                        data-bs-toggle="tooltip"
-                        title="Imprimir la última Nota de Crédito certificada"
-                    >
-                        PDF NCRE
-                    </button>
+                        <ListItemIcon>
+                            <Cancel fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Anular factura" />
+                    </MenuItem>
+                    <Divider />
 
-                    <button
-                        className="btn btn-outline-secondary btn-sm"
-                        disabled={
-                            !registroSeleccionado ||
-                            registroSeleccionado.estado !== 6
-                        }
-                        onClick={() => abrirPdfNota("NDEB")}
-                        data-bs-toggle="tooltip"
-                        title="Imprimir la última Nota de Débito certificada"
-                    >
-                        PDF NDEB
-                    </button>
-                    <button
-                        className="btn btn-outline-dark btn-sm"
-                        disabled={
-                            !registroSeleccionado ||
-                            registroSeleccionado.estado !== 6
-                        }
-                        onClick={() => abrirNotasModal()}
-                        data-bs-toggle="tooltip"
-                        title="Ver e imprimir las notas (NC/ND) emitidas para esta factura"
-                    >
-                        🧾 Notas FEL…
-                    </button>
-
-                    <Button
-                        color="warning"
+                    {/* CLIENTE */}
+                    <MenuItem disabled>
+                        <ListItemText
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                        >
+                            Cliente
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem
                         onClick={() => {
+                            closeActions();
                             if (!registroSeleccionado?.idcliente)
                                 return alertify.error("Seleccione un registro");
                             setIdClienteActual(registroSeleccionado.idcliente);
@@ -1437,24 +1449,49 @@ function MonitorFacturacion() {
                         }}
                         disabled={!registroSeleccionado}
                     >
-                        Información del cliente
-                    </Button>
-                    <Button
-                        color="primary"
-                        size="sm"
-                        className="d-inline-flex align-items-center gap-2"
+                        <ListItemIcon>
+                            <Person fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Información del cliente" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirPrefModal();
+                        }}
                         disabled={
                             !registroSeleccionado ||
                             Number(registroSeleccionado.estado) !== 4
                         }
-                        onClick={abrirPrefModal}
-                        title="Cambiar la fecha de prefacturación"
                     >
-                        <i className="bi bi-calendar3"></i>
-                        📅 Fecha de prefacturación
-                    </Button>
-                </div>
+                        <ListItemIcon>
+                            <CalendarMonth fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Fecha de prefacturación" />
+                    </MenuItem>
+                    <Divider />
 
+                    {/* ERRORES */}
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            setMostrarModalErrores(true);
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            registroSeleccionado.resultado !== "N" ||
+                            !registroSeleccionado.errores ||
+                            registroSeleccionado.errores.length === 0
+                        }
+                    >
+                        <ListItemIcon>
+                            <ErrorOutline fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Ver errores de certificación" />
+                    </MenuItem>
+                </Menu>
+
+                {/* Tabla (MUI DataGrid) */}
                 <div className="card-body">
                     {loading ? (
                         <p className="text-center">Cargando cotizaciones...</p>
@@ -1464,47 +1501,58 @@ function MonitorFacturacion() {
                             búsqueda.
                         </div>
                     ) : (
-                        <div className="table-responsive">
-                            <DataTable
-                                data={cotizacionesFiltradas}
-                                columns={columns}
-                                options={{
-                                    ...options,
-                                    searching: false,
-                                    paging: true,
-                                    pageLength: 10,
-                                    lengthChange: false,
-                                    order: [], // 👈 no ordenar en el cliente (usa el orden del backend)
+                        <Box sx={{ height: 600, width: "100%" }}>
+                            <DataGrid
+                                rows={
+                                    cotizacionesFiltradas
+                                        ? cotizacionesFiltradas
+                                        : []
+                                }
+                                columns={muiColumns}
+                                getRowId={(row) => row.idcotizacion}
+                                rowSelectionModel={selectionModel}
+                                onRowSelectionModelChange={(newSel) => {
+                                    const id = newSel[0];
+                                    const row =
+                                        cotizaciones.find(
+                                            (c) => c.idcotizacion === id
+                                        ) || null;
+                                    setRegistroSeleccionado(row);
                                 }}
-                                className="table table-hover table-bordered"
-                                onRowClick={(rowData, rowMeta) => {
-                                    setRegistroSeleccionado(rowData);
+                                onRowClick={(params) =>
+                                    setRegistroSeleccionado(params.row)
+                                }
+                                getRowClassName={(params) =>
+                                    `estado-${params.row.estado || ""}`
+                                }
+                                pagination
+                                paginationModel={paginationModel}
+                                onPaginationModelChange={setPaginationModel}
+                                pageSizeOptions={[10, 25, 50]}
+                                slots={{
+                                    toolbar: GridToolbar,
+                                    loadingOverlay: LinearProgress,
                                 }}
-                                rowCallback={(row, data, index) => {
-                                    if (
-                                        registroSeleccionado?.idcotizacion ===
-                                        data.idcotizacion
-                                    ) {
-                                        row.classList.add("table-primary");
-                                    } else {
-                                        row.classList.remove("table-primary");
-                                    }
-                                }}
-                                initComplete={() => {
-                                    const tooltipTriggerList = [].slice.call(
-                                        document.querySelectorAll(
-                                            '[data-bs-toggle="tooltip"]'
-                                        )
-                                    );
-                                    tooltipTriggerList.forEach(
-                                        (el) => new bootstrap.Tooltip(el)
-                                    );
+                                disableColumnMenu
+                                density="standard"
+                                localeText={
+                                    esES.components.MuiDataGrid.defaultProps
+                                        .localeText
+                                }
+                                loading={loading}
+                                sx={{
+                                    ".MuiDataGrid-row.Mui-selected": {
+                                        backgroundColor:
+                                            "rgba(13,110,253,.12) !important",
+                                    },
                                 }}
                             />
-                        </div>
+                        </Box>
                     )}
                 </div>
             </div>
+
+            {/* Modal de errores de certificación */}
             {mostrarModalErrores && (
                 <div
                     className="modal fade show"
@@ -1596,139 +1644,8 @@ function MonitorFacturacion() {
                     </div>
                 </div>
             )}
-            {/* Modal para mostrar los datos del cliente del registro seleccionado*/}
-            {/* <Modal
-                isOpen={mostrarModalCliente}
-                toggle={() => setMostrarModalCliente(false)}
-                size="lg" // más ancho
-                centered // centrado verticalmente
-            >
-                <ModalHeader toggle={() => setMostrarModalCliente(false)}>
-                    <span className="fs-5">Editar Cliente</span>
-                </ModalHeader>
-                <ModalBody>
-                    {cliente && (
-                        <form>
-                            <div className="row">
-                                <div className="col-md-6 mb-2">
-                                    <label className="form-label small mb-1">
-                                        NIT
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        value={cliente.nit}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                nit: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-md-6 mb-2">
-                                    <label className="form-label small mb-1">
-                                        CUI
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        value={cliente.cui}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                cui: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-md-12 mb-2">
-                                    <label className="form-label small mb-1">
-                                        Nombre
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        value={cliente.nombre}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                nombre: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-md-12 mb-2">
-                                    <label className="form-label small mb-1">
-                                        Dirección
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        value={cliente.direccion}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                direccion: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-md-6 mb-2">
-                                    <label className="form-label small mb-1">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        className="form-control form-control-sm"
-                                        value={cliente.email}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                email: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-md-6 mb-2">
-                                    <label className="form-label small mb-1">
-                                        Tipo de cliente
-                                    </label>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={cliente.extranjero}
-                                        onChange={(e) =>
-                                            setCliente({
-                                                ...cliente,
-                                                extranjero: e.target.value,
-                                            })
-                                        }
-                                    >
-                                        <option value="N">Nacional</option>
-                                        <option value="E">Extranjero</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </form>
-                    )}
-                </ModalBody>
-                <ModalFooter>
-                    <Button
-                        color="secondary"
-                        size="sm"
-                        onClick={() => setMostrarModalCliente(false)}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="primary"
-                        size="sm"
-                        onClick={handleGuardarCliente}
-                    >
-                        Guardar Cambios
-                    </Button>
-                </ModalFooter>
-            </Modal> */}
+
+            {/* Modal certificación */}
             <Modal
                 isOpen={showCertModal}
                 toggle={() => setShowCertModal(false)}
@@ -1746,7 +1663,6 @@ function MonitorFacturacion() {
                             value={certForm.documento_tipo}
                             onChange={(e) => {
                                 const tipo = e.target.value;
-                                // Cambia el valor del input según el tipo escogido (desde base)
                                 let valor = "";
                                 const c = opcionesFact.cliente || {};
                                 if (tipo === "NIT") valor = c.nit || "";
@@ -1768,7 +1684,6 @@ function MonitorFacturacion() {
                         </select>
                     </div>
 
-                    {/* Input del documento */}
                     {certForm.documento_tipo !== "CF" && (
                         <div className="mb-2">
                             <label className="form-label">Número</label>
@@ -1864,12 +1779,12 @@ function MonitorFacturacion() {
                     </Button>
                 </ModalFooter>
             </Modal>
-            {/* Modal para editar la información del cliente */}
+
+            {/* Modal Cliente (contactos/direcciones) */}
             <Modal
                 isOpen={showClienteForm}
                 toggle={() => setShowClienteForm(false)}
                 centered
-                // size="xl"
                 className="modal-xxl"
             >
                 <ModalHeader toggle={() => setShowClienteForm(false)}>
@@ -1878,8 +1793,8 @@ function MonitorFacturacion() {
                 <ModalBody>
                     {idClienteActual != null && (
                         <ClienteContactosForm
-                            idclienteInicial={idClienteActual} // ← precarga el cliente
-                            bloquearSeleccion={false} // ← pon true si NO quieres que cambie
+                            idclienteInicial={idClienteActual}
+                            bloquearSeleccion={false}
                             onClose={() => setShowClienteForm(false)}
                             onSaved={() => {
                                 setShowClienteForm(false);
@@ -1889,7 +1804,8 @@ function MonitorFacturacion() {
                     )}
                 </ModalBody>
             </Modal>
-            {/* Modal para colocar los datos de la nota de crédito y débito */}
+
+            {/* Modal NC/ND */}
             <Modal
                 isOpen={showNotaModal}
                 toggle={() => setShowNotaModal(false)}
@@ -2003,56 +1919,8 @@ function MonitorFacturacion() {
                     </Button>
                 </ModalFooter>
             </Modal>
-            {/* PDF Viewer para mostrar la cotización*/}
-            {pdfData && (
-                <div
-                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2000 }}
-                >
-                    <div
-                        className="bg-white rounded shadow"
-                        style={{
-                            width: "80%",
-                            height: "80%",
-                            position: "relative",
-                        }}
-                    >
-                        <PDFViewer width="100%" height="100%">
-                            <CotizacionPDF
-                                cotizacion={pdfData.cotizacion}
-                                totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGP.png"
-                            />
-                        </PDFViewer>
 
-                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
-                            <PDFDownloadLink
-                                document={
-                                    <CotizacionPDF
-                                        cotizacion={pdfData.cotizacion}
-                                        totalEnLetras={pdfData.totalEnLetras}
-                                        logoSrc="/images/LogoGP.png"
-                                    />
-                                }
-                                fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
-                                className="btn btn-primary btn-sm"
-                            >
-                                {({ loading }) =>
-                                    loading ? "Preparando…" : "Descargar PDF"
-                                }
-                            </PDFDownloadLink>
-
-                            <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => setPdfData(null)}
-                            >
-                                Cerrar PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {/* Modal listado de Notas FEL */}
             <Modal
                 isOpen={showNotasModal}
                 toggle={cerrarNotasModal}
@@ -2068,7 +1936,6 @@ function MonitorFacturacion() {
                 </ModalHeader>
 
                 <ModalBody>
-                    {/* Filtros de tipo */}
                     <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
                         <span className="small text-muted">Filtrar:</span>
                         <div
@@ -2111,7 +1978,6 @@ function MonitorFacturacion() {
                             </button>
                         </div>
 
-                        {/* Accesos rápidos para crear nuevas (reutiliza tu modal existente) */}
                         <div className="ms-auto d-flex gap-2">
                             <button
                                 className="btn btn-outline-info btn-sm"
@@ -2134,7 +2000,6 @@ function MonitorFacturacion() {
                         </div>
                     </div>
 
-                    {/* Tabla de notas */}
                     {notasLoading ? (
                         <div className="text-center py-4">Cargando notas…</div>
                     ) : notas.length === 0 ? (
@@ -2208,7 +2073,6 @@ function MonitorFacturacion() {
                                                     >
                                                         PDF
                                                     </button>
-                                                    {/* Si quisieras más acciones futuras, déjalas aquí */}
                                                 </div>
                                             </td>
                                         </tr>
@@ -2229,6 +2093,7 @@ function MonitorFacturacion() {
                 </ModalFooter>
             </Modal>
 
+            {/* Modal fecha prefacturación */}
             <Modal
                 isOpen={showPrefModal}
                 toggle={() => setShowPrefModal(false)}
@@ -2273,59 +2138,121 @@ function MonitorFacturacion() {
                 </ModalFooter>
             </Modal>
 
-            {showFacturaViewer && facturaDoc && (
-                <div
-                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2100 }}
-                >
-                    <div
-                        className="bg-white rounded shadow"
-                        style={{
-                            width: "80%",
-                            height: "80%",
-                            position: "relative",
-                        }}
+            {/* Modal agregar comentario */}
+            <Modal
+                isOpen={showAddComent}
+                toggle={() => setShowAddComent(false)}
+                centered
+            >
+                <ModalHeader toggle={() => setShowAddComent(false)}>
+                    Agregar comentario – {registroSeleccionado?.nocotizacion}
+                </ModalHeader>
+                <ModalBody>
+                    <textarea
+                        className="form-control"
+                        rows={4}
+                        maxLength={1000}
+                        value={newComentario}
+                        onChange={(e) => setNewComentario(e.target.value)}
+                        placeholder="Escribe tu comentario…"
+                    />
+                    <div className="form-text">Máx. 1000 caracteres.</div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowAddComent(false)}
                     >
-                        <PDFViewer width="100%" height="100%">
-                            <FacturaPDF
-                                cotizacion={facturaDoc.cotizacion}
-                                detalles={facturaDoc.detalles}
-                                images={facturaDoc.images}
-                            />
-                        </PDFViewer>
+                        Cancelar
+                    </Button>
+                    <Button
+                        color="primary"
+                        onClick={guardarComentario}
+                        disabled={!newComentario.trim()}
+                    >
+                        Guardar
+                    </Button>
+                </ModalFooter>
+            </Modal>
 
-                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
-                            <PDFDownloadLink
-                                document={
-                                    <FacturaPDF
-                                        cotizacion={facturaDoc.cotizacion}
-                                        detalles={facturaDoc.detalles}
-                                        images={facturaDoc.images}
-                                    />
-                                }
-                                fileName={`FACTURA-${
-                                    facturaDoc.cotizacion.serie || "S"
-                                }-${facturaDoc.cotizacion.numero || "0"}.pdf`}
-                                className="btn btn-primary btn-sm"
-                            >
-                                {({ loading }) =>
-                                    loading ? "Preparando…" : "Descargar PDF"
-                                }
-                            </PDFDownloadLink>
-
-                            <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => {
-                                    setShowFacturaViewer(false);
-                                    setFacturaDoc(null);
-                                }}
-                            >
-                                Cerrar
-                            </button>
-                        </div>
+            {/* Modal ver comentarios */}
+            <Modal
+                isOpen={showComentarios}
+                toggle={() => setShowComentarios(false)}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={() => setShowComentarios(false)}>
+                    Comentarios – {registroSeleccionado?.nocotizacion}
+                </ModalHeader>
+                <ModalBody>
+                    <div className="mb-2">
+                        <input
+                            className="form-control"
+                            placeholder="Buscar en comentarios…"
+                            value={comentariosSearch}
+                            onChange={(e) =>
+                                setComentariosSearch(e.target.value)
+                            }
+                        />
                     </div>
-                </div>
-            )}
+
+                    {comentariosPaginated?.data?.length ? (
+                        <>
+                            {comentariosPaginated.data.map((c, i) => (
+                                <div
+                                    key={i}
+                                    className="border rounded p-2 mb-2"
+                                >
+                                    <div className="mb-1">{c.comentario}</div>
+                                    <div className="text-muted small">
+                                        Usuario: {c.nombre_usuario || "—"} ·{" "}
+                                        {new Date(
+                                            c.fecha_registro
+                                        ).toLocaleString()}{" "}
+                                        · Estado: {c.estado}
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div className="d-flex justify-content-between mt-3">
+                                <button
+                                    className="btn btn-outline-secondary btn-sm"
+                                    disabled={
+                                        !comentariosPaginated?.prev_page_url
+                                    }
+                                    onClick={() =>
+                                        obtenerComentarios(comentariosPage - 1)
+                                    }
+                                >
+                                    ◀ Anterior
+                                </button>
+                                <button
+                                    className="btn btn-outline-secondary btn-sm"
+                                    disabled={
+                                        !comentariosPaginated?.next_page_url
+                                    }
+                                    onClick={() =>
+                                        obtenerComentarios(comentariosPage + 1)
+                                    }
+                                >
+                                    Siguiente ▶
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-muted">No hay comentarios.</div>
+                    )}
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowComentarios(false)}
+                    >
+                        Cerrar
+                    </Button>
+                </ModalFooter>
+            </Modal>
         </div>
     );
 }

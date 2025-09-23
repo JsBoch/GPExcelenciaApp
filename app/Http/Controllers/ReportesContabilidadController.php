@@ -81,117 +81,73 @@ class ReportesContabilidadController extends Controller
         return response()->json(['fecha' => now()->toDateString()]);
     }
 
-    // private function construirConsultaCotizaciones(array $filtros)
-    // {
-    //     $query = DB::table('adm_cotizacion as ac')
-    //         ->select(
-    //             'ac.idcotizacion',
-    //             DB::raw('CONCAT(\'CT\',CAST(ac.nocotizacion AS CHAR)) as nocotizacion'),
-    //             DB::raw("
-    //             CASE
-    //                 WHEN ac.estado = 4 THEN ac.fecha_prefacturacion
-    //                 WHEN ac.estado = 5 THEN ac.fecha_facturacion
-    //                 ELSE ac.fecha_cotizacion
-    //             END as fecha_cotizacion
-    //         "),
-    //             'ae.nombre as vendedor',
-    //             'c.nombre as cliente',
-    //             'ac.total_general',
-    //             'ac.estado'
-    //         )
-    //         ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-    //         ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-    //         ->where('ac.estado', '>', 0);
-
-    //     if ($filtros['estado'] ?? null && $filtros['estado'] === 4) {
-    //         $query->whereBetween(DB::raw('date(ac.fecha_prefacturacion)'), [$filtros['desde'], $filtros['hasta']]);
-    //     } else if ($filtros['estado'] ?? null && $filtros['estado'] === 5) {
-    //         $query->whereBetween(DB::raw('date(ac.fecha_facturacion)'), [$filtros['desde'], $filtros['hasta']]);
-    //     } else {
-    //         $query->whereBetween(DB::raw('date(ac.fecha_cotizacion)'), [$filtros['desde'], $filtros['hasta']]);
-    //     }
-
-
-    //     if (!empty($filtros['vendedor_id'])) {
-    //         $query->where('ae.id_empleado', $filtros['vendedor_id']);
-    //     }
-
-    //     if (!empty($filtros['estado'])) {
-    //         $query->where('ac.estado', $filtros['estado']);
-    //     }
-
-    //     if (!empty($filtros['search'])) {
-    //         $query->where(function ($q) use ($filtros) {
-    //             $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
-    //                 ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
-    //         });
-    //     }
-
-    //     return $query;
-    // }
     private function construirConsultaCotizaciones(array $filtros)
-    {
-        $query = DB::table('adm_cotizacion as ac')
-            ->select(
-                'ac.idcotizacion',
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
-                DB::raw("
+{
+    $query = DB::table('adm_cotizacion as ac')
+        ->select(
+            'ac.idcotizacion',
+            DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+
+            // La fecha que se mostrará en la columna "Fecha" (como ya la tenías)
+            DB::raw("
                 CASE
-                    WHEN ac.estado = 4 THEN COALESCE(ac.fecha_prefacturacion, ac.fecha_cotizacion)
-                    WHEN ac.estado = 6 THEN COALESCE(ac.fecha_certificacion, ac.fecha_cotizacion)
-                    ELSE ac.fecha_cotizacion
-                END as fecha_cotizacion
+                    WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
+                    WHEN ac.estado = 6 THEN DATE(ac.fecha_certificacion)
+                    ELSE DATE(ac.fecha_cotizacion)
+                END AS fecha_cotizacion
             "),
-                'ae.nombre as vendedor',
-                'c.nombre as cliente',
-                'ac.total_general',
-                'ac.estado',
-                // ⬇️ Días desde la prefacturación (NULL si no tiene prefacturación)
-                DB::raw("
-                CASE
-                    WHEN ac.fecha_prefacturacion IS NULL THEN NULL
-                    ELSE DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion))
-                END AS dias_desde_prefacturacion
+
+            'ae.nombre AS vendedor',
+            'c.nombre AS cliente',
+            'ac.total_general',
+            'ac.estado',
+
+            // ✅ DÍAS DESDE PRE-FACTURACIÓN: solo si existe la fecha; si no, 0.
+            DB::raw("
+                COALESCE(
+                    GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
+                    0
+                ) AS dias_desde_prefacturacion
             ")
-            )
-            ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-            ->where('ac.estado', '>', 0);
+        )
+        ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+        ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+        ->where('ac.estado', '>', 0);
 
-        // Filtro por rango de fechas usando la columna adecuada
-        $desde = $filtros['desde'] ?? null;
-        $hasta = $filtros['hasta'] ?? null;
+    // Filtro de rango por la columna adecuada (igual que lo tenías)
+    $desde = $filtros['desde'] ?? null;
+    $hasta = $filtros['hasta'] ?? null;
 
-        if ($desde && $hasta) {
-            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
-            } else {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
-            }
+    if ($desde && $hasta) {
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+        } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
+        } else {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
         }
-
-        if (!empty($filtros['vendedor_id'])) {
-            $query->where('ae.id_empleado', $filtros['vendedor_id']);
-        }
-
-        if (!empty($filtros['estado'])) {
-            $query->where('ac.estado', (int)$filtros['estado']);
-        }
-
-        if (!empty($filtros['search'])) {
-            $query->where(function ($q) use ($filtros) {
-                $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
-                    ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
-            });
-        }
-
-        // Orden: prefacturación descendente (prefijado)
-        $query->orderBy('fecha_cotizacion', 'asc');
-
-        return $query;
     }
+
+    if (!empty($filtros['vendedor_id'])) {
+        $query->where('ae.id_empleado', $filtros['vendedor_id']);
+    }
+
+    if (!empty($filtros['estado'])) {
+        $query->where('ac.estado', (int)$filtros['estado']);
+    }
+
+    if (!empty($filtros['search'])) {
+        $query->where(function ($q) use ($filtros) {
+            $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+              ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+        });
+    }
+
+    $query->orderBy('fecha_cotizacion', 'asc');
+
+    return $query;
+}
+
 
 
     /**
@@ -331,23 +287,7 @@ class ReportesContabilidadController extends Controller
             ->header('Content-Type', 'text/html; charset=UTF-8');
     }
 
-    // public function pdf(Request $request)
-    // {
-    //     $data = $this->buildCarteraData($request); // mismo que usa index/html
-    //     $html = view('reportes.cartera', $data)->render();
 
-    //     $pdf = Pdf::loadHTML($html)
-    //         ->setPaper('letter', 'landscape'); // portraint o 'legal' si te cuadra mejor
-
-    //     $filename = sprintf(
-    //         'cartera_%s_%s_%s.pdf',
-    //         $data['encabezado']['fecha_reporte'],
-    //         str($data['encabezado']['departamento'])->slug('_') ?? 'todos',
-    //         str($data['encabezado']['vendedor'])->slug('_') ?? 'todos'
-    //     );
-
-    //     return $pdf->download($filename); // o ->stream($filename)
-    // }
     public function pdf(Request $request)
     {
         $data = $this->buildCarteraData($request);

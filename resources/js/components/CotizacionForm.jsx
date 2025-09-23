@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Link, useParams, useNavigate } from "react-router-dom";
@@ -23,6 +23,9 @@ import {
 import Header from "./Header";
 import FormSection from "./FormSection";
 import TipoPagoModal from "./TipoPagoModal";
+import CotizacionPDF from "./CotizacionPDF";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
+import "../../css/cotizacion-form.css";
 
 DataTable.use(DT);
 
@@ -50,6 +53,7 @@ function CotizacionForm() {
     const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
     const [tipoPagoModalOpen, setTipoPagoModalOpen] = useState(false);
     const toggleTipoPagoModal = () => setTipoPagoModalOpen(!tipoPagoModalOpen);
+    const [pdfData, setPdfData] = useState(null); // payload para renderizar el PDF
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -105,13 +109,13 @@ function CotizacionForm() {
     });
 
     useEffect(() => {
-    if (!id && fechaActual) {
-        setCotizacion((prev) => ({
-            ...prev,
-            fecha_cotizacion: fechaActual,
-        }));
-    }
-}, [fechaActual]);
+        if (!id && fechaActual) {
+            setCotizacion((prev) => ({
+                ...prev,
+                fecha_cotizacion: fechaActual,
+            }));
+        }
+    }, [fechaActual]);
 
     //CAMBIO: Estados para almacenar precios y cantidades del modal
     const [productoPredefinido, setProductoPredefinido] = useState(null);
@@ -294,6 +298,14 @@ function CotizacionForm() {
             });
     }, []);
 
+    // helper: garantiza un nombre de archivo con extensión
+    const ensureNamedFile = (file) => {
+        if (file.name && file.name.includes(".")) return file;
+        const mime = file.type || "image/png";
+        const ext = (mime.split("/")[1] || "png").replace("jpeg", "jpg");
+        return new File([file], `pasted-${Date.now()}.${ext}`, { type: mime });
+    };
+
     const handleClienteChange = (selectedOption) => {
         setClienteId(selectedOption.value);
         setCotizacion({
@@ -319,9 +331,62 @@ function CotizacionForm() {
             });
     };
 
+    const generarPDFPorId = async (idCot, fecha) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alertify.error("Token no encontrado.");
+            return;
+        }
+
+        alertify.message("Generando PDF…");
+        console.log("[PDF] Solicitando:", `/api/cotizaciones/${idCot}/pdf`, {
+            fecha,
+        });
+
+        try {
+            const res = await fetch(`/api/cotizaciones/${idCot}/pdf`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ fecha_cotizacion: fecha }),
+            });
+            let data;
+            try {
+                data = await res.json();
+            } catch (e) {
+                console.error("[PDF] Error parseando JSON:", e);
+                alertify.error("Respuesta inválida del servidor.");
+                return;
+            }
+            if (!res.ok) {
+                console.error("[PDF] HTTP error:", res.status, data);
+                alertify.error(data?.message || "Error generando PDF.");
+                return;
+            }
+            console.log("[PDF] OK:", data);
+            setPdfData(data); // 👉 esto abre el overlay
+            limpiarCampos();
+        } catch (err) {
+            console.error("[PDF] Fetch error:", err);
+            alertify.error("No se pudo solicitar el PDF.");
+        }
+    };
+
     //Actualiza el estado de la cotización con el valor de cada campo cuando estos cambian
     const handleChange = (e) => {
         setCotizacion({ ...cotizacion, [e.target.name]: e.target.value });
+    };
+
+    const getIdFromCreateResponse = (res) => {
+        return (
+            res?.data?.idcotizacion ??
+            res?.data?.cotizacion?.idcotizacion ??
+            res?.data?.data?.idcotizacion ??
+            res?.data?.id ?? // por si el backend usa 'id'
+            null
+        );
     };
 
     //Envía los datos al back-end para registrar, en el método store.
@@ -433,8 +498,13 @@ function CotizacionForm() {
             // --- Manejo de IMAGEN al enviar FormData ---
             if (detalle.imagen) {
                 // Caso 1: Se seleccionó un NUEVO archivo
-                formData.append(`detalles[${index}][imagen]`, detalle.imagen);
+                //formData.append(`detalles[${index}][imagen]`, detalle.imagen);
                 //console.log(`Frontend: Adjuntando nuevo archivo para índice ${index}`); // Log para verificar
+                formData.append(
+                    `detalles[${index}][imagen]`,
+                    detalle.imagen,
+                    detalle.imagen.name || "imagen.png"
+                );
             } else if (detalle.imagen_ruta) {
                 // Caso 2: NO se seleccionó un archivo nuevo, pero existe una ruta vieja
                 // Enviamos la ruta vieja para que el backend sepa que debe mantenerla
@@ -462,13 +532,30 @@ function CotizacionForm() {
                     headers,
                 });
                 alertify.success("Cotización actualizada correctamente");
+                // Generar PDF del id existente con la fecha del formulario
+                await generarPDFPorId(id, cotizacion.fecha_cotizacion);
             } else {
                 res = await axios.post("/api/cotizaciones", formData, {
                     headers,
                 });
                 alertify.success("Cotización creada correctamente");
+                // El backend devuelve la cotización creada con su id
+                const nuevoId = getIdFromCreateResponse(res);
+                console.log(
+                    "[CREATE] Respuesta creación:",
+                    res?.data,
+                    "→ id:",
+                    nuevoId
+                );
+                if (!nuevoId) {
+                    alertify.warning(
+                        "Se guardó la cotización, pero no pude obtener el ID para generar el PDF. Revisa la respuesta en consola."
+                    );
+                    return;
+                }
+                await generarPDFPorId(nuevoId, cotizacion.fecha_cotizacion);
             }
-            navigate("/cotizaciones/lista");
+            //navigate("/cotizaciones/lista");
         } catch (error) {
             console.error("Error al guardar la cotización:", error);
             alertify.error("Error al guardar la cotización", error);
@@ -481,17 +568,88 @@ function CotizacionForm() {
     };
 
     //Para gestionar la imagen del detalle
+    // const handleImagenChange = (e) => {
+    //     if (e.target.files && e.target.files[0]) {
+    //         setDetalle({
+    //             ...detalle,
+    //             imagen: e.target.files[0],
+    //             imagen_preview: URL.createObjectURL(e.target.files[0]),
+    //         });
+    //     } else {
+    //         setDetalle({ ...detalle, imagen: null, imagen_preview: null });
+    //     }
+    // };
     const handleImagenChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setDetalle({
-                ...detalle,
-                imagen: e.target.files[0],
-                imagen_preview: URL.createObjectURL(e.target.files[0]),
-            });
-        } else {
-            setDetalle({ ...detalle, imagen: null, imagen_preview: null });
-        }
+        const file = e.target.files?.[0] || null;
+        if (file) setImagenFromFile(file);
+        else
+            setDetalle((prev) => ({
+                ...prev,
+                imagen: null,
+                imagen_preview: null,
+            }));
     };
+
+    // Ref al input file (para dispararlo desde un botón si quieres)
+    const fileInputRef = useRef(null);
+
+    // Centraliza el seteo de la imagen (click, pegar o arrastrar)
+    const setImagenFromFile = useCallback((file) => {
+        if (!file) return;
+        if (!file.type?.startsWith("image/")) {
+            alertify.error("Solo se permiten archivos de imagen.");
+            return;
+        }
+        const named = ensureNamedFile(file);
+        setDetalle((prev) => {
+            // Libera el blob anterior para evitar fugas de memoria
+            if (
+                prev.imagen_preview &&
+                String(prev.imagen_preview).startsWith("blob:")
+            ) {
+                URL.revokeObjectURL(prev.imagen_preview);
+            }
+            return {
+                ...prev,
+                imagen: named,
+                //imagen: file, // ← archivo File real
+                imagen_preview: URL.createObjectURL(named), // ← preview
+                imagen_ruta: null, // ← anulamos ruta antigua si existía
+            };
+        });
+    }, []);
+
+    const handlePasteImage = useCallback(
+        (e) => {
+            const items = e.clipboardData?.items || [];
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                if (it.kind === "file" && it.type.startsWith("image/")) {
+                    const file = it.getAsFile();
+                    if (file) {
+                        e.preventDefault(); // evita que pegue texto en algún input
+                        setImagenFromFile(file);
+                        break;
+                    }
+                }
+            }
+        },
+        [setImagenFromFile]
+    );
+
+    const handleDragOverImage = (e) => {
+        // Necesario para permitir drop
+        e.preventDefault();
+    };
+
+    const handleDropImage = useCallback(
+        (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer?.files?.[0];
+            if (file) setImagenFromFile(file);
+        },
+        [setImagenFromFile]
+    );
 
     //Agregar los datos del detalle al DataTable
     const handleAddDetalle = () => {
@@ -1023,14 +1181,21 @@ function CotizacionForm() {
             profundidad: 0,
             precio: 0,
             total: 0,
+            imagen: null,
+            imagen_preview: null,
+            imagen_ruta: null,
         });
+        setClienteId("");
+        setContactos([]);
+        setDetalleSeleccionado(null);
+        setProductoPredefinido(null);
+        setIsImageModalOpen(false);
+        setSelectedImageUrl(null);
     };
 
     return (
         <div className="mt-4 mb-4">
-            <Header
-                title={id ? "Editar Cotización" : "Crear Cotización"}
-            />
+            <Header title={id ? "Editar Cotización" : "Crear Cotización"} />
             <div className="card shadow p-4">
                 {/* <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
@@ -1326,12 +1491,50 @@ function CotizacionForm() {
                                     <label className="form-label fw-bold">
                                         Imagen (Opcional)
                                     </label>
-                                    <input
+                                    {/* <input
                                         type="file"
                                         name="imagen"
                                         className="form-control form-control-sm"
                                         onChange={handleImagenChange}
-                                    />
+                                    /> */}
+                                    <div
+                                        className="form-control form-control-sm d-flex flex-column align-items-center justify-content-center"
+                                        onPaste={handlePasteImage}
+                                        onDragOver={handleDragOverImage}
+                                        onDrop={handleDropImage}
+                                        tabIndex={0} // ← hace focusable el área para Ctrl+V
+                                        style={{
+                                            height: 90,
+                                            borderStyle: "dashed",
+                                            cursor: "pointer",
+                                        }}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                        title="Click para seleccionar, o arrastra/pega una imagen"
+                                    >
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            name="imagen"
+                                            style={{ display: "none" }}
+                                            onChange={handleImagenChange}
+                                        />
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                textAlign: "center",
+                                                lineHeight: 1.2,
+                                            }}
+                                        >
+                                            <strong>Click</strong> para
+                                            seleccionar
+                                            <br />o{" "}
+                                            <strong>arrastra/pega</strong> aquí
+                                            una imagen
+                                        </div>
+                                    </div>
                                     {detalle.imagen_preview && (
                                         <img
                                             src={detalle.imagen_preview}
@@ -1464,32 +1667,26 @@ function CotizacionForm() {
                             className="mt-4 p-3 border rounded shadow-sm bg-light"
                             style={{ borderColor: "#ddd" }}
                         >
-                            <div className="d-flex flex-wrap gap-2 justify-content-between">
+                            {/* --- Barra de acciones --- */}
+                            <div className="mt-4 action-toolbar">
                                 <button
                                     type="submit"
-                                    className="btn btn-sm btn-guardar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{ minWidth: "150px" }}
+                                    className="btn-action btn-save flex-fill"
                                 >
                                     <FaSave /> {id ? "ACTUALIZAR" : "GUARDAR"}
                                 </button>
+
                                 <button
-                                    type="button" // Importante: no es un botón de submit
-                                    className="btn btn-sm btn-limpiar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{
-                                        minWidth: "150px",
-                                        color: "#000",
-                                        border: "1px solid #ccc",
-                                    }}
-                                    onClick={limpiarCampos} // Asocia la función al evento onClick
+                                    type="button"
+                                    className="btn-action btn-clean flex-fill"
+                                    onClick={limpiarCampos}
                                 >
-                                    <FaBroom />{" "}
-                                    {/* Puedes usar otro icono como FaBroom */}{" "}
-                                    LIMPIAR
+                                    <FaBroom /> LIMPIAR
                                 </button>
+
                                 <Link
                                     to="/cotizaciones/lista"
-                                    className="btn btn-sm btn-consultar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{ minWidth: "150px" }}
+                                    className="btn-action btn-consult flex-fill"
                                 >
                                     <FaSearch /> CONSULTAR
                                 </Link>
@@ -1587,7 +1784,73 @@ function CotizacionForm() {
                             }));
                         }}
                         tiposExistentes={tiposPago} // ✅ aquí pasamos la lista existente
-                    />
+                    />{" "}
+                    {pdfData && (
+                        <div
+                            style={{
+                                position: "fixed",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                zIndex: 1000,
+                            }}
+                        >
+                            <div style={{ width: "80%", height: "80%" }}>
+                                <PDFViewer width="100%" height="100%">
+                                    <CotizacionPDF
+                                        cotizacion={pdfData.cotizacion}
+                                        totalEnLetras={pdfData.totalEnLetras}
+                                        logoSrc="/images/LogoGP.jpg"
+                                    />
+                                </PDFViewer>
+                            </div>
+
+                            <div className="mt-3 d-flex gap-2">
+                                <PDFDownloadLink
+                                    document={
+                                        <CotizacionPDF
+                                            cotizacion={pdfData.cotizacion}
+                                            totalEnLetras={
+                                                pdfData.totalEnLetras
+                                            }
+                                            logoSrc="/images/LogoGP.jpg"
+                                        />
+                                    }
+                                    fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
+                                    className="btn btn-primary"
+                                >
+                                    {({ loading }) =>
+                                        loading
+                                            ? "Preparando PDF..."
+                                            : "Descargar PDF"
+                                    }
+                                </PDFDownloadLink>
+
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => setPdfData(null)}
+                                >
+                                    Cerrar PDF
+                                </button>
+                                {/* Opcional: volver a la lista al cerrar */}
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setPdfData(null);
+                                        navigate("/cotizaciones/lista");
+                                    }}
+                                >
+                                    Ir a la lista
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

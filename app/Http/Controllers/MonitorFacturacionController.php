@@ -17,83 +17,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Support\NitUtils;
 use Carbon\Carbon;
+use App\Models\ComentarioPreFacturacion;
+use App\Models\AdmFacturacion;
 
 
 class MonitorFacturacionController extends Controller
 {
-    // public function index(Request $request)
-    // {
-    //     $fechaInicio = $request->query('fechaInicio');
-    //     $fechaFinal = $request->query('fechaFinal');
-    //     $estado = $request->query('estado');
-
-    //     $query = AdmCotizacion::whereIn('c.estado', [4, 5, 6])
-    //         ->select(
-    //             'c.idcotizacion',
-    //             DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
-    //             'c.fecha_cotizacion',
-    //             't.tipo as tipo_pago',
-    //             'c.total_general',
-    //             'c.costear',
-    //             'cl.nombre as cliente',
-    //             'ct.nombre as contacto',
-    //             'c.direccion_entrega',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.costeo_observaciones',
-    //             'c.idcotizacionoriginal',
-    //             'c.idcliente',
-    //             'c.idcontacto',
-    //             'c.trabajo',
-    //             'c.version',
-    //             'c.idtipopago',
-    //             'c.estado',
-    //             DB::raw("CASE
-    //                 WHEN c.estado = 1 THEN 'REGISTRO'
-    //                 WHEN c.estado = 2 THEN 'COSTEO'
-    //                 WHEN c.estado = 3 THEN 'COSTEADA'
-    //                 WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-    //                 WHEN c.estado = 5 THEN 'PARA FACTURAR'
-    //                 WHEN c.estado = 6 THEN 'FACTURADA'
-    //                 WHEN c.estado = 7 THEN 'ANULADA'
-    //                 ELSE 'DESCONOCIDO'
-    //             END as estado_texto"),
-    //             'c.uuid',
-    //             'c.serie',
-    //             'c.numero',
-    //             'c.errores',
-    //             'c.resultado',
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
-
-    //     // 👇 Aplica el filtro por fechas si están definidos
-    //     if ($estado) {
-    //         $query->where('c.estado', $estado);
-
-    //         // Si estado = 5 (PARA FACTURAR), no aplicar filtro de fecha
-    //         if ($estado != 5 && $fechaInicio && $fechaFinal) {
-    //             $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
-    //         }
-    //     } elseif ($fechaInicio && $fechaFinal) {
-    //         $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
-    //     }
-    //     // if ($fechaInicio && $fechaFinal) {
-    //     //     $query->whereRaw("DATE(c.fecha_cotizacion) BETWEEN ? AND ?", [$fechaInicio, $fechaFinal]);
-    //     // }
-
-    //     // Log::info($query);
-    //     $cotizaciones = $query->get();
-    //     // Decodificar errores para cada cotización
-    //     foreach ($cotizaciones as $cot) {
-    //         if (is_string($cot->errores) && $this->isJson($cot->errores)) {
-    //             $cot->errores = json_decode($cot->errores, true);
-    //         }
-    //     }
-    //     return response()->json($cotizaciones);
-    // }
     public function index(Request $request)
     {
         $estado      = $request->query('estado');
@@ -106,22 +35,52 @@ class MonitorFacturacionController extends Controller
         $desde = $start->copy()->startOfDay()->toDateTimeString();
         $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
 
-        // ⬇️ Fecha dinámica SIN comparar con '0000-00-00 ...'
+        //  Subconsulta: última certificación exitosa por cotización
+        $latestSuccessful = DB::table('adm_facturacion')
+            ->selectRaw('idcotizacion, MAX(idfactura) as idfactura')
+            ->where('resultado', 'S')
+            ->where('estado', 1)
+            ->groupBy('idcotizacion');
+
+        $facturacion = DB::table('adm_facturacion as af')
+            ->joinSub($latestSuccessful, 'x', function ($join) {
+                $join->on('x.idfactura', '=', 'af.idfactura');
+            })
+            ->select(
+                'af.idcotizacion',
+                'af.uuid',
+                'af.serie',
+                'af.numero',
+                'af.nofactura',
+                'af.fecha_certificacion',
+                'af.errores',
+                'af.resultado'
+            );
+
         $fechaDinamica = "
         CASE
             WHEN c.estado = 4 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_prefacturacion),0))
-            WHEN c.estado = 6 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_certificacion),0))
+            WHEN c.estado = 6 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(f.fecha_certificacion),0))
             ELSE FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_cotizacion),0))
         END
     ";
 
-        $query = AdmCotizacion::from('adm_cotizacion as c')
-            ->select(
+        //  👇 Usa Query Builder puro, no el modelo Eloquent
+        $query = DB::table('adm_cotizacion as c')
+            ->leftJoinSub($facturacion, 'f', function ($join) {
+                $join->on('f.idcotizacion', '=', 'c.idcotizacion');
+            })
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->select([
                 'c.idcotizacion',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 DB::raw("$fechaDinamica AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
-                'c.total_general',
+
+                //   👇 Fuerza que venga numérico (sin tocar los decimales reales)                
+                DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
                 'c.costear',
                 'cl.nombre as cliente',
                 'ct.nombre as contacto',
@@ -136,6 +95,25 @@ class MonitorFacturacionController extends Controller
                 'c.version',
                 'c.idtipopago',
                 'c.estado',
+                DB::raw("CAST(EXISTS(
+                SELECT 1
+                FROM adm_comentarios_prefacturacion cp
+                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+            ) AS UNSIGNED) as has_comentarios"),
+                DB::raw("(SELECT COUNT(*)
+                FROM adm_comentarios_prefacturacion cp
+                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+            ) as comentarios_count"),
+                DB::raw("(SELECT MAX(cp.fecha_registro)
+                FROM adm_comentarios_prefacturacion cp
+                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+            ) as last_comentario_at"),
+                DB::raw("(SELECT LEFT(cp2.comentario, 100)
+                FROM adm_comentarios_prefacturacion cp2
+                WHERE cp2.idcotizacion = c.idcotizacion AND cp2.estado = 1
+                ORDER BY cp2.fecha_registro DESC, cp2.idcomentarioprefacturacion DESC
+                LIMIT 1
+            ) as last_comentario_snippet"),
                 DB::raw("CASE
                 WHEN c.estado = 1 THEN 'REGISTRO'
                 WHEN c.estado = 2 THEN 'COSTEO'
@@ -147,16 +125,13 @@ class MonitorFacturacionController extends Controller
                 WHEN c.estado = 8 THEN 'RECHAZADA'
                 ELSE 'DESCONOCIDO'
             END as estado_texto"),
-                'c.nofactura',
-                'c.uuid',
-                'c.serie',
-                'c.numero',
-                'c.errores',
-                'c.resultado'
-            )
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
+                DB::raw("CASE WHEN c.estado = 6 THEN f.nofactura ELSE c.nofactura END as nofactura"),
+                DB::raw("CASE WHEN c.estado = 6 THEN f.uuid      ELSE c.uuid      END as uuid"),
+                DB::raw("CASE WHEN c.estado = 6 THEN f.serie     ELSE c.serie     END as serie"),
+                DB::raw("CASE WHEN c.estado = 6 THEN f.numero    ELSE c.numero    END as numero"),
+                DB::raw("CASE WHEN c.estado = 6 THEN f.resultado ELSE c.resultado END as resultado"),
+                DB::raw("CASE WHEN c.estado = 6 THEN f.errores   ELSE c.errores   END as errores"),
+            ]);
 
         if ($estado !== null && $estado !== '') {
             $query->where('c.estado', (int)$estado);
@@ -164,19 +139,21 @@ class MonitorFacturacionController extends Controller
             $query->whereIn('c.estado', [4, 5, 6]);
         }
 
-        // ⬇️ filtra solo cuando la fecha dinámica es válida
-        $query->whereRaw("($fechaDinamica) IS NOT NULL AND ($fechaDinamica) >= ? AND ($fechaDinamica) < ?", [$desde, $hasta]);
+        $query->whereRaw("($fechaDinamica) IS NOT NULL AND ($fechaDinamica) >= ? AND ($fechaDinamica) < ?", [$desde, $hasta])
+            ->orderByRaw("($fechaDinamica) DESC");
 
-        // Si tu MySQL no deja ordenar por alias, usa orderByRaw:
-        $query->orderByRaw("($fechaDinamica) DESC");
-
+        // log:info('Consulta MonitorFacturacion: ' . $query->toSql() . ' con params: ' . implode(', ', $query->getBindings()));
         $cotizaciones = $query->get();
 
         foreach ($cotizaciones as $cot) {
             if (is_string($cot->errores) && $this->isJson($cot->errores)) {
                 $cot->errores = json_decode($cot->errores, true);
             }
+            if (isset($cot->total_general)) {
+                $cot->total_general = (float) $cot->total_general; // <- clave
+            }
         }
+
         return response()->json($cotizaciones);
     }
 
@@ -186,6 +163,47 @@ class MonitorFacturacionController extends Controller
     {
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    // === Helpers para PDF de factura (usar snapshot de adm_facturacion) ===
+
+    /** Devuelve la última factura vigente y certificada de una cotización */
+    private function facturaVigente(int $idcotizacion): ?AdmFacturacion
+    {
+        return AdmFacturacion::where('idcotizacion', $idcotizacion)
+            ->where('estado', 1)          // vigente
+            ->where('resultado', 'S')     // certificada OK
+            ->latest('idfactura')
+            ->first();
+    }
+
+    /** Arma el objeto "cabecera" que tu vista pdf.factura espera, SIN cambiar la vista */
+    private function cabeceraParaVista(AdmFacturacion $f, AdmCotizacion $c): \stdClass
+    {
+        $obj = new \stdClass();
+        $obj->idcotizacion        = $c->idcotizacion;
+        $obj->serie               = $f->serie;
+        $obj->numero              = $f->numero;
+        $obj->numero_autorizacion = $f->uuid; // antes venía de c.uuid
+        $obj->fecha_emision       = Carbon::parse($f->fecha_certificacion)->toDateString();
+        $obj->total               = $c->total_general;
+
+        // Receptor: usar SIEMPRE lo fotografiado en adm_facturacion
+        $obj->nit        = $f->numero_crtf;
+        $obj->nombre     = $f->nombre_crtf;
+        $obj->direccion  = $f->direccion_crtf;
+
+        // Correlativos que tu vista usa tal cual
+        $obj->nofactura    = $f->nofactura;       // interno (ya se genera en certif.)
+        $obj->nocotizacion = $c->nocotizacion;
+        $obj->estado       = $c->estado ?? 6;
+
+        // Número interno con el mismo formato de siempre
+        $facturaStr    = $this->pad((int) ($f->nofactura ?? 0), 6);
+        $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
+        $obj->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
+
+        return $obj;
     }
 
     public function generarPdf($id)
@@ -399,41 +417,6 @@ class MonitorFacturacionController extends Controller
         $idReceptor = '';
         $tipoEspecial = null;
 
-        // switch ($docTipo) {
-        //     case 'CF':
-        //         $idReceptor = 'CF';
-        //         break;
-
-        //     case 'NIT':
-        //         if (!NitUtils::esValido($docValor)) {
-        //             throw ValidationException::withMessages([
-        //                 'documento_valor' => ['NIT no válido para Guatemala.'],
-        //             ]);
-        //         }
-        //         $idReceptor = NitUtils::normalizarParaFEL($docValor); // dígitos y K, sin guión
-        //         break;
-
-        //     case 'CUI':
-        //         $cui = preg_replace('/\D/', '', $docValor);
-        //         if (strlen($cui) < 12 || strlen($cui) > 13) {
-        //             throw ValidationException::withMessages([
-        //                 'documento_valor' => ['CUI/DPI debe tener 12 o 13 dígitos.'],
-        //             ]);
-        //         }
-        //         $idReceptor = $cui;
-        //         $tipoEspecial = 'CUI';
-        //         break;
-
-        //     case 'PASAPORTE':
-        //         if ($docValor === '') {
-        //             throw ValidationException::withMessages([
-        //                 'documento_valor' => ['Ingrese un número de pasaporte.'],
-        //             ]);
-        //         }
-        //         $idReceptor = strtoupper($docValor);
-        //         $tipoEspecial = 'EXT';
-        //         break;
-        // }
         switch ($docTipo) {
             case 'CF':
                 $idReceptor = 'CF';
@@ -525,29 +508,6 @@ class MonitorFacturacionController extends Controller
         $dirEmisor->appendChild($doc->createElement('dte:Municipio', 'MIXCO'));
         $dirEmisor->appendChild($doc->createElement('dte:Departamento', 'GUATEMALA'));
         $dirEmisor->appendChild($doc->createElement('dte:Pais', 'GT'));
-
-        /**
-         * DATOS DEL MODAL PARA RECEPTOR
-         */
-        // $Receptor = $doc->createElement('dte:Receptor');
-        // $Receptor->setAttribute('CorreoReceptor', $correo ?? '');
-        // $Receptor->setAttribute('IDReceptor', $idReceptor);
-
-        // if ($tipoEspecial) {
-        //     $TipoEspecial = $doc->createElement('dte:TipoEspecial', $tipoEspecial);
-        //     $Receptor->appendChild($TipoEspecial);
-        // }
-
-        // $Receptor->setAttribute('NombreReceptor', $nombre);
-        // $DatosEmision->appendChild($Receptor);
-
-        // $dirReceptor = $doc->createElement('dte:DireccionReceptor');
-        // $Receptor->appendChild($dirReceptor);
-        // $dirReceptor->appendChild($doc->createElement('dte:Direccion', $direccion));
-        // $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $detalle->codigo_postal ?? '01001'));
-        // $dirReceptor->appendChild($doc->createElement('dte:Municipio', $detalle->municipio));
-        // $dirReceptor->appendChild($doc->createElement('dte:Departamento', $detalle->departamento));
-        // $dirReceptor->appendChild($doc->createElement('dte:Pais', $detalle->pais));
 
         $Receptor = $doc->createElement('dte:Receptor');
         $Receptor->setAttribute('CorreoReceptor', $correo ?? '');
@@ -699,83 +659,110 @@ class MonitorFacturacionController extends Controller
             $json = $response->json();
 
             // Log::info($json);
-            //Se graba en la base de datos la respuesta del SAT
-            $cotizacion = AdmCotizacion::find($idcotizacion);
+            DB::transaction(function () use ($json, $response, $idcotizacion, $identificador, $idReceptor, $docTipo, $tipoEspecial, $nombre, $correo, $direccion) {
+                $cotizacion = AdmCotizacion::lockForUpdate()->findOrFail($idcotizacion);
 
-            if ($cotizacion) {
-                if ($response->successful() && isset($json['resultado']) && $json['resultado'] === true) {
-
-                    $correlativo = Correlativo::find('nofactura');
+                // Se graba en la base de datos la respuesta de SAT
+                if ($response->successful() && ($json['resultado'] ?? false) === true) {
+                    // ⭐ correlativo interno (igual que hoy)
+                    $correlativo = Correlativo::lockForUpdate()->find('nofactura');
                     if (!$correlativo) {
-                        return response()->json(['message' => 'No se encontró el correlativo para el numero interno'], 400);
+                        throw new \RuntimeException('No se encontró el correlativo para el numero interno');
                     }
-
                     $noFactura = $correlativo->correlativo + $correlativo->incremento;
                     $correlativo->correlativo = $noFactura;
                     $correlativo->save();
 
-                    $cotizacion->update([
+                    // ⭐ crear fila en adm_facturacion (NO tocar campos “de factura” en cotización)
+                    $factura = AdmFacturacion::create([
+                        'idcotizacion'         => $cotizacion->idcotizacion,
                         'resultado'            => 'S',
-                        'uuid'                 => $json['uuid'],
-                        'serie'                => $json['serie'],
-                        'numero'               => $json['numero'],
-                        'descripcion'          => $json['descripcion'],
-                        'fecha_certificacion'  => $json['fecha'],
-                        'xml_certificado'      => base64_encode($json['xml_certificado']),
-                        'alertas'              => $json['descripcion_alertas_infile'] ?? null,
+                        'uuid'                 => $json['uuid']  ?? null,
+                        'serie'                => $json['serie'] ?? null,
+                        'numero'               => $json['numero'] ?? null,
+                        'descripcion'          => $json['descripcion'] ?? null,
+
+                        // normaliza formato a 'Y-m-d H:i:s'
+                        'fecha_certificacion'  => isset($json['fecha'])
+                            ? Carbon::parse($json['fecha'])->toDateTimeString()
+                            : now()->toDateTimeString(),
+
+                        // si ya viene como string (base64), guarda tal cual; si no, fuerza a string y codifica
+                        'xml_certificado'      => is_string($json['xml_certificado'] ?? null)
+                            ? $json['xml_certificado']
+                            : base64_encode((string)($json['xml_certificado'] ?? '')),
+
+                        // evita "Array to string conversion"
+                        'alertas'              => isset($json['descripcion_alertas_infile'])
+                            ? (is_array($json['descripcion_alertas_infile'])
+                                ? json_encode($json['descripcion_alertas_infile'], JSON_UNESCAPED_UNICODE)
+                                : (string)$json['descripcion_alertas_infile'])
+                            : null,
+
                         'identificador'        => $identificador,
-                        'estado'               => 6,
-                        'nofactura'            => $noFactura,
-                        'numero_crtf'          => $idReceptor,          // CF, NIT normalizado, CUI, PASAPORTE
-                        'tipo_crtf'            => $docTipo,             // NIT | CUI | PASAPORTE | CF
-                        'tipo_especial_crtf'   => $tipoEspecial,        // 'CUI' o 'Número de documento...' o NULL
+                        'numero_crtf'          => $idReceptor,
+                        'tipo_crtf'            => $docTipo,
+                        'tipo_especial_crtf'   => $tipoEspecial,
                         'nombre_crtf'          => $nombre,
                         'email_crtf'           => $correo,
                         'direccion_crtf'       => $direccion,
+                        'estado'               => 1,
+                        'nofactura'            => $noFactura,
                     ]);
 
-                    // === Crear cuenta por cobrar ===
-                    if (!AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->exists()) {
-                        $correlativoCXC = Correlativo::find('adm_cuentas_porcobrar');
+                    // ⭐ mover la cotización de 5 → 6 (pero sin “ensuciar” con campos FEL)
+                    $cotizacion->update(['estado' => 6]);
 
-                        if (! $correlativoCXC) {
-                            return response()->json(['message' => 'No se encontró correlativo para cuentas por cobrar'], 400);
+                    // ⭐ CxC por factura (NO por cotización genérica)
+                    if (!AdmCuentasPorCobrar::where('idfactura', $factura->idfactura)->exists()) {
+                        $correlativoCXC = Correlativo::lockForUpdate()->find('adm_cuentas_porcobrar');
+                        if (!$correlativoCXC) {
+                            throw new \RuntimeException('No se encontró correlativo para cuentas por cobrar');
                         }
-
                         $nuevoIdCXC = $correlativoCXC->correlativo + $correlativoCXC->incremento;
                         $correlativoCXC->correlativo = $nuevoIdCXC;
                         $correlativoCXC->save();
 
                         AdmCuentasPorCobrar::create([
-                            'idcuentaporcobrar'     => $nuevoIdCXC,
-                            'idcotizacion'          => $cotizacion->idcotizacion,
-                            'idcliente'             => $cotizacion->idcliente,
-                            'fecha_emision'         => now(),
-                            'fecha_vencimiento'     => now()->addDays(30),
-                            'moneda'                => 'GTQ',
-                            'tasa_cambio'           => 1,
-                            'monto_original'        => $cotizacion->total_general,
-                            'saldo_pendiente'       => $cotizacion->total_general,
-                            'monto_pagado'          => 0,
-                            'descuento_aplicado'    => 0,
-                            'idusuario_creacion'    => auth()->user()->id,
-                            'usuario_creacion'      => auth()->user()->name,
-                            'fecha_creacion'        => now(),
-                            'origen_registro'       => 'sistema',
-                            'centro_costo'          => 'produccion',
-                            'cuenta_contable'       => '0',
-                            'estatus_riesgo'        => 'medio',
-                            'estado'                => 1,
+                            'idcuentaporcobrar'  => $nuevoIdCXC,
+                            'idcotizacion'       => $cotizacion->idcotizacion,
+                            'idfactura'          => $factura->idfactura,  // ⭐ link directo
+                            'idcliente'          => $cotizacion->idcliente,
+                            'fecha_emision'      => now(),
+                            'fecha_vencimiento'  => now()->addDays(30),
+                            'moneda'             => 'GTQ',
+                            'tasa_cambio'        => 1,
+                            'monto_original'     => $cotizacion->total_general,
+                            'saldo_pendiente'    => $cotizacion->total_general,
+                            'monto_pagado'       => 0,
+                            'descuento_aplicado' => 0,
+                            'idusuario_creacion' => auth()->id(),
+                            'usuario_creacion'   => auth()->user()->name ?? 'sistema',
+                            'fecha_creacion'     => now(),
+                            'origen_registro'    => 'sistema',
+                            'centro_costo'       => 'produccion',
+                            'cuenta_contable'    => '0',
+                            'estatus_riesgo'     => 'medio',
+                            'estado'             => 1,
                         ]);
                     }
                 } else {
-                    $cotizacion->update([
-                        'resultado'     => 'N',
-                        'errores'       => $json['descripcion_errores'],
-                        'identificador' => $identificador,
+                    // ⭐ guardar intento fallido como fila también (opcional pero útil)
+                    AdmFacturacion::create([
+                        'idcotizacion'   => $idcotizacion,
+                        'resultado'      => 'N',
+                        // evita "Array to string conversion"
+                        'errores'        => isset($json['descripcion_errores'])
+                            ? (is_array($json['descripcion_errores'])
+                                ? json_encode($json['descripcion_errores'], JSON_UNESCAPED_UNICODE)
+                                : (string)$json['descripcion_errores'])
+                            : json_encode(['Error desconocido'], JSON_UNESCAPED_UNICODE),
+                        'identificador'  => $identificador,
+                        'estado'         => 0, // fallida/no vigente
                     ]);
                 }
-            }
+            });
+
             //fin de grabar en la base de datos
 
             if ($json['resultado'] === true) {
@@ -799,7 +786,7 @@ class MonitorFacturacionController extends Controller
             Log::error('Error al certificar XML FEL', [
                 'cotizacion_id' => $idcotizacion,
                 'exception' => $e->getMessage(),
-                'response' => $response->body() ?? 'Sin respuesta'
+                'trace'         => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -820,189 +807,55 @@ class MonitorFacturacionController extends Controller
         //     ->header('Content-Disposition', 'attachment; filename="FEL_' . $uuid . '.xml"');
     }
 
-    // public function generarImpresionFactura($id)
-    // {
-    //     $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-    //         ->select(
-    //             'c.serie',
-    //             'c.numero',
-    //             'c.uuid as numero_autorizacion',
-    //             DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
-    //             'c.total_general as total',
-    //             'cl.nit',
-    //             'cl.nombre',
-    //             'cl.direccion',
-    //             'd.cantidad',
-    //             'd.descripcion',
-    //             'd.precio as precio_unitario',
-    //             'd.total as precio_total',
-    //             'c.nofactura',
-    //             'c.nocotizacion',
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->first();
-
-
-    //     if (!$cotizacion) {
-    //         return response()->json(['message' => 'Cotización no encontrada'], 404);
-    //     }
-
-    //     // Crear número interno
-    //     // $fechaFormateada = \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('Ymd');
-    //     // $cotizacion->numero_interno = 'GP-' . $fechaFormateada . '-' . $cotizacion->nocotizacion;
-    //     // Año de la factura (usa fecha de emisión si existe, sino el año actual)
-    //     $anio = $cotizacion->fecha_emision
-    //         ? Carbon::parse($cotizacion->fecha_emision)->year
-    //         : now()->year;
-
-    //     // Generar número de factura si no existe
-    //     DB::transaction(function () use (&$cotizacion, $anio) {
-    //         if (empty($cotizacion->nofactura)) {
-    //             $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
-    //             AdmCotizacion::where('idcotizacion', $cotizacion->idcotizacion)
-    //                 ->update(['nofactura' => $nuevoNoFactura]);
-    //             $cotizacion->nofactura = $nuevoNoFactura;
-    //         }
-    //     });
-
-    //     // Formato: GP-{AÑO}-{FACTURA}-{COTIZACION}
-    //     $anioStr       = (string) $anio;
-    //     $facturaStr    = $this->pad((int) $cotizacion->nofactura, 6);
-    //     $cotizacionStr = $this->pad((int) $cotizacion->nocotizacion, 6);
-
-    //     $cotizacion->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
-
-
-
-    //     // Convertir total a letras (usando kwn/number-to-words)
-    //     $numberToWords     = new NumberToWords();
-    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
-    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
-
-    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-
-    //     $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'))
-    //         ->setPaper('letter', 'portrait');
-
-    //     // ⭐ Habilita la ejecución de PHP en Dompdf para que corra <script type="text/php">
-    //     // (según versión de barryvdh; cualquiera de las dos líneas funciona)
-    //     $pdf->getDomPDF()->set_option('isPhpEnabled', true);
-    //     // $pdf->set_option('isPhpEnabled', true);
-
-    //     // Opcional: por si cargas imágenes desde ruta absoluta/remota
-    //     $pdf->getDomPDF()->set_option('isRemoteEnabled', true);
-
-    //     return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
-    // }
     public function generarImpresionFactura($id)
     {
-        $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-            ->select(
-                'c.idcotizacion',
-                'c.serie',
-                'c.numero',
-                'c.uuid as numero_autorizacion',
-                DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
-                'c.total_general as total',
-                'cl.nit',
-                'cl.nombre',
-                'cl.direccion',
-                'd.cantidad',
-                'd.descripcion',
-                'd.precio as precio_unitario',
-                'd.total as precio_total',
-                'c.nofactura',
-                'c.nocotizacion',
-                'c.estado',
-            )
-            ->from('adm_cotizacion as c')
-            ->join('adm_detalle_cotizacion as d', 'c.idcotizacion', '=', 'd.idcotizacion')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->first();
-
-        if (!$cotizacion) {
-            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        // $id es idcotizacion (ruta actual)
+        $fact = $this->facturaVigente((int)$id);
+        if (!$fact) {
+            return response()->json(['message' => 'No hay DTE vigente para esta cotización'], 404);
         }
 
-        $anio = $cotizacion->fecha_emision
-            ? Carbon::parse($cotizacion->fecha_emision)->year
-            : now()->year;
+        // Trae solo lo necesario de la cotización (total/nocotizacion)
+        $cot = AdmCotizacion::select('idcotizacion', 'total_general', 'nocotizacion', 'estado')
+            ->findOrFail($id);
 
-        DB::transaction(function () use (&$cotizacion, $anio) {
-            if (empty($cotizacion->nofactura)) {
-                $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
-                AdmCotizacion::where('idcotizacion', $cotizacion->idcotizacion)
-                    ->update(['nofactura' => $nuevoNoFactura]);
-                $cotizacion->nofactura = $nuevoNoFactura;
-            }
-        });
+        // Cabecera "compatible" con tu vista pdf.factura sin modificarla
+        $cabecera = $this->cabeceraParaVista($fact, $cot);
 
-        $facturaStr    = $this->pad((int) $cotizacion->nofactura, 6);
-        $cotizacionStr = $this->pad((int) $cotizacion->nocotizacion, 6);
-        $cotizacion->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
-
-        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
+        // Detalle (igual que antes)
         $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
 
-        $pdf = Pdf::loadView('pdf.factura', compact('cotizacion', 'totalEnLetras', 'detalles'))
+        // Total en letras (con tu helper)
+        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cabecera->total);
+
+        // Render sin tocar la vista
+        $pdf = Pdf::loadView('pdf.factura', [
+            'cotizacion'     => $cabecera,
+            'totalEnLetras'  => $totalEnLetras,
+            'detalles'       => $detalles,
+        ])
             ->setPaper('letter', 'portrait');
 
-
-        return $pdf->stream('factura-' . $cotizacion->serie . '-' . $cotizacion->numero . '.pdf');
+        return $pdf->stream('factura-' . $cabecera->serie . '-' . $cabecera->numero . '.pdf');
     }
 
     public function facturaData($id)
     {
-        // 1) Cabecera (sin join al detalle)
-        $c = DB::table('adm_cotizacion as c')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->where('c.idcotizacion', $id)
-            ->select(
-                'c.idcotizacion',
-                'c.serie',
-                'c.numero',
-                'c.uuid as numero_autorizacion',
-                DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
-                'c.total_general as total',
-                'cl.nit',
-                'cl.nombre',
-                'cl.direccion',
-                'c.nofactura',
-                'c.nocotizacion'
-            )
-            ->first();
-
-        if (!$c) {
-            return response()->json(['message' => 'Cotización no encontrada'], 404);
+        $fact = $this->facturaVigente((int)$id);
+        if (!$fact) {
+            return response()->json(['message' => 'No hay DTE vigente para esta cotización'], 404);
         }
 
-        // 2) Correlativo / No. factura (igual que antes)
-        $anio = $c->fecha_emision ? Carbon::parse($c->fecha_emision)->year : now()->year;
+        $cot = AdmCotizacion::select('idcotizacion', 'total_general', 'nocotizacion', 'estado')
+            ->findOrFail($id);
 
-        DB::transaction(function () use (&$c, $anio) {
-            if (empty($c->nofactura)) {
-                $nuevoNoFactura = $this->siguienteCorrelativoFactura($anio);
-                DB::table('adm_cotizacion')
-                    ->where('idcotizacion', $c->idcotizacion)
-                    ->update(['nofactura' => $nuevoNoFactura]);
-                $c->nofactura = $nuevoNoFactura;
-            }
-        });
+        $cab = $this->cabeceraParaVista($fact, $cot);
 
-        // 3) Número interno y total en letras
-        $facturaStr    = $this->pad((int) $c->nofactura, 6);
-        $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
-        $numeroInterno = "GP-{$facturaStr}-{$cotizacionStr}";
-
-        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($c->total);
-
-        // 4) Detalle (lista completa)
+        // Detalle
         $detalles = DB::table('adm_detalle_cotizacion as d')
             ->where('d.idcotizacion', $id)
             ->select('d.cantidad', 'd.descripcion', DB::raw('d.precio as precio_unitario'), 'd.total')
-            ->orderBy('d.iddetallecotizacion', 'asc') // ajusta si tu PK es otra
+            ->orderBy('d.iddetallecotizacion', 'asc')
             ->get()
             ->map(function ($d) {
                 return [
@@ -1013,23 +866,25 @@ class MonitorFacturacionController extends Controller
                 ];
             });
 
-        // 5) Respuesta JSON para el front
+        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cab->total);
+
         return response()->json([
             'cotizacion' => [
-                'serie'              => $c->serie,
-                'numero'             => $c->numero,
-                'numero_autorizacion' => $c->numero_autorizacion,
-                'fecha_emision'      => $c->fecha_emision ? Carbon::parse($c->fecha_emision)->format('d/m/Y') : null,
-                'total'              => (float) $c->total,
-                'nit'                => $c->nit,
-                'nombre'             => $c->nombre,
-                'direccion'          => $c->direccion,
-                'numero_interno'     => $numeroInterno,
-                'total_en_letras'    => $totalEnLetras,
+                'serie'               => $cab->serie,
+                'numero'              => $cab->numero,
+                'numero_autorizacion' => $cab->numero_autorizacion,
+                'fecha_emision'       => Carbon::parse($cab->fecha_emision)->format('d/m/Y'),
+                'total'               => (float) $cab->total,
+                'nit'                 => $cab->nit,
+                'nombre'              => $cab->nombre,
+                'direccion'           => $cab->direccion,
+                'numero_interno'      => $cab->numero_interno,
+                'total_en_letras'     => $totalEnLetras,
             ],
             'detalles' => $detalles,
         ]);
     }
+
 
     private function convertirNumeroALetrasConCentavos($numero)
     {
@@ -1052,46 +907,35 @@ class MonitorFacturacionController extends Controller
             'motivo' => 'required|string|max:250',
         ]);
 
-        $cotizacion = DB::table('adm_cotizacion as c')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->where('c.idcotizacion', $idcotizacion)
-            ->select(
-                'c.idcotizacion',
-                'c.uuid',
-                'c.resultado',
-                'c.fecha_certificacion',
-                'cl.nit as receptor_nit'
-            )
+        // 1) Buscar la ÚLTIMA factura vigente y certificada para esta cotización
+        $factura = AdmFacturacion::where('idcotizacion', $idcotizacion)
+            ->where('estado', 1)              // vigente
+            ->where('resultado', 'S')         // certificada OK
+            ->latest('idfactura')
             ->first();
 
-        if ($cotizacion->resultado !== 'S' || empty($cotizacion->uuid)) {
-            return response()->json(['error' => 'La factura no puede ser anulada.'], 400);
+        if (!$factura || empty($factura->uuid)) {
+            return response()->json(['error' => 'No hay factura vigente certificada para anular.'], 400);
         }
 
-        $uuid = strtoupper(trim($cotizacion->uuid));
-        $motivo = $request->motivo;
-        $nitEmisor = '109126599';
-        $idReceptor = $cotizacion->receptor_nit ?: 'CF';
-        $fechaEmision = date('Y-m-d\TH:i:s', strtotime($cotizacion->fecha_certificacion));
+        $uuid           = strtoupper(trim($factura->uuid));
+        $motivo         = $request->motivo;
+        $nitEmisor      = '109126599';
+        $idReceptor     = $factura->numero_crtf ?: 'CF'; // receptor tomado de la certificación almacenada
+        $fechaEmision   = Carbon::parse($factura->fecha_certificacion)->format('Y-m-d\TH:i:s');
         $fechaAnulacion = now()->format('Y-m-d\TH:i:s');
 
-        // Crear documento XML de anulación con la estructura correcta
+        // 2) Construir XML de anulación
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
 
-        // Elemento raíz con namespaces y atributos
         $GTAnulacion = $doc->createElementNS('http://www.sat.gob.gt/dte/fel/0.1.0', 'dte:GTAnulacionDocumento');
         $GTAnulacion->setAttribute('xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
-        $GTAnulacion->setAttribute('xmlns:n1', 'http://www.altova.com/samplexml/other-namespace');
         $GTAnulacion->setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
         $GTAnulacion->setAttribute('Version', '0.1');
-        $GTAnulacion->setAttribute(
-            'xsi:schemaLocation',
-            'http://www.sat.gob.gt/dte/fel/0.1.0 C:\\Users\\User\\Desktop\\FEL\\Esquemas\\GT_AnulacionDocumento-0.1.0.xsd'
-        );
+        // Nota: no es necesario incluir schemaLocation con rutas locales
         $doc->appendChild($GTAnulacion);
 
-        // SAT > AnulacionDTE > DatosGenerales
         $SAT = $doc->createElement('dte:SAT');
         $GTAnulacion->appendChild($SAT);
 
@@ -1107,84 +951,80 @@ class MonitorFacturacionController extends Controller
         $DatosGenerales->setAttribute('FechaEmisionDocumentoAnular', $fechaEmision);
         $DatosGenerales->setAttribute('FechaHoraAnulacion', $fechaAnulacion);
         $DatosGenerales->setAttribute('MotivoAnulacion', $motivo);
-
         $AnulacionDTE->appendChild($DatosGenerales);
 
         $xmlString = $doc->saveXML();
 
-        // Headers y URL del API de INFILE
+        // 3) Headers y URL INFILE
         $headers = [
-            'Content-Type' => 'application/xml',
-            'UsuarioApi' => '109126599PRO',
-            'LlaveApi' => 'EC7E300DF9F5EDD673FE02342E9C4293',
-            'UsuarioFirma' => '109126599PRO',
-            'LlaveFirma' => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            'Content-Type'  => 'application/xml',
+            'UsuarioApi'    => '109126599PRO',
+            'LlaveApi'      => 'EC7E300DF9F5EDD673FE02342E9C4293',
+            'UsuarioFirma'  => '109126599PRO',
+            'LlaveFirma'    => '9bbfaf68b130aaa6b69535ac6f1ca5db',
             'Identificador' => (string) Str::uuid(),
         ];
-
         $url = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
 
         try {
             Log::info('XML Anulación FEL INFILE', ['xml' => $xmlString]);
 
-            $response = Http::withHeaders($headers)->send('POST', $url, [
-                'body' => $xmlString,
-            ]);
+            $response = Http::withHeaders($headers)->send('POST', $url, ['body' => $xmlString]);
 
             Log::info('Respuesta de anulación FEL INFILE', ['body' => $response->body()]);
 
-            $json = $response->json();
-            // 1. Decodifica directamente todo el JSON como objeto
-            $data = json_decode($response->body(), true);
-
-            // 2. Si contiene 'body', decodifica su contenido (también es JSON embebido)
+            // Infile suele regresar JSON anidado
+            $data     = json_decode($response->body(), true);
             $bodyData = isset($data['body']) ? json_decode($data['body'], true) : $data;
 
-            // 3. Verifica si hay un resultado exitoso
-            if (isset($bodyData['resultado']) && $bodyData['resultado'] === true) {
-                DB::table('adm_cotizacion')
-                    ->where('idcotizacion', $idcotizacion)
-                    ->update([
-                        'estado' => 7,
-                        'anulacion_resultado' => 'S',
-                        'fecha_anulacion_certificacion' => $bodyData['fecha'] ?? now(),
-                        'anulacion_descripcion' => $bodyData['descripcion'] ?? null,
-                        'anulacion_alertas' => json_encode([
-                            'infile' => $bodyData['descripcion_alertas_infile'] ?? [],
-                            'sat' => $bodyData['descripcion_alertas_sat'] ?? []
-                        ]),
-                        'anulacion_informacion_adicional' => $bodyData['informacion_adicional'] ?? null,
-                        'anulacion_uuid' => $bodyData['uuid'] ?? null,
-                        'anulacion_serie' => $bodyData['serie'] ?? null,
-                        'anulacion_numero' => $bodyData['numero'] ?? null,
-                        'anulacion_xml_certificado' => $bodyData['xml_certificado'] ?? null,
+            if (($bodyData['resultado'] ?? false) === true) {
+                // 4) Persistencia coherente y aislada
+                DB::transaction(function () use ($factura, $motivo, $idcotizacion) {
+                    // a) Marcar la fila de adm_facturacion como anulada
+                    AdmFacturacion::where('idfactura', $factura->idfactura)->update([
+                        'estado'           => 0,                 // anulada
+                        'fecha_anulacion'  => now(),
+                        'motivo_anulacion' => $motivo,
+                        'idusuario_anula'  => auth()->id(),
                     ]);
+
+                    // b) La cotización vuelve a estado 5 (lista para refacturar)
+                    AdmCotizacion::where('idcotizacion', $idcotizacion)->update([
+                        'estado' => 5,
+                    ]);
+
+                    // c) (Opcional/Recomendado) Cerrar la CxC de ESTA factura
+                    AdmCuentasPorCobrar::where('idfactura', $factura->idfactura)
+                        ->update(['estado' => 0, 'estatus_riesgo' => 'cerrado']);
+                });
 
                 return response()->json([
                     'resultado' => true,
-                    'mensaje' => 'Factura anulada con éxito.',
-                    'uuid' => $bodyData['uuid'] ?? '',
+                    'mensaje'   => 'Factura anulada con éxito.',
+                    'uuid'      => $bodyData['uuid'] ?? '',
                 ]);
-            } else {
-                return response()->json([
-                    'resultado' => false,
-                    'mensaje' => $bodyData['descripcion'] ?? 'La anulación no fue aceptada.',
-                    'errores' => $bodyData['descripcion_errores'] ?? ['Error desconocido.'],
-                ], 422);
             }
-        } catch (\Exception $e) {
+
+            // Error de anulación reportado por Infile/SAT
+            return response()->json([
+                'resultado' => false,
+                'mensaje'   => $bodyData['descripcion'] ?? 'La anulación no fue aceptada.',
+                'errores'   => $bodyData['descripcion_errores'] ?? ['Error desconocido.'],
+            ], 422);
+        } catch (\Throwable $e) {
             Log::error('Error al procesar anulación FEL', [
                 'mensaje' => $e->getMessage(),
-                'uuid' => $uuid,
+                'uuid'    => $uuid ?? null,
             ]);
 
             return response()->json([
                 'resultado' => false,
-                'mensaje' => 'Error al procesar la anulación.',
-                'error' => $e->getMessage(),
+                'mensaje'   => 'Error al procesar la anulación.',
+                'error'     => $e->getMessage(),
             ], 500);
         }
     }
+
 
 
     public function generarXMLNotaCredito(Request $request, $idcotizacion)
@@ -1212,48 +1052,31 @@ class MonitorFacturacionController extends Controller
 
         return $this->enviarXMLAFEL($idcotizacion, $res['xml'], 'NDEB', $res['meta']);
     }
-
     private function construirXMLNotaAjuste($idcotizacion, $tipo, $motivo, $monto)
     {
-        // Trae datos mínimos del documento origen y del receptor
-        $row = DB::table('adm_cotizacion as c')
+        // 1) Documento origen (fotografía FEL vigente)
+        $fact = $this->facturaVigente((int)$idcotizacion);
+        if (!$fact) return null; // no hay DTE vigente que referenciar
+
+        // 2) Datos adicionales del cliente (para dirección/código postal/municipio/departamento)
+        $cli = DB::table('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('adm_municipio as m', 'cl.id_municipio', '=', 'm.id_municipio')
             ->join('adm_departamentopais as dp', 'cl.iddepartamento', '=', 'dp.iddepartamentopais')
             ->where('c.idcotizacion', $idcotizacion)
             ->select(
-                'c.idcliente',
-                'c.uuid as uuid_origen',
-                'c.serie as serie_origen',
-                'c.numero as numero_origen',
-                DB::raw('DATE(c.fecha_certificacion) as fecha_emision'),
-                'c.nombre_crtf as nombre',
-                'c.numero_crtf as nit',
-                'c.direccion_crtf as direccion',
+                'cl.idcliente',
                 'cl.codigo_postal',
-                'c.email_crtf as correo',
-                'c.tipo_crtf as tipo',
-                'c.tipo_especial_crtf as tipo_especial',
+                'cl.excento_iva',
                 'm.nombre as municipio',
-                'dp.nombre as departamento',
-                DB::raw("'GT' as pais"),
-                'cl.excento_iva'
-            )
-            ->first();
+                'dp.nombre as departamento'
+            )->first();
 
-        if (!$row || empty($row->uuid_origen)) {
-            return null; // Debe existir un DTE origen certificado
-        }
+        // 3) Normalización de montos
+        $monto = round((float)$monto, 2);
+        if ($monto <= 0) return null;
 
-        // Normaliza montos
-        $monto = round($monto, 2);
-        if ($monto <= 0) {
-            return null;
-        }
-
-        $exento = ($row->excento_iva ?? 'N') === 'S';
-
-        // Cálculo de base/IVA para una sola línea
+        $exento = ($cli->excento_iva ?? 'N') === 'S';
         if ($exento) {
             $monto_gravable = 0.00;
             $monto_impuesto = 0.00;
@@ -1262,7 +1085,7 @@ class MonitorFacturacionController extends Controller
             $monto_impuesto = round($monto - $monto_gravable, 2);
         }
 
-        // ——— XML ———
+        // 4) Armar XML (usando LA FACTURA como origen)
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
 
@@ -1308,18 +1131,21 @@ class MonitorFacturacionController extends Controller
         $dirEmisor->appendChild($doc->createElement('dte:Pais', 'GT'));
         $Emisor->appendChild($dirEmisor);
 
-        // Receptor (del documento original)
+        // Receptor: SIEMPRE desde la fotografía de la factura
         $Receptor = $doc->createElement('dte:Receptor');
-        $Receptor->setAttribute('CorreoReceptor', $row->correo ?? '');
-        $Receptor->setAttribute('IDReceptor', $row->nit ?: 'CF');
-        $Receptor->setAttribute('NombreReceptor', $row->nombre);
+        $Receptor->setAttribute('CorreoReceptor', $fact->email_crtf ?? '');
+        $Receptor->setAttribute('IDReceptor', $fact->numero_crtf ?: 'CF');
+        $Receptor->setAttribute('NombreReceptor', $fact->nombre_crtf ?? '');
+        if (!empty($fact->tipo_especial_crtf)) {
+            $Receptor->setAttribute('TipoEspecial', $fact->tipo_especial_crtf); // CUI | EXT
+        }
         $DatosEmision->appendChild($Receptor);
 
         $dirReceptor = $doc->createElement('dte:DireccionReceptor');
-        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $row->direccion));
-        $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $row->codigo_postal ?? '01001'));
-        $dirReceptor->appendChild($doc->createElement('dte:Municipio', $row->municipio));
-        $dirReceptor->appendChild($doc->createElement('dte:Departamento', $row->departamento));
+        $dirReceptor->appendChild($doc->createElement('dte:Direccion', $fact->direccion_crtf ?? 'CIUDAD'));
+        $dirReceptor->appendChild($doc->createElement('dte:CodigoPostal', $cli->codigo_postal ?? '01001'));
+        $dirReceptor->appendChild($doc->createElement('dte:Municipio', $cli->municipio ?? 'GUATEMALA'));
+        $dirReceptor->appendChild($doc->createElement('dte:Departamento', $cli->departamento ?? 'GUATEMALA'));
         $dirReceptor->appendChild($doc->createElement('dte:Pais', 'GT'));
         $Receptor->appendChild($dirReceptor);
 
@@ -1331,7 +1157,7 @@ class MonitorFacturacionController extends Controller
         $Frases->appendChild($Frase);
         $DatosEmision->appendChild($Frases);
 
-        // Ítems: UNA sola línea de ajuste
+        // Ítems: una única línea de ajuste
         $Items = $doc->createElement('dte:Items');
         $Item = $doc->createElement('dte:Item');
         $Item->setAttribute('BienOServicio', 'B');
@@ -1370,7 +1196,7 @@ class MonitorFacturacionController extends Controller
         $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($monto, 2, '.', '')));
         $DatosEmision->appendChild($Totales);
 
-        // Complemento Referencias Nota (obligatorio)
+        // Complemento Referencias Nota (siempre con datos del DTE origen)
         $Complementos = $doc->createElement('dte:Complementos');
         $Complemento = $doc->createElement('dte:Complemento');
         $Complemento->setAttribute('IDComplemento', 'Notas');
@@ -1378,196 +1204,214 @@ class MonitorFacturacionController extends Controller
         $Complemento->setAttribute('URIComplemento', 'http://www.sat.gob.gt/fel/notas.xsd');
 
         $ReferenciasNota = $doc->createElementNS('http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0', 'cno:ReferenciasNota');
-        $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', $row->fecha_emision);
+        $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', Carbon::parse($fact->fecha_certificacion)->toDateString());
         $ReferenciasNota->setAttribute('MotivoAjuste', $motivo);
-        $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $row->uuid_origen);
-        $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $row->numero_origen);
-        $ReferenciasNota->setAttribute('SerieDocumentoOrigen', $row->serie_origen);
+        $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $fact->uuid);
+        $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $fact->numero);
+        $ReferenciasNota->setAttribute('SerieDocumentoOrigen', $fact->serie);
         $ReferenciasNota->setAttribute('Version', '0.0');
-        $ReferenciasNota->setAttribute('xsi:schemaLocation', 'http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0 http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0.xsd');
 
         $Complemento->appendChild($ReferenciasNota);
         $Complementos->appendChild($Complemento);
         $DatosEmision->appendChild($Complementos);
 
-        $xml = $doc->saveXML();
         return [
-            'xml'  => $xml,
+            'xml'  => $doc->saveXML(),
             'meta' => [
-                'idcliente'       => $row->idcliente,
-                'tipo'            => $tipo,           // NCRE | NDEB
+                'idcliente'       => $cli->idcliente ?? null,
+                'tipo'            => $tipo,
                 'motivo'          => $motivo,
                 'monto_total'     => $monto,
                 'monto_gravable'  => $monto_gravable,
                 'monto_impuesto'  => $monto_impuesto,
                 'exento_iva'      => $exento ? 'S' : 'N',
                 'receptor' => [
-                    'numero'        => $row->nit ?: 'CF',
-                    'tipo'          => $row->tipo,
-                    'tipo_especial' => $row->tipo_especial,
-                    'nombre'        => $row->nombre,
-                    'email'         => $row->correo,
-                    'direccion'     => $row->direccion,
+                    'numero'        => $fact->numero_crtf ?: 'CF',
+                    'tipo'          => $fact->tipo_crtf,
+                    'tipo_especial' => $fact->tipo_especial_crtf,
+                    'nombre'        => $fact->nombre_crtf,
+                    'email'         => $fact->email_crtf,
+                    'direccion'     => $fact->direccion_crtf,
                 ],
                 'origen' => [
-                    'uuid'          => $row->uuid_origen,
-                    'serie'         => $row->serie_origen,
-                    'numero'        => $row->numero_origen,
-                    'fecha_emision' => $row->fecha_emision,
+                    'uuid'          => $fact->uuid,
+                    'serie'         => $fact->serie,
+                    'numero'        => $fact->numero,
+                    'fecha_emision' => Carbon::parse($fact->fecha_certificacion)->toDateString(),
                 ],
             ],
         ];
     }
-
-
     private function enviarXMLAFEL($idcotizacion, $xmlString, $tipo, $notaMeta = null)
     {
         $identificador = Str::uuid()->toString();
+
         $headers = [
-            'Content-Type' => 'application/xml',
-            'UsuarioApi' => '109126599PRO',
-            'LlaveApi' => 'EC7E300DF9F5EDD673FE02342E9C4293',
-            'UsuarioFirma' => '109126599PRO',
-            'LlaveFirma' => '9bbfaf68b130aaa6b69535ac6f1ca5db',
-            'Identificador' => $identificador,
+            'Content-Type'   => 'application/xml',
+            'UsuarioApi'     => '109126599PRO',
+            'LlaveApi'       => 'EC7E300DF9F5EDD673FE02342E9C4293',
+            'UsuarioFirma'   => '109126599PRO',
+            'LlaveFirma'     => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            'Identificador'  => $identificador,
         ];
 
         $apiUrl = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
 
         try {
-            $response = Http::withHeaders($headers)->send('POST', $apiUrl, [
-                'body' => $xmlString,
-            ]);
-
-            $json = $response->json();
+            $response = Http::withHeaders($headers)->send('POST', $apiUrl, ['body' => $xmlString]);
+            $json = $response->json() ?? [];
 
             // Log de la respuesta
             Log::info('Respuesta INFILE - ' . strtoupper($tipo), [
                 'cotizacion_id' => $idcotizacion,
                 'identificador' => $identificador,
-                'response' => $json
+                'response'      => $json,
             ]);
 
-
-            // === Persistencia para Notas ===
+            // === Persistencia para Notas FEL ===
             if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta)) {
-                $now = now();
+                $now  = now();
                 $base = [
-                    'idcotizacion'       => $idcotizacion,
-                    'idcliente'          => $notaMeta['idcliente'] ?? null,
-                    'tipo'               => $tipo,
-                    'motivo'             => $notaMeta['motivo'] ?? '',
-                    'monto_total'        => $notaMeta['monto_total'] ?? 0,
-                    'monto_gravable'     => $notaMeta['monto_gravable'] ?? 0,
-                    'monto_impuesto'     => $notaMeta['monto_impuesto'] ?? 0,
-                    'exento_iva'         => $notaMeta['exento_iva'] ?? 'N',
-                    'receptor_numero'    => $notaMeta['receptor']['numero'] ?? null,
-                    'receptor_tipo'      => $notaMeta['receptor']['tipo'] ?? null,
-                    'receptor_tipo_especial' => $notaMeta['receptor']['tipo_especial'] ?? null,
-                    'receptor_nombre'    => $notaMeta['receptor']['nombre'] ?? null,
-                    'receptor_email'     => $notaMeta['receptor']['email'] ?? null,
-                    'receptor_direccion' => $notaMeta['receptor']['direccion'] ?? null,
-                    'uuid_origen'        => $notaMeta['origen']['uuid'] ?? null,
-                    'serie_origen'       => $notaMeta['origen']['serie'] ?? null,
-                    'numero_origen'      => $notaMeta['origen']['numero'] ?? null,
-                    'fecha_emision_origen' => $notaMeta['origen']['fecha_emision'] ?? $now->toDateString(),
-                    'identificador'      => $identificador,
-                    'xml_enviado'        => $xmlString,
-                    'created_by'         => optional(auth()->user())->id,
-                    'created_at'         => $now,
-                    'updated_at'         => $now,
+                    'idcotizacion'             => $idcotizacion,
+                    'idcliente'                => $notaMeta['idcliente'] ?? null,
+                    'tipo'                     => $tipo,
+                    'motivo'                   => $notaMeta['motivo'] ?? '',
+                    'monto_total'              => $notaMeta['monto_total'] ?? 0,
+                    'monto_gravable'           => $notaMeta['monto_gravable'] ?? 0,
+                    'monto_impuesto'           => $notaMeta['monto_impuesto'] ?? 0,
+                    'exento_iva'               => $notaMeta['exento_iva'] ?? 'N',
+                    'receptor_numero'          => $notaMeta['receptor']['numero'] ?? null,
+                    'receptor_tipo'            => $notaMeta['receptor']['tipo'] ?? null,
+                    'receptor_tipo_especial'   => $notaMeta['receptor']['tipo_especial'] ?? null,
+                    'receptor_nombre'          => $notaMeta['receptor']['nombre'] ?? null,
+                    'receptor_email'           => $notaMeta['receptor']['email'] ?? null,
+                    'receptor_direccion'       => $notaMeta['receptor']['direccion'] ?? null,
+                    // 👇 Datos del DOCUMENTO ORIGEN (factura)
+                    'uuid_origen'              => $notaMeta['origen']['uuid'] ?? null,
+                    'serie_origen'             => $notaMeta['origen']['serie'] ?? null,
+                    'numero_origen'            => $notaMeta['origen']['numero'] ?? null,
+                    'fecha_emision_origen'     => $notaMeta['origen']['fecha_emision'] ?? $now->toDateString(),
+
+                    'identificador'            => $identificador,
+                    'xml_enviado'              => $xmlString,
+                    'created_by'               => optional(auth()->user())->id,
+                    'created_at'               => $now,
+                    'updated_at'               => $now,
                 ];
 
-                if ($json['resultado'] === true) {
+                if (($json['resultado'] ?? false) === true) {
+                    // ✅ Campos de la NOTA certificada
                     $save = array_merge($base, [
-                        'resultado'          => 'S',
-                        'uuid_origen'               => $json['uuid'] ?? null,
-                        'serie_origen'              => $json['serie'] ?? null,
-                        'numero_origen'             => $json['numero'] ?? null,
-                        'descripcion'        => $json['descripcion'] ?? null,
-                        'fecha_emision_origen' => $json['fecha'] ?? null,
-                        'xml_certificado'    => isset($json['xml_certificado']) ? base64_encode($json['xml_certificado']) : null,
-                        'alertas_infile'     => isset($json['descripcion_alertas_infile']) ? json_encode($json['descripcion_alertas_infile']) : null,
-                        'alertas_sat'        => isset($json['descripcion_alertas_sat']) ? json_encode($json['descripcion_alertas_sat']) : null,
-                        'errores'            => null,
+                        'resultado'        => 'S',
+                        'uuid_nota'        => $json['uuid']  ?? null,
+                        'serie_nota'       => $json['serie'] ?? null,
+                        'numero_nota'      => $json['numero'] ?? null,
+                        'fecha_nota'       => $json['fecha'] ?? null,
+                        'descripcion'      => $json['descripcion'] ?? null,
+                        'xml_certificado'  => isset($json['xml_certificado'])
+                            ? base64_encode($json['xml_certificado'])
+                            : null,
+                        'alertas_infile'   => isset($json['descripcion_alertas_infile'])
+                            ? json_encode($json['descripcion_alertas_infile'], JSON_UNESCAPED_UNICODE)
+                            : null,
+                        'alertas_sat'      => isset($json['descripcion_alertas_sat'])
+                            ? json_encode($json['descripcion_alertas_sat'], JSON_UNESCAPED_UNICODE)
+                            : null,
+                        'errores'          => null,
                     ]);
                 } else {
+                    // ❌ Falla: conserva origen y deja los campos de nota en null
                     $save = array_merge($base, [
-                        'resultado'          => 'N',
-                        'uuid_origen'               => null,
-                        'serie_origen'              => null,
-                        'numero_origen'             => null,
-                        'descripcion'        => $json['descripcion'] ?? null,
-                        'fecha_emision_origen' => null,
-                        'xml_certificado'    => null,
-                        'alertas_infile'     => isset($json['descripcion_alertas_infile']) ? json_encode($json['descripcion_alertas_infile']) : null,
-                        'alertas_sat'        => isset($json['descripcion_alertas_sat']) ? json_encode($json['descripcion_alertas_sat']) : null,
-                        'errores'            => isset($json['descripcion_errores']) ? json_encode($json['descripcion_errores']) : json_encode(['Error desconocido']),
+                        'resultado'        => 'N',
+                        'uuid_nota'        => null,
+                        'serie_nota'       => null,
+                        'numero_nota'      => null,
+                        'fecha_nota'       => null,
+                        'descripcion'      => $json['descripcion'] ?? null,
+                        'xml_certificado'  => null,
+                        'alertas_infile'   => isset($json['descripcion_alertas_infile'])
+                            ? json_encode($json['descripcion_alertas_infile'], JSON_UNESCAPED_UNICODE)
+                            : null,
+                        'alertas_sat'      => isset($json['descripcion_alertas_sat'])
+                            ? json_encode($json['descripcion_alertas_sat'], JSON_UNESCAPED_UNICODE)
+                            : null,
+                        'errores'          => isset($json['descripcion_errores'])
+                            ? json_encode($json['descripcion_errores'], JSON_UNESCAPED_UNICODE)
+                            : json_encode(['Error desconocido'], JSON_UNESCAPED_UNICODE),
                     ]);
                 }
 
                 DB::table('adm_notas_fel')->insert($save);
             }
 
-            // === Respuesta HTTP (sin cambios)
-            if ($json['resultado'] === true) {
+            // === Respuesta HTTP al frontend (igual que antes)
+            if (($json['resultado'] ?? false) === true) {
                 return response()->json([
-                    'resultado' => true,
-                    'uuid' => $json['uuid'],
-                    'serie' => $json['serie'],
-                    'numero' => $json['numero'],
-                    'descripcion' => $json['descripcion'],
-                    'fecha_certificacion' => $json['fecha'],
-                    'xml_certificado' => base64_encode($json['xml_certificado']),
-                    'alertas' => $json['descripcion_alertas_infile'] ?? null,
+                    'resultado'            => true,
+                    'uuid'                 => $json['uuid'] ?? null,
+                    'serie'                => $json['serie'] ?? null,
+                    'numero'               => $json['numero'] ?? null,
+                    'descripcion'          => $json['descripcion'] ?? null,
+                    'fecha_certificacion'  => $json['fecha'] ?? null,
+                    'xml_certificado'      => isset($json['xml_certificado']) ? base64_encode($json['xml_certificado']) : null,
+                    'alertas'              => $json['descripcion_alertas_infile'] ?? null,
                 ]);
-            } else {
-
-                return $this->respuestaErrorNota($tipo, $json, 422);
             }
+
+            return $this->respuestaErrorNota($tipo, $json, 422);
         } catch (\Exception $e) {
             Log::error('Error al certificar XML tipo ' . $tipo, [
                 'cotizacion_id' => $idcotizacion,
-                'exception' => $e->getMessage(),
+                'exception'     => $e->getMessage(),
             ]);
 
-            // Si es nota, guarda intento fallido también
+            // Guarda intento fallido también
             if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta ?? null)) {
                 DB::table('adm_notas_fel')->insert([
-                    'idcotizacion'   => $idcotizacion,
-                    'idcliente'      => $notaMeta['idcliente'] ?? null,
-                    'tipo'           => $tipo,
-                    'motivo'         => $notaMeta['motivo'] ?? '',
-                    'monto_total'    => $notaMeta['monto_total'] ?? 0,
-                    'monto_gravable' => $notaMeta['monto_gravable'] ?? 0,
-                    'monto_impuesto' => $notaMeta['monto_impuesto'] ?? 0,
-                    'exento_iva'     => $notaMeta['exento_iva'] ?? 'N',
-                    'receptor_numero'    => $notaMeta['receptor']['numero'] ?? null,
-                    'receptor_tipo'      => $notaMeta['receptor']['tipo'] ?? null,
-                    'receptor_tipo_especial' => $notaMeta['receptor']['tipo_especial'] ?? null,
-                    'receptor_nombre'    => $notaMeta['receptor']['nombre'] ?? null,
-                    'receptor_email'     => $notaMeta['receptor']['email'] ?? null,
-                    'receptor_direccion' => $notaMeta['receptor']['direccion'] ?? null,
-                    'uuid_origen'    => $notaMeta['origen']['uuid'] ?? null,
-                    'serie_origen'   => $notaMeta['origen']['serie'] ?? null,
-                    'numero_origen'  => $notaMeta['origen']['numero'] ?? null,
-                    'fecha_emision_origen' => $notaMeta['origen']['fecha_emision'] ?? now()->toDateString(),
-                    'resultado'      => 'N',
-                    'errores'        => json_encode([$e->getMessage()]),
-                    'identificador'  => $identificador,
-                    'xml_enviado'    => $xmlString,
-                    'created_by'     => optional(auth()->user())->id,
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'idcotizacion'             => $idcotizacion,
+                    'idcliente'                => $notaMeta['idcliente'] ?? null,
+                    'tipo'                     => $tipo,
+                    'motivo'                   => $notaMeta['motivo'] ?? '',
+                    'monto_total'              => $notaMeta['monto_total'] ?? 0,
+                    'monto_gravable'           => $notaMeta['monto_gravable'] ?? 0,
+                    'monto_impuesto'           => $notaMeta['monto_impuesto'] ?? 0,
+                    'exento_iva'               => $notaMeta['exento_iva'] ?? 'N',
+                    'receptor_numero'          => $notaMeta['receptor']['numero'] ?? null,
+                    'receptor_tipo'            => $notaMeta['receptor']['tipo'] ?? null,
+                    'receptor_tipo_especial'   => $notaMeta['receptor']['tipo_especial'] ?? null,
+                    'receptor_nombre'          => $notaMeta['receptor']['nombre'] ?? null,
+                    'receptor_email'           => $notaMeta['receptor']['email'] ?? null,
+                    'receptor_direccion'       => $notaMeta['receptor']['direccion'] ?? null,
+
+                    // Origen intacto
+                    'uuid_origen'              => $notaMeta['origen']['uuid'] ?? null,
+                    'serie_origen'             => $notaMeta['origen']['serie'] ?? null,
+                    'numero_origen'            => $notaMeta['origen']['numero'] ?? null,
+                    'fecha_emision_origen'     => $notaMeta['origen']['fecha_emision'] ?? now()->toDateString(),
+
+                    // Nota fallida (sin datos de nota)
+                    'resultado'                => 'N',
+                    'uuid_nota'                => null,
+                    'serie_nota'               => null,
+                    'numero_nota'              => null,
+                    'fecha_nota'               => null,
+
+                    'errores'                  => json_encode([$e->getMessage()], JSON_UNESCAPED_UNICODE),
+                    'identificador'            => $identificador,
+                    'xml_enviado'              => $xmlString,
+                    'created_by'               => optional(auth()->user())->id,
+                    'created_at'               => now(),
+                    'updated_at'               => now(),
                 ]);
             }
 
             return $this->respuestaErrorNota($tipo, [
-                'descripcion' => 'Excepción en servidor',
-                'descripcion_errores' => [$e->getMessage()],
+                'descripcion'          => 'Excepción en servidor',
+                'descripcion_errores'  => [$e->getMessage()],
             ], 500);
         }
     }
+
 
     private function respuestaErrorNota(string $tipo, array $json = null, int $status = 422)
     {
@@ -1621,7 +1465,6 @@ class MonitorFacturacionController extends Controller
         $tipo = $request->query('tipo'); // NCRE | NDEB (opcional)
 
         $rows = DB::table('adm_notas_fel as nf')
-            ->leftJoin('adm_cotizacion as c', 'nf.idcotizacion', '=', 'c.idcotizacion')
             ->selectRaw("
             nf.idnota,
             nf.idcotizacion,
@@ -1631,19 +1474,23 @@ class MonitorFacturacionController extends Controller
             nf.monto_gravable,
             nf.monto_impuesto,
             nf.exento_iva,
-            nf.receptor_nombre as cliente,
-            nf.receptor_numero as receptor_numero,
+
+            -- receptor (foto de la certificación de la nota)
+            nf.receptor_nombre    as cliente,
+            nf.receptor_numero    as receptor_numero,
             nf.receptor_direccion as direccion,
-            -- en tu persistencia estos campos terminan guardando la info de la nota certificada
-            nf.uuid_origen   as uuid_nota,
-            nf.serie_origen  as serie_nota,
-            nf.numero_origen as numero_nota,
-            DATE(COALESCE(nf.fecha_emision_origen, nf.created_at)) as fecha_nota,
-            -- referencia a la factura origen (por si quieres mostrarla)
-            c.serie  as serie_factura,
-            c.numero as numero_factura,
-            c.uuid   as uuid_factura,
-            DATE(c.fecha_certificacion) as fecha_factura
+
+            -- ⚠️ AHORA tomamos los campos de la NOTA (no los de origen)
+            nf.uuid_nota,
+            nf.serie_nota,
+            nf.numero_nota,
+            DATE(COALESCE(nf.fecha_nota, nf.created_at)) as fecha_nota,
+
+            -- Referencia a la factura de origen (usamos lo que guardamos en la nota)
+            nf.uuid_origen        as uuid_factura,
+            nf.serie_origen       as serie_factura,
+            nf.numero_origen      as numero_factura,
+            DATE(nf.fecha_emision_origen) as fecha_factura
         ")
             ->where('nf.idcotizacion', $idcotizacion)
             ->when($tipo, fn($q) => $q->where('nf.tipo', $tipo))
@@ -1653,10 +1500,10 @@ class MonitorFacturacionController extends Controller
         return response()->json($rows);
     }
 
+
     public function generarPdfNotaFel(int $idnota)
     {
         $nota = DB::table('adm_notas_fel as nf')
-            ->leftJoin('adm_cotizacion as c', 'nf.idcotizacion', '=', 'c.idcotizacion')
             ->selectRaw("
             nf.idnota,
             nf.idcotizacion,
@@ -1666,17 +1513,23 @@ class MonitorFacturacionController extends Controller
             nf.monto_gravable,
             nf.monto_impuesto,
             nf.exento_iva,
-            nf.receptor_nombre  as cliente,
-            nf.receptor_numero  as receptor_numero,
+
+            -- receptor
+            nf.receptor_nombre    as cliente,
+            nf.receptor_numero    as receptor_numero,
             nf.receptor_direccion as direccion,
-            nf.uuid_origen   as uuid_nota,
-            nf.serie_origen  as serie_nota,
-            nf.numero_origen as numero_nota,
-            DATE(COALESCE(nf.fecha_emision_origen, nf.created_at)) as fecha_nota,
-            c.serie  as serie_factura,
-            c.numero as numero_factura,
-            c.uuid   as uuid_factura,
-            DATE(c.fecha_certificacion) as fecha_factura
+
+            -- ⚠️ datos de la NOTA certificada
+            nf.uuid_nota,
+            nf.serie_nota,
+            nf.numero_nota,
+            DATE(COALESCE(nf.fecha_nota, nf.created_at)) as fecha_nota,
+
+            -- referencia a FACTURA origen (desde lo que persistimos en nf.*_origen)
+            nf.serie_origen       as serie_factura,
+            nf.numero_origen      as numero_factura,
+            nf.uuid_origen        as uuid_factura,
+            DATE(nf.fecha_emision_origen) as fecha_factura
         ")
             ->where('nf.idnota', $idnota)
             ->first();
@@ -1685,19 +1538,19 @@ class MonitorFacturacionController extends Controller
             return response()->json(['message' => 'Nota no encontrada'], 404);
         }
 
-        // Datos fijos de la empresa (ajusta a los tuyos)
+        // Datos de tu empresa
         $empresa = [
-            'nombre'   => 'GP EXCELENCIA, S.A.',
-            'nit'      => '109126599',
-            'direccion' => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
-            'telefonos' => '2309-9419 / 2294-9257',
-            'email'    => 'ventas@gpexcelencia.com',
-            'web'      => 'www.gpexcelencia.com',
+            'nombre'     => 'GP EXCELENCIA, S.A.',
+            'nit'        => '109126599',
+            'direccion'  => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
+            'telefonos'  => '2309-9419 / 2294-9257',
+            'email'      => 'ventas@gpexcelencia.com',
+            'web'        => 'www.gpexcelencia.com',
         ];
 
         $html = view('pdf.nota_fel', [
-            'nota'    => $nota,
-            'empresa' => $empresa,
+            'nota'      => $nota,
+            'empresa'   => $empresa,
             'esCredito' => $nota->tipo === 'NCRE',
         ])->render();
 
@@ -1706,6 +1559,7 @@ class MonitorFacturacionController extends Controller
         $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
         return $pdf->stream($fn);
     }
+
 
     public function generarPdfUltimaNotaPorTipo(Request $request, int $idcotizacion)
     {
@@ -1720,5 +1574,70 @@ class MonitorFacturacionController extends Controller
             return response()->json(['message' => 'No hay notas de ese tipo para esta factura'], 404);
         }
         return $this->generarPdfNotaFel((int)$idnota);
+    }
+
+    public function storeComentario(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $request->validate([
+                'idcotizacion' => 'required|integer|exists:adm_cotizacion,idcotizacion',
+                'comentario'   => 'required|string|max:1000',
+            ]);
+
+            // correlativo seguro
+            $correlativo = DB::table('cor_correlativo')
+                ->where('tabla', 'adm_comentarios_prefacturacion')
+                ->lockForUpdate()->first();
+
+            if (!$correlativo) {
+                return response()->json(['message' => 'No se encontró el correlativo para comentarios'], 400);
+            }
+
+            $idComentario = $correlativo->correlativo + $correlativo->incremento;
+
+            DB::table('cor_correlativo')
+                ->where('tabla', 'adm_comentarios_prefacturacion')
+                ->update(['correlativo' => $idComentario]);
+
+            $comentario = new ComentarioPreFacturacion();
+            $comentario->idcomentarioprefacturacion = $idComentario;
+            $comentario->idcotizacion     = $request->idcotizacion;
+            $comentario->comentario       = $request->comentario;
+            $comentario->fecha_registro   = now();
+            $comentario->idusuario        = auth()->id();
+            $comentario->estado           = 1;
+            $comentario->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message'   => 'Comentario registrado exitosamente',
+                'comentario' => $comentario,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al guardar comentario: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function comentarios(Request $request, $idcotizacion)
+    {
+        $query = ComentarioPreFacturacion::query()
+            ->select('adm_comentarios_prefacturacion.*', 'adm_empleados.nombre as nombre_usuario')
+            ->leftJoin('adm_empleados', 'adm_empleados.iduser', '=', 'adm_comentarios_prefacturacion.idusuario')
+            ->where('adm_comentarios_prefacturacion.idcotizacion', $idcotizacion)
+            ->orderByDesc('adm_comentarios_prefacturacion.fecha_registro');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('adm_comentarios_prefacturacion.comentario', 'LIKE', "%{$search}%");
+        }
+
+        $comentarios = $query->paginate(5);
+        return response()->json($comentarios);
     }
 }

@@ -4,40 +4,36 @@
   <meta charset="utf-8">
   <title>Listado de Cotizaciones</title>
   <style>
-    /* más espacio arriba para que el header fijo quepa */
     @page { margin: 130px 40px 80px 40px; }
-
     body { font-family: DejaVu Sans, sans-serif; font-size: 9px; }
 
     header{
       position: fixed;
-      top: -110px;           /* ≈ altura del header */
+      top: -110px;
       left: 0; right: 0;
       height: 110px;
       text-align: center;
-      background:#fff;       /* evita que la tabla lo tape */
+      background:#fff;
       z-index:100;
     }
     footer { position: fixed; bottom: -60px; left: 0; right: 0; height: 60px; font-size: 9px; }
     footer .footer-content { display: flex; justify-content: space-between; align-items: center; }
     .footer-line { border-top: 1px solid #000; margin-bottom: 2px; }
 
-    /* Tabla */
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 5px;
-      /* forzar borde derecho en dompdf */
       border-right: 1px solid #000;
     }
     th, td { border: 1px solid #000; padding: 4px; text-align: left; }
     th { background-color: #f0f0f0; }
-    /* reasegura el borde derecho de la última celda */
     th:last-child, td:last-child { border-right: 1px solid #000 !important; }
 
     .header-table td { border: none; }
     .titulo { font-size: 16px; font-weight: bold; margin: 0; }
     .col-total { text-align: right; }
+    .col-num   { text-align: right; }
   </style>
 </head>
 <body>
@@ -73,12 +69,13 @@
 
   <main>
     <table>
-      <!-- Distribución de anchos SIN “Días vencidos” -->
+      <!-- ▼ Ahora con 6 columnas: agregamos Días vencidos -->
       <colgroup>
         <col style="width:15%">   <!-- No. Cotización -->
         <col style="width:12%">   <!-- Fecha -->
-        <col style="width:20%">   <!-- Vendedor -->
-        <col style="width:38%">   <!-- Cliente -->
+        <col style="width:10%">   <!-- Días vencidos -->
+        <col style="width:18%">   <!-- Vendedor -->
+        <col style="width:30%">   <!-- Cliente -->
         <col style="width:15%">   <!-- Total -->
       </colgroup>
 
@@ -86,6 +83,7 @@
         <tr>
           <th>No. Cotización</th>
           <th>Fecha</th>
+          <th>Días vencidos</th>
           <th>Vendedor</th>
           <th>Cliente</th>
           <th class="col-total">Total</th>
@@ -97,14 +95,16 @@
           <tr>
             <td>{{ $row->nocotizacion }}</td>
             <td>{{ \Carbon\Carbon::parse($row->fecha_cotizacion)->format('d/m/Y') }}</td>
+            <td class="col-num">{{ (int)($row->dias_desde_prefacturacion ?? 0) }}</td>
             <td>{{ $row->vendedor }}</td>
             <td>{{ $row->cliente }}</td>
-            <td class="col-total">{{ number_format($row->total_general, 2, '.', ',') }}</td>
+            <td class="col-total">Q{{ number_format($row->total_general, 2, '.', ',') }}</td>
           </tr>
         @endforeach
 
         <tr>
-          <td colspan="4" style="text-align:right; font-weight:bold;">TOTAL GENERAL</td>
+          <!-- ▲ Ajustamos el colspan por la nueva columna -->
+          <td colspan="5" style="text-align:right; font-weight:bold;">TOTAL GENERAL</td>
           <td class="col-total" style="font-weight:bold;">
             Q{{ number_format($rows->sum('total_general'), 2, '.', ',') }}
           </td>
