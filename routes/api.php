@@ -236,6 +236,9 @@ Route::middleware('auth:sanctum')->group(function () {
         '/reportes-contabilidad/cotizaciones/prefacturacion/data',
         [ReportesContabilidadController::class, 'cotizacionesPrefacturacionData']
     );
+    // ▶️ Resumen de Facturas Pagadas
+    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data',[ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
+    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf',[ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
 });
 
 //CLIENTES CONTACTO CONTROLLER

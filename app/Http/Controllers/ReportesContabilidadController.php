@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CotizacionesContabilidadExport;
+use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
@@ -82,14 +83,14 @@ class ReportesContabilidadController extends Controller
     }
 
     private function construirConsultaCotizaciones(array $filtros)
-{
-    $query = DB::table('adm_cotizacion as ac')
-        ->select(
-            'ac.idcotizacion',
-            DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+    {
+        $query = DB::table('adm_cotizacion as ac')
+            ->select(
+                'ac.idcotizacion',
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
 
-            // La fecha que se mostrará en la columna "Fecha" (como ya la tenías)
-            DB::raw("
+                // La fecha que se mostrará en la columna "Fecha" (como ya la tenías)
+                DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
                     WHEN ac.estado = 6 THEN DATE(ac.fecha_certificacion)
@@ -97,56 +98,56 @@ class ReportesContabilidadController extends Controller
                 END AS fecha_cotizacion
             "),
 
-            'ae.nombre AS vendedor',
-            'c.nombre AS cliente',
-            'ac.total_general',
-            'ac.estado',
+                'ae.nombre AS vendedor',
+                'c.nombre AS cliente',
+                'ac.total_general',
+                'ac.estado',
 
-            // ✅ DÍAS DESDE PRE-FACTURACIÓN: solo si existe la fecha; si no, 0.
-            DB::raw("
+                // ✅ DÍAS DESDE PRE-FACTURACIÓN: solo si existe la fecha; si no, 0.
+                DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
                     0
                 ) AS dias_desde_prefacturacion
             ")
-        )
-        ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-        ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-        ->where('ac.estado', '>', 0);
+            )
+            ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+            ->where('ac.estado', '>', 0);
 
-    // Filtro de rango por la columna adecuada (igual que lo tenías)
-    $desde = $filtros['desde'] ?? null;
-    $hasta = $filtros['hasta'] ?? null;
+        // Filtro de rango por la columna adecuada (igual que lo tenías)
+        $desde = $filtros['desde'] ?? null;
+        $hasta = $filtros['hasta'] ?? null;
 
-    if ($desde && $hasta) {
-        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-            $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-        } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-            $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
-        } else {
-            $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+        if ($desde && $hasta) {
+            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
+            } else {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+            }
         }
+
+        if (!empty($filtros['vendedor_id'])) {
+            $query->where('ae.id_empleado', $filtros['vendedor_id']);
+        }
+
+        if (!empty($filtros['estado'])) {
+            $query->where('ac.estado', (int)$filtros['estado']);
+        }
+
+        if (!empty($filtros['search'])) {
+            $query->where(function ($q) use ($filtros) {
+                $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+                    ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+            });
+        }
+
+        $query->orderBy('fecha_cotizacion', 'asc');
+
+        return $query;
     }
-
-    if (!empty($filtros['vendedor_id'])) {
-        $query->where('ae.id_empleado', $filtros['vendedor_id']);
-    }
-
-    if (!empty($filtros['estado'])) {
-        $query->where('ac.estado', (int)$filtros['estado']);
-    }
-
-    if (!empty($filtros['search'])) {
-        $query->where(function ($q) use ($filtros) {
-            $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
-              ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
-        });
-    }
-
-    $query->orderBy('fecha_cotizacion', 'asc');
-
-    return $query;
-}
 
 
 
@@ -162,7 +163,7 @@ class ReportesContabilidadController extends Controller
         return DB::table('adm_cuentas_porcobrar as cxc')
             ->join('clientes as cli', 'cli.idcliente', '=', 'cxc.idcliente')
             ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
-            ->leftJoin('adm_facturacion as fac','cot.idcotizacion','=','fac.idcotizacion')
+            ->leftJoin('adm_facturacion as fac', 'cot.idcotizacion', '=', 'fac.idcotizacion')
             ->leftJoin('adm_departamentopais as dep', 'dep.iddepartamentopais', '=', 'cli.iddepartamento')
             ->leftJoin('adm_empleados as emp', 'emp.iduser', '=', 'cot.idusuario')
             ->selectRaw("
@@ -434,7 +435,7 @@ class ReportesContabilidadController extends Controller
             END as estado
         ")
             ->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta])
-            ->where('ac.estado', '>', 0) 
+            ->where('ac.estado', '>', 0)
             ->when($vendedorId, fn($q) => $q->where('ae.id_empleado', $vendedorId))
             ->orderBy('fecha_prefacturacion')
             ->orderBy('nocotizacion')
@@ -457,5 +458,195 @@ class ReportesContabilidadController extends Controller
                 'conteo'        => $rows->count(),
             ],
         ]);
+    }
+
+    /**
+     * Devuelve la data agrupada por Cliente → Recibo → CxC afectadas
+     * Filtra por rango [fecha_inicio, fecha_fin] aplicado a rec.fecha_recibo
+     */
+    public function resumenFacturasPagadasData(Request $request)
+    {
+        $validated = $request->validate([
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+        ]);
+
+
+        $start = $validated['fecha_inicio'];
+        $end = $validated['fecha_fin'];
+
+
+        $rows = $this->buildResumenQuery($start, $end)->get();
+        $grouped = $this->groupRows($rows);
+
+
+        return response()->json([
+            'rango' => ['inicio' => $start, 'fin' => $end],
+            'clientes' => array_values($grouped['clientes']),
+            'total_general' => $grouped['total_general'],
+        ]);
+    }
+
+    /**
+     * Genera el PDF del resumen.
+     */
+    public function resumenFacturasPagadasPdf(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+        ]);
+
+
+        $start = $request->input('fecha_inicio');
+        $end = $request->input('fecha_fin');
+
+
+        $rows = $this->buildResumenQuery($start, $end)->get();
+        $grouped = $this->groupRows($rows);
+
+
+        // Fecha/hora impresión en zona GT
+        $impreso_en = Carbon::now('America/Guatemala')->format('d/m/Y H:i');
+
+
+        $pdf = Pdf::loadView('pdf.resumen_facturas_pagadas', [
+            'rango' => ['inicio' => $start, 'fin' => $end],
+            'clientes' => array_values($grouped['clientes']),
+            'total_general' => $grouped['total_general'],
+            'impreso_en' => $impreso_en,
+            'titulo' => 'RESUMEN DE FACTURAS PAGADAS',
+        ])->setPaper('letter', 'portrait');
+
+
+        return $pdf->download('resumen_facturas_pagadas_' . now('America/Guatemala')->format('Ymd_His') . '.pdf');
+        // Si prefieres ver en el navegador:
+        // return $pdf->stream('resumen_facturas_pagadas.pdf');
+    }
+
+
+    /**
+     * Query base para el reporte.
+     * Une: recibo → cliente → cxc → facturación.
+     */
+    private function buildResumenQuery(string $start, string $end)
+    {
+        // Detecta la tabla real del detalle (adm_recibo_detalle o adm_detalle_recibo)
+        $tableDet = null;
+        if (Schema::hasTable('adm_recibo_detalle')) {
+            $tableDet = 'adm_recibo_detalle';
+        } elseif (Schema::hasTable('adm_detalle_recibo')) {
+            $tableDet = 'adm_detalle_recibo';
+        } else {
+            abort(500, 'No existe tabla de detalle de recibo (adm_recibo_detalle / adm_detalle_recibo).');
+        }
+
+        // Campos opcionales en adm_recibos: serie/numero
+        $serieExpr  = DB::raw("COALESCE(rec.serie, '') as serie");
+        $numeroExpr = DB::raw("COALESCE(rec.numero, '') as numero");
+
+        // Detecta la columna de monto aplicada en el detalle
+        $detAmountCol = null;
+        foreach (['monto_aplicado', 'monto_pagado', 'pago', 'monto'] as $col) {
+            if (Schema::hasColumn($tableDet, $col)) {
+                $detAmountCol = "det.$col";
+                break;
+            }
+        }
+        // Fallback: usa cxc.monto_pagado si existiera
+        if (!$detAmountCol && Schema::hasColumn('adm_cuentas_porcobrar', 'monto_pagado')) {
+            $detAmountCol = 'cxc.monto_pagado';
+        }
+        // Si nada existe, al menos que no rompa
+        $amountExpr = DB::raw("COALESCE($detAmountCol, 0) as monto_pagado");
+
+        $query = DB::table('adm_recibos as rec')
+            ->join('clientes as cl', 'cl.idcliente', '=', 'rec.idcliente')
+            // 👉 Enlace por detalle
+            ->join($tableDet . ' as det', 'det.idrecibo', '=', 'rec.idrecibo')
+            ->join('adm_cuentas_porcobrar as cxc', 'cxc.idcuentaporcobrar', '=', 'det.idcuentaporcobrar')
+            ->leftJoin('adm_facturacion as fac', 'fac.idfactura', '=', 'cxc.idfactura')
+            ->whereBetween('rec.fecha_recibo', [$start, $end])
+            ->select([
+                'cl.idcliente',
+                'cl.codigo as cliente_codigo',
+                'cl.nombre as cliente_nombre',
+                'rec.idrecibo',
+                'rec.fecha_recibo',
+                $serieExpr,
+                $numeroExpr,
+                'cxc.idcuentaporcobrar',
+                'cxc.fecha_emision',
+                DB::raw("COALESCE(fac.nofactura, '') as nointerno"),
+                $amountExpr, // 👈 monto desde el detalle (o fallback)
+            ])
+            ->orderBy('cl.codigo')
+            ->orderBy('rec.fecha_recibo')
+            ->orderBy('rec.idrecibo');
+
+        return $query;
+    }
+
+
+    /**
+     * Agrupa filas en la estructura: Cliente → Recibo → Detalles CxC
+     */
+    private function groupRows($rows): array
+    {
+        $clientes = [];
+        $totalGeneral = 0.0;
+
+
+        foreach ($rows as $r) {
+            $cid = $r->idcliente;
+            if (!isset($clientes[$cid])) {
+                $clientes[$cid] = [
+                    'idcliente' => $cid,
+                    'codigo' => $r->cliente_codigo,
+                    'nombre' => $r->cliente_nombre,
+                    'recibos' => [],
+                    'total_cliente' => 0.0,
+                ];
+            }
+
+
+            $recKey = $r->idrecibo;
+            if (!isset($clientes[$cid]['recibos'][$recKey])) {
+                $clientes[$cid]['recibos'][$recKey] = [
+                    'idrecibo' => $r->idrecibo,
+                    'fecha_recibo' => $r->fecha_recibo,
+                    'serie' => $r->serie,
+                    'numero' => $r->numero,
+                    'detalles' => [],
+                    'total_recibo' => 0.0,
+                ];
+            }
+
+
+            $detalle = [
+                'idcuentaporcobrar' => $r->idcuentaporcobrar,
+                'fecha_emision' => $r->fecha_emision,
+                'nointerno' => $r->nointerno,
+                'monto_pagado' => (float)$r->monto_pagado,
+            ];
+            $clientes[$cid]['recibos'][$recKey]['detalles'][] = $detalle;
+
+
+            $clientes[$cid]['recibos'][$recKey]['total_recibo'] += (float)$r->monto_pagado;
+            $clientes[$cid]['total_cliente'] += (float)$r->monto_pagado;
+            $totalGeneral += (float)$r->monto_pagado;
+        }
+
+
+        // Normaliza índices (recibos como arrays consecutivos)
+        foreach ($clientes as $cid => $cData) {
+            $clientes[$cid]['recibos'] = array_values($cData['recibos']);
+        }
+
+
+        return [
+            'clientes' => $clientes,
+            'total_general' => $totalGeneral,
+        ];
     }
 }

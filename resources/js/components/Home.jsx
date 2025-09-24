@@ -184,6 +184,10 @@ function Home() {
                     to = `/reportes/contabilidad/prefacturacion`;
                     text = 'Reporte de ventas prefacturación';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Facturas Reportes-Contabilidad' && opcion.accion === 'facturas') {
+                    to = `/reportes/contabilidad/facturas-pagadas`;
+                    text = 'Resumen de facturas pagadas';
+                    icon = <FiSearch />;
                 }
 
 
