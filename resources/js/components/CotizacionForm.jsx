@@ -26,6 +26,7 @@ import TipoPagoModal from "./TipoPagoModal";
 import CotizacionPDF from "./CotizacionPDF";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 import "../../css/cotizacion-form.css";
+import { v4 as uuidv4 } from "uuid";
 
 DataTable.use(DT);
 
@@ -54,6 +55,15 @@ function CotizacionForm() {
     const [tipoPagoModalOpen, setTipoPagoModalOpen] = useState(false);
     const toggleTipoPagoModal = () => setTipoPagoModalOpen(!tipoPagoModalOpen);
     const [pdfData, setPdfData] = useState(null); // payload para renderizar el PDF
+    const [saving, setSaving] = useState(false);
+    const idemKeyRef = useRef(null);
+    const ensureIdemKey = () => {
+        if (!idemKeyRef.current) {
+            // usa crypto.randomUUID() si está disponible en tu runtime
+            idemKeyRef.current = window.crypto?.randomUUID?.() || uuidv4();
+        }
+        return idemKeyRef.current;
+    };
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -393,8 +403,10 @@ function CotizacionForm() {
     const handleSubmit = async (e) => {
         // Make handleSubmit async
         e.preventDefault();
+        if (saving) return; // ← evita doble click
+        setSaving(true);
         const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = { Authorization: `Bearer ${token}`,'Idempotency-Key': ensureIdemKey() };
         const formData = new FormData();
 
         // Validaciones
@@ -531,14 +543,16 @@ function CotizacionForm() {
                 res = await axios.post(`/api/cotizaciones/${id}`, formData, {
                     headers,
                 });
-                alertify.success("Cotización actualizada correctamente");
+                //alertify.success("Cotización actualizada correctamente");
                 // Generar PDF del id existente con la fecha del formulario
+                // si llegó OK, puedes “cerrar” la llave para futuras altas
+                idemKeyRef.current = null;
                 await generarPDFPorId(id, cotizacion.fecha_cotizacion);
             } else {
                 res = await axios.post("/api/cotizaciones", formData, {
                     headers,
                 });
-                alertify.success("Cotización creada correctamente");
+                //alertify.success("Cotización creada correctamente");
                 // El backend devuelve la cotización creada con su id
                 const nuevoId = getIdFromCreateResponse(res);
                 console.log(
@@ -553,12 +567,17 @@ function CotizacionForm() {
                     );
                     return;
                 }
+                // si llegó OK, puedes “cerrar” la llave para futuras altas
+                idemKeyRef.current = null;
                 await generarPDFPorId(nuevoId, cotizacion.fecha_cotizacion);
             }
-            //navigate("/cotizaciones/lista");
+            
+            navigate("/cotizaciones/crear");
         } catch (error) {
             console.error("Error al guardar la cotización:", error);
             alertify.error("Error al guardar la cotización", error);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -1671,9 +1690,15 @@ function CotizacionForm() {
                             <div className="mt-4 action-toolbar">
                                 <button
                                     type="submit"
-                                    className="btn-action btn-save flex-fill"
+                                    className="btn-action btn-save flex-fill "
+                                    disabled={saving}
                                 >
-                                    <FaSave /> {id ? "ACTUALIZAR" : "GUARDAR"}
+                                    <FaSave />{" "}
+                                    {saving
+                                        ? "GUARDANDO…"
+                                        : id
+                                        ? "ACTUALIZAR"
+                                        : "GUARDAR"}
                                 </button>
 
                                 <button

@@ -59,6 +59,7 @@ class AdmCotizacion extends Model
         'usuario_rechazo',
         'fecha_prefacturacion',
         'fecha_facturacion',
+        'idempotency_key',
     ];
 
     protected $casts = [
