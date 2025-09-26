@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Schema; 
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\QueryException;
 
 class CotizacionController extends Controller
 {
@@ -261,111 +262,426 @@ class CotizacionController extends Controller
     }
 
 
+    // public function store(Request $request)
+    // {
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $correlativo = Correlativo::find('adm_cotizacion');
+
+    //         if (!$correlativo) {
+    //             return response()->json(['message' => 'No se encontró el correlativo para cotizacion'], 400);
+    //         }
+
+    //         $idCotizacion = $correlativo->correlativo + $correlativo->incremento;
+    //         $correlativo->correlativo = $idCotizacion;
+    //         $correlativo->save();
+
+    //         $correlativonocotizacion = Correlativo::find('no_cotizacion');
+    //         if (!$correlativonocotizacion) {
+    //             return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
+    //         }
+
+    //         $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
+    //         $correlativonocotizacion->correlativo = $nocotizacion;
+    //         $correlativonocotizacion->save();
+
+    //         $datosCotizacion = $request->all();
+    //         $datosCotizacion['idcotizacion'] = $idCotizacion;
+    //         $datosCotizacion['nocotizacion'] = $nocotizacion;
+    //         $datosCotizacion['usuario_registro'] = auth()->user()->name;
+    //         $datosCotizacion['fecha_registro'] = date('Y-m-d H:i:s');
+    //         //$datosCotizacion['estado']           = 1;
+    //         $datosCotizacion['idusuario'] = auth()->user()->id;
+
+    //         $cotizacion = AdmCotizacion::create($datosCotizacion);
+
+    //         // Guardar detalles de la cotización
+
+    //         $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
+
+    //         if (!$correlativoDetalle) {
+    //             return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
+    //         }
+
+    //         $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
+    //         if (!is_array($detalles)) {
+    //             Log::error('Los detalles no son un array: ' . print_r($detalles, true));
+    //             DB::rollback();
+    //             return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
+    //         }
+
+    //         $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
+
+    //         foreach ($detalles as $index => $detalleData) {
+    //             //Log::info("Procesando detalle en índice: {$index}");
+    //             //Log::info("¿Request tiene archivo detalles[{$index}][imagen]?: " . ($request->hasFile("detalles.{$index}.imagen") ? 'Sí' : 'No'));
+    //             $imagenRuta = null;
+    //             if ($request->hasFile("detalles.{$index}.imagen")) {
+    //                 //Log::info("Archivo detectado para índice: {$index}");
+    //                 $imagen = $request->file("detalles.{$index}.imagen");
+    //                 // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
+    //                 $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
+    //                 $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
+    //                 $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+    //                 $imagenRuta = $nombreImagen;
+    //             }
+    //             AdmDetalleCotizacion::create([
+    //                 'iddetallecotizacion' => $idDetalleCotizacion,
+    //                 'idcotizacion' => $idCotizacion,
+    //                 'idproducto' => 0,
+    //                 'producto' => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
+    //                 'titulo' => '',
+    //                 'descripcion' => $detalleData['descripcion'],
+    //                 'cantidad' => $detalleData['cantidad'],
+    //                 'ancho' => $detalleData['ancho'],
+    //                 'alto' => $detalleData['alto'],
+    //                 'profundidad' => $detalleData['profundidad'],
+    //                 'precio' => $detalleData['precio'],
+    //                 'total' => $detalleData['total'],
+    //                 'fecha_registro' => date('Y-m-d H:i:s'),
+    //                 'usuario_registro' => auth()->user()->name,
+    //                 'costeado' => 'N',
+    //                 'incluye_foto' => $imagenRuta ? 'S' : 'N',
+    //                 'estado' => 1,
+    //                 'unidad_medida' => $detalleData['unidad_medida'],
+    //                 'm2' => $detalleData['m2'],
+    //                 'imagen' => $imagenRuta,
+    //             ]);
+
+    //             $idDetalleCotizacion += 1;
+    //         }
+
+    //         $correlativoDetalle->correlativo = $idDetalleCotizacion;
+    //         $correlativoDetalle->save();
+
+    //         DB::commit();
+
+    //         return response()->json($cotizacion, 201);
+    //     } catch (\Exception $e) {
+    //         DB::rollback();
+    //         return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
+    //     }
+    // }
+
+
     public function store(Request $request)
     {
+        // Puedes exigirla o tratarla como opcional; aquí la tratamos como opcional.
+        $idemKey = $request->header('Idempotency-Key') ?? $request->input('idempotency_key');
+
         try {
-            DB::beginTransaction();
+            return DB::transaction(function () use ($request, $idemKey) {
 
-            $correlativo = Correlativo::find('adm_cotizacion');
-
-            if (!$correlativo) {
-                return response()->json(['message' => 'No se encontró el correlativo para cotizacion'], 400);
-            }
-
-            $idCotizacion = $correlativo->correlativo + $correlativo->incremento;
-            $correlativo->correlativo = $idCotizacion;
-            $correlativo->save();
-
-            $correlativonocotizacion = Correlativo::find('no_cotizacion');
-            if (!$correlativonocotizacion) {
-                return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
-            }
-
-            $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
-            $correlativonocotizacion->correlativo = $nocotizacion;
-            $correlativonocotizacion->save();
-
-            $datosCotizacion = $request->all();
-            $datosCotizacion['idcotizacion'] = $idCotizacion;
-            $datosCotizacion['nocotizacion'] = $nocotizacion;
-            $datosCotizacion['usuario_registro'] = auth()->user()->name;
-            $datosCotizacion['fecha_registro'] = date('Y-m-d H:i:s');
-            //$datosCotizacion['estado']           = 1;
-            $datosCotizacion['idusuario'] = auth()->user()->id;
-
-            $cotizacion = AdmCotizacion::create($datosCotizacion);
-
-            // Guardar detalles de la cotización
-
-            $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-
-            if (!$correlativoDetalle) {
-                return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
-            }
-
-            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-            if (!is_array($detalles)) {
-                Log::error('Los detalles no son un array: ' . print_r($detalles, true));
-                DB::rollback();
-                return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
-            }
-
-            $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-
-            foreach ($detalles as $index => $detalleData) {
-                //Log::info("Procesando detalle en índice: {$index}");
-                //Log::info("¿Request tiene archivo detalles[{$index}][imagen]?: " . ($request->hasFile("detalles.{$index}.imagen") ? 'Sí' : 'No'));
-                $imagenRuta = null;
-                if ($request->hasFile("detalles.{$index}.imagen")) {
-                    //Log::info("Archivo detectado para índice: {$index}");
-                    $imagen = $request->file("detalles.{$index}.imagen");
-                    // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
-                    $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
-                    $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
-                    $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
-                    $imagenRuta = $nombreImagen;
+                // Si viene Idempotency-Key y ya existe, retorna la misma cotización
+                if ($idemKey) {
+                    $existing = AdmCotizacion::where('idempotency_key', $idemKey)->first();
+                    if ($existing) {
+                        return response()->json($existing, 200);
+                    }
                 }
-                AdmDetalleCotizacion::create([
-                    'iddetallecotizacion' => $idDetalleCotizacion,
-                    'idcotizacion' => $idCotizacion,
-                    'idproducto' => 0,
-                    'producto' => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
-                    'titulo' => '',
-                    'descripcion' => $detalleData['descripcion'],
-                    'cantidad' => $detalleData['cantidad'],
-                    'ancho' => $detalleData['ancho'],
-                    'alto' => $detalleData['alto'],
-                    'profundidad' => $detalleData['profundidad'],
-                    'precio' => $detalleData['precio'],
-                    'total' => $detalleData['total'],
-                    'fecha_registro' => date('Y-m-d H:i:s'),
-                    'usuario_registro' => auth()->user()->name,
-                    'costeado' => 'N',
-                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
-                    'estado' => 1,
-                    'unidad_medida' => $detalleData['unidad_medida'],
-                    'm2' => $detalleData['m2'],
-                    'imagen' => $imagenRuta,
-                ]);
 
-                $idDetalleCotizacion += 1;
+                // --- Bloquea correlativos para evitar pisadas en concurrencia ---
+                $rowCot = DB::table('cor_correlativo')->where('tabla', 'adm_cotizacion')->lockForUpdate()->first();
+                if (!$rowCot) {
+                    return response()->json(['message' => 'No se encontró el correlativo para cotizacion'], 400);
+                }
+
+                $rowNo = DB::table('cor_correlativo')->where('tabla', 'no_cotizacion')->lockForUpdate()->first();
+                if (!$rowNo) {
+                    return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
+                }
+
+                $rowDet = DB::table('cor_correlativo')->where('tabla', 'adm_detalle_cotizacion')->lockForUpdate()->first();
+                if (!$rowDet) {
+                    return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
+                }
+
+                // Calcula y avanza correlativos (cabecera)
+                $idCotizacion = $rowCot->correlativo + $rowCot->incremento;
+                DB::table('cor_correlativo')->where('tabla', 'adm_cotizacion')->update(['correlativo' => $idCotizacion]);
+
+                $nocotizacion = $rowNo->correlativo + $rowNo->incremento;
+                DB::table('cor_correlativo')->where('tabla', 'no_cotizacion')->update(['correlativo' => $nocotizacion]);
+
+                // --- Cabecera ---
+                $datosCotizacion = $request->except('detalles', 'idempotency_key'); // no intentes hacer mass-assign de detalles
+                $datosCotizacion['idcotizacion']     = $idCotizacion;
+                $datosCotizacion['nocotizacion']     = $nocotizacion;
+                $datosCotizacion['usuario_registro'] = auth()->user()->name ?? 'system';
+                $datosCotizacion['fecha_registro']   = now();
+                $datosCotizacion['idusuario']        = auth()->id();
+                if ($idemKey) {
+                    $datosCotizacion['idempotency_key'] = $idemKey;
+                }
+
+                $cotizacion = AdmCotizacion::create($datosCotizacion);
+
+                // --- Detalles ---
+                $detalles = $request->input('detalles', []);
+                if (!is_array($detalles)) {
+                    Log::error('Los detalles no son un array: ' . print_r($detalles, true));
+                    return response()->json(['message' => 'Error: Los detalles deben ser un array'], 422);
+                }
+
+                // Próximo id de detalle partiendo del correlativo actual
+                $nextDetalleId = $rowDet->correlativo + $rowDet->incremento;
+                $incDet        = $rowDet->incremento ?: 1;
+                $lastUsedDetId = null;
+
+                foreach ($detalles as $index => $detalleData) {
+                    $imagenRuta = null;
+                    if ($request->hasFile("detalles.{$index}.imagen")) {
+                        $img    = $request->file("detalles.{$index}.imagen");
+                        $ext    = $img->getClientOriginalExtension() ?: $img->extension() ?: 'png';
+                        $nombre = uniqid('detalle_') . '.' . $ext;
+                        $img->move(public_path('images_cotizaciones'), $nombre);
+                        $imagenRuta = $nombre;
+                    }
+
+                    AdmDetalleCotizacion::create([
+                        'iddetallecotizacion' => $nextDetalleId,
+                        'idcotizacion'        => $idCotizacion,
+                        'idproducto'          => 0,
+                        'producto'            => $detalleData['descripcion'] ?? '',
+                        'titulo'              => '',
+                        'descripcion'         => $detalleData['descripcion'] ?? '',
+                        'cantidad'            => $detalleData['cantidad'] ?? 0,
+                        'ancho'               => $detalleData['ancho'] ?? 0,
+                        'alto'                => $detalleData['alto'] ?? 0,
+                        'profundidad'         => $detalleData['profundidad'] ?? 0,
+                        'precio'              => $detalleData['precio'] ?? 0,
+                        'total'               => $detalleData['total'] ?? 0,
+                        'fecha_registro'      => now(),
+                        'usuario_registro'    => auth()->user()->name ?? 'system',
+                        'costeado'            => 'N',
+                        'incluye_foto'        => $imagenRuta ? 'S' : 'N',
+                        'estado'              => 1,
+                        'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
+                        'm2'                  => $detalleData['m2'] ?? 0,
+                        'imagen'              => $imagenRuta,
+                    ]);
+
+                    $lastUsedDetId = $nextDetalleId;
+                    $nextDetalleId += $incDet;
+                }
+
+                // Actualiza el correlativo de detalle al ÚLTIMO ID USADO
+                if ($lastUsedDetId !== null) {
+                    DB::table('cor_correlativo')->where('tabla', 'adm_detalle_cotizacion')
+                        ->update(['correlativo' => $lastUsedDetId]);
+                }
+
+                // listo
+                return response()->json($cotizacion, 201);
+            });
+        } catch (QueryException $e) {
+            // Si el índice único de idempotency_key se dispara (1062), regresa la existente
+            if (($e->errorInfo[1] ?? null) === 1062 && $idemKey) {
+                if ($existing = AdmCotizacion::where('idempotency_key', $idemKey)->first()) {
+                    return response()->json($existing, 200);
+                }
             }
-
-            $correlativoDetalle->correlativo = $idDetalleCotizacion;
-            $correlativoDetalle->save();
-
-            DB::commit();
-
-            return response()->json($cotizacion, 201);
-        } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollBack();
+            return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
         }
     }
 
+
+    // public function show($id)
+    // {
+    //     $cotizaciones = AdmCotizacion::where('c.idcotizacion', $id)
+    //         ->select(
+    //             'c.idcotizacionoriginal',
+    //             'c.idcotizacion',
+    //             'c.idcliente',
+    //             'cl.nombre as cliente',
+    //             'c.idcontacto',
+    //             'ct.nombre as contacto',
+    //             'c.fecha_cotizacion',
+    //             'c.trabajo',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.total_general',
+    //             'c.costeo_observaciones',
+    //             'c.nocotizacion',
+    //             'c.version',
+    //             'c.idtipopago',
+    //             't.tipo as tipo_pago',
+    //             'c.direccion_entrega',
+    //             'c.costear',
+    //             'c.total_general',
+    //         )
+    //         ->from('adm_cotizacion as c')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+    //         ->first();
+    //     if (!$cotizaciones) {
+    //         return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
+    //     }
+    //     // Obtener los detalles de la cotización
+    //     $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
+    //         ->select(
+    //             'd.iddetallecotizacion',
+    //             'idcotizacion',
+    //             'idproducto',
+    //             'producto',
+    //             'titulo',
+    //             'descripcion',
+    //             'cantidad',
+    //             'ancho',
+    //             'alto',
+    //             'profundidad',
+    //             'precio',
+    //             'total',
+    //             'fecha_registro',
+    //             'usuario_registro',
+    //             'costeado',
+    //             'fecha_costeo',
+    //             'usuario_costeo',
+    //             'estado',
+    //             'incluye_foto',
+    //             'unidad_medida',
+    //             'm2',
+    //             //'imagen',
+    //             'imagen as imagen_ruta',
+    //         )
+    //         ->from('adm_detalle_cotizacion as d')
+    //         ->get();
+
+    //     // Agregar los detalles a la respuesta
+    //     $cotizaciones->detalles = $detalles;
+
+    //     return response()->json($cotizaciones);
+    // }
+
+    // public function update(Request $request, $id)
+    // {
+    //     // Iniciar transacción para asegurar atomicidad
+    //     DB::beginTransaction();
+    //     try {
+    //         // 1. Encontrar y actualizar la cotización principal
+    //         $cotizacion = AdmCotizacion::find($id);
+    //         if (!$cotizacion) {
+    //             DB::rollback(); // Revertir si no se encuentra
+    //             return response()->json(['message' => 'Cotización no encontrada'], 404);
+    //         }
+
+    //         // Obtener todos los datos, incluyendo los detalles
+    //         $datosCotizacion = $request->all();
+
+    //         // Excluir 'detalles' del array para la actualización de la cabecera
+    //         $datosCabecera = $request->except('detalles');
+
+    //         // Añadir campos de auditoría para la cabecera
+    //         $datosCabecera['usuario_modificacion'] = auth()->user()->name;
+    //         $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
+    //         // Quitar la línea de estado si no la envías o quieres mantener la existente
+    //         // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+
+    //         $cotizacion->update($datosCabecera);
+
+    //         // 2. Eliminar los detalles existentes para esta cotización
+    //         // Es importante hacer esto DENTRO de la transacción
+    //         AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
+
+    //         // 3. Obtener y procesar los nuevos detalles (como en store)
+    //         $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
+
+    //         if (!empty($detalles)) { // Solo procesar si hay detalles
+    //             // Obtener el correlativo para los detalles (igual que en store)
+    //             $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
+    //             if (!$correlativoDetalle) {
+    //                 DB::rollback();
+    //                 // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
+    //                 return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
+    //             }
+
+    //             // Determinar el siguiente ID disponible basado en el correlativo actual
+    //             // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
+    //             $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
+    //             $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
+
+    //             foreach ($detalles as $index => $detalleData) {
+    //                 $imagenRuta = null;
+    //                 if ($request->hasFile("detalles.{$index}.imagen")) {
+    //                     $imagen = $request->file("detalles.{$index}.imagen");
+    //                     // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
+    //                     $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
+    //                     $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
+    //                     //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
+    //                     //$imagenRuta = $nombreImagen;
+    //                     if ($imagen->move(public_path('images_cotizaciones'), $nombreImagen)) {
+    //                         $imagenRuta = $nombreImagen;
+    //                         // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
+    //                     } else {
+    //                         // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
+    //                         // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
+    //                         // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
+    //                     }
+    //                 } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
+    //                     // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
+    //                     $imagenRuta = $detalleData['imagen_ruta'];
+    //                 }
+    //                 // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
+    //                 AdmDetalleCotizacion::create([
+    //                     'iddetallecotizacion' => $idDetalleCotizacion,
+    //                     'idcotizacion' => $id,                                                            // Usar el $id de la cotización que estamos actualizando
+    //                     'idproducto' => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
+    //                     'producto' => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'), // Asigna producto o descripción
+    //                     'titulo' => $detalleData['titulo'] ?? '',
+    //                     'descripcion' => $detalleData['descripcion'] ?? '',
+    //                     'cantidad' => $detalleData['cantidad'] ?? 0,
+    //                     'ancho' => $detalleData['ancho'] ?? 0,
+    //                     'alto' => $detalleData['alto'] ?? 0,
+    //                     'profundidad' => $detalleData['profundidad'] ?? 0,
+    //                     'precio' => $detalleData['precio'] ?? 0,
+    //                     'total' => $detalleData['total'] ?? 0,
+    //                     'fecha_registro' => now(), // Usar now() para la fecha actual
+    //                     'usuario_registro' => auth()->user()->name,
+    //                     'costeado' => $detalleData['costeado'] ?? 'N',
+    //                     'incluye_foto' => $imagenRuta ? 'S' : 'N',
+    //                     'estado' => $detalleData['estado'] ?? 1,
+    //                     'unidad_medida' => $detalleData['unidad_medida'] ?? null,
+    //                     'm2' => $detalleData['m2'] ?? 0,
+    //                     'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
+    //                 ]);
+
+    //                 $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
+    //                 $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
+    //             }
+
+    //             // Actualizar el correlativo con el ÚLTIMO ID que se usó
+    //             $correlativoDetalle->correlativo = $ultimoIdUsado;
+    //             $correlativoDetalle->save();
+    //         }
+
+    //         // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
+    //         // Para devolverla con detalles, necesitas volver a cargar la relación
+    //         $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
+    //         // Si todo fue bien, confirmar la transacción
+    //         DB::commit();
+
+    //         return response()->json($cotizacion);
+    //     } catch (\Exception $e) {
+    //         // Si algo falla, revertir la transacción
+    //         DB::rollback();
+    //         Log::error('Error al actualizar la cotización ID ' . $id . ': ' . $e->getMessage()); // Loguear el error para depuración
+    //         return response()->json(['message' => 'Error al actualizar la cotización: ' . $e->getMessage()], 500);
+    //     }
+    // }
+
     public function show($id)
     {
-        $cotizaciones = AdmCotizacion::where('c.idcotizacion', $id)
+        $cot = AdmCotizacion::from('adm_cotizacion as c')
+            ->where('c.idcotizacion', $id)
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->leftJoin('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->select(
                 'c.idcotizacionoriginal',
                 'c.idcotizacion',
@@ -377,174 +693,157 @@ class CotizacionController extends Controller
                 'c.trabajo',
                 'c.observaciones_costeo',
                 'c.observaciones_cliente',
-                'c.total_general',
                 'c.costeo_observaciones',
-                'c.nocotizacion',
+                DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 'c.version',
                 'c.idtipopago',
                 't.tipo as tipo_pago',
                 'c.direccion_entrega',
                 'c.costear',
-                'c.total_general',
+                'c.total_general'
             )
-            ->from('adm_cotizacion as c')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->first();
-        if (!$cotizaciones) {
+
+        if (!$cot) {
             return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
         }
-        // Obtener los detalles de la cotización
-        $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
-            ->select(
+
+        $detalles = AdmDetalleCotizacion::from('adm_detalle_cotizacion as d')
+            ->where('d.idcotizacion', $id)
+            ->orderBy('d.iddetallecotizacion')
+            ->get([
                 'd.iddetallecotizacion',
-                'idcotizacion',
-                'idproducto',
-                'producto',
-                'titulo',
-                'descripcion',
-                'cantidad',
-                'ancho',
-                'alto',
-                'profundidad',
-                'precio',
-                'total',
-                'fecha_registro',
-                'usuario_registro',
-                'costeado',
-                'fecha_costeo',
-                'usuario_costeo',
-                'estado',
-                'incluye_foto',
-                'unidad_medida',
-                'm2',
-                //'imagen',
-                'imagen as imagen_ruta',
-            )
-            ->from('adm_detalle_cotizacion as d')
-            ->get();
+                'd.idcotizacion',
+                'd.idproducto',
+                'd.producto',
+                'd.titulo',
+                'd.descripcion',
+                'd.cantidad',
+                'd.ancho',
+                'd.alto',
+                'd.profundidad',
+                'd.precio',
+                'd.total',
+                'd.fecha_registro',
+                'd.usuario_registro',
+                'd.costeado',
+                'd.fecha_costeo',
+                'd.usuario_costeo',
+                'd.estado',
+                'd.incluye_foto',
+                'd.unidad_medida',
+                'd.m2',
+                DB::raw('d.imagen as imagen_ruta'),
+            ]);
 
-        // Agregar los detalles a la respuesta
-        $cotizaciones->detalles = $detalles;
+        $cot->detalles = $detalles;
 
-        return response()->json($cotizaciones);
+        return response()->json($cot);
     }
 
     public function update(Request $request, $id)
     {
-        // Iniciar transacción para asegurar atomicidad
-        DB::beginTransaction();
-        try {
-            // 1. Encontrar y actualizar la cotización principal
-            $cotizacion = AdmCotizacion::find($id);
+        return DB::transaction(function () use ($request, $id) {
+            // Bloquea la cabecera para evitar ediciones concurrentes
+            /** @var AdmCotizacion|null $cotizacion */
+            $cotizacion = AdmCotizacion::lockForUpdate()->find($id);
             if (!$cotizacion) {
-                DB::rollback(); // Revertir si no se encuentra
                 return response()->json(['message' => 'Cotización no encontrada'], 404);
             }
 
-            // Obtener todos los datos, incluyendo los detalles
-            $datosCotizacion = $request->all();
-
-            // Excluir 'detalles' del array para la actualización de la cabecera
-            $datosCabecera = $request->except('detalles');
-
-            // Añadir campos de auditoría para la cabecera
-            $datosCabecera['usuario_modificacion'] = auth()->user()->name;
-            $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
-            // Quitar la línea de estado si no la envías o quieres mantener la existente
-            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+            // Evita que el cliente cambie campos inmutables de la cabecera
+            $datosCabecera = $request->except([
+                'detalles',
+                'id',
+                'idcotizacion',
+                'nocotizacion',
+                'idusuario',
+                'usuario_registro',
+                'fecha_registro',
+                'idempotency_key',
+            ]);
+            $datosCabecera['usuario_modificacion'] = auth()->user()->name ?? 'system';
+            $datosCabecera['fecha_modificacion']   = now();
 
             $cotizacion->update($datosCabecera);
 
-            // 2. Eliminar los detalles existentes para esta cotización
-            // Es importante hacer esto DENTRO de la transacción
+            // Reemplazo total de detalles
             AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
 
-            // 3. Obtener y procesar los nuevos detalles (como en store)
-            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-
-            if (!empty($detalles)) { // Solo procesar si hay detalles
-                // Obtener el correlativo para los detalles (igual que en store)
-                $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-                if (!$correlativoDetalle) {
-                    DB::rollback();
-                    // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
-                    return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
-                }
-
-                // Determinar el siguiente ID disponible basado en el correlativo actual
-                // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
-                $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-                $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
-
-                foreach ($detalles as $index => $detalleData) {
-                    $imagenRuta = null;
-                    if ($request->hasFile("detalles.{$index}.imagen")) {
-                        $imagen = $request->file("detalles.{$index}.imagen");
-                        // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
-                        $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
-                        $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
-                        //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
-                        //$imagenRuta = $nombreImagen;
-                        if ($imagen->move(public_path('images_cotizaciones'), $nombreImagen)) {
-                            $imagenRuta = $nombreImagen;
-                            // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
-                        } else {
-                            // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
-                            // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
-                            // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
-                        }
-                    } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
-                        // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
-                        $imagenRuta = $detalleData['imagen_ruta'];
-                    }
-                    // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
-                    AdmDetalleCotizacion::create([
-                        'iddetallecotizacion' => $idDetalleCotizacion,
-                        'idcotizacion' => $id,                                                            // Usar el $id de la cotización que estamos actualizando
-                        'idproducto' => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
-                        'producto' => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'), // Asigna producto o descripción
-                        'titulo' => $detalleData['titulo'] ?? '',
-                        'descripcion' => $detalleData['descripcion'] ?? '',
-                        'cantidad' => $detalleData['cantidad'] ?? 0,
-                        'ancho' => $detalleData['ancho'] ?? 0,
-                        'alto' => $detalleData['alto'] ?? 0,
-                        'profundidad' => $detalleData['profundidad'] ?? 0,
-                        'precio' => $detalleData['precio'] ?? 0,
-                        'total' => $detalleData['total'] ?? 0,
-                        'fecha_registro' => now(), // Usar now() para la fecha actual
-                        'usuario_registro' => auth()->user()->name,
-                        'costeado' => $detalleData['costeado'] ?? 'N',
-                        'incluye_foto' => $imagenRuta ? 'S' : 'N',
-                        'estado' => $detalleData['estado'] ?? 1,
-                        'unidad_medida' => $detalleData['unidad_medida'] ?? null,
-                        'm2' => $detalleData['m2'] ?? 0,
-                        'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
-                    ]);
-
-                    $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
-                    $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
-                }
-
-                // Actualizar el correlativo con el ÚLTIMO ID que se usó
-                $correlativoDetalle->correlativo = $ultimoIdUsado;
-                $correlativoDetalle->save();
+            $detalles = $request->input('detalles', []);
+            if (!is_array($detalles)) {
+                return response()->json(['message' => 'Error: Los detalles deben ser un array'], 422);
+            }
+            if (count($detalles) === 0) {
+                $cotizacion->load('detalles');
+                return response()->json($cotizacion);
             }
 
-            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-            // Para devolverla con detalles, necesitas volver a cargar la relación
-            $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
-            // Si todo fue bien, confirmar la transacción
-            DB::commit();
+            // Bloquea el correlativo de detalles para no pisarnos en concurrencia
+            $rowDet = DB::table('cor_correlativo')
+                ->where('tabla', 'adm_detalle_cotizacion')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$rowDet) {
+                return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500);
+            }
+
+            $incDet        = $rowDet->incremento ?: 1;
+            $nextDetalleId = $rowDet->correlativo + $incDet;
+            $lastUsedDetId = null;
+
+            foreach ($detalles as $index => $detalleData) {
+                $imagenRuta = null;
+
+                if ($request->hasFile("detalles.{$index}.imagen")) {
+                    $img    = $request->file("detalles.{$index}.imagen");
+                    $ext    = $img->getClientOriginalExtension() ?: $img->extension() ?: 'png';
+                    $nombre = uniqid('detalle_') . '.' . $ext;
+                    $img->move(public_path('images_cotizaciones'), $nombre);
+                    $imagenRuta = $nombre;
+                } elseif (!empty($detalleData['imagen_ruta'])) {
+                    $imagenRuta = $detalleData['imagen_ruta'];
+                }
+
+                AdmDetalleCotizacion::create([
+                    'iddetallecotizacion' => $nextDetalleId,
+                    'idcotizacion'        => $id,
+                    'idproducto'          => $detalleData['idproducto'] ?? 0,
+                    'producto'            => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'),
+                    'titulo'              => $detalleData['titulo'] ?? '',
+                    'descripcion'         => $detalleData['descripcion'] ?? '',
+                    'cantidad'            => $detalleData['cantidad'] ?? 0,
+                    'ancho'               => $detalleData['ancho'] ?? 0,
+                    'alto'                => $detalleData['alto'] ?? 0,
+                    'profundidad'         => $detalleData['profundidad'] ?? 0,
+                    'precio'              => $detalleData['precio'] ?? 0,
+                    'total'               => $detalleData['total'] ?? 0,
+                    'fecha_registro'      => now(),
+                    'usuario_registro'    => auth()->user()->name ?? 'system',
+                    'costeado'            => $detalleData['costeado'] ?? 'N',
+                    'incluye_foto'        => $imagenRuta ? 'S' : 'N',
+                    'estado'              => $detalleData['estado'] ?? 1,
+                    'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
+                    'm2'                  => $detalleData['m2'] ?? 0,
+                    'imagen'              => $imagenRuta,
+                ]);
+
+                $lastUsedDetId = $nextDetalleId;
+                $nextDetalleId += $incDet;
+            }
+
+            // Actualiza el correlativo al último ID usado
+            if ($lastUsedDetId !== null) {
+                DB::table('cor_correlativo')
+                    ->where('tabla', 'adm_detalle_cotizacion')
+                    ->update(['correlativo' => $lastUsedDetId]);
+            }
+
+            $cotizacion->load('detalles');
 
             return response()->json($cotizacion);
-        } catch (\Exception $e) {
-            // Si algo falla, revertir la transacción
-            DB::rollback();
-            Log::error('Error al actualizar la cotización ID ' . $id . ': ' . $e->getMessage()); // Loguear el error para depuración
-            return response()->json(['message' => 'Error al actualizar la cotización: ' . $e->getMessage()], 500);
-        }
+        });
     }
 
     public function actualizarFechaPrefacturacion(Request $request, $id)
