@@ -64,6 +64,9 @@ function CotizacionForm() {
         }
         return idemKeyRef.current;
     };
+    const [nitCliente, setNitCliente] = useState("");
+
+    const cantidadRef = useRef(null);
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -203,7 +206,7 @@ function CotizacionForm() {
                                         data.direccion_entrega || "",
                                     costear: data.costear || "N",
                                 });
-
+                                setNitCliente(data.nit || "");
                                 if (data.idcliente) {
                                     setClienteId(data.idcliente);
                                     axios
@@ -299,6 +302,7 @@ function CotizacionForm() {
                 const options = res.data.map((cliente) => ({
                     value: cliente.idcliente,
                     label: cliente.nombre,
+                    nit: cliente.nit ?? "",
                 }));
                 setClienteOptions(options);
             })
@@ -318,6 +322,7 @@ function CotizacionForm() {
 
     const handleClienteChange = (selectedOption) => {
         setClienteId(selectedOption.value);
+        setNitCliente(selectedOption.nit || "");
         setCotizacion({
             ...cotizacion,
             idcliente: selectedOption.value,
@@ -406,7 +411,10 @@ function CotizacionForm() {
         if (saving) return; // ← evita doble click
         setSaving(true);
         const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}`,'Idempotency-Key': ensureIdemKey() };
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            "Idempotency-Key": ensureIdemKey(),
+        };
         const formData = new FormData();
 
         // Validaciones
@@ -571,7 +579,7 @@ function CotizacionForm() {
                 idemKeyRef.current = null;
                 await generarPDFPorId(nuevoId, cotizacion.fecha_cotizacion);
             }
-            
+
             navigate("/cotizaciones/crear");
         } catch (error) {
             console.error("Error al guardar la cotización:", error);
@@ -586,18 +594,6 @@ function CotizacionForm() {
         setDetalle({ ...detalle, [e.target.name]: e.target.value });
     };
 
-    //Para gestionar la imagen del detalle
-    // const handleImagenChange = (e) => {
-    //     if (e.target.files && e.target.files[0]) {
-    //         setDetalle({
-    //             ...detalle,
-    //             imagen: e.target.files[0],
-    //             imagen_preview: URL.createObjectURL(e.target.files[0]),
-    //         });
-    //     } else {
-    //         setDetalle({ ...detalle, imagen: null, imagen_preview: null });
-    //     }
-    // };
     const handleImagenChange = (e) => {
         const file = e.target.files?.[0] || null;
         if (file) setImagenFromFile(file);
@@ -680,12 +676,6 @@ function CotizacionForm() {
                 const originalItem = detalleSeleccionado; // El objeto original del array (viene de backend o agregado antes)
                 const formState = detalle; // El estado actual de los inputs del formulario de detalle
 
-                // Logs para depuración intensiva (puedes removerlos después)
-                // console.log('[handleAddDetalle - Editando] originalItem:', JSON.parse(JSON.stringify(originalItem)));
-                // console.log('[handleAddDetalle - Editando] formState (detalle actual del form):', JSON.parse(JSON.stringify(formState)));
-                // console.log('[handleAddDetalle - Editando] formState.imagen es File?', formState.imagen instanceof File);
-                // console.log('[handleAddDetalle - Editando] formState.imagen (valor):', formState.imagen);
-
                 // Construir el objeto actualizado para poner de vuelta en el array `detalles`
                 const updatedItem = {
                     ...originalItem, // Mantener todas las propiedades originales (incluyendo iddetallecotizacion si existe, y la original imagen_ruta)
@@ -723,17 +713,6 @@ function CotizacionForm() {
             }
             setDetalleSeleccionado(null);
         } else {
-            // const newItem = {
-            //     ...formState, // Copia el estado del formulario
-            //     imagen_ruta: null, // Una nueva imagen aún no tiene ruta de BD
-            //     // incluye_foto se basa en si formState.imagen tiene un File
-            //     incluye_foto: formState.imagen ? 'S' : 'N',
-            //     // iddetallecotizacion: genera un ID temporal si lo necesitas en frontend
-            // };
-            // console.log('handleAddDetalle (Add New): Objeto final para el array =', newItem); // Log para verificar
-            // setDetalles([...detalles, newItem]);
-            // // Llama a calcularPrecioDetalle solo cuando se agrega un nuevo detalle
-            // calcularPrecioDetalle(newItem.cantidad);
             // Lógica para AGREGAR un NUEVO detalle (esta parte parecía funcionar bien)
             const formState = detalle; // Usar formState para claridad aquí también
             const newItem = {
@@ -773,6 +752,13 @@ function CotizacionForm() {
             imagen: null,
             imagen_preview: null,
             imagen_ruta: null,
+        });
+        // Enfocar cantidad tras limpiar (sirve para Enter y para clic en Agregar)
+        requestAnimationFrame(() => {
+            if (cantidadRef.current) {
+                cantidadRef.current.focus();
+                cantidadRef.current.select(); // opcional: selecciona el 0 para teclear directo
+            }
         });
     };
 
@@ -1210,6 +1196,14 @@ function CotizacionForm() {
         setProductoPredefinido(null);
         setIsImageModalOpen(false);
         setSelectedImageUrl(null);
+        setNitCliente("");
+    };
+
+    const handleKeyDownDetalle = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault(); // evitar el submit
+            handleAddDetalle(); // ejecutar la función del botón
+        }
     };
 
     return (
@@ -1224,7 +1218,7 @@ function CotizacionForm() {
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <FormSection title="Datos generales">
                             <div className="row g-2 mb-3">
-                                <div className="col-md-6">
+                                <div className="col-md-5">
                                     <label className="form-label">
                                         Cliente
                                     </label>
@@ -1241,7 +1235,17 @@ function CotizacionForm() {
                                         className="form-control form-control-sm campo-obligatorio-fondo"
                                     />
                                 </div>
-                                <div className="col-md-6">
+                                <div className="col-md-3">
+                                    <label className="form-label">NIT</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={nitCliente}
+                                        readOnly
+                                        placeholder="NIT del cliente"
+                                    />
+                                </div>
+                                <div className="col-md-4">
                                     <label className="form-label">
                                         Contacto
                                     </label>
@@ -1369,315 +1373,338 @@ function CotizacionForm() {
                             </div>
                         </FormSection>
                         <FormSection title="Detalle de Cotización">
-                            <div className="row g-1 mb-2">
-                                <div className="col-md-4">
-                                    <button
-                                        type="button"
-                                        className="btn btn-sm btn-producto-predefinido"
-                                        onClick={toggleProductoPredefinidoModal}
-                                    >
-                                        <FaProductHunt /> Seleccionar Producto
-                                        Predefinido
-                                    </button>
+                            <div onKeyDown={handleKeyDownDetalle}>
+                                <div className="row g-1 mb-2">
+                                    <div className="col-md-4">
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-producto-predefinido"
+                                            onClick={
+                                                toggleProductoPredefinidoModal
+                                            }
+                                        >
+                                            <FaProductHunt /> Seleccionar
+                                            Producto Predefinido
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="row g-3 mb-2">
-                                {/* Este bloque va aquí, después del botón */}
-                                <div className="col-md-2">
-                                    <label className="form-label">
-                                        Unidad Medida
-                                    </label>
-                                    <select
-                                        name="unidad_medida"
-                                        value={detalle.unidad_medida}
-                                        onChange={handleDetalleChange}
-                                        className="form-select form-select-sm"
-                                    >
-                                        {/* <option value="">Seleccionar</option> */}
-                                        {unidadesMedida.map((um) => (
-                                            <option
-                                                key={um.idunidadmedida}
-                                                value={um.unidad}
-                                            >
-                                                {um.unidad}
-                                            </option>
-                                        ))}
-                                    </select>
+                                <div className="row g-3 mb-2">
+                                    {/* Este bloque va aquí, después del botón */}
+                                    <div className="col-md-2">
+                                        <label className="form-label">
+                                            Unidad Medida
+                                        </label>
+                                        <select
+                                            name="unidad_medida"
+                                            value={detalle.unidad_medida}
+                                            onChange={handleDetalleChange}
+                                            className="form-select form-select-sm"
+                                        >
+                                            {/* <option value="">Seleccionar</option> */}
+                                            {unidadesMedida.map((um) => (
+                                                <option
+                                                    key={um.idunidadmedida}
+                                                    value={um.unidad}
+                                                >
+                                                    {um.unidad}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="col-md-1">
+                                        <label className="form-label">
+                                            Cantidad
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="cantidad"
+                                            value={detalle.cantidad}
+                                            onChange={
+                                                handleCantidadDetalleChange
+                                            } // <-- Use this!!!
+                                            className="form-control form-control-sm"
+                                            step="1"
+                                            min="0"
+                                            ref={cantidadRef}
+                                        />
+                                    </div>
+                                    <div className="col-md-9">
+                                        <label className="form-label">
+                                            Descripción
+                                        </label>
+                                        <textarea
+                                            rows="1"
+                                            name="descripcion"
+                                            value={detalle.descripcion}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                        ></textarea>
+                                    </div>
                                 </div>
 
-                                <div className="col-md-1">
-                                    <label className="form-label">
-                                        Cantidad
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="cantidad"
-                                        value={detalle.cantidad}
-                                        onChange={handleCantidadDetalleChange} // <-- Use this!!!
-                                        className="form-control form-control-sm"
-                                        step="1"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-9">
-                                    <label className="form-label">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        rows="1"
-                                        name="descripcion"
-                                        value={detalle.descripcion}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                    ></textarea>
-                                </div>
-                            </div>
-
-                            {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
-                            <div className="row g-2 align-items-end mb-3">
-                                <div className="col">
-                                    <label className="form-label">Ancho</label>
-                                    <input
-                                        type="number"
-                                        name="ancho"
-                                        value={detalle.ancho}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col">
-                                    <label className="form-label">Alto</label>
-                                    <input
-                                        type="number"
-                                        name="alto"
-                                        value={detalle.alto}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col">
-                                    <label className="form-label">M2</label>
-                                    <input
-                                        type="number"
-                                        name="m2"
-                                        value={detalle.m2}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col">
-                                    <label className="form-label">Prof.</label>
-                                    <input
-                                        type="number"
-                                        name="profundidad"
-                                        value={detalle.profundidad}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col">
-                                    <label className="form-label">Precio</label>
-                                    <input
-                                        type="number"
-                                        name="precio"
-                                        value={detalle.precio}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="0.01"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col">
-                                    <label className="form-label">Total</label>
-                                    <input
-                                        type="number"
-                                        name="total"
-                                        value={detalle.total}
-                                        className="form-control form-control-sm"
-                                        readOnly
-                                        step="0.01"
-                                    />
-                                </div>
-                                <div className="col-md-3">
-                                    <label className="form-label fw-bold">
-                                        Imagen (Opcional)
-                                    </label>
-                                    {/* <input
+                                {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
+                                <div className="row g-2 align-items-end mb-3">
+                                    <div className="col">
+                                        <label className="form-label">
+                                            Ancho
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="ancho"
+                                            value={detalle.ancho}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                            step="any"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">
+                                            Alto
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="alto"
+                                            value={detalle.alto}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                            step="any"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">M2</label>
+                                        <input
+                                            type="number"
+                                            name="m2"
+                                            value={detalle.m2}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                            step="any"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">
+                                            Prof.
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="profundidad"
+                                            value={detalle.profundidad}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                            step="any"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">
+                                            Precio
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="precio"
+                                            value={detalle.precio}
+                                            onChange={handleDetalleChange}
+                                            className="form-control form-control-sm"
+                                            step="0.01"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">
+                                            Total
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="total"
+                                            value={detalle.total}
+                                            className="form-control form-control-sm"
+                                            readOnly
+                                            step="0.01"
+                                        />
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold">
+                                            Imagen (Opcional)
+                                        </label>
+                                        {/* <input
                                         type="file"
                                         name="imagen"
                                         className="form-control form-control-sm"
                                         onChange={handleImagenChange}
                                     /> */}
-                                    <div
-                                        className="form-control form-control-sm d-flex flex-column align-items-center justify-content-center"
-                                        onPaste={handlePasteImage}
-                                        onDragOver={handleDragOverImage}
-                                        onDrop={handleDropImage}
-                                        tabIndex={0} // ← hace focusable el área para Ctrl+V
-                                        style={{
-                                            height: 90,
-                                            borderStyle: "dashed",
-                                            cursor: "pointer",
-                                        }}
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                        title="Click para seleccionar, o arrastra/pega una imagen"
-                                    >
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            name="imagen"
-                                            style={{ display: "none" }}
-                                            onChange={handleImagenChange}
-                                        />
                                         <div
+                                            className="form-control form-control-sm d-flex flex-column align-items-center justify-content-center"
+                                            onPaste={handlePasteImage}
+                                            onDragOver={handleDragOverImage}
+                                            onDrop={handleDropImage}
+                                            tabIndex={0} // ← hace focusable el área para Ctrl+V
                                             style={{
-                                                fontSize: 12,
-                                                textAlign: "center",
-                                                lineHeight: 1.2,
+                                                height: 90,
+                                                borderStyle: "dashed",
+                                                cursor: "pointer",
                                             }}
+                                            onClick={() =>
+                                                fileInputRef.current?.click()
+                                            }
+                                            title="Click para seleccionar, o arrastra/pega una imagen"
                                         >
-                                            <strong>Click</strong> para
-                                            seleccionar
-                                            <br />o{" "}
-                                            <strong>arrastra/pega</strong> aquí
-                                            una imagen
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                name="imagen"
+                                                style={{ display: "none" }}
+                                                onChange={handleImagenChange}
+                                            />
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    textAlign: "center",
+                                                    lineHeight: 1.2,
+                                                }}
+                                            >
+                                                <strong>Click</strong> para
+                                                seleccionar
+                                                <br />o{" "}
+                                                <strong>
+                                                    arrastra/pega
+                                                </strong>{" "}
+                                                aquí una imagen
+                                            </div>
                                         </div>
+                                        {detalle.imagen_preview && (
+                                            <img
+                                                src={detalle.imagen_preview}
+                                                alt="Vista previa"
+                                                style={{
+                                                    maxWidth: "50px",
+                                                    marginTop: "5px",
+                                                }}
+                                            />
+                                        )}
                                     </div>
-                                    {detalle.imagen_preview && (
-                                        <img
-                                            src={detalle.imagen_preview}
-                                            alt="Vista previa"
-                                            style={{
-                                                maxWidth: "50px",
-                                                marginTop: "5px",
-                                            }}
-                                        />
-                                    )}
+                                    <div className="col-auto">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddDetalle}
+                                            className={
+                                                detalleSeleccionado
+                                                    ? "btn btn-sm btn-agregar"
+                                                    : "btn btn-sm btn-agregar"
+                                            }
+                                        >
+                                            <FaCheckSquare />
+                                            {detalleSeleccionado
+                                                ? " Actualizar"
+                                                : " Agregar"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleQuitarDetalle}
+                                            className="btn btn-danger btn-sm ms-2"
+                                        >
+                                            <FaWindowClose /> Quitar
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="col-auto">
-                                    <button
-                                        type="button"
-                                        onClick={handleAddDetalle}
-                                        className={
-                                            detalleSeleccionado
-                                                ? "btn btn-sm btn-agregar"
-                                                : "btn btn-sm btn-agregar"
-                                        }
-                                    >
-                                        <FaCheckSquare />
-                                        {detalleSeleccionado
-                                            ? " Actualizar"
-                                            : " Agregar"}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleQuitarDetalle}
-                                        className="btn btn-danger btn-sm ms-2"
-                                    >
-                                        <FaWindowClose /> Quitar
-                                    </button>
-                                </div>
-                            </div>
 
-                            {/* --- Tabla de Detalles Agregados --- */}
-                            <h5 className="mt-4 mb-3 border-bottom pb-2">
-                                Detalles Agregados
-                            </h5>
-                            <div className="table-responsive mb-4">
-                                <DataTable
-                                    data={detalles}
-                                    columns={columns}
-                                    options={{
-                                        paging: false,
-                                        searching: false,
-                                        info: false,
-                                        ordering: true,
-                                    }}
-                                    slots={slots}
-                                    className="table table-striped table-bordered table-hover table-sm"
-                                    //style={{fontWeight: "#ddd" }}
-                                    id="tabla-detalles"
-                                >
-                                    <thead>
-                                        <tr>
-                                            <th>Unidad Medida</th>
-                                            <th>Descripción</th>
-                                            <th>Cantidad</th>
-                                            <th>Ancho</th>
-                                            <th>Alto</th>
-                                            <th>M2</th>
-                                            <th>Profundidad</th>
-                                            <th>Precio</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                </DataTable>
-                            </div>
-                            {/* Input del total general */}
-                            <div className="mb-3 d-flex justify-content-end">
-                                <label
-                                    className="form-label fw-bold me-2"
-                                    style={{ alignSelf: "center" }}
-                                >
-                                    Total General:
-                                </label>
-                                <input
-                                    type="text"
-                                    name="total_general"
-                                    value={parseFloat(
-                                        cotizacion.total_general || 0
-                                    ).toLocaleString("es-GT", {
-                                        style: "currency",
-                                        currency: "GTQ",
-                                    })}
-                                    readOnly
-                                    className="form-control"
-                                    style={{
-                                        maxWidth: "150px",
-                                        textAlign: "right",
-                                        fontWeight: "bold",
-                                        fontSize: "1.1em",
-                                    }}
-                                />
-                            </div>
-                            {/* --- Sección Observaciones --- */}
-                            <div className="row g-2 mb-3">
-                                <div className="col-md-6">
-                                    <label className="form-label">
-                                        Observaciones cliente
-                                    </label>
-                                    <textarea
-                                        rows="3"
-                                        name="observaciones_cliente"
-                                        value={cotizacion.observaciones_cliente}
-                                        onChange={handleChange}
-                                        placeholder="Observaciones para cliente"
-                                        className="form-control form-control-sm"
-                                    ></textarea>
+                                {/* --- Tabla de Detalles Agregados --- */}
+                                <h5 className="mt-4 mb-3 border-bottom pb-2">
+                                    Detalles Agregados
+                                </h5>
+                                <div className="table-responsive mb-4">
+                                    <DataTable
+                                        data={detalles}
+                                        columns={columns}
+                                        options={{
+                                            paging: false,
+                                            searching: false,
+                                            info: false,
+                                            ordering: true,
+                                        }}
+                                        slots={slots}
+                                        className="table table-striped table-bordered table-hover table-sm"
+                                        //style={{fontWeight: "#ddd" }}
+                                        id="tabla-detalles"
+                                    >
+                                        <thead>
+                                            <tr>
+                                                <th>Unidad Medida</th>
+                                                <th>Descripción</th>
+                                                <th>Cantidad</th>
+                                                <th>Ancho</th>
+                                                <th>Alto</th>
+                                                <th>M2</th>
+                                                <th>Profundidad</th>
+                                                <th>Precio</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                    </DataTable>
                                 </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">
-                                        Observaciones costeo (Internas)
+                                {/* Input del total general */}
+                                <div className="mb-3 d-flex justify-content-end">
+                                    <label
+                                        className="form-label fw-bold me-2"
+                                        style={{ alignSelf: "center" }}
+                                    >
+                                        Total General:
                                     </label>
-                                    <textarea
-                                        rows="3"
-                                        name="observaciones_costeo"
-                                        value={cotizacion.observaciones_costeo}
-                                        onChange={handleChange}
-                                        placeholder="Observaciones internas para costeo"
-                                        className="form-control form-control-sm"
-                                    ></textarea>
+                                    <input
+                                        type="text"
+                                        name="total_general"
+                                        value={parseFloat(
+                                            cotizacion.total_general || 0
+                                        ).toLocaleString("es-GT", {
+                                            style: "currency",
+                                            currency: "GTQ",
+                                        })}
+                                        readOnly
+                                        className="form-control"
+                                        style={{
+                                            maxWidth: "150px",
+                                            textAlign: "right",
+                                            fontWeight: "bold",
+                                            fontSize: "1.1em",
+                                        }}
+                                    />
+                                </div>
+                                {/* --- Sección Observaciones --- */}
+                                <div className="row g-2 mb-3">
+                                    <div className="col-md-6">
+                                        <label className="form-label">
+                                            Observaciones cliente
+                                        </label>
+                                        <textarea
+                                            rows="3"
+                                            name="observaciones_cliente"
+                                            value={
+                                                cotizacion.observaciones_cliente
+                                            }
+                                            onChange={handleChange}
+                                            placeholder="Observaciones para cliente"
+                                            className="form-control form-control-sm"
+                                        ></textarea>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label">
+                                            Observaciones costeo (Internas)
+                                        </label>
+                                        <textarea
+                                            rows="3"
+                                            name="observaciones_costeo"
+                                            value={
+                                                cotizacion.observaciones_costeo
+                                            }
+                                            onChange={handleChange}
+                                            placeholder="Observaciones internas para costeo"
+                                            className="form-control form-control-sm"
+                                        ></textarea>
+                                    </div>
                                 </div>
                             </div>
                         </FormSection>

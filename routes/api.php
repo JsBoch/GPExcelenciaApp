@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
+     Route::get('/municipios/{iddepartamento}', [ClientesController::class, 'getMunicipios']); 
     Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
     /**
      * Este endpoint devuelve las opciones de facturación para un cliente específico.
@@ -111,6 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cotizaciones/{id}/nota-envio/reimprimir', [CotizacionController::class, 'notaEnvioReimprimir']); // reimprime envío N
     Route::put('/cotizaciones/activarfacturacion/masivo', [CotizacionController::class, 'activarFacturacionMasivo']);
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
+    Route::post('/cotizaciones/{id}/nota-envio/eliminar', [CotizacionController::class, 'notaEnvioEliminar']);   // NUEVA
+    Route::post('/cotizaciones/{id}/nota-envio/actualizar', [CotizacionController::class, 'notaEnvioActualizar']); // NUEVA
 
 
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
@@ -237,8 +240,8 @@ Route::middleware('auth:sanctum')->group(function () {
         [ReportesContabilidadController::class, 'cotizacionesPrefacturacionData']
     );
     // ▶️ Resumen de Facturas Pagadas
-    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data',[ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
-    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf',[ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
+    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data', [ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
+    Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf', [ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
 });
 
 //CLIENTES CONTACTO CONTROLLER

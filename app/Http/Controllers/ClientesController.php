@@ -8,6 +8,7 @@ use App\Models\Correlativo;
 use App\Models\DepartamentoPais;
 use App\Models\Empleado;
 use Illuminate\Support\Facades\DB; // Importa la clase DB para transacciones
+use App\Models\Municipio;
 
 class ClientesController extends Controller
 {
@@ -83,9 +84,9 @@ class ClientesController extends Controller
             $datosCliente['usuario_registro'] = auth()->user()->name; // Asigna el usuario registrado
             $datosCliente['fecharegistro'] = now(); // Asigna la fecha de registro
             $datosCliente['estado'] = 1; // Asigna el estado
-            $datosCliente['id_municipio'] = 0; // Asigna el estado
+            $datosCliente['id_municipio'] = $datosCliente['id_municipio']  ?? 0;
             $datosCliente['idtipocliente'] = 1; // Asigna el estado
-            $datosCliente['codigo_postal'] = ''; // Asigna el estado
+            $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? '';
             $datosCliente['codigo'] = $codigoC; // Asigna el estado
 
             $cliente = Clientes::create($datosCliente);
@@ -166,9 +167,9 @@ class ClientesController extends Controller
             $datosCliente['usuario_modifica'] = auth()->user()->name; // Asigna el usuario registrado
             $datosCliente['fecha_modificacion'] = date('Y-m-d H:i:s'); // Asigna la fecha de registro
             $datosCliente['estado'] = $datosCliente['estado'] ?? 1; // Asigna 1 si no se proporciona, o el valor proporcionado
-            $datosCliente['id_municipio'] = $datosCliente['id_municipio'] ?? 0; // Asigna 0 si no se proporciona, o el valor proporcionado
-            $datosCliente['idtipocliente'] = $datosCliente['idtipocliente'] ?? 1; // Asigna 1 si no se proporciona, o el valor proporcionado
-            $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? ''; // Asigna '' si no se proporciona, o el valor proporcionado
+            $datosCliente['id_municipio'] = $datosCliente['id_municipio'] ?? $cliente->id_municipio ?? 0;
+            $datosCliente['idtipocliente'] = $datosCliente['idtipocliente'] ?? $cliente->idtipocliente ?? 1;
+            $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? $cliente->codigo_postal ?? '';
 
             $cliente->update($datosCliente);
 
@@ -207,9 +208,17 @@ class ClientesController extends Controller
         return response()->json(['message' => 'Cliente desactivado']);
     }
 
+    public function getMunicipios($iddepartamento)
+    {
+        // En tu DB: adm_municipio.id_departamento -> adm_departamentopais.iddepartamentopais
+        $munis = Municipio::where('id_departamento', $iddepartamento)
+            ->orderBy('nombre')
+            ->get(['id_municipio', 'nombre']);
+        return response()->json($munis);
+    }
     public function getDepartamentosPais()
     {
-        $departamentosPais = DepartamentoPais::where('estado', 1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
+        $departamentosPais = DepartamentoPais::where('estado', 1)->get(['iddepartamentopais', 'nombre','codigo_postal']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
         return response()->json($departamentosPais);
     }
     public function getVendedores()

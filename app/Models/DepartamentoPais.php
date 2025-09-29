@@ -13,7 +13,7 @@ class DepartamentoPais extends Model
     protected $primaryKey = 'iddepartamentopais';
     public $timestamps = false;
 
-    protected $fillable = ['nombre']; // Asegúrate de incluir los campos que necesitas
+    protected $fillable = ['nombre','codigo_postal']; // Asegúrate de incluir los campos que necesitas
 
     //Esto es la relación entre la tabla empleado y la tabla identificacion, una identificacion puede tener varios empleados
     public function empleados(){
