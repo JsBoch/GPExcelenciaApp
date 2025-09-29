@@ -3,6 +3,132 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import alertify from "alertifyjs";
 
+function EnvioEditModal({
+    open,
+    onClose,
+    noEnvio,
+    direccionInicial,
+    itemsIniciales,
+    onSubmit,
+}) {
+    const [direccion, setDireccion] = useState(direccionInicial || "");
+    const [rows, setRows] = useState(itemsIniciales || []); // [{iddetallecotizacion, descripcion, cantidad}]
+
+    useEffect(() => {
+        setDireccion(direccionInicial || "");
+        setRows(itemsIniciales || []);
+    }, [open, direccionInicial, itemsIniciales]);
+
+    if (!open) return null;
+
+    return (
+        <div
+            className="modal d-block"
+            style={{ background: "rgba(0,0,0,0.5)" }}
+        >
+            <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h5 className="modal-title">Editar envío #{noEnvio}</h5>
+                        <button className="btn-close" onClick={onClose} />
+                    </div>
+                    <div className="modal-body">
+                        <div className="mb-2">
+                            <label className="form-label fw-bold">
+                                Dirección
+                            </label>
+                            <textarea
+                                className="form-control"
+                                rows={3}
+                                value={direccion}
+                                onChange={(e) => setDireccion(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="table-responsive">
+                            <table className="table table-sm table-bordered align-middle">
+                                <thead className="table-dark">
+                                    <tr>
+                                        <th style={{ width: 80 }}>Cant.</th>
+                                        <th>Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rows.map((r, idx) => (
+                                        <tr key={r.iddetallecotizacion ?? idx}>
+                                            <td style={{ width: 80 }}>
+                                                <input
+                                                    type="number"
+                                                    className="form-control form-control-sm text-end"
+                                                    min={0}
+                                                    step="0.01"
+                                                    value={r.cantidad}
+                                                    onChange={(e) => {
+                                                        const v = Math.max(
+                                                            0,
+                                                            Number(
+                                                                e.target
+                                                                    .value || 0
+                                                            )
+                                                        );
+                                                        setRows((prev) =>
+                                                            prev.map((x, i) =>
+                                                                i === idx
+                                                                    ? {
+                                                                          ...x,
+                                                                          cantidad:
+                                                                              v,
+                                                                      }
+                                                                    : x
+                                                            )
+                                                        );
+                                                    }}
+                                                />
+                                            </td>
+                                            <td>{r.descripcion}</td>
+                                        </tr>
+                                    ))}
+                                    {rows.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={2}
+                                                className="text-center text-muted"
+                                            >
+                                                Sin ítems
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button
+                            className="btn btn-success"
+                            onClick={() =>
+                                onSubmit({
+                                    no_envio: noEnvio,
+                                    direccion_envio: direccion.trim(),
+                                    items: rows.map((r) => ({
+                                        iddetallecotizacion:
+                                            r.iddetallecotizacion,
+                                        cantidad: Number(r.cantidad || 0),
+                                    })),
+                                })
+                            }
+                        >
+                            Guardar cambios
+                        </button>
+                        <button className="btn btn-secondary" onClick={onClose}>
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function NotaEnvioModal({
     open,
     onClose,
@@ -16,9 +142,90 @@ export default function NotaEnvioModal({
     const [checked, setChecked] = useState(new Set());
     const [direccion, setDireccion] = useState("");
     const [noEnvioReimp, setNoEnvioReimp] = useState("");
-    const envios = config?.envios || [];
+    const envios = (config?.envios || []).filter(
+        (e) => e?.no_envio && Number(e.no_envio) > 0 && e?.fecha_envio
+    );
+
+    const [qty, setQty] = useState({}); // { iddetalle: cantidad a enviar }
+    useEffect(() => {
+        // cuando llega config, autollenar qty con cantidad_pendiente
+        const q = {};
+        (config?.detalles || []).forEach((d) => {
+            const pend = Number(d.cantidad_pendiente ?? d.cantidad ?? 0);
+            if (pend > 0) q[d.iddetallecotizacion] = pend;
+        });
+        setQty(q);
+    }, [config]);
 
     const token = useMemo(() => localStorage.getItem("token"), []);
+
+    const [editOpen, setEditOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
+    // { noEnvio, direccion, items: [{iddetallecotizacion, descripcion, cantidad}] }
+
+    const abrirEditorEnvio = async () => {
+        if (!noEnvioReimp) {
+            alertify.warning("Selecciona un envío.");
+            return;
+        }
+        try {
+            setLoading(true);
+            const { data } = await axios.post(
+                `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
+                { no_envio: Number(noEnvioReimp) },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            // Espera que data.items traiga iddetallecotizacion, descripcion, cantidad
+            setEditData({
+                noEnvio: Number(noEnvioReimp),
+                direccion: data?.direccion || "",
+                items: (data?.items || []).map((it) => ({
+                    iddetallecotizacion: it.iddetallecotizacion,
+                    descripcion: it.descripcion,
+                    cantidad: Number(it.cantidad || 0),
+                })),
+            });
+            setEditOpen(true);
+        } catch (e) {
+            alertify.error(
+                e?.response?.data?.message || "No se pudo cargar el envío."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const guardarEdicionEnvio = async (payload) => {
+        // payload = { no_envio, direccion_envio, items: [{iddetallecotizacion, cantidad}] }
+        if (!payload.items?.length) {
+            alertify.warning("Agrega al menos un ítem con cantidad > 0.");
+            return;
+        }
+        try {
+            setLoading(true);
+            await axios.post(
+                `/api/cotizaciones/${idCotizacion}/nota-envio/actualizar`,
+                payload,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            alertify.success("Envío actualizado.");
+            setEditOpen(false);
+            setEditData(null);
+
+            // refrescar config
+            const { data } = await axios.get(
+                `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setConfig(data || null);
+        } catch (e) {
+            alertify.error(
+                e?.response?.data?.message || "No se pudo actualizar el envío."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Cargar config al abrir
     useEffect(() => {
@@ -84,6 +291,11 @@ export default function NotaEnvioModal({
         const next = new Set(checked);
         next.has(id) ? next.delete(id) : next.add(id);
         setChecked(next);
+        if (!qty[id]) {
+            const d = detalles.find((x) => x.iddetallecotizacion === id);
+            const pend = Number(d?.cantidad_pendiente ?? d?.cantidad ?? 0);
+            setQty((prev) => ({ ...prev, [id]: Math.max(0, pend) }));
+        }
     };
 
     const countReady = checked.size;
@@ -104,8 +316,8 @@ export default function NotaEnvioModal({
     };
 
     const generar = async () => {
-        if (!countReady) {
-            alertify.warning("Selecciona al menos un ítem sin envío.");
+        if (!checked.size) {
+            alertify.warning("Selecciona al menos un ítem.");
             return;
         }
         if (!direccion.trim()) {
@@ -113,25 +325,32 @@ export default function NotaEnvioModal({
             return;
         }
 
+        const payloadItems = Array.from(checked)
+            .map((id) => ({
+                iddetallecotizacion: id,
+                cantidad: Number(qty[id] ?? 0),
+            }))
+            .filter((it) => it.cantidad > 0);
+
+        if (payloadItems.length === 0) {
+            alertify.warning("Todas las cantidades son 0.");
+            return;
+        }
+
         try {
             setLoading(true);
             const { data } = await axios.post(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/generar`,
-                {
-                    detalle_ids: Array.from(checked),
-                    direccion_envio: direccion.trim(),
-                },
+                { items: payloadItems, direccion_envio: direccion.trim() },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            // Mando el payload hacia arriba para que muestres el PDF
             onPdfReady?.(data);
             onClose?.();
         } catch (err) {
-            const msg =
+            alertify.error(
                 err?.response?.data?.message ||
-                "No se pudo generar la Nota de Envío.";
-            alertify.error(msg);
+                    "No se pudo generar la Nota de Envío."
+            );
         } finally {
             setLoading(false);
         }
@@ -251,7 +470,15 @@ export default function NotaEnvioModal({
                                                         <input
                                                             type="checkbox"
                                                             className="form-check-input"
-                                                            disabled={disabled}
+                                                            disabled={
+                                                                Number(
+                                                                    it.cantidad_pendiente ??
+                                                                        (it.numero_envio
+                                                                            ? 0
+                                                                            : it.cantidad) ??
+                                                                        0
+                                                                ) <= 0
+                                                            }
                                                             checked={isChecked}
                                                             onChange={() =>
                                                                 toggle(
@@ -261,9 +488,91 @@ export default function NotaEnvioModal({
                                                         />
                                                     </td>
                                                     <td>{it.descripcion}</td>
-                                                    <td className="text-center">
-                                                        {it.cantidad}
+                                                    <td style={{ width: 80 }}>
+                                                        {(() => {
+                                                            const pend = Number(
+                                                                it.cantidad_pendiente ??
+                                                                    (it.numero_envio
+                                                                        ? 0
+                                                                        : it.cantidad) ??
+                                                                    0
+                                                            );
+                                                            const isChecked =
+                                                                checked.has(
+                                                                    it.iddetallecotizacion
+                                                                );
+                                                            const value =
+                                                                qty[
+                                                                    it
+                                                                        .iddetallecotizacion
+                                                                ] ?? pend;
+
+                                                            if (pend <= 0)
+                                                                return (
+                                                                    <span className="text-muted">
+                                                                        0
+                                                                    </span>
+                                                                );
+
+                                                            return isChecked ? (
+                                                                <div>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="form-control form-control-sm text-end"
+                                                                        min={0}
+                                                                        max={
+                                                                            pend
+                                                                        }
+                                                                        step="0.01"
+                                                                        value={
+                                                                            value
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) => {
+                                                                            const v =
+                                                                                Math.max(
+                                                                                    0,
+                                                                                    Math.min(
+                                                                                        pend,
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value ||
+                                                                                                0
+                                                                                        )
+                                                                                    )
+                                                                                );
+                                                                            setQty(
+                                                                                (
+                                                                                    prev
+                                                                                ) => ({
+                                                                                    ...prev,
+                                                                                    [it.iddetallecotizacion]:
+                                                                                        v,
+                                                                                })
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <div className="small text-muted">
+                                                                        Pend.:{" "}
+                                                                        {pend}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="text-muted">
+                                                                        {pend}
+                                                                    </span>
+                                                                    <div className="small text-muted">
+                                                                        Pend.:{" "}
+                                                                        {pend}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </td>
+
                                                     <td className="text-end">
                                                         {fmtMoney(it.total)}
                                                     </td>
@@ -327,6 +636,81 @@ export default function NotaEnvioModal({
                                                 </option>
                                             ))}
                                         </select>
+                                        <div className="col-md-3">
+                                            <button
+                                                className="btn btn-outline-secondary w-100"
+                                                onClick={async () => {
+                                                    if (!noEnvioReimp)
+                                                        return alertify.warning(
+                                                            "Selecciona un envío."
+                                                        );
+                                                    if (
+                                                        !confirm(
+                                                            `Eliminar envío #${noEnvioReimp}?`
+                                                        )
+                                                    )
+                                                        return;
+                                                    try {
+                                                        setLoading(true);
+                                                        await axios.post(
+                                                            `/api/cotizaciones/${idCotizacion}/nota-envio/eliminar`,
+                                                            {
+                                                                no_envio:
+                                                                    Number(
+                                                                        noEnvioReimp
+                                                                    ),
+                                                            },
+                                                            {
+                                                                headers: {
+                                                                    Authorization: `Bearer ${token}`,
+                                                                },
+                                                            }
+                                                        );
+                                                        alertify.success(
+                                                            "Envío eliminado."
+                                                        );
+                                                        // Refresca config
+                                                        const { data } =
+                                                            await axios.get(
+                                                                `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
+                                                                {
+                                                                    headers: {
+                                                                        Authorization: `Bearer ${token}`,
+                                                                    },
+                                                                }
+                                                            );
+                                                        setConfig(data || null);
+                                                        setNoEnvioReimp("");
+                                                    } catch (e) {
+                                                        alertify.error(
+                                                            e?.response?.data
+                                                                ?.message ||
+                                                                "No se pudo eliminar."
+                                                        );
+                                                    } finally {
+                                                        setLoading(false);
+                                                    }
+                                                }}
+                                                disabled={
+                                                    loading || !noEnvioReimp
+                                                }
+                                            >
+                                                Eliminar envío
+                                            </button>
+                                        </div>
+
+                                        <div className="col-md-3">
+                                            <button
+                                                className="btn btn-outline-success w-100"
+                                                onClick={abrirEditorEnvio}
+                                                disabled={
+                                                    loading || !noEnvioReimp
+                                                }
+                                            >
+                                                Editar envío
+                                            </button>
+                                        </div>
+
                                         {noEnvioReimp && (
                                             <small className="text-muted d-block mt-1">
                                                 {(() => {
@@ -387,6 +771,17 @@ export default function NotaEnvioModal({
                     </div>
                 </div>
             </div>
+            <EnvioEditModal
+                open={editOpen}
+                onClose={() => {
+                    setEditOpen(false);
+                    setEditData(null);
+                }}
+                noEnvio={editData?.noEnvio}
+                direccionInicial={editData?.direccion}
+                itemsIniciales={editData?.items || []}
+                onSubmit={guardarEdicionEnvio}
+            />
         </div>
     );
 }

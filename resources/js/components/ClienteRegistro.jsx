@@ -55,6 +55,8 @@ function ClienteRegistro() {
     });
 
     const [departamentosPais, setDepartamentosPais] = useState([]);
+    // en ClienteRegistro()
+    const [municipios, setMunicipios] = useState([]);
     const [vendedores, setVendedores] = useState([]);
     //20250324 19:25 edit
     const { id } = useParams(); // Obtiene el id de la URL
@@ -64,85 +66,228 @@ function ClienteRegistro() {
     const [modoEdicion, setModoEdicion] = useState(!!id); // true si hay id
     const [errors, setErrors] = useState({});
 
+    // useEffect(() => {
+    //     const token = localStorage.getItem("token");
+    //     const headers = { Authorization: `Bearer ${token}` };
+
+    //     if (id) {
+    //         setModoEdicion(true);
+    //         // Cargar datos del empleado para editar
+    //         axios
+    //             .get(`/api/clientes/${id}`, { headers })
+    //             .then((res) => {
+    //                 const data = res.data;
+    //                 setCliente({
+    //                     idcliente: data.idcliente || id, // Guardar el id del cliente
+    //                     codigo: data.codigo || "",
+    //                     nit: data.nit || "",
+    //                     cui: data.cui || "",
+    //                     nombre: data.nombre || "",
+    //                     razonsocial: data.razonsocial || "",
+    //                     direccion: data.direccion || "",
+    //                     email: data.email || "",
+    //                     telefono_uno: data.telefono_uno || "",
+    //                     telefono_dos: data.telefono_dos || "",
+    //                     telefono_tres: data.telefono_tres || "",
+    //                     iddepartamento: data.iddepartamento || "",
+    //                     monto_credito: data.monto_credito || "",
+    //                     dias_credito: data.dias_credito || "",
+    //                     id_empleado: data.id_empleado || "",
+    //                     comentario: data.comentario || "",
+    //                     idtipocliente: data.idtipocliente || "",
+    //                     id_municipio: data.id_municipio || "",
+    //                     codigo_postal: data.codigo_postal || "",
+    //                     usuario_registro: data.usuario_registro || "",
+    //                     usuario_modifica: data.usuario_modifica || "",
+    //                     fecharegistro: data.fecharegistro || "",
+    //                     fecha_modificacion: data.fecha_modificacion || "",
+    //                     estado: data.estado || "",
+    //                     extranjero: data.extranjero || "",
+    //                     pasaporte: data.pasaporte || "",
+    //                     excento_iva: data.excento_iva || "",
+    //                 });
+
+    //                 // Cargar listas desplegables después de cargar los datos del empleado
+    //                 axios
+    //                     .get("/api/departamentos-pais", { headers })
+    //                     .then((res) => setDepartamentosPais(res.data));
+    //                 // si el cliente ya tiene depto, cargar municipios
+    //                 if (data.iddepartamento) {
+    //                     loadMunicipios(data.iddepartamento);
+    //                     // si no trae código postal, tomar el del departamento
+    //                     const d = res.data.find(
+    //                         (d) => d.iddepartamentopais === data.iddepartamento
+    //                     );
+    //                     if (
+    //                         d &&
+    //                         (!data.codigo_postal || data.codigo_postal === "")
+    //                     ) {
+    //                         setCliente((prev) => ({
+    //                             ...prev,
+    //                             codigo_postal: d.codigo_postal || "",
+    //                         }));
+    //                     }
+    //                 }
+    //                 axios
+    //                     .get("/api/vendedores", { headers })
+    //                     .then((res) => setVendedores(res.data));
+    //             })
+    //             .catch((error) =>
+    //                 console.error("Error al cargar el cliente:", error)
+    //             );
+    //     } else {
+    //         setModoEdicion(false);
+    //         // Cargar listas desplegables para crear un nuevo empleado
+    //         axios
+    //             .get("/api/departamentos-pais", { headers })
+    //             .then((res) => {
+    //                 setDepartamentosPais(res.data);
+    //                 // Buscar el departamento "GUATEMALA"
+    //                 const deptoGuatemala = res.data.find(
+    //                     (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+    //                 );
+
+    //                 // Si lo encuentra, establecerlo por defecto en el cliente
+    //                 if (deptoGuatemala) {
+    //                     setCliente((prev) => ({
+    //                         ...prev,
+    //                         iddepartamento: deptoGuatemala.iddepartamentopais,
+    //                         codigo_postal: deptoGuatemala.codigo_postal || "",
+    //                     }));
+    //                     loadMunicipios(deptoGuatemala.iddepartamentopais);
+    //                 }
+    //             })
+    //             .catch((error) =>
+    //                 console.error("Error al cargar departamentos:", error)
+    //             );
+    //         axios
+    //             .get("/api/vendedores", { headers })
+    //             .then((res) => setVendedores(res.data));
+    //     }
+    // }, [id]);
     useEffect(() => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
-        if (id) {
-            setModoEdicion(true);
-            // Cargar datos del empleado para editar
-            axios
-                .get(`/api/clientes/${id}`, { headers })
-                .then((res) => {
-                    const data = res.data;
-                    setCliente({
-                        idcliente: data.idcliente || id, // Guardar el id del cliente
-                        codigo: data.codigo || "",
-                        nit: data.nit || "",
-                        cui: data.cui || "",
-                        nombre: data.nombre || "",
-                        razonsocial: data.razonsocial || "",
-                        direccion: data.direccion || "",
-                        email: data.email || "",
-                        telefono_uno: data.telefono_uno || "",
-                        telefono_dos: data.telefono_dos || "",
-                        telefono_tres: data.telefono_tres || "",
-                        iddepartamento: data.iddepartamento || "",
-                        monto_credito: data.monto_credito || "",
-                        dias_credito: data.dias_credito || "",
-                        id_empleado: data.id_empleado || "",
-                        comentario: data.comentario || "",
-                        idtipocliente: data.idtipocliente || "",
-                        id_municipio: data.id_municipio || "",
-                        codigo_postal: data.codigo_postal || "",
-                        usuario_registro: data.usuario_registro || "",
-                        usuario_modifica: data.usuario_modifica || "",
-                        fecharegistro: data.fecharegistro || "",
-                        fecha_modificacion: data.fecha_modificacion || "",
-                        estado: data.estado || "",
-                        extranjero: data.extranjero || "",
-                        pasaporte: data.pasaporte || "",
-                        excento_iva: data.excento_iva || "",
-                    });
+        const cargarEdicion = async () => {
+            try {
+                setModoEdicion(true);
 
-                    // Cargar listas desplegables después de cargar los datos del empleado
-                    axios
-                        .get("/api/departamentos-pais", { headers })
-                        .then((res) => setDepartamentosPais(res.data));
-                    axios
-                        .get("/api/vendedores", { headers })
-                        .then((res) => setVendedores(res.data));
-                })
-                .catch((error) =>
-                    console.error("Error al cargar el cliente:", error)
-                );
-        } else {
-            setModoEdicion(false);
-            // Cargar listas desplegables para crear un nuevo empleado
-            axios
-                .get("/api/departamentos-pais", { headers })
-                .then((res) => {
-                    setDepartamentosPais(res.data);
-                    // Buscar el departamento "GUATEMALA"
-                    const deptoGuatemala = res.data.find(
-                        (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+                // 1) Traer todo lo necesario en paralelo
+                const [cliRes, deptRes, vendRes] = await Promise.all([
+                    axios.get(`/api/clientes/${id}`, { headers }),
+                    axios.get("/api/departamentos-pais", { headers }),
+                    axios.get("/api/vendedores", { headers }),
+                ]);
+
+                const data = cliRes.data || {};
+                const departamentos = deptRes.data || [];
+                const vendedoresSrv = vendRes.data || [];
+
+                setDepartamentosPais(departamentos);
+                setVendedores(vendedoresSrv);
+
+                // 2) Normaliza a string para selects
+                const iddepartamentoStr =
+                    data.iddepartamento != null
+                        ? String(data.iddepartamento)
+                        : "";
+                const idEmpleadoStr =
+                    data.id_empleado != null ? String(data.id_empleado) : "";
+                const idMunicipioStr =
+                    data.id_municipio != null ? String(data.id_municipio) : "";
+
+                // 3) Setea el cliente
+                setCliente((prev) => ({
+                    ...prev,
+                    idcliente: data.idcliente || id,
+                    codigo: data.codigo || "",
+                    nit: data.nit || "",
+                    cui: data.cui || "",
+                    nombre: data.nombre || "",
+                    razonsocial: data.razonsocial || "",
+                    direccion: data.direccion || "",
+                    email: data.email || "",
+                    telefono_uno: data.telefono_uno || "",
+                    telefono_dos: data.telefono_dos || "",
+                    telefono_tres: data.telefono_tres || "",
+                    iddepartamento: iddepartamentoStr,
+                    monto_credito: data.monto_credito ?? "",
+                    dias_credito:
+                        data.dias_credito != null
+                            ? String(data.dias_credito)
+                            : "", // ⬅️ asegura render
+                    id_empleado: idEmpleadoStr,
+                    comentario: data.comentario || "",
+                    idtipocliente: data.idtipocliente ?? "",
+                    id_municipio: idMunicipioStr,
+                    codigo_postal: data.codigo_postal || "",
+                    usuario_registro: data.usuario_registro || "",
+                    usuario_modifica: data.usuario_modifica || "",
+                    fecharegistro: data.fecharegistro || "",
+                    fecha_modificacion: data.fecha_modificacion || "",
+                    estado: data.estado ?? "",
+                    extranjero: data.extranjero || "",
+                    pasaporte: data.pasaporte || "",
+                    excento_iva: data.excento_iva || "N",
+                }));
+
+                // 4) Municipios (si hay departamento)
+                if (iddepartamentoStr) {
+                    await loadMunicipios(iddepartamentoStr);
+                }
+
+                // 5) Si no traía código postal, usar el del departamento
+                if (!data.codigo_postal || data.codigo_postal === "") {
+                    const depto = departamentos.find(
+                        (d) =>
+                            String(d.iddepartamentopais) === iddepartamentoStr
                     );
-
-                    // Si lo encuentra, establecerlo por defecto en el cliente
-                    if (deptoGuatemala) {
+                    if (depto?.codigo_postal) {
                         setCliente((prev) => ({
                             ...prev,
-                            iddepartamento: deptoGuatemala.iddepartamentopais, // ajusta a la propiedad que tu backend devuelve (puede ser iddepartamento)
+                            codigo_postal: depto.codigo_postal,
                         }));
                     }
-                })
-                .catch((error) =>
-                    console.error("Error al cargar departamentos:", error)
+                }
+            } catch (err) {
+                console.error("Error al cargar edición:", err);
+            }
+        };
+
+        const cargarNuevo = async () => {
+            try {
+                setModoEdicion(false);
+                const [deptRes, vendRes] = await Promise.all([
+                    axios.get("/api/departamentos-pais", { headers }),
+                    axios.get("/api/vendedores", { headers }),
+                ]);
+
+                const departamentos = deptRes.data || [];
+                const vendedoresSrv = vendRes.data || [];
+
+                setDepartamentosPais(departamentos);
+                setVendedores(vendedoresSrv);
+
+                const deptoGuatemala = departamentos.find(
+                    (d) => d.nombre?.toUpperCase() === "GUATEMALA"
                 );
-            axios
-                .get("/api/vendedores", { headers })
-                .then((res) => setVendedores(res.data));
-        }
+                if (deptoGuatemala) {
+                    const idDeptStr = String(deptoGuatemala.iddepartamentopais);
+                    setCliente((prev) => ({
+                        ...prev,
+                        iddepartamento: idDeptStr,
+                        codigo_postal: deptoGuatemala.codigo_postal || "",
+                    }));
+                    await loadMunicipios(idDeptStr);
+                }
+            } catch (err) {
+                console.error("Error al iniciar nuevo:", err);
+            }
+        };
+
+        if (id) cargarEdicion();
+        else cargarNuevo();
     }, [id]);
 
     const validators = {
@@ -154,6 +299,23 @@ function ClienteRegistro() {
         dias_credito: (val) => validateOnlyNumbers(val, 0, 2),
     };
 
+    const loadMunicipios = async (idDepartamento) => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+        if (!idDepartamento) {
+            setMunicipios([]);
+            return;
+        }
+        try {
+            const res = await axios.get(`/api/municipios/${idDepartamento}`, {
+                headers,
+            });
+            setMunicipios(res.data || []);
+        } catch (e) {
+            console.error("Error al cargar municipios:", e);
+            setMunicipios([]);
+        }
+    };
     //Maneja los cambios en el formulario
     const handleChange = (e) => {
         //setCliente({ ...cliente, [e.target.name]: e.target.value });
@@ -181,6 +343,23 @@ function ClienteRegistro() {
                 ...prev,
                 [name]: result === true ? null : result,
             }));
+        }
+
+        // --- lógica especial por campo ---
+        if (name === "iddepartamento") {
+            // 1) actualizar CP según el departamento
+            const d = departamentosPais.find(
+                (d) => String(d.iddepartamentopais) === String(value)
+            );
+            const cp = d?.codigo_postal || "";
+            setCliente((prev) => ({
+                ...prev,
+                iddepartamento: value,
+                codigo_postal: cp,
+                id_municipio: "", // resetea municipio seleccionado
+            }));
+            // 2) cargar municipios filtrados
+            loadMunicipios(value);
         }
     };
 
@@ -323,6 +502,13 @@ function ClienteRegistro() {
         alertify.success("Contacto asociado al cliente creado exitosamente.");
         // Podrías querer recargar una lista de contactos si la muestras aquí, o simplemente cerrar.
         // handleCloseContactoModal(); // ContactoClienteForm ya llama a onClose, que es esta función.
+    };
+
+    validators.codigo_postal = (val) => {
+        if (!val) return true; // opcional
+        return /^\d{5}$/.test(val)
+            ? true
+            : "Código postal debe tener 5 dígitos";
     };
 
     return (
@@ -600,6 +786,51 @@ function ClienteRegistro() {
                                     </select>
                                 </div>
                             </div>
+                            <div className="row g-2">
+                                <div className="col-md-4">
+                                    <label className="form-label">
+                                        Municipio
+                                    </label>
+                                    <select
+                                        name="id_municipio"
+                                        value={cliente.id_municipio || ""}
+                                        onChange={handleChange}
+                                        className="form-control form-control-sm"
+                                        disabled={!cliente.iddepartamento}
+                                    >
+                                        <option value="">
+                                            Seleccionar Municipio
+                                        </option>
+                                        {municipios.map((m) => (
+                                            <option
+                                                key={m.id_municipio}
+                                                value={m.id_municipio}
+                                            >
+                                                {m.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-md-4">
+                                    <label className="form-label">
+                                        Código Postal
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="codigo_postal"
+                                        value={cliente.codigo_postal || ""}
+                                        onChange={handleChange}
+                                        className="form-control form-control-sm"
+                                        placeholder="Código Postal"
+                                    />
+                                    <small className="text-muted">
+                                        Se autollenó por departamento, puedes
+                                        editarlo si aplica.
+                                    </small>
+                                </div>
+                            </div>
+
                             <div className="row g-2">
                                 <div className="col-md-4">
                                     <label className="form-label">

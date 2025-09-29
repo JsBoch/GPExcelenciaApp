@@ -5,8 +5,8 @@ import Header from "../../Header";
 const token = localStorage.getItem("token");
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "/api", // ej: http://localhost:8000/api
-    withCredentials: false, // ⬅️ importante: usando Bearer, no cookies
+    baseURL: import.meta.env.VITE_API_URL || "/api",
+    withCredentials: true, // ⬅️ importante: usando Bearer, no cookies
     headers: {
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",

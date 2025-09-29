@@ -129,7 +129,7 @@ class ContactoClienteController extends Controller
 
     public function getClientes()
     {
-        $clientes = Clientes::where('estado',1)->get(['idcliente', 'nombre']); 
+        $clientes = Clientes::where('estado',1)->get(['idcliente', 'nombre', 'nit']); 
         return response()->json($clientes);
     }    
 }

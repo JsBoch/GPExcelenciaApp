@@ -20,75 +20,10 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\QueryException;
+use App\Models\AdmEnvioItem;
 
 class CotizacionController extends Controller
 {
-    // public function index(Request $request)
-    // {
-    //     $user = Auth::user();              // Obtiene el usuario autenticado
-    //     $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas
-
-    //     $query = AdmCotizacion::query()
-    //         ->select(
-    //             'c.idcotizacion',
-    //             DB::raw('CONCAT(\'CT\',CAST(c.nocotizacion AS CHAR)) as nocotizacion'),
-    //             'c.fecha_cotizacion',
-    //             'c.fecha_prefacturacion',
-    //             'c.fecha_certificacion',
-    //             't.tipo as tipo_pago',
-    //             'c.total_general',
-    //             'c.costear',
-    //             'cl.nombre as cliente',
-    //             'ct.nombre as contacto',
-    //             'c.direccion_entrega',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.costeo_observaciones',
-    //             'c.idcotizacionoriginal',
-    //             'c.idcliente',
-    //             'c.idcontacto',
-    //             'c.trabajo',
-    //             'c.version',
-    //             'c.idtipopago',
-    //             'c.estado',
-    //             DB::raw("CASE
-    //                 WHEN c.estado = 1 THEN 'REGISTRO'
-    //                 WHEN c.estado = 2 THEN 'COSTEO'
-    //                 WHEN c.estado = 3 THEN 'COSTEADA'
-    //                 WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-    //                 WHEN c.estado = 5 THEN 'PARA FACTURAR'
-    //                 WHEN c.estado = 6 THEN 'FACTURADA'
-    //                 WHEN c.estado = 7 THEN 'ANULADA'
-    //                 WHEN c.estado = 8 THEN 'RECHAZADA'
-    //                 ELSE 'DESCONOCIDO'
-    //             END as estado_texto")
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago');
-
-    //     $query->where('c.estado', '!=', 0); // Estado diferente de 0 por defecto
-    //     //}
-
-    //     // Filtro por rango de fechas
-    //     if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-    //         $query->whereBetween('c.fecha_cotizacion', [$request->fecha_inicio, $request->fecha_fin]);
-    //     } elseif ($request->has('fecha_inicio')) {
-    //         $query->where('c.fecha_cotizacion', '>=', $request->fecha_inicio);
-    //     } elseif ($request->has('fecha_fin')) {
-    //         $query->where('c.fecha_cotizacion', '<=', $request->fecha_fin);
-    //     }
-
-    //     // Aplica el filtro condicional basado en cotizaciones_todas
-    //     if ($cotizacionesTodas == 'N') {
-    //         $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
-    //     }
-
-    //     $cotizaciones = $query->orderBy('c.nocotizacion', 'desc')->get();
-    //     //$cotizaciones = $query->get();
-    //     return response()->json($cotizaciones);
-    // }
     // public function index(Request $request)
     // {
     //     $user = Auth::user();
@@ -105,6 +40,7 @@ class CotizacionController extends Controller
     //             'c.total_general',
     //             'c.costear',
     //             'cl.nombre as cliente',
+    //             'cl.nit',
     //             'ct.nombre as contacto',
     //             'c.direccion_entrega',
     //             'c.observaciones_costeo',
@@ -117,6 +53,28 @@ class CotizacionController extends Controller
     //             'c.version',
     //             'c.idtipopago',
     //             'c.estado',
+
+    //             // 👇👇👇 AÑADIR ESTAS 4 COLUMNAS
+    //             DB::raw("(SELECT COUNT(*)
+    //                   FROM adm_comentarios_prefacturacion cp
+    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS comentarios_count"),
+
+    //             DB::raw("CAST(EXISTS(
+    //                   SELECT 1 FROM adm_comentarios_prefacturacion cp
+    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+    //                 ) AS UNSIGNED) AS has_comentarios"),
+
+    //             DB::raw("(SELECT MAX(cp.fecha_registro)
+    //                   FROM adm_comentarios_prefacturacion cp
+    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS last_comentario_at"),
+
+    //             DB::raw("(SELECT LEFT(cp.comentario, 100)
+    //                   FROM adm_comentarios_prefacturacion cp
+    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+    //                   ORDER BY cp.fecha_registro DESC
+    //                   LIMIT 1) AS last_comentario_snippet"),
+    //             // 👆👆👆 FIN NUEVO
+
     //             DB::raw("CASE
     //             WHEN c.estado = 1 THEN 'REGISTRO'
     //             WHEN c.estado = 2 THEN 'COSTEO'
@@ -135,7 +93,7 @@ class CotizacionController extends Controller
     //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
     //         ->where('c.estado', '!=', 0);
 
-    //     // Rango de fechas
+    //     // filtros que ya tenías…
     //     if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
     //         $query->whereBetween(DB::raw('DATE(c.fecha_cotizacion)'), [$request->fecha_inicio, $request->fecha_fin]);
     //     } elseif ($request->filled('fecha_inicio')) {
@@ -143,26 +101,27 @@ class CotizacionController extends Controller
     //     } elseif ($request->filled('fecha_fin')) {
     //         $query->whereDate('c.fecha_cotizacion', '<=', $request->fecha_fin);
     //     }
-
-    //     // Filtro por estado (si viene)
     //     if ($request->filled('estado') && $request->estado !== 'todos') {
     //         $query->where('c.estado', (int) $request->estado);
     //     }
-
-    //     // Filtro por usuario si aplica
     //     if ($cotizacionesTodas == 'N') {
     //         $query->where('c.idusuario', $user->id);
     //     }
 
-    //     // Orden
-    //     $cotizaciones = $query
+    //     $rows = $query
     //         ->orderBy('c.fecha_cotizacion', 'asc')
     //         ->orderBy('c.nocotizacion', 'asc')
     //         ->get();
 
-    //     return response()->json($cotizaciones);
-    // }
+    //     // Normaliza tipos para el front
+    //     $rows->transform(function ($r) {
+    //         $r->comentarios_count = (int) ($r->comentarios_count ?? 0);
+    //         $r->has_comentarios   = (bool) $r->has_comentarios;
+    //         return $r;
+    //     });
 
+    //     return response()->json($rows);
+    // }
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -179,6 +138,7 @@ class CotizacionController extends Controller
                 'c.total_general',
                 'c.costear',
                 'cl.nombre as cliente',
+                'cl.nit',
                 'ct.nombre as contacto',
                 'c.direccion_entrega',
                 'c.observaciones_costeo',
@@ -192,38 +152,27 @@ class CotizacionController extends Controller
                 'c.idtipopago',
                 'c.estado',
 
-                // 👇👇👇 AÑADIR ESTAS 4 COLUMNAS
-                DB::raw("(SELECT COUNT(*)
-                      FROM adm_comentarios_prefacturacion cp
-                      WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS comentarios_count"),
-
-                DB::raw("CAST(EXISTS(
-                      SELECT 1 FROM adm_comentarios_prefacturacion cp
-                      WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-                    ) AS UNSIGNED) AS has_comentarios"),
-
-                DB::raw("(SELECT MAX(cp.fecha_registro)
-                      FROM adm_comentarios_prefacturacion cp
-                      WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS last_comentario_at"),
-
-                DB::raw("(SELECT LEFT(cp.comentario, 100)
-                      FROM adm_comentarios_prefacturacion cp
-                      WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-                      ORDER BY cp.fecha_registro DESC
-                      LIMIT 1) AS last_comentario_snippet"),
-                // 👆👆👆 FIN NUEVO
+                DB::raw("(SELECT COUNT(*) FROM adm_comentarios_prefacturacion cp
+                        WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS comentarios_count"),
+                DB::raw("CAST(EXISTS(SELECT 1 FROM adm_comentarios_prefacturacion cp
+                        WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS UNSIGNED) AS has_comentarios"),
+                DB::raw("(SELECT MAX(cp.fecha_registro) FROM adm_comentarios_prefacturacion cp
+                        WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS last_comentario_at"),
+                DB::raw("(SELECT LEFT(cp.comentario, 100) FROM adm_comentarios_prefacturacion cp
+                        WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+                        ORDER BY cp.fecha_registro DESC LIMIT 1) AS last_comentario_snippet"),
 
                 DB::raw("CASE
-                WHEN c.estado = 1 THEN 'REGISTRO'
-                WHEN c.estado = 2 THEN 'COSTEO'
-                WHEN c.estado = 3 THEN 'COSTEADA'
-                WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-                WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                WHEN c.estado = 6 THEN 'FACTURADA'
-                WHEN c.estado = 7 THEN 'ANULADA'
-                WHEN c.estado = 8 THEN 'RECHAZADA'
-                ELSE 'DESCONOCIDO'
-            END as estado_texto")
+                    WHEN c.estado = 1 THEN 'REGISTRO'
+                    WHEN c.estado = 2 THEN 'COSTEO'
+                    WHEN c.estado = 3 THEN 'COSTEADA'
+                    WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+                    WHEN c.estado = 5 THEN 'PARA FACTURAR'
+                    WHEN c.estado = 6 THEN 'FACTURADA'
+                    WHEN c.estado = 7 THEN 'ANULADA'
+                    WHEN c.estado = 8 THEN 'RECHAZADA'
+                    ELSE 'DESCONOCIDO'
+                END as estado_texto")
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -231,13 +180,15 @@ class CotizacionController extends Controller
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->where('c.estado', '!=', 0);
 
-        // filtros que ya tenías…
-        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
-            $query->whereBetween(DB::raw('DATE(c.fecha_cotizacion)'), [$request->fecha_inicio, $request->fecha_fin]);
-        } elseif ($request->filled('fecha_inicio')) {
-            $query->whereDate('c.fecha_cotizacion', '>=', $request->fecha_inicio);
-        } elseif ($request->filled('fecha_fin')) {
-            $query->whereDate('c.fecha_cotizacion', '<=', $request->fecha_fin);
+        // filtros por fecha / estado / propietario (igual que ya tienes)
+        if (!$request->filled('q')) { // 👈 si hay q, no limitamos por fecha
+            if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+                $query->whereBetween(DB::raw('DATE(c.fecha_cotizacion)'), [$request->fecha_inicio, $request->fecha_fin]);
+            } elseif ($request->filled('fecha_inicio')) {
+                $query->whereDate('c.fecha_cotizacion', '>=', $request->fecha_inicio);
+            } elseif ($request->filled('fecha_fin')) {
+                $query->whereDate('c.fecha_cotizacion', '<=', $request->fecha_fin);
+            }
         }
         if ($request->filled('estado') && $request->estado !== 'todos') {
             $query->where('c.estado', (int) $request->estado);
@@ -246,123 +197,50 @@ class CotizacionController extends Controller
             $query->where('c.idusuario', $user->id);
         }
 
+        // 🔎 BÚSQUEDA GLOBAL EN BD
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+
+            // extrae parte numérica si viene "CT569", "ct 000569" o solo "569"
+            $num = null;
+            if (preg_match('/^\s*(?:CT)?\s*0*(\d+)\s*$/i', $q, $m)) {
+                $num = $m[1];
+            }
+
+            $query->where(function ($s) use ($q, $num) {
+                $like = "%{$q}%";
+
+                // CTxxxx como texto
+                $s->whereRaw("CONCAT('CT', CAST(c.nocotizacion AS CHAR)) LIKE ?", [$like])
+                    // campos adicionales
+                    ->orWhere('cl.nombre', 'like', $like)
+                    ->orWhere('cl.nit', 'like', $like)
+                    ->orWhere('ct.nombre', 'like', $like)
+                    ->orWhere('c.observaciones_costeo', 'like', $like)
+                    ->orWhere('c.observaciones_cliente', 'like', $like)
+                    ->orWhere('c.costeo_observaciones', 'like', $like)
+                    ->orWhereRaw('CAST(c.total_general AS CHAR) LIKE ?', [$like]);
+
+                // búsqueda por solo número
+                if ($num !== null) {
+                    $s->orWhere('c.nocotizacion', (int)$num)
+                        ->orWhereRaw('CAST(c.nocotizacion AS CHAR) LIKE ?', ['%' . $num . '%']);
+                }
+            });
+        }
+
         $rows = $query
             ->orderBy('c.fecha_cotizacion', 'asc')
             ->orderBy('c.nocotizacion', 'asc')
-            ->get();
-
-        // Normaliza tipos para el front
-        $rows->transform(function ($r) {
-            $r->comentarios_count = (int) ($r->comentarios_count ?? 0);
-            $r->has_comentarios   = (bool) $r->has_comentarios;
-            return $r;
-        });
+            ->get()
+            ->map(function ($r) {
+                $r->comentarios_count = (int)($r->comentarios_count ?? 0);
+                $r->has_comentarios = (bool)$r->has_comentarios;
+                return $r;
+            });
 
         return response()->json($rows);
     }
-
-
-    // public function store(Request $request)
-    // {
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $correlativo = Correlativo::find('adm_cotizacion');
-
-    //         if (!$correlativo) {
-    //             return response()->json(['message' => 'No se encontró el correlativo para cotizacion'], 400);
-    //         }
-
-    //         $idCotizacion = $correlativo->correlativo + $correlativo->incremento;
-    //         $correlativo->correlativo = $idCotizacion;
-    //         $correlativo->save();
-
-    //         $correlativonocotizacion = Correlativo::find('no_cotizacion');
-    //         if (!$correlativonocotizacion) {
-    //             return response()->json(['message' => 'No se encontró el correlativo para el no de cotizacion'], 400);
-    //         }
-
-    //         $nocotizacion = $correlativonocotizacion->correlativo + $correlativonocotizacion->incremento;
-    //         $correlativonocotizacion->correlativo = $nocotizacion;
-    //         $correlativonocotizacion->save();
-
-    //         $datosCotizacion = $request->all();
-    //         $datosCotizacion['idcotizacion'] = $idCotizacion;
-    //         $datosCotizacion['nocotizacion'] = $nocotizacion;
-    //         $datosCotizacion['usuario_registro'] = auth()->user()->name;
-    //         $datosCotizacion['fecha_registro'] = date('Y-m-d H:i:s');
-    //         //$datosCotizacion['estado']           = 1;
-    //         $datosCotizacion['idusuario'] = auth()->user()->id;
-
-    //         $cotizacion = AdmCotizacion::create($datosCotizacion);
-
-    //         // Guardar detalles de la cotización
-
-    //         $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-
-    //         if (!$correlativoDetalle) {
-    //             return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotizacion'], 400);
-    //         }
-
-    //         $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-    //         if (!is_array($detalles)) {
-    //             Log::error('Los detalles no son un array: ' . print_r($detalles, true));
-    //             DB::rollback();
-    //             return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
-    //         }
-
-    //         $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-
-    //         foreach ($detalles as $index => $detalleData) {
-    //             //Log::info("Procesando detalle en índice: {$index}");
-    //             //Log::info("¿Request tiene archivo detalles[{$index}][imagen]?: " . ($request->hasFile("detalles.{$index}.imagen") ? 'Sí' : 'No'));
-    //             $imagenRuta = null;
-    //             if ($request->hasFile("detalles.{$index}.imagen")) {
-    //                 //Log::info("Archivo detectado para índice: {$index}");
-    //                 $imagen = $request->file("detalles.{$index}.imagen");
-    //                 // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
-    //                 $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
-    //                 $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
-    //                 $imagen->move(public_path('images_cotizaciones'), $nombreImagen);
-    //                 $imagenRuta = $nombreImagen;
-    //             }
-    //             AdmDetalleCotizacion::create([
-    //                 'iddetallecotizacion' => $idDetalleCotizacion,
-    //                 'idcotizacion' => $idCotizacion,
-    //                 'idproducto' => 0,
-    //                 'producto' => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
-    //                 'titulo' => '',
-    //                 'descripcion' => $detalleData['descripcion'],
-    //                 'cantidad' => $detalleData['cantidad'],
-    //                 'ancho' => $detalleData['ancho'],
-    //                 'alto' => $detalleData['alto'],
-    //                 'profundidad' => $detalleData['profundidad'],
-    //                 'precio' => $detalleData['precio'],
-    //                 'total' => $detalleData['total'],
-    //                 'fecha_registro' => date('Y-m-d H:i:s'),
-    //                 'usuario_registro' => auth()->user()->name,
-    //                 'costeado' => 'N',
-    //                 'incluye_foto' => $imagenRuta ? 'S' : 'N',
-    //                 'estado' => 1,
-    //                 'unidad_medida' => $detalleData['unidad_medida'],
-    //                 'm2' => $detalleData['m2'],
-    //                 'imagen' => $imagenRuta,
-    //             ]);
-
-    //             $idDetalleCotizacion += 1;
-    //         }
-
-    //         $correlativoDetalle->correlativo = $idDetalleCotizacion;
-    //         $correlativoDetalle->save();
-
-    //         DB::commit();
-
-    //         return response()->json($cotizacion, 201);
-    //     } catch (\Exception $e) {
-    //         DB::rollback();
-    //         return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
-    //     }
-    // }
 
 
     public function store(Request $request)
@@ -490,191 +368,6 @@ class CotizacionController extends Controller
         }
     }
 
-
-    // public function show($id)
-    // {
-    //     $cotizaciones = AdmCotizacion::where('c.idcotizacion', $id)
-    //         ->select(
-    //             'c.idcotizacionoriginal',
-    //             'c.idcotizacion',
-    //             'c.idcliente',
-    //             'cl.nombre as cliente',
-    //             'c.idcontacto',
-    //             'ct.nombre as contacto',
-    //             'c.fecha_cotizacion',
-    //             'c.trabajo',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.total_general',
-    //             'c.costeo_observaciones',
-    //             'c.nocotizacion',
-    //             'c.version',
-    //             'c.idtipopago',
-    //             't.tipo as tipo_pago',
-    //             'c.direccion_entrega',
-    //             'c.costear',
-    //             'c.total_general',
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-    //         ->first();
-    //     if (!$cotizaciones) {
-    //         return response()->json(['message' => 'No se encontró el registro de la cotización'], 404);
-    //     }
-    //     // Obtener los detalles de la cotización
-    //     $detalles = AdmDetalleCotizacion::where('d.idcotizacion', $id)
-    //         ->select(
-    //             'd.iddetallecotizacion',
-    //             'idcotizacion',
-    //             'idproducto',
-    //             'producto',
-    //             'titulo',
-    //             'descripcion',
-    //             'cantidad',
-    //             'ancho',
-    //             'alto',
-    //             'profundidad',
-    //             'precio',
-    //             'total',
-    //             'fecha_registro',
-    //             'usuario_registro',
-    //             'costeado',
-    //             'fecha_costeo',
-    //             'usuario_costeo',
-    //             'estado',
-    //             'incluye_foto',
-    //             'unidad_medida',
-    //             'm2',
-    //             //'imagen',
-    //             'imagen as imagen_ruta',
-    //         )
-    //         ->from('adm_detalle_cotizacion as d')
-    //         ->get();
-
-    //     // Agregar los detalles a la respuesta
-    //     $cotizaciones->detalles = $detalles;
-
-    //     return response()->json($cotizaciones);
-    // }
-
-    // public function update(Request $request, $id)
-    // {
-    //     // Iniciar transacción para asegurar atomicidad
-    //     DB::beginTransaction();
-    //     try {
-    //         // 1. Encontrar y actualizar la cotización principal
-    //         $cotizacion = AdmCotizacion::find($id);
-    //         if (!$cotizacion) {
-    //             DB::rollback(); // Revertir si no se encuentra
-    //             return response()->json(['message' => 'Cotización no encontrada'], 404);
-    //         }
-
-    //         // Obtener todos los datos, incluyendo los detalles
-    //         $datosCotizacion = $request->all();
-
-    //         // Excluir 'detalles' del array para la actualización de la cabecera
-    //         $datosCabecera = $request->except('detalles');
-
-    //         // Añadir campos de auditoría para la cabecera
-    //         $datosCabecera['usuario_modificacion'] = auth()->user()->name;
-    //         $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
-    //         // Quitar la línea de estado si no la envías o quieres mantener la existente
-    //         // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
-
-    //         $cotizacion->update($datosCabecera);
-
-    //         // 2. Eliminar los detalles existentes para esta cotización
-    //         // Es importante hacer esto DENTRO de la transacción
-    //         AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
-
-    //         // 3. Obtener y procesar los nuevos detalles (como en store)
-    //         $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-
-    //         if (!empty($detalles)) { // Solo procesar si hay detalles
-    //             // Obtener el correlativo para los detalles (igual que en store)
-    //             $correlativoDetalle = Correlativo::find('adm_detalle_cotizacion');
-    //             if (!$correlativoDetalle) {
-    //                 DB::rollback();
-    //                 // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
-    //                 return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500); // Error 500 porque es un problema de configuración/BD
-    //             }
-
-    //             // Determinar el siguiente ID disponible basado en el correlativo actual
-    //             // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
-    //             $idDetalleCotizacion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-    //             $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
-
-    //             foreach ($detalles as $index => $detalleData) {
-    //                 $imagenRuta = null;
-    //                 if ($request->hasFile("detalles.{$index}.imagen")) {
-    //                     $imagen = $request->file("detalles.{$index}.imagen");
-    //                     // Toma la extensión del nombre del cliente; si no hay, adivínala por MIME
-    //                     $ext = $imagen->getClientOriginalExtension() ?: $imagen->extension() ?: 'png';
-    //                     $nombreImagen = uniqid('detalle_') . '.' . $ext; //$imagen->getClientOriginalExtension();
-    //                     //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
-    //                     //$imagenRuta = $nombreImagen;
-    //                     if ($imagen->move(public_path('images_cotizaciones'), $nombreImagen)) {
-    //                         $imagenRuta = $nombreImagen;
-    //                         // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
-    //                     } else {
-    //                         // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
-    //                         // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
-    //                         // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
-    //                     }
-    //                 } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
-    //                     // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
-    //                     $imagenRuta = $detalleData['imagen_ruta'];
-    //                 }
-    //                 // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
-    //                 AdmDetalleCotizacion::create([
-    //                     'iddetallecotizacion' => $idDetalleCotizacion,
-    //                     'idcotizacion' => $id,                                                            // Usar el $id de la cotización que estamos actualizando
-    //                     'idproducto' => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
-    //                     'producto' => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'), // Asigna producto o descripción
-    //                     'titulo' => $detalleData['titulo'] ?? '',
-    //                     'descripcion' => $detalleData['descripcion'] ?? '',
-    //                     'cantidad' => $detalleData['cantidad'] ?? 0,
-    //                     'ancho' => $detalleData['ancho'] ?? 0,
-    //                     'alto' => $detalleData['alto'] ?? 0,
-    //                     'profundidad' => $detalleData['profundidad'] ?? 0,
-    //                     'precio' => $detalleData['precio'] ?? 0,
-    //                     'total' => $detalleData['total'] ?? 0,
-    //                     'fecha_registro' => now(), // Usar now() para la fecha actual
-    //                     'usuario_registro' => auth()->user()->name,
-    //                     'costeado' => $detalleData['costeado'] ?? 'N',
-    //                     'incluye_foto' => $imagenRuta ? 'S' : 'N',
-    //                     'estado' => $detalleData['estado'] ?? 1,
-    //                     'unidad_medida' => $detalleData['unidad_medida'] ?? null,
-    //                     'm2' => $detalleData['m2'] ?? 0,
-    //                     'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
-    //                 ]);
-
-    //                 $ultimoIdUsado = $idDetalleCotizacion;                   // Actualizar el último ID que acabamos de usar
-    //                 $idDetalleCotizacion += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
-    //             }
-
-    //             // Actualizar el correlativo con el ÚLTIMO ID que se usó
-    //             $correlativoDetalle->correlativo = $ultimoIdUsado;
-    //             $correlativoDetalle->save();
-    //         }
-
-    //         // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-    //         // Para devolverla con detalles, necesitas volver a cargar la relación
-    //         $cotizacion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmCotizacion
-    //         // Si todo fue bien, confirmar la transacción
-    //         DB::commit();
-
-    //         return response()->json($cotizacion);
-    //     } catch (\Exception $e) {
-    //         // Si algo falla, revertir la transacción
-    //         DB::rollback();
-    //         Log::error('Error al actualizar la cotización ID ' . $id . ': ' . $e->getMessage()); // Loguear el error para depuración
-    //         return response()->json(['message' => 'Error al actualizar la cotización: ' . $e->getMessage()], 500);
-    //     }
-    // }
-
     public function show($id)
     {
         $cot = AdmCotizacion::from('adm_cotizacion as c')
@@ -700,7 +393,8 @@ class CotizacionController extends Controller
                 't.tipo as tipo_pago',
                 'c.direccion_entrega',
                 'c.costear',
-                'c.total_general'
+                'c.total_general',
+                'cl.nit',
             )
             ->first();
 
@@ -1031,7 +725,7 @@ class CotizacionController extends Controller
 
     public function listarClientes()
     {
-        $clientes = Clientes::where('estado', 1)->get(['idcliente', 'nombre']);
+        $clientes = Clientes::where('estado', 1)->get(['idcliente', 'nombre', 'nit']);
         return response()->json($clientes);
     }
 
@@ -1054,73 +748,6 @@ class CotizacionController extends Controller
         return response()->json($unidadesMedida);
     }
 
-    // public function generarPdf(Request $request, $id)
-    // {
-    //     $fecha_cot = $request->input('fecha_cotizacion');
-    //     if (!$fecha_cot || !preg_match('/\d{4}-\d{2}-\d{2}/', $fecha_cot)) {
-    //         $fecha_cot = AdmCotizacion::findOrFail($id)->fecha_cotizacion;
-    //     }
-
-    //     $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-    //         ->select(
-    //             'c.idcotizacion',
-    //             'c.nocotizacion',
-    //             'c.fecha_cotizacion',
-    //             't.tipo as tipo_pago',
-    //             'c.total_general',
-    //             'c.costear',
-    //             'cl.nombre as cliente',
-    //             'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
-    //             'ct.nombre as contacto',
-    //             'e.nombre as vendedor',                 // Asegúrate de tener este campo en tu tabla (o relación)
-    //             'e.movil as telefono_vendedor',         // Ajusta según tu estructura
-    //             'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
-    //             'c.direccion_entrega',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.costeo_observaciones',
-    //             'c.trabajo',
-    //             'c.version'
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-    //         ->first();
-
-    //     if (!$cotizacion) {
-    //         return response()->json(['message' => 'Cotización no encontrada'], 404);
-    //     }
-
-    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-    //     $cotizacion->detalles = $detalles;
-    //     //$cotizacion->fecha_cotizacion = date('Y-m-d', strtotime($cotizacion->fecha_cotizacion)); // Formatea la fecha
-    //     $cotizacion->fecha_cotizacion = $fecha_cot;
-    //     // Convertir total a letras (usando kwn/number-to-words)
-    //     $numberToWords = new NumberToWords();
-    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
-    //     // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
-    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
-
-    //     // registro en historial
-    //     AdmHistorialEnvioCotizacion::create([
-    //         'idcotizacion' => $id,
-    //         'fecha_cotizacion' => $fecha_cot
-    //     ]);
-
-    //     return response()->json([
-    //         'cotizacion' => $cotizacion,
-    //         'totalEnLetras' => $this->convertirNumeroALetrasConCentavos($cotizacion->total_general)
-    //     ]);
-
-    //     // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-    //     // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
-    //     // return response()->json([
-    //     //     'cotizacion' => $cotizacion,
-    //     //     'totalEnLetras' => $totalEnLetras,
-    //     // ]);
-    // }
     public function generarPdf(Request $request, $id)
     {
         try {
@@ -1172,13 +799,13 @@ class CotizacionController extends Controller
 
             $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
 
-            AdmHistorialEnvioCotizacion::create([
-                'idcotizacion' => $id,
-                'fecha_cotizacion' => $fechaOriginal,
-                'fecha_envio' => $fechaInput,
-                'no_envio'         => null,
-                'direccion_envio'  => null,
-            ]);
+            // AdmHistorialEnvioCotizacion::create([
+            //     'idcotizacion' => $id,
+            //     'fecha_cotizacion' => $fechaOriginal,
+            //     'fecha_envio' => $fechaInput,
+            //     'no_envio'         => null,
+            //     'direccion_envio'  => null,
+            // ]);
 
             return response()->json([
                 'cotizacion' => $cotizacion,
@@ -1244,95 +871,6 @@ class CotizacionController extends Controller
         return strtoupper($letrasEntero . ' ' . $letrasCentavos);
     }
 
-    // public function generarNotaEnvio($id)
-    // {
-    //     $nota = DB::table('adm_cotizacion as ct')
-    //         ->join('clientes as cl', 'ct.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ctt', 'ct.idcontacto', '=', 'ctt.id_contactocliente')
-    //         ->join('adm_detalle_cotizacion as dc', 'ct.idcotizacion', '=', 'dc.idcotizacion')
-    //         ->where('ct.idcotizacion', $id)
-    //         ->where('cl.estado', 1)
-    //         ->where('ctt.estado', 1)
-    //         ->where('dc.estado', 1)
-    //         ->select(
-    //             DB::raw("CONCAT('CT', ct.nocotizacion) as noenvio"),
-    //             'cl.nombre as cliente',
-    //             'ct.direccion_entrega',
-    //             'ct.fecha_cotizacion',
-    //             'ctt.nombre as contacto',
-    //             'ctt.telefono',
-    //             'dc.cantidad',
-    //             'dc.descripcion'
-    //         )
-    //         ->get();
-
-    //     if ($nota->isEmpty()) {
-    //         return response()->json(['message' => 'No se encontró la cotización o sus detalles'], 404);
-    //     }
-
-    //     return response()->json($nota);
-    // }
-
-    // public function notaEnvioPdf($id)
-    // {
-    //     // Trae la misma info que usabas para la nota de envío (tu query actual):
-    //     $nota = DB::table('adm_cotizacion as ct')
-    //         ->join('clientes as cl', 'ct.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ctt', 'ct.idcontacto', '=', 'ctt.id_contactocliente')
-    //         ->join('adm_detalle_cotizacion as dc', 'ct.idcotizacion', '=', 'dc.idcotizacion')
-    //         ->where('ct.idcotizacion', $id)
-    //         ->where('cl.estado', 1)
-    //         ->where('ctt.estado', 1)
-    //         ->where('dc.estado', 1)
-    //         ->select(
-    //             DB::raw("CONCAT('CT', ct.nocotizacion) as noenvio"),
-    //             'cl.nombre as cliente',
-    //             'ct.direccion_entrega',
-    //             'ct.fecha_cotizacion',
-    //             'ctt.nombre as contacto',
-    //             'ctt.telefono',
-    //             'dc.cantidad',
-    //             'dc.descripcion'
-    //         )
-    //         ->get();
-
-    //     if ($nota->isEmpty()) {
-    //         return response()->json(['message' => 'No se encontró la cotización o sus detalles'], 404);
-    //     }
-
-    //     // --- Logo en base64 (asegúrate de tenerlo en public/images/LogoGP.png)
-    //     $logoPath = public_path('images/LogoGP.png');
-    //     $logoBase64 = null;
-    //     if (is_file($logoPath)) {
-    //         $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
-    //     }
-
-    //     // Si hay pocos ítems, media carta
-    //     $SMALL_THRESHOLD = 6; // ajusta a tu gusto
-    //     $isHalf = $nota->count() <= $SMALL_THRESHOLD;
-
-    //     $html = view('pdf.nota_envio', [
-    //         'encabezado' => $nota->first(),
-    //         'items'      => $nota,
-    //         'logoBase64' => $logoBase64,
-    //         'isHalf'     => $isHalf,
-    //     ])->render();
-
-    //     $pdf = Pdf::loadHTML($html);
-
-    //     // Papel dinámico
-    //     if ($isHalf) {
-    //         // 8.5 x 5.5 in -> 612 x 396 pt
-    //         $pdf->setPaper([0, 0, 612, 396], 'portrait');
-    //     } else {
-    //         $pdf->setPaper('letter', 'portrait');
-    //     }
-
-    //     $filename = 'nota-envio-' . $nota->first()->noenvio . '.pdf';
-    //     return $pdf->stream($filename); // o ->download($filename)
-    // }
-
-
     public function motivosRechazo()
     {
         return AdmMotivosRechazo::where('estado', 1)->get(['idmotivorechazo', 'motivo']);
@@ -1366,51 +904,14 @@ class CotizacionController extends Controller
     public function historialEnvios($id)
     {
         $historial = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
+            ->whereNotNull('no_envio')
+            ->where('no_envio', '>', 0)
             ->orderByDesc('fecha_envio')
-            ->get();
+            ->get(['no_envio', 'direccion_envio', 'fecha_envio']);
 
         return response()->json($historial);
     }
 
-    // 2.2.1. Config para el modal (detalles + siguiente número de envío)
-    // public function notaEnvioConfig($id)
-    // {
-    //     $cot = AdmCotizacion::findOrFail($id);
-
-    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)
-    //         ->orderBy('iddetallecotizacion')
-    //         ->get([
-    //             'iddetallecotizacion',
-    //             'descripcion',
-    //             'cantidad',
-    //             'total',
-    //             'estado',
-    //             'numero_envio'
-    //         ]);
-
-    //     $maxEnvio = AdmDetalleCotizacion::where('idcotizacion', $id)
-    //         ->whereNotNull('numero_envio')
-    //         ->max('numero_envio');
-
-    //     // listado de envíos existentes para reimpresión
-    //     $envios = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
-    //         ->orderBy('no_envio', 'asc')
-    //         ->get(['no_envio', 'direccion_envio', 'fecha_envio']);
-
-    //     return response()->json([
-    //         'cotizacion'      => [
-    //             'idcotizacion' => $cot->idcotizacion,
-    //             'nocotizacion' => $cot->nocotizacion,
-    //             'cliente'      => Clientes::find($cot->idcliente)->nombre ?? '',
-    //             'contacto'     => ContactoCliente::find($cot->idcontacto)->nombre ?? '',
-    //             'fecha'        => $cot->fecha_cotizacion,
-    //         ],
-    //         'detalles'        => $detalles,
-    //         'siguiente_envio' => (int)($maxEnvio ?? 0) + 1,
-    //         'envios'          => $envios
-    //     ]);
-    // }
-    // 2.2.1. Config para el modal (detalles + siguiente número de envío)
     public function notaEnvioConfig($id)
     {
         $cot = AdmCotizacion::findOrFail($id);
@@ -1426,19 +927,45 @@ class CotizacionController extends Controller
             $cols[] = DB::raw('NULL as numero_envio');
         }
 
-        $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)
-            ->orderBy('iddetallecotizacion')
-            ->get($cols);
+        // $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)
+        //     ->orderBy('iddetallecotizacion')
+        //     ->get($cols);
+
+        $detalles = AdmDetalleCotizacion::from('adm_detalle_cotizacion as d')
+            ->where('d.idcotizacion', $id)
+            ->leftJoin('adm_envio_item as ei', 'ei.iddetallecotizacion', '=', 'd.iddetallecotizacion')
+            ->groupBy(
+                'd.iddetallecotizacion',
+                'd.descripcion',
+                'd.cantidad',
+                'd.total',
+                'd.estado'
+                // agrega aquí cualquier otra columna de d que devuelvas
+            )
+            ->orderBy('d.iddetallecotizacion')
+            ->get([
+                'd.iddetallecotizacion',
+                'd.descripcion',
+                'd.cantidad as cantidad_total',
+                DB::raw('COALESCE(SUM(ei.cantidad),0) as cantidad_enviada'),
+                DB::raw('(d.cantidad - COALESCE(SUM(ei.cantidad),0)) as cantidad_pendiente'),
+                'd.total',
+                'd.estado',
+                // Si aún usas numero_envio en d, puedes incluirlo como referencia
+                DB::raw('NULL as numero_envio'),
+            ]);
 
         // siguiente envío ignorando 0/NULL solo si existe la columna
-        $maxEnvio = 0;
-        if ($hasNumeroEnvio) {
-            $maxEnvio = AdmDetalleCotizacion::where('idcotizacion', $id)
-                ->where('numero_envio', '>', 0)
-                ->max('numero_envio');
-        }
+        // $maxEnvio = 0;
+        // if ($hasNumeroEnvio) {
+        //     $maxEnvio = AdmDetalleCotizacion::where('idcotizacion', $id)
+        //         ->where('numero_envio', '>', 0)
+        //         ->max('numero_envio');
+        // }
 
         $envios = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
+            ->whereNotNull('no_envio')
+            ->where('no_envio', '>', 0)
             ->orderBy('no_envio', 'asc')
             ->get(['no_envio', 'direccion_envio', 'fecha_envio']);
 
@@ -1447,6 +974,8 @@ class CotizacionController extends Controller
             ->value('direccion_envio');
 
         $direccionSugerida = $ultimaDireccion ?: ($cot->direccion_entrega ?? '');
+
+        $maxEnvio = AdmEnvioItem::where('idcotizacion', $id)->max('no_envio') ?? 0;
 
         return response()->json([
             'cotizacion' => [
@@ -1468,62 +997,70 @@ class CotizacionController extends Controller
     public function notaEnvioGenerar(Request $request, $id)
     {
         $request->validate([
-            'detalle_ids'     => ['required', 'array', 'min:1'],
-            'detalle_ids.*'   => [
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.iddetallecotizacion' => [
+                'required',
                 'integer',
-                Rule::exists('adm_detalle_cotizacion', 'iddetallecotizacion')
-                    ->where('idcotizacion', $id),
+                Rule::exists('adm_detalle_cotizacion', 'iddetallecotizacion')->where('idcotizacion', $id)
             ],
+            'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
             'direccion_envio' => ['required', 'string', 'max:500'],
         ]);
 
         return DB::transaction(function () use ($request, $id) {
-            $detalleIds = $request->input('detalle_ids');
-            $direccion  = $request->input('direccion_envio');
+            $items     = collect($request->input('items'));
+            $direccion = $request->input('direccion_envio');
 
-            // Bloquea las filas seleccionadas y vuelve a verificar el estado
-            $detallesSel = AdmDetalleCotizacion::whereIn('iddetallecotizacion', $detalleIds)
-                ->where('idcotizacion', $id)
-                ->lockForUpdate()
-                ->get(['iddetallecotizacion', 'numero_envio']);
+            // Validar contra pendiente
+            $pendientePorDet = AdmDetalleCotizacion::from('adm_detalle_cotizacion as d')
+                ->where('d.idcotizacion', $id)
+                ->leftJoin('adm_envio_item as ei', 'ei.iddetallecotizacion', '=', 'd.iddetallecotizacion')
+                ->groupBy('d.iddetallecotizacion', 'd.cantidad')
+                ->get([
+                    'd.iddetallecotizacion',
+                    DB::raw('(d.cantidad - COALESCE(SUM(ei.cantidad),0)) as pendiente')
+                ])->keyBy('iddetallecotizacion');
 
-            // Considera "tiene envío" solo si numero_envio > 0 (0 o NULL = sin envío)
-            $conEnvio = $detallesSel->contains(function ($d) {
-                return (int) $d->numero_envio > 0;
-            });
-
-            if ($conEnvio) {
-                return response()->json([
-                    'message' => 'Algunos ítems seleccionados ya pertenecen a un envío. Usa "Reimprimir" o selecciona solo ítems sin envío.',
-                ], 422);
+            foreach ($items as $it) {
+                $pend = (float) ($pendientePorDet[$it['iddetallecotizacion']]->pendiente ?? 0);
+                if ($pend <= 0 || (float)$it['cantidad'] > $pend) {
+                    return response()->json([
+                        'message' => 'Cantidad a enviar supera lo pendiente para el ítem ' . $it['iddetallecotizacion']
+                    ], 422);
+                }
             }
 
-            // Siguiente número de envío (ignora 0 y NULL)
-            $maxEnvio = AdmDetalleCotizacion::where('idcotizacion', $id)
-                ->where('numero_envio', '>', 0)
-                ->max('numero_envio');
+            // Siguiente número de envío
+            $noEnvio = ((int) (AdmEnvioItem::where('idcotizacion', $id)->max('no_envio') ?? 0)) + 1;
 
-            $noEnvio = (int)($maxEnvio ?: 0) + 1;
+            // Insertar líneas del envío
+            foreach ($items as $it) {
+                AdmEnvioItem::create([
+                    'idcotizacion'        => $id,
+                    'iddetallecotizacion' => (int)$it['iddetallecotizacion'],
+                    'no_envio'            => $noEnvio,
+                    'cantidad'            => (float)$it['cantidad'],
+                ]);
+            }
 
-            // Asigna el número de envío a los seleccionados (todos son sin envío)
-            AdmDetalleCotizacion::whereIn('iddetallecotizacion', $detallesSel->pluck('iddetallecotizacion'))
-                ->update(['numero_envio' => $noEnvio]);
-
-            // Cabecera y guardar historial
+            // Cabecera historial
             $cabecera = AdmCotizacion::findOrFail($id);
-
             AdmHistorialEnvioCotizacion::create([
                 'idcotizacion'     => $id,
                 'no_envio'         => $noEnvio,
                 'direccion_envio'  => $direccion,
-                'fecha_cotizacion' => $cabecera->fecha_cotizacion, // usa la original
+                'fecha_cotizacion' => $cabecera->fecha_cotizacion,
                 'fecha_envio'      => now(),
             ]);
 
-            // Arma los datos para el PDF
-            $items = AdmDetalleCotizacion::where('idcotizacion', $id)
-                ->where('numero_envio', $noEnvio)
-                ->get(['cantidad', 'descripcion']);
+            // Items del envío recien creado (para PDF)
+            $itemsPdf = AdmEnvioItem::from('adm_envio_item as ei')
+                ->join('adm_detalle_cotizacion as d', 'd.iddetallecotizacion', '=', 'ei.iddetallecotizacion')
+                ->where('ei.idcotizacion', $id)
+                ->where('ei.no_envio', $noEnvio)
+                ->get(['ei.cantidad', 'd.descripcion']);
+
+
 
             return response()->json([
                 'no_envio'  => $noEnvio,
@@ -1535,7 +1072,7 @@ class CotizacionController extends Controller
                     'nocotizacion' => 'CT' . $cabecera->nocotizacion,
                     'fecha'        => $cabecera->fecha_cotizacion,
                 ],
-                'items' => $items,
+                'items' => $itemsPdf,
             ]);
         });
     }
@@ -1543,36 +1080,108 @@ class CotizacionController extends Controller
     // 2.2.3. Reimprimir un envío ya existente (no modifica BD)
     public function notaEnvioReimprimir(Request $request, $id)
     {
-        $request->validate([
-            'no_envio' => ['required', 'integer', 'min:1']
-        ]);
+        $request->validate(['no_envio' => ['required', 'integer', 'min:1']]);
         $noEnvio = (int)$request->input('no_envio');
 
         $hist = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
-            ->where('no_envio', $noEnvio)
-            ->orderByDesc('fecha_envio')
-            ->first();
+            ->where('no_envio', $noEnvio)->orderByDesc('fecha_envio')->first();
 
-        if (!$hist) {
-            return response()->json(['message' => 'No existe historial para el envío solicitado.'], 404);
+        if (!$hist) return response()->json(['message' => 'No existe historial para el envío solicitado.'], 404);
+
+        $cab = AdmCotizacion::findOrFail($id);
+
+        $items = AdmEnvioItem::from('adm_envio_item as ei')
+            ->join('adm_detalle_cotizacion as d', 'd.iddetallecotizacion', '=', 'ei.iddetallecotizacion')
+            ->where('ei.idcotizacion', $id)
+            ->where('ei.no_envio', $noEnvio)
+            ->get(['ei.cantidad', 'd.descripcion']);
+
+
+        // Fallback legacy (si tuvieras envíos viejos sin pivote)
+        if ($items->isEmpty()) {
+            $items = AdmDetalleCotizacion::where('idcotizacion', $id)
+                ->where('numero_envio', $noEnvio)
+                ->get(['cantidad', 'descripcion']);
         }
 
-        $cabecera = AdmCotizacion::where('idcotizacion', $id)->first();
-        $items    = AdmDetalleCotizacion::where('idcotizacion', $id)
-            ->where('numero_envio', $noEnvio)
-            ->get(['cantidad', 'descripcion']);
-
         return response()->json([
-            'no_envio'   => $noEnvio,
-            'direccion'  => $hist->direccion_envio,
-            'cabecera'   => [
-                'cliente'   => Clientes::find($cabecera->idcliente)->nombre ?? '',
-                'contacto'  => ContactoCliente::find($cabecera->idcontacto)->nombre ?? '',
-                'telefono'  => ContactoCliente::find($cabecera->idcontacto)->telefono ?? '',
-                'nocotizacion' => 'CT' . $cabecera->nocotizacion,
-                'fecha'     => $cabecera->fecha_cotizacion,
+            'no_envio'  => $noEnvio,
+            'direccion' => $hist->direccion_envio,
+            'cabecera'  => [
+                'cliente'   => Clientes::find($cab->idcliente)->nombre ?? '',
+                'contacto'  => ContactoCliente::find($cab->idcontacto)->nombre ?? '',
+                'telefono'  => ContactoCliente::find($cab->idcontacto)->telefono ?? '',
+                'nocotizacion' => 'CT' . $cab->nocotizacion,
+                'fecha'     => $cab->fecha_cotizacion,
             ],
-            'items'      => $items,
+            'items' => $items,
         ]);
+    }
+
+    public function notaEnvioEliminar(Request $request, $id)
+    {
+        $request->validate(['no_envio' => ['required', 'integer', 'min:1']]);
+        $noEnvio = (int)$request->input('no_envio');
+
+        return DB::transaction(function () use ($id, $noEnvio) {
+            AdmEnvioItem::where('idcotizacion', $id)->where('no_envio', $noEnvio)->delete();
+            AdmHistorialEnvioCotizacion::where('idcotizacion', $id)->where('no_envio', $noEnvio)->delete();
+            return response()->json(['ok' => true, 'message' => 'Envío eliminado y ítems liberados.']);
+        });
+    }
+
+    public function notaEnvioActualizar(Request $request, $id)
+    {
+        $request->validate([
+            'no_envio' => ['required', 'integer', 'min:1'],
+            'direccion_envio' => ['required', 'string', 'max:500'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.iddetallecotizacion' => [
+                'required',
+                'integer',
+                Rule::exists('adm_detalle_cotizacion', 'iddetallecotizacion')->where('idcotizacion', $id)
+            ],
+            'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
+        ]);
+        $noEnvio = (int)$request->no_envio;
+
+        return DB::transaction(function () use ($request, $id, $noEnvio) {
+            // Validar contra pendiente + lo ya asignado en este envio
+            $items = collect($request->items)->keyBy('iddetallecotizacion');
+
+            // pendiente = total - (enviada en otros envíos) - (lo que ya tenía este envío, que será reemplazado)
+            $enOtras = AdmEnvioItem::where('idcotizacion', $id)
+                ->where('no_envio', '<>', $noEnvio)
+                ->select('iddetallecotizacion', DB::raw('SUM(cantidad) as suma'))
+                ->groupBy('iddetallecotizacion')->get()->keyBy('iddetallecotizacion');
+
+            $totales = AdmDetalleCotizacion::where('idcotizacion', $id)
+                ->get(['iddetallecotizacion', 'cantidad'])->keyBy('iddetallecotizacion');
+
+            foreach ($items as $iddet => $it) {
+                $total = (float)($totales[$iddet]->cantidad ?? 0);
+                $yaOtras = (float)($enOtras[$iddet]->suma ?? 0);
+                if ((float)$it['cantidad'] > max(0, $total - $yaOtras)) {
+                    return response()->json(['message' => "Cantidad supera lo disponible para el detalle $iddet"], 422);
+                }
+            }
+
+            // Reemplazar líneas del envío
+            AdmEnvioItem::where('idcotizacion', $id)->where('no_envio', $noEnvio)->delete();
+            foreach ($items as $iddet => $it) {
+                AdmEnvioItem::create([
+                    'idcotizacion' => $id,
+                    'iddetallecotizacion' => $iddet,
+                    'no_envio' => $noEnvio,
+                    'cantidad' => (float)$it['cantidad'],
+                ]);
+            }
+
+            // Actualizar dirección
+            AdmHistorialEnvioCotizacion::where('idcotizacion', $id)->where('no_envio', $noEnvio)
+                ->update(['direccion_envio' => $request->direccion_envio]);
+
+            return response()->json(['ok' => true, 'message' => 'Envío actualizado.']);
+        });
     }
 }
