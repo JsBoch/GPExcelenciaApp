@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-
+use Illuminate\Support\Facades\Schema;
 class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 {
     protected $filtros;
