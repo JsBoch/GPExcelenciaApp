@@ -19,75 +19,88 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
     }
 
     public function collection()
-    {
-        // Usa SIEMPRE la misma fuente de filtros
-        $filtros = $this->filtros ?? [];
+{
+    // Usa SIEMPRE la misma fuente de filtros
+    $filtros = $this->filtros ?? [];
 
-        $query = DB::table('adm_cotizacion as ac')
-            ->select(
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
-                DB::raw("
+    // Subquery: 1 fila por idcotizacion con la fecha de certificación agregada
+    $facAgg = DB::table('adm_facturacion')
+        ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
+        ->groupBy('idcotizacion');
+
+    // Expresión reutilizable para la fecha de certificación coalescida
+    $fechaCertExpr = DB::raw('DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))');
+
+    $query = DB::table('adm_cotizacion as ac')
+        ->leftJoinSub($facAgg, 'fac', function ($join) {
+            $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
+        })
+        ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+        ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+        ->select(
+            DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
+            // Fecha mostrada
+            DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN COALESCE(ac.fecha_prefacturacion, ac.fecha_cotizacion)
-                    WHEN ac.estado = 6 THEN COALESCE(ac.fecha_certificacion, ac.fecha_cotizacion)
+                    WHEN ac.estado = 6 THEN COALESCE(fac.fecha_certificacion, ac.fecha_certificacion, ac.fecha_cotizacion)
                     ELSE ac.fecha_cotizacion
                 END as fecha_cotizacion
             "),
-                // Días desde prefacturación (NULL si no tiene)
-                DB::raw("
+            // Días desde prefacturación (NULL si no tiene)
+            DB::raw("
                 CASE
                     WHEN ac.fecha_prefacturacion IS NULL THEN NULL
                     ELSE DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion))
                 END AS dias_desde_prefacturacion
             "),
-                'ae.nombre as vendedor',
-                'c.nombre as cliente',
-                'ac.total_general',
+            'ae.nombre as vendedor',
+            'c.nombre as cliente',
+            'ac.total_general',
+        )
+        ->where('ac.estado', '>', 0);
 
-            )
-            ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-            ->where('ac.estado', '>', 0);
+    // Rango de fechas
+    $desde = $filtros['desde'] ?? null;
+    $hasta = $filtros['hasta'] ?? null;
 
-        // Rango de fechas
-        $desde = $filtros['desde'] ?? null;
-        $hasta = $filtros['hasta'] ?? null;
-
-        if ($desde && $hasta) {
-            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
-            } else {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
-            }
+    if ($desde && $hasta) {
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+        } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            // Filtra por la fecha coalescida (adm_facturacion o histórica en ac)
+            $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
+        } else {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
         }
-
-        // Vendedor
-        if (!empty($filtros['vendedor_id'])) {
-            $query->where('ae.id_empleado', $filtros['vendedor_id']);
-        }
-
-        // Estado
-        if (!empty($filtros['estado'])) {
-            $query->where('ac.estado', (int)$filtros['estado']);
-        }
-
-        // Búsqueda
-        if (!empty($filtros['search'])) {
-            $search = $filtros['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('ac.nocotizacion', 'like', "%{$search}%")
-                    ->orWhere('c.nombre', 'like', "%{$search}%");
-            });
-        }
-
-        // Orden (por la misma columna "fecha_cotizacion" que expones)
-        $query->orderBy('fecha_cotizacion', 'asc');
-
-        // ⬅️ Imprescindible para FromCollection
-        return $query->get();
     }
+
+    // Vendedor
+    if (!empty($filtros['vendedor_id'])) {
+        $query->where('ae.id_empleado', $filtros['vendedor_id']);
+    }
+
+    // Estado
+    if (!empty($filtros['estado'])) {
+        $query->where('ac.estado', (int)$filtros['estado']);
+    }
+
+    // Búsqueda
+    if (!empty($filtros['search'])) {
+        $search = $filtros['search'];
+        $query->where(function ($q) use ($search) {
+            $q->where('ac.nocotizacion', 'like', "%{$search}%")
+              ->orWhere('c.nombre', 'like', "%{$search}%");
+        });
+    }
+
+    // Orden (por la misma columna "fecha_cotizacion" que expones)
+    $query->orderBy('fecha_cotizacion', 'asc');
+
+    // ⬅️ Imprescindible para FromCollection
+    return $query->get();
+}
+
 
 
     public function headings(): array
