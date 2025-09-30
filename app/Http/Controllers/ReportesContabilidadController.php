@@ -9,6 +9,7 @@ use App\Exports\CotizacionesContabilidadExport;
 use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class ReportesContabilidadController extends Controller
 {
@@ -83,71 +84,76 @@ class ReportesContabilidadController extends Controller
     }
 
     private function construirConsultaCotizaciones(array $filtros)
-    {
-        $query = DB::table('adm_cotizacion as ac')
-            ->select(
-                'ac.idcotizacion',
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+{
+    // Expresión reutilizable para la fecha de certificación (nueva o histórica)
+    $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
 
-                // La fecha que se mostrará en la columna "Fecha" (como ya la tenías)
-                DB::raw("
+    $query = DB::table('adm_cotizacion as ac')
+        ->leftJoin('adm_facturacion as fac', 'fac.idcotizacion', '=', 'ac.idcotizacion') // ⬅️ NUEVO
+        ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+        ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+        ->select(
+            'ac.idcotizacion',
+            DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+
+            // ⬇️ Usa prefacturación, certificación (coalesce) o fecha_cotizacion
+            DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
-                    WHEN ac.estado = 6 THEN DATE(ac.fecha_certificacion)
+                    WHEN ac.estado = 6 THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
             "),
 
-                'ae.nombre AS vendedor',
-                'c.nombre AS cliente',
-                'ac.total_general',
-                'ac.estado',
+            'ae.nombre AS vendedor',
+            'c.nombre AS cliente',
+            'ac.total_general',
+            'ac.estado',
 
-                // ✅ DÍAS DESDE PRE-FACTURACIÓN: solo si existe la fecha; si no, 0.
-                DB::raw("
+            // Días desde prefacturación (igual que tenías)
+            DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
                     0
                 ) AS dias_desde_prefacturacion
             ")
-            )
-            ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-            ->where('ac.estado', '>', 0);
+        )
+        ->where('ac.estado', '>', 0);
 
-        // Filtro de rango por la columna adecuada (igual que lo tenías)
-        $desde = $filtros['desde'] ?? null;
-        $hasta = $filtros['hasta'] ?? null;
+    // Filtros
+    $desde = $filtros['desde'] ?? null;
+    $hasta = $filtros['hasta'] ?? null;
 
-        if ($desde && $hasta) {
-            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_certificacion)'), [$desde, $hasta]);
-            } else {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
-            }
+    if ($desde && $hasta) {
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+        } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            // ⬇️ Filtra por la coalescida (nueva en fac + histórica en ac)
+            $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
+        } else {
+            $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
         }
-
-        if (!empty($filtros['vendedor_id'])) {
-            $query->where('ae.id_empleado', $filtros['vendedor_id']);
-        }
-
-        if (!empty($filtros['estado'])) {
-            $query->where('ac.estado', (int)$filtros['estado']);
-        }
-
-        if (!empty($filtros['search'])) {
-            $query->where(function ($q) use ($filtros) {
-                $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
-                    ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
-            });
-        }
-
-        $query->orderBy('fecha_cotizacion', 'asc');
-
-        return $query;
     }
+
+    if (!empty($filtros['vendedor_id'])) {
+        $query->where('ae.id_empleado', $filtros['vendedor_id']);
+    }
+
+    if (!empty($filtros['estado'])) {
+        $query->where('ac.estado', (int)$filtros['estado']);
+    }
+
+    if (!empty($filtros['search'])) {
+        $query->where(function ($q) use ($filtros) {
+            $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+              ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+        });
+    }
+
+    $query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
+
+    return $query;
+}
 
 
 
@@ -479,7 +485,6 @@ class ReportesContabilidadController extends Controller
         $rows = $this->buildResumenQuery($start, $end)->get();
         $grouped = $this->groupRows($rows);
 
-
         return response()->json([
             'rango' => ['inicio' => $start, 'fin' => $end],
             'clientes' => array_values($grouped['clientes']),
@@ -583,6 +588,8 @@ class ReportesContabilidadController extends Controller
             ->orderBy('cl.codigo')
             ->orderBy('rec.fecha_recibo')
             ->orderBy('rec.idrecibo');
+
+            //log::info('Resumen Facturas Pagadas Query:', ['start' => $start, 'end' => $end, 'query' => $query->toSql(), 'bindings' => $query->getBindings()]);
 
         return $query;
     }
