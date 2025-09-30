@@ -85,18 +85,28 @@ class ReportesContabilidadController extends Controller
 
     private function construirConsultaCotizaciones(array $filtros)
 {
-    // Expresión reutilizable para la fecha de certificación (nueva o histórica)
+    // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
+    $facAgg = DB::table('adm_facturacion')
+        ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
+        ->when(
+            Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
+            fn ($q) => $q->whereNull('fecha_anulacion')
+        )
+        ->groupBy('idcotizacion');
+
+    // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
     $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
 
     $query = DB::table('adm_cotizacion as ac')
-        ->leftJoin('adm_facturacion as fac', 'fac.idcotizacion', '=', 'ac.idcotizacion') // ⬅️ NUEVO
+        // Evita duplicados: join contra el agregado
+        ->leftJoinSub($facAgg, 'fac', function ($join) {
+            $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
+        })
         ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
         ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
         ->select(
             'ac.idcotizacion',
             DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
-
-            // ⬇️ Usa prefacturación, certificación (coalesce) o fecha_cotizacion
             DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
@@ -104,13 +114,10 @@ class ReportesContabilidadController extends Controller
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
             "),
-
             'ae.nombre AS vendedor',
             'c.nombre AS cliente',
             'ac.total_general',
             'ac.estado',
-
-            // Días desde prefacturación (igual que tenías)
             DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
@@ -118,7 +125,12 @@ class ReportesContabilidadController extends Controller
                 ) AS dias_desde_prefacturacion
             ")
         )
-        ->where('ac.estado', '>', 0);
+        ->where('ac.estado', '>', 0)
+        // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
+        ->when(
+            Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
+            fn ($q) => $q->whereNull('ac.fecha_anulacion')
+        );
 
     // Filtros
     $desde = $filtros['desde'] ?? null;
@@ -128,7 +140,7 @@ class ReportesContabilidadController extends Controller
         if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
             $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
         } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-            // ⬇️ Filtra por la coalescida (nueva en fac + histórica en ac)
+            // Filtra por la fecha coalescida (fac válida o histórica en ac)
             $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
         } else {
             $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
@@ -154,6 +166,7 @@ class ReportesContabilidadController extends Controller
 
     return $query;
 }
+
 
 
 
