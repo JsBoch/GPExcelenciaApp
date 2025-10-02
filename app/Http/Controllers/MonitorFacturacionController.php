@@ -552,12 +552,14 @@ class MonitorFacturacionController extends Controller
         if ($clienteExentoIVA === "S") {
             $Frase2 = $doc->createElement('dte:Frase');
             $Frase2->setAttribute('TipoFrase', '4'); // Exento o no afecto al IVA
-            $Frase2->setAttribute('CodigoEscenario', '2'); // No exportación (u otro si aplica)
+            $Frase2->setAttribute('CodigoEscenario', '11'); // No exportación (u otro si aplica)
             $Frases->appendChild($Frase2);
         }
 
         $Items = $doc->createElement('dte:Items');
         $DatosEmision->appendChild($Items);
+
+        $sumaImpuestos = 0.00; // acumulado de IVA para Totales
 
         foreach ($detalles as $d) {
             $Item = $doc->createElement('dte:Item');
@@ -571,21 +573,25 @@ class MonitorFacturacionController extends Controller
             $Item->appendChild($doc->createElement('dte:Precio', number_format($d->precio, 3, '.', '')));
             $Item->appendChild($doc->createElement('dte:Descuento', number_format($d->descuento, 3, '.', '')));
 
+            // Siempre incluir Impuestos (FCAM lo exige)
             $Impuestos = $doc->createElement('dte:Impuestos');
-            $Impuesto = $doc->createElement('dte:Impuesto');
+            $Impuesto  = $doc->createElement('dte:Impuesto');
             $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
-            $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
 
             if ($clienteExentoIVA === "S") {
-                $Impuesto->appendChild($doc->createElement('dte:MontoGravable', '0.00'));
-                $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', '0.00'));
+                // EXENTO: UG=2, base plena, impuesto 0.00
+                $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '2'));
+                $baseExenta = (float)$d->precio - (float)$d->descuento; // tu SELECT pone descuento=0, igual queda correcto
+                $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($baseExenta, 3, '.', '')));
+                $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format(0, 3, '.', '')));
+                // $sumaImpuestos no cambia
             } else {
+                // GRAVADO: UG=1, tu cálculo actual
+                $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
                 $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 3, '.', '')));
                 $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 3, '.', '')));
+                $sumaImpuestos += (float)$d->monto_impuesto;
             }
-            // $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($d->monto_gravable, 3, '.', '')));
-            // $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($d->monto_impuesto, 3, '.', '')));
-
 
             $Impuestos->appendChild($Impuesto);
             $Item->appendChild($Impuestos);
@@ -596,24 +602,14 @@ class MonitorFacturacionController extends Controller
 
         $Totales = $doc->createElement('dte:Totales');
         $DatosEmision->appendChild($Totales);
+
         $TotalImpuestos = $doc->createElement('dte:TotalImpuestos');
-        $TotalImpuesto = $doc->createElement('dte:TotalImpuesto');
+        $TotalImpuesto  = $doc->createElement('dte:TotalImpuesto');
         $TotalImpuesto->setAttribute('NombreCorto', 'IVA');
-
-        // $sumaImpuestos = array_sum(array_column($detalles, 'monto_impuesto'));        
-        // $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($sumaImpuestos, 2, '.', ''));
-        $TotalImpuesto->setAttribute(
-            'TotalMontoImpuesto',
-            number_format(
-                $clienteExentoIVA === "S" ? 0.00 : array_sum(array_column($detalles, 'monto_impuesto')),
-                2,
-                '.',
-                ''
-            )
-        );
-
+        $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($sumaImpuestos, 2, '.', ''));
         $TotalImpuestos->appendChild($TotalImpuesto);
         $Totales->appendChild($TotalImpuestos);
+
         $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($detalle->gran_total, 2, '.', '')));
 
         // Complemento de Factura Cambiaria
@@ -795,6 +791,8 @@ class MonitorFacturacionController extends Controller
             ], 500);
         }
     }
+
+
 
     public function descargarXML($uuid)
     {
