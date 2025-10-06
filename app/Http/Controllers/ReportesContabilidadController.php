@@ -84,88 +84,88 @@ class ReportesContabilidadController extends Controller
     }
 
     private function construirConsultaCotizaciones(array $filtros)
-{
-    // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
-    $facAgg = DB::table('adm_facturacion')
-        ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
-        ->when(
-            Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
-            fn ($q) => $q->whereNull('fecha_anulacion')
-        )
-        ->groupBy('idcotizacion');
+    {
+        // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
+        $facAgg = DB::table('adm_facturacion')
+            ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
+            ->when(
+                Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
+                fn($q) => $q->whereNull('fecha_anulacion')
+            )
+            ->groupBy('idcotizacion');
 
-    // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
-    $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
+        // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
+        $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
 
-    $query = DB::table('adm_cotizacion as ac')
-        // Evita duplicados: join contra el agregado
-        ->leftJoinSub($facAgg, 'fac', function ($join) {
-            $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
-        })
-        ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
-        ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
-        ->select(
-            'ac.idcotizacion',
-            DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
-            DB::raw("
+        $query = DB::table('adm_cotizacion as ac')
+            // Evita duplicados: join contra el agregado
+            ->leftJoinSub($facAgg, 'fac', function ($join) {
+                $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
+            })
+            ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+            ->select(
+                'ac.idcotizacion',
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+                DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
                     WHEN ac.estado = 6 THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
             "),
-            'ae.nombre AS vendedor',
-            'c.nombre AS cliente',
-            'ac.total_general',
-            'ac.estado',
-            DB::raw("
+                'ae.nombre AS vendedor',
+                'c.nombre AS cliente',
+                'ac.total_general',
+                'ac.estado',
+                DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
                     0
                 ) AS dias_desde_prefacturacion
             ")
-        )
-        ->where('ac.estado', '>', 0)
-        // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
-        ->when(
-            Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
-            fn ($q) => $q->whereNull('ac.fecha_anulacion')
-        );
+            )
+            ->where('ac.estado', '>', 0)
+            // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
+            ->when(
+                Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
+                fn($q) => $q->whereNull('ac.fecha_anulacion')
+            );
 
-    // Filtros
-    $desde = $filtros['desde'] ?? null;
-    $hasta = $filtros['hasta'] ?? null;
+        // Filtros
+        $desde = $filtros['desde'] ?? null;
+        $hasta = $filtros['hasta'] ?? null;
 
-    if ($desde && $hasta) {
-        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-            $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-        } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-            // Filtra por la fecha coalescida (fac válida o histórica en ac)
-            $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
-        } else {
-            $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+        if ($desde && $hasta) {
+            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+                // Filtra por la fecha coalescida (fac válida o histórica en ac)
+                $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
+            } else {
+                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+            }
         }
+
+        if (!empty($filtros['vendedor_id'])) {
+            $query->where('ae.id_empleado', $filtros['vendedor_id']);
+        }
+
+        if (!empty($filtros['estado'])) {
+            $query->where('ac.estado', (int)$filtros['estado']);
+        }
+
+        if (!empty($filtros['search'])) {
+            $query->where(function ($q) use ($filtros) {
+                $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+                    ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+            });
+        }
+
+        $query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
+
+        return $query;
     }
-
-    if (!empty($filtros['vendedor_id'])) {
-        $query->where('ae.id_empleado', $filtros['vendedor_id']);
-    }
-
-    if (!empty($filtros['estado'])) {
-        $query->where('ac.estado', (int)$filtros['estado']);
-    }
-
-    if (!empty($filtros['search'])) {
-        $query->where(function ($q) use ($filtros) {
-            $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
-              ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
-        });
-    }
-
-    $query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
-
-    return $query;
-}
 
 
 
@@ -493,9 +493,10 @@ class ReportesContabilidadController extends Controller
 
         $start = $validated['fecha_inicio'];
         $end = $validated['fecha_fin'];
+        $tipo = $request->input('tipo', 'TODO');
 
 
-        $rows = $this->buildResumenQuery($start, $end)->get();
+        $rows = $this->buildResumenQuery($start, $end, $tipo)->get();
         $grouped = $this->groupRows($rows);
 
         return response()->json([
@@ -518,9 +519,10 @@ class ReportesContabilidadController extends Controller
 
         $start = $request->input('fecha_inicio');
         $end = $request->input('fecha_fin');
+        $tipo = $request->input('tipo', 'TODO');
 
 
-        $rows = $this->buildResumenQuery($start, $end)->get();
+        $rows = $this->buildResumenQuery($start, $end, $tipo)->get();
         $grouped = $this->groupRows($rows);
 
 
@@ -547,7 +549,7 @@ class ReportesContabilidadController extends Controller
      * Query base para el reporte.
      * Une: recibo → cliente → cxc → facturación.
      */
-    private function buildResumenQuery(string $start, string $end)
+    private function buildResumenQuery(string $start, string $end, string $tipo)
     {
         // Detecta la tabla real del detalle (adm_recibo_detalle o adm_detalle_recibo)
         $tableDet = null;
@@ -585,6 +587,9 @@ class ReportesContabilidadController extends Controller
             ->join('adm_cuentas_porcobrar as cxc', 'cxc.idcuentaporcobrar', '=', 'det.idcuentaporcobrar')
             ->leftJoin('adm_facturacion as fac', 'fac.idfactura', '=', 'cxc.idfactura')
             ->whereBetween('rec.fecha_recibo', [$start, $end])
+            ->when($tipo && $tipo !== 'TODO', function ($q) use ($tipo) {
+                $q->where('rec.tipo', $tipo);
+            })
             ->select([
                 'cl.idcliente',
                 'cl.codigo as cliente_codigo',
@@ -602,7 +607,7 @@ class ReportesContabilidadController extends Controller
             ->orderBy('rec.fecha_recibo')
             ->orderBy('rec.idrecibo');
 
-            //log::info('Resumen Facturas Pagadas Query:', ['start' => $start, 'end' => $end, 'query' => $query->toSql(), 'bindings' => $query->getBindings()]);
+        //log::info('Resumen Facturas Pagadas Query:', ['start' => $start, 'end' => $end, 'query' => $query->toSql(), 'bindings' => $query->getBindings()]);
 
         return $query;
     }
