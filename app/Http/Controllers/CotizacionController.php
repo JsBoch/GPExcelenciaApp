@@ -248,6 +248,11 @@ class CotizacionController extends Controller
         // Puedes exigirla o tratarla como opcional; aquí la tratamos como opcional.
         $idemKey = $request->header('Idempotency-Key') ?? $request->input('idempotency_key');
 
+        Log::info("Cotización store iniciada, idempotency_key = {$idemKey}", [
+            'input' => $request->all(),
+            'files' => array_keys($request->files->all()),
+        ]);
+
         try {
             return DB::transaction(function () use ($request, $idemKey) {
 
@@ -354,6 +359,10 @@ class CotizacionController extends Controller
                 return response()->json($cotizacion, 201);
             });
         } catch (QueryException $e) {
+            Log::error("Error QueryException en CotizacionController@store: " . $e->getMessage(), [
+                'errorInfo' => $e->errorInfo,
+                'idemKey' => $idemKey,
+            ]);
             // Si el índice único de idempotency_key se dispara (1062), regresa la existente
             if (($e->errorInfo[1] ?? null) === 1062 && $idemKey) {
                 if ($existing = AdmCotizacion::where('idempotency_key', $idemKey)->first()) {
@@ -363,6 +372,10 @@ class CotizacionController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
         } catch (\Throwable $e) {
+            Log::error("Error Throwable en CotizacionController@store: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all()  
+            ]);
             DB::rollBack();
             return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
         }
