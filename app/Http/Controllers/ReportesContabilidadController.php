@@ -244,7 +244,7 @@ class ReportesContabilidadController extends Controller
         }
 
         $q->where('cxc.saldo_pendiente', '>', 0);
-        $q->where("cxc.estado", ">", "1"); // Solo CxC activas
+        $q->where("cxc.estado", ">", "0"); // Solo CxC activas
 
         $rows = $q->orderBy('cli.nombre')
             ->orderBy('cxc.fecha_vencimiento')
