@@ -30,6 +30,22 @@ import { v4 as uuidv4 } from "uuid";
 
 DataTable.use(DT);
 
+// Interceptor global de errores Axios
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      alertify.error("Su sesión ha expirado. Por favor, inicie sesión nuevamente.");
+      // Aquí puedes limpiar token y redirigir si lo deseas
+      localStorage.removeItem("token");
+      // Redirigir al login (si usas react-router-dom)
+      window.location.href = "/login"; // o usa navigate("/login") si estás dentro del componente
+    }
+    return Promise.reject(error);
+  }
+);
+
+
 function CotizacionForm() {
     // const fechaActual = new Date().toISOString().split("T")[0];
     //const fechaActual = new Date().toLocaleDateString("en-CA");
@@ -557,6 +573,15 @@ function CotizacionForm() {
                 idemKeyRef.current = null;
                 await generarPDFPorId(id, cotizacion.fecha_cotizacion);
             } else {
+                console.log(
+                    "Enviando cotización con Idempotency-Key:",
+                    headers["Idempotency-Key"]
+                );
+                console.log("FormData entries:");
+                for (let pair of formData.entries()) {
+                    console.log(pair[0], pair[1]);
+                }
+
                 res = await axios.post("/api/cotizaciones", formData, {
                     headers,
                 });
@@ -583,7 +608,27 @@ function CotizacionForm() {
             navigate("/cotizaciones/crear");
         } catch (error) {
             console.error("Error al guardar la cotización:", error);
-            alertify.error("Error al guardar la cotización", error);
+            if (error.response) {
+                console.error(
+                    "Respuesta del servidor:",
+                    error.response.status,
+                    error.response.data
+                );
+                alertify.error(
+                    `Error ${error.response.status}: ${
+                        error.response.data?.message || "Problema en servidor"
+                    }`
+                );
+            } else if (error.request) {
+                console.error(
+                    "La petición fue hecha pero no hay respuesta:",
+                    error.request
+                );
+                alertify.error("No hay respuesta del servidor.");
+            } else {
+                console.error("Error inesperado:", error.message);
+                alertify.error("Error inesperado: " + error.message);
+            }
         } finally {
             setSaving(false);
         }
