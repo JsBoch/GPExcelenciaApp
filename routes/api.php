@@ -242,6 +242,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ▶️ Resumen de Facturas Pagadas
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data', [ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf', [ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
+    
+    Route::get('/reportes-contabilidad/cotizacionesventas', [ReportesContabilidadController::class, 'VentasPorVendedor']);
+    Route::get('/reportes-contabilidad/export/excelventas', [ReportesContabilidadController::class, 'exportVentasVendedorExcel']);
+    Route::get('/reportes-contabilidad/export/pdfventas', [ReportesContabilidadController::class, 'exportVentasVendedorPdf']);    
 });
 
 //CLIENTES CONTACTO CONTROLLER

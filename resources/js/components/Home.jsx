@@ -188,8 +188,11 @@ function Home() {
                     to = `/reportes/contabilidad/facturas-pagadas`;
                     text = 'Resumen de facturas pagadas';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'VentasVendedor Reportes-Contabilidad' && opcion.accion === 'ventasvendedor') {
+                    to = `/reportes/contabilidad/ventas-vendedor`;
+                    text = 'Resumen de ventas por vendedor';
+                    icon = <FiFileText />;
                 }
-
 
                 if (to && text) {
                     submenus.push({ to, text, icon });
