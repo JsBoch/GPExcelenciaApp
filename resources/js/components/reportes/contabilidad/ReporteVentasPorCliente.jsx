@@ -28,6 +28,7 @@ import {
     CartesianGrid,
     Cell,
 } from "recharts";
+import Header from "../../Header";
 
 const ReporteVentasPorCliente = () => {
     const [vendedores, setVendedores] = useState([]);
@@ -168,9 +169,10 @@ const ReporteVentasPorCliente = () => {
 
     return (
         <Box p={2}>
-            <Typography variant="h5" gutterBottom>
+            <Header title="Reporte de Cotizaciones (Prefacturación)" />
+            {/* <Typography variant="h5" gutterBottom>
                 Reporte de Ventas por Cliente
-            </Typography>
+            </Typography> */}
 
             {/* FILTROS */}
             <Box
