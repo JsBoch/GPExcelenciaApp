@@ -675,4 +675,218 @@ class ReportesContabilidadController extends Controller
             'total_general' => $totalGeneral,
         ];
     }
+
+    //REPORTE DE VENTAS POR VENDEDOR
+    /**
+     * Devuelve los datos agregados por vendedor → cliente
+     */
+    public function VentasPorVendedor(Request $request)
+    {
+        $request->validate([
+            'desde' => 'required|date',
+            'hasta' => 'required|date',
+            'vendedor_id' => 'nullable|integer|exists:adm_empleados,id_empleado',
+        ]);
+
+        $desde = $request->input('desde');
+        $hasta = $request->input('hasta');
+        $vendedorId = $request->input('vendedor_id');
+
+        // Consulta agregada
+        $rows = DB::table('adm_cotizacion as ac')
+            ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+            ->join('users as u', 'ac.idusuario', '=', 'u.id')
+            ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
+            ->select(
+                'e.id_empleado as vendedor_id',
+                'e.nombre as vendedor_nombre',
+                'c.idcliente as cliente_id',
+                'c.nit as cliente_codigo',
+                'c.nombre as cliente_nombre',
+                DB::raw('SUM(ac.total_general) as total_ventas')
+            )
+            ->whereIn('ac.estado', [4, 5, 6])
+            ->whereNotNull('ac.fecha_prefacturacion')
+            ->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta])
+            ->when($vendedorId, fn($q) => $q->where('e.id_empleado', $vendedorId))
+            ->groupBy('e.id_empleado', 'e.nombre', 'c.idcliente', 'c.nit', 'c.nombre')
+            ->orderBy('e.nombre')
+            ->get();
+
+        // Reestructura agrupado por vendedor
+        $agrupado = $rows->groupBy('vendedor_id')->map(function ($rowsByVendedor, $vendedorId) {
+            $first = $rowsByVendedor->first();
+            return (object)[
+                'vendedor_id' => $vendedorId,
+                'vendedor_nombre' => $first->vendedor_nombre,
+                'clientes' => $rowsByVendedor->map(fn($r) => (object)[
+                    'cliente_id' => $r->cliente_id,
+                    'codigo' => $r->cliente_codigo,
+                    'nombre' => $r->cliente_nombre,
+                    'total_ventas' => (float)$r->total_ventas,
+                ])->values(),
+                'total_por_vendedor' => $rowsByVendedor->sum(fn($r) => (float)$r->total_ventas),
+            ];
+        })->values();
+
+        $total_general = $rows->sum(fn($r) => (float)$r->total_ventas);
+
+        $encabezado = [
+            'empresa' => 'GP Excelencia',
+            'titulo' => 'REPORTE DE VENTAS POR CLIENTE',
+            'periodo' => sprintf('%s a %s', $desde, $hasta),
+            'fecha_impresion' => Carbon::now()->format('Y-m-d H:i:s'),
+        ];
+
+        return response()->json([
+            'encabezado' => $encabezado,
+            'data' => $agrupado,
+            'total_general' => $total_general,
+        ]);
+    }
+
+    /**
+     * Exportar a Excel
+     */
+    public function exportVentasVendedorExcel(Request $request)
+    {
+        $request->validate([
+            'desde' => 'required|date',
+            'hasta' => 'required|date',
+            'vendedor_id' => 'nullable|integer|exists:adm_empleados,id_empleado',
+        ]);
+
+        return Excel::download(new \App\Exports\VentasPorClienteExport($request->all()), 'ventas_por_cliente.xlsx');
+    }
+
+    /**
+     * Exportar a PDF (generado desde Blade)
+     */
+    public function exportVentasVendedorPdf(Request $request)
+    {
+        $request->validate([
+            'desde' => 'required|date',
+            'hasta' => 'required|date',
+            'vendedor_id' => 'nullable|integer|exists:adm_empleados,id_empleado',
+        ]);
+
+        // Reusar los datos agrupados
+        $resp = $this->VentasPorVendedor($request);
+        $json = $resp->getData();
+
+        // Contar vendedores y clientes
+        $totalVendedores = count($json->data);
+        $totalClientes = collect($json->data)->sum(fn($v) => count($v->clientes));
+
+        // Paleta multicolor
+        $colors = [
+            '#F44336',
+            '#E91E63',
+            '#9C27B0',
+            '#673AB7',
+            '#3F51B5',
+            '#2196F3',
+            '#03A9F4',
+            '#00BCD4',
+            '#009688',
+            '#4CAF50',
+            '#8BC34A',
+            '#CDDC39',
+            '#FFC107',
+            '#FF9800',
+            '#FF5722',
+            '#795548',
+            '#607D8B',
+            '#9E9E9E'
+        ];
+
+        // 🔹 Generar una gráfica por vendedor
+        $graficasPorVendedor = [];
+        foreach ($json->data as $vendedor) {
+            $clientes = collect($vendedor->clientes)
+                ->sortByDesc('total_ventas')
+                ->values();
+
+            $labels = $clientes->pluck('nombre')->values();
+            $data = $clientes->pluck('total_ventas')->values();
+
+            // 🔸 Configuración de la gráfica
+            $chartConfig = [
+                'type' => 'bar',
+                'data' => [
+                    'labels' => $labels,
+                    'datasets' => [[
+                        'label' => 'Total Ventas (Q)',
+                        'data' => $data,
+                        'backgroundColor' => array_slice($colors, 0, count($labels)),
+                    ]],
+                ],
+                'options' => [
+                    'indexAxis' => count($labels) > 10 ? 'y' : 'x',
+                    'plugins' => [
+                        'legend' => ['position' => 'bottom'],
+                        'title' => [
+                            'display' => true,
+                            'text' => "Ventas por Cliente - {$vendedor->vendedor_nombre}",
+                            'font' => ['size' => 16],
+                        ],
+                        // ✅ Mostrar los valores sobre las barras
+                        'datalabels' => [
+                            'anchor' => 'end',
+                            'align' => 'top',
+                            'color' => '#000',
+                            'font' => ['size' => 10],
+                            'formatter' => 'function(value) {
+                            return value.toLocaleString("es-GT", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }',
+                        ],
+                    ],
+                    'responsive' => true,
+                    'maintainAspectRatio' => false,
+                    'scales' => [
+                        'x' => ['title' => ['display' => true, 'text' => 'Clientes']],
+                        'y' => [
+                            'title' => ['display' => true, 'text' => 'Monto (Q)'],
+                            'ticks' => [
+                                'callback' => 'function(value){return value.toLocaleString();}',
+                            ],
+                        ],
+                    ],
+                ],
+                'plugins' => [
+                    // Activa el plugin datalabels para QuickChart
+                    'datalabels' => true
+                ]
+            ];
+
+            $chartUrl = 'https://quickchart.io/chart?width=1100&height=700&devicePixelRatio=2&c='
+                . urlencode(json_encode($chartConfig));
+
+            try {
+                $graficasPorVendedor[$vendedor->vendedor_nombre] = base64_encode(file_get_contents($chartUrl));
+            } catch (\Exception $e) {
+                $graficasPorVendedor[$vendedor->vendedor_nombre] = null;
+            }
+        }
+
+        // Renderizar la vista
+        $html = view('reportes.ventas_por_cliente_pdf', [
+            'encabezado' => (array)$json->encabezado,
+            'agrupado' => $json->data,
+            'total_general' => $json->total_general,
+            'graficasPorVendedor' => $graficasPorVendedor,
+        ])->render();
+
+        // 📄 Orientación automática
+        $orientation = ($totalVendedores > 1 || $totalClientes > 15) ? 'landscape' : 'portrait';
+
+        $pdf = Pdf::loadHTML($html)
+            ->setPaper('letter', $orientation);
+
+        $filename = 'ventas_por_cliente_' . now()->format('Ymd_His') . '.pdf';
+        return $pdf->download($filename);
+    }
 }

@@ -35,6 +35,7 @@ import CarteraClientesContabilidad from './components/reportes/contabilidad/Repo
 import ClienteContactosForm from './components/ClienteContactosForm'; 
 import VentasPrefacturacion from './components/reportes/contabilidad/ReportePrefacturacion'; 
 import ResumenFactuasPagadas from './components/reportes/contabilidad/ResumenFacturasPagadas';
+import ResumenVentasPorVendedor from './components/reportes/contabilidad/ReporteVentasPorCliente';
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -94,6 +95,7 @@ function App() {
                     <Route path="/clientes/datos" element={<ProtectedRoute><ClienteContactosForm /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/prefacturacion" element={<ProtectedRoute><VentasPrefacturacion /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/facturas-pagadas" element={<ProtectedRoute><ResumenFactuasPagadas /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/ventas-vendedor" element={<ProtectedRoute><ResumenVentasPorVendedor /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>
