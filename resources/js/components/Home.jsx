@@ -63,7 +63,8 @@ function Home() {
         const menuStructure = [];
         const opcionesPorTipo = {};
 
-        user.perfiles.forEach((perfil) => {
+        
+        user.perfiles.forEach((perfil) => {           
             perfil.opciones.forEach((opcion) => {
                 const partes = opcion.nombre.split(' ');
                 //console.log('partes', partes);

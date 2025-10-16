@@ -14,7 +14,7 @@ function SlideMenu({ logout, links, ...props }) {
             [index]: !prev[index]
         }));
     };
-
+//test
     return (
         <Menu {...props}>
             <div className="menu-scroll">
