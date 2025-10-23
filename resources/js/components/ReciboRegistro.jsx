@@ -188,48 +188,99 @@ const ReciboRegistro = () => {
         }
     }, [selectedCuentas]);
 
+    // const handleBuscarCuentas = () => {
+    //     const idCliente = clienteSelObj?.idcliente;
+    //     const nombreCliente = clienteSelObj?.nombre ?? "";
+    //     if (!idCliente) {
+    //         alertify.error("Selecciona un cliente de la lista");
+    //         return;
+    //     }
+    //     axios
+    //         .get(`/api/cuentas-por-cobrar/por-cliente?cliente=${idCliente}`, {
+    //             headers: {
+    //                 Authorization: `Bearer ${localStorage.getItem("token")}`,
+    //             },
+    //         })
+    //         .then((res) => {
+    //           //console.log("Cuentas por cobrar:", res.data);
+    //             const data = Array.isArray(res.data) ? res.data : [];
+    //             const cuentasEnriquecidas = data.map((c) => {
+    //                 const noInterno =
+    //                     c.nofactura ??
+    //                     c?.factura?.nofactura ?? // posible alias
+    //                     c?.adm_factura?.nofactura ?? // singular
+    //                     c?.adm_facturas?.nofactura ?? // tabla real
+    //                     c?.adm_facturas?.no_factura ?? // por si viene snake_case
+    //                     "";
+    //                 return {
+    //                     ...c,
+    //                     idcliente: c.idcliente ?? idCliente,
+    //                     cliente_nombre:
+    //                         c.cliente_nombre ?? c.cliente ?? nombreCliente,
+    //                     nofactura: noInterno, 
+    //                     numero: c.numero ?? "",
+    //                 };
+    //             });
+    //             setCuentas(cuentasEnriquecidas);
+    //         })
+    //         .catch((err) => {
+    //             console.error(
+    //                 "❌ Error al cargar cuentas:",
+    //                 err.response?.data || err.message
+    //             );
+    //             alertify.error("No se pudo cargar las cuentas del cliente");
+    //         });
+    // };
     const handleBuscarCuentas = () => {
-        const idCliente = clienteSelObj?.idcliente;
-        const nombreCliente = clienteSelObj?.nombre ?? "";
-        if (!idCliente) {
-            alertify.error("Selecciona un cliente de la lista");
-            return;
-        }
-        axios
-            .get(`/api/cuentas-por-cobrar/por-cliente?cliente=${idCliente}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => {
-              //console.log("Cuentas por cobrar:", res.data);
-                const data = Array.isArray(res.data) ? res.data : [];
-                const cuentasEnriquecidas = data.map((c) => {
-                    const noInterno =
-                        c.nofactura ??
-                        c?.factura?.nofactura ?? // posible alias
-                        c?.adm_factura?.nofactura ?? // singular
-                        c?.adm_facturas?.nofactura ?? // tabla real
-                        c?.adm_facturas?.no_factura ?? // por si viene snake_case
-                        "";
-                    return {
-                        ...c,
-                        idcliente: c.idcliente ?? idCliente,
-                        cliente_nombre:
-                            c.cliente_nombre ?? c.cliente ?? nombreCliente,
-                        nofactura: noInterno, // ⬅️ plano y consistente para la UI
-                    };
-                });
-                setCuentas(cuentasEnriquecidas);
-            })
-            .catch((err) => {
-                console.error(
-                    "❌ Error al cargar cuentas:",
-                    err.response?.data || err.message
-                );
-                alertify.error("No se pudo cargar las cuentas del cliente");
+    const idCliente = clienteSelObj?.idcliente;
+    const nombreCliente = clienteSelObj?.nombre ?? "";
+    if (!idCliente) {
+        alertify.error("Selecciona un cliente de la lista");
+        return;
+    }
+
+    axios
+        .get(`/api/cuentas-por-cobrar/por-cliente?cliente=${idCliente}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        })
+        .then((res) => {
+            //console.log("Cuentas por cobrar:", res.data);
+            const data = Array.isArray(res.data) ? res.data : [];
+            const cuentasEnriquecidas = data.map((c) => {
+                const noInterno =
+                    c.nofactura ??
+                    c?.factura?.nofactura ??
+                    c?.adm_factura?.nofactura ??
+                    c?.adm_facturas?.nofactura ??
+                    c?.adm_facturas?.no_factura ??
+                    "";
+
+                return {
+                    ...c,
+                    idcliente: c.idcliente ?? idCliente,
+                    cliente_nombre:
+                        c.cliente_nombre ?? c.cliente ?? nombreCliente,
+                    nofactura: noInterno,
+                    // 👇 Aseguramos que 'numero' sea una cadena si existe, y no se pierda si es 0
+                    numero:
+                        c.numero !== undefined && c.numero !== null
+                            ? String(c.numero)
+                            : "",
+                };
             });
-    };
+            setCuentas(cuentasEnriquecidas);
+        })
+        .catch((err) => {
+            console.error(
+                "❌ Error al cargar cuentas:",
+                err.response?.data || err.message
+            );
+            alertify.error("No se pudo cargar las cuentas del cliente");
+        });
+};
+
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -362,6 +413,12 @@ const ReciboRegistro = () => {
                     row?.adm_facturas?.nofactura ??
                     row?.adm_facturas?.no_factura ??
                     "",
+            },
+            {
+                id: "numero",
+                header: "Número FEL",
+                size: 120,
+                accessorFn: (row) => row.numero ?? "",
             },
             {
                 accessorKey: "fecha_emision",

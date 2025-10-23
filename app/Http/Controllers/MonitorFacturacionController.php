@@ -23,11 +23,153 @@ use App\Models\AdmFacturacion;
 
 class MonitorFacturacionController extends Controller
 {
+    // public function index(Request $request)
+    // {
+    //     $estado      = $request->query('estado');
+    //     $fechaInicio = $request->query('fechaInicio');
+    //     $fechaFinal  = $request->query('fechaFinal');
+    //     $idvendedor  = $request->query('idvendedor');
+
+    //     $end   = $fechaFinal  ? Carbon::parse($fechaFinal)  : Carbon::today();
+    //     $start = $fechaInicio ? Carbon::parse($fechaInicio) : $end->copy();
+
+    //     $desde = $start->copy()->startOfDay()->toDateTimeString();
+    //     $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
+
+    //     //  Subconsulta: última certificación exitosa por cotización
+    //     $latestSuccessful = DB::table('adm_facturacion')
+    //         ->selectRaw('idcotizacion, MAX(idfactura) as idfactura')
+    //         ->where('resultado', 'S')
+    //         ->where('estado', 1)
+    //         ->groupBy('idcotizacion');
+
+    //     $facturacion = DB::table('adm_facturacion as af')
+    //         ->joinSub($latestSuccessful, 'x', function ($join) {
+    //             $join->on('x.idfactura', '=', 'af.idfactura');
+    //         })
+    //         ->select(
+    //             'af.idcotizacion',
+    //             'af.uuid',
+    //             'af.serie',
+    //             'af.numero',
+    //             'af.nofactura',
+    //             'af.fecha_certificacion',
+    //             'af.errores',
+    //             'af.resultado'
+    //         );
+
+    //     $fechaDinamica = "
+    //     CASE
+    //         WHEN c.estado = 4 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_prefacturacion),0))
+    //         WHEN c.estado = 6 THEN FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(f.fecha_certificacion),0))
+    //         ELSE FROM_UNIXTIME(NULLIF(UNIX_TIMESTAMP(c.fecha_cotizacion),0))
+    //     END
+    // ";
+
+    //     //  👇 Usa Query Builder puro, no el modelo Eloquent
+    //     $query = DB::table('adm_cotizacion as c')
+    //         ->leftJoinSub($facturacion, 'f', function ($join) {
+    //             $join->on('f.idcotizacion', '=', 'c.idcotizacion');
+    //         })
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+    //         ->join('users as u', 'c.idusuario', '=', 'u.id')
+    //         ->join('adm_empleados as e', 'u.id', '=', 'e.iduser') 
+    //         ->select([
+    //             'c.idcotizacion',
+    //             DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
+    //             DB::raw("DATE_FORMAT($fechaDinamica, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
+    //             't.tipo as tipo_pago',
+    //             'e.nombre as vendedor',
+    //             //   👇 Fuerza que venga numérico (sin tocar los decimales reales)                
+    //             DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
+    //             'c.costear',
+    //             'cl.nombre as cliente',
+    //             'ct.nombre as contacto',
+    //             'e.nombre as vendedor',
+    //             'c.direccion_entrega',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.costeo_observaciones',
+    //             'c.idcotizacionoriginal',
+    //             'c.idcliente',
+    //             'c.idcontacto',
+    //             'c.trabajo',
+    //             'c.version',
+    //             'c.idtipopago',
+    //             'c.estado',
+    //             DB::raw("CAST(EXISTS(
+    //             SELECT 1
+    //             FROM adm_comentarios_prefacturacion cp
+    //             WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+    //         ) AS UNSIGNED) as has_comentarios"),
+    //             DB::raw("(SELECT COUNT(*)
+    //             FROM adm_comentarios_prefacturacion cp
+    //             WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+    //         ) as comentarios_count"),
+    //             DB::raw("(SELECT MAX(cp.fecha_registro)
+    //             FROM adm_comentarios_prefacturacion cp
+    //             WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
+    //         ) as last_comentario_at"),
+    //             DB::raw("(SELECT LEFT(cp2.comentario, 100)
+    //             FROM adm_comentarios_prefacturacion cp2
+    //             WHERE cp2.idcotizacion = c.idcotizacion AND cp2.estado = 1
+    //             ORDER BY cp2.fecha_registro DESC, cp2.idcomentarioprefacturacion DESC
+    //             LIMIT 1
+    //         ) as last_comentario_snippet"),
+    //             DB::raw("CASE
+    //             WHEN c.estado = 1 THEN 'REGISTRO'
+    //             WHEN c.estado = 2 THEN 'COSTEO'
+    //             WHEN c.estado = 3 THEN 'COSTEADA'
+    //             WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+    //             WHEN c.estado = 5 THEN 'PARA FACTURAR'
+    //             WHEN c.estado = 6 THEN 'FACTURADA'
+    //             WHEN c.estado = 7 THEN 'ANULADA'
+    //             WHEN c.estado = 8 THEN 'RECHAZADA'
+    //             ELSE 'DESCONOCIDO'
+    //         END as estado_texto"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.nofactura ELSE c.nofactura END as nofactura"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.uuid      ELSE c.uuid      END as uuid"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.serie     ELSE c.serie     END as serie"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.numero    ELSE c.numero    END as numero"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.resultado ELSE c.resultado END as resultado"),
+    //             DB::raw("CASE WHEN c.estado = 6 THEN f.errores   ELSE c.errores   END as errores"),
+    //         ]);
+
+    //     if ($estado !== null && $estado !== '') {
+    //         $query->where('c.estado', (int)$estado);
+    //     } else {
+    //         $query->whereIn('c.estado', [4, 5, 6]);
+    //     }
+
+    //     if (!empty($idvendedor)) {
+    //     $query->where('e.id_empleado', $idvendedor); 
+    // }
+
+    //     $query->whereRaw("($fechaDinamica) IS NOT NULL AND ($fechaDinamica) >= ? AND ($fechaDinamica) < ?", [$desde, $hasta])
+    //         ->orderByRaw("($fechaDinamica) DESC");
+
+    //     // log:info('Consulta MonitorFacturacion: ' . $query->toSql() . ' con params: ' . implode(', ', $query->getBindings()));
+    //     $cotizaciones = $query->get();
+
+    //     foreach ($cotizaciones as $cot) {
+    //         if (is_string($cot->errores) && $this->isJson($cot->errores)) {
+    //             $cot->errores = json_decode($cot->errores, true);
+    //         }
+    //         if (isset($cot->total_general)) {
+    //             $cot->total_general = (float) $cot->total_general; // <- clave
+    //         }
+    //     }
+
+    //     return response()->json($cotizaciones);
+    // }
     public function index(Request $request)
     {
         $estado      = $request->query('estado');
         $fechaInicio = $request->query('fechaInicio');
         $fechaFinal  = $request->query('fechaFinal');
+        $idvendedor  = $request->query('idvendedor');
 
         $end   = $fechaFinal  ? Carbon::parse($fechaFinal)  : Carbon::today();
         $start = $fechaInicio ? Carbon::parse($fechaInicio) : $end->copy();
@@ -35,11 +177,11 @@ class MonitorFacturacionController extends Controller
         $desde = $start->copy()->startOfDay()->toDateTimeString();
         $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
 
-        //  Subconsulta: última certificación exitosa por cotización
+        // 🔹 Subconsulta: última certificación exitosa (para cotizaciones facturadas)
         $latestSuccessful = DB::table('adm_facturacion')
             ->selectRaw('idcotizacion, MAX(idfactura) as idfactura')
             ->where('resultado', 'S')
-            ->where('estado', 1)
+            //->where('estado', 1)
             ->groupBy('idcotizacion');
 
         $facturacion = DB::table('adm_facturacion as af')
@@ -54,7 +196,8 @@ class MonitorFacturacionController extends Controller
                 'af.nofactura',
                 'af.fecha_certificacion',
                 'af.errores',
-                'af.resultado'
+                'af.resultado',
+                'af.estado as estado_factura' // 👈 añadimos el estado de facturación
             );
 
         $fechaDinamica = "
@@ -65,7 +208,7 @@ class MonitorFacturacionController extends Controller
         END
     ";
 
-        //  👇 Usa Query Builder puro, no el modelo Eloquent
+        // 🔹 Consulta principal
         $query = DB::table('adm_cotizacion as c')
             ->leftJoinSub($facturacion, 'f', function ($join) {
                 $join->on('f.idcotizacion', '=', 'c.idcotizacion');
@@ -73,13 +216,14 @@ class MonitorFacturacionController extends Controller
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->join('users as u', 'c.idusuario', '=', 'u.id')
+            ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
             ->select([
                 'c.idcotizacion',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 DB::raw("DATE_FORMAT($fechaDinamica, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
-
-                //   👇 Fuerza que venga numérico (sin tocar los decimales reales)                
+                'e.nombre as vendedor',
                 DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
                 'c.costear',
                 'cl.nombre as cliente',
@@ -94,55 +238,62 @@ class MonitorFacturacionController extends Controller
                 'c.trabajo',
                 'c.version',
                 'c.idtipopago',
-                'c.estado',
-                DB::raw("CAST(EXISTS(
-                SELECT 1
-                FROM adm_comentarios_prefacturacion cp
-                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-            ) AS UNSIGNED) as has_comentarios"),
-                DB::raw("(SELECT COUNT(*)
-                FROM adm_comentarios_prefacturacion cp
-                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-            ) as comentarios_count"),
-                DB::raw("(SELECT MAX(cp.fecha_registro)
-                FROM adm_comentarios_prefacturacion cp
-                WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-            ) as last_comentario_at"),
-                DB::raw("(SELECT LEFT(cp2.comentario, 100)
-                FROM adm_comentarios_prefacturacion cp2
-                WHERE cp2.idcotizacion = c.idcotizacion AND cp2.estado = 1
-                ORDER BY cp2.fecha_registro DESC, cp2.idcomentarioprefacturacion DESC
-                LIMIT 1
-            ) as last_comentario_snippet"),
-                DB::raw("CASE
-                WHEN c.estado = 1 THEN 'REGISTRO'
-                WHEN c.estado = 2 THEN 'COSTEO'
-                WHEN c.estado = 3 THEN 'COSTEADA'
-                WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-                WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                WHEN c.estado = 6 THEN 'FACTURADA'
-                WHEN c.estado = 7 THEN 'ANULADA'
-                WHEN c.estado = 8 THEN 'RECHAZADA'
-                ELSE 'DESCONOCIDO'
-            END as estado_texto"),
+                //'c.estado',
+                DB::raw("
+    CASE
+        WHEN f.estado_factura = 0 THEN 7  -- Si la factura está anulada, devuelve 0
+        ELSE c.estado
+    END as estado
+"),
+                DB::raw("
+    CASE
+        WHEN f.estado_factura = 0 THEN 'ANULADA'
+        WHEN c.estado = 1 THEN 'REGISTRO'
+        WHEN c.estado = 2 THEN 'COSTEO'
+        WHEN c.estado = 3 THEN 'COSTEADA'
+        WHEN c.estado = 4 THEN 'PRE-FACTURACION'
+        WHEN c.estado = 5 THEN 'PARA FACTURAR'
+        WHEN c.estado = 6 THEN 'FACTURADA'
+        WHEN c.estado = 7 THEN 'ANULADA'
+        WHEN c.estado = 8 THEN 'RECHAZADA'
+        ELSE 'DESCONOCIDO'
+    END as estado_texto
+"),
+
                 DB::raw("CASE WHEN c.estado = 6 THEN f.nofactura ELSE c.nofactura END as nofactura"),
                 DB::raw("CASE WHEN c.estado = 6 THEN f.uuid      ELSE c.uuid      END as uuid"),
                 DB::raw("CASE WHEN c.estado = 6 THEN f.serie     ELSE c.serie     END as serie"),
                 DB::raw("CASE WHEN c.estado = 6 THEN f.numero    ELSE c.numero    END as numero"),
                 DB::raw("CASE WHEN c.estado = 6 THEN f.resultado ELSE c.resultado END as resultado"),
                 DB::raw("CASE WHEN c.estado = 6 THEN f.errores   ELSE c.errores   END as errores"),
+                DB::raw("f.estado_factura"), // 👈 agregado para detectar anuladas
             ]);
 
+        // 🔹 Filtro por estado
         if ($estado !== null && $estado !== '') {
-            $query->where('c.estado', (int)$estado);
+            $estadoInt = (int) $estado;
+            //Log::info('Filtro estado recibido: ' . $estadoInt);
+            if ($estadoInt === 0) {
+                // 👇 Estado ANULADO: buscar en adm_facturacion.estado = 0
+                $query->where('f.estado_factura', 0);
+            } else {
+                // 👇 Para los demás estados: buscar en cotización
+                $query->where('c.estado', $estadoInt);
+            }
         } else {
+            // Si no se especifica, mostrar los estados normales
             $query->whereIn('c.estado', [4, 5, 6]);
         }
 
+        // 🔹 Filtro por vendedor
+        if (!empty($idvendedor)) {
+            $query->where('e.id_empleado', $idvendedor);
+        }
+
+        // 🔹 Filtro por fecha dinámica
         $query->whereRaw("($fechaDinamica) IS NOT NULL AND ($fechaDinamica) >= ? AND ($fechaDinamica) < ?", [$desde, $hasta])
             ->orderByRaw("($fechaDinamica) DESC");
 
-        // log:info('Consulta MonitorFacturacion: ' . $query->toSql() . ' con params: ' . implode(', ', $query->getBindings()));
         $cotizaciones = $query->get();
 
         foreach ($cotizaciones as $cot) {
@@ -150,7 +301,7 @@ class MonitorFacturacionController extends Controller
                 $cot->errores = json_decode($cot->errores, true);
             }
             if (isset($cot->total_general)) {
-                $cot->total_general = (float) $cot->total_general; // <- clave
+                $cot->total_general = (float) $cot->total_general;
             }
         }
 
@@ -171,40 +322,79 @@ class MonitorFacturacionController extends Controller
     private function facturaVigente(int $idcotizacion): ?AdmFacturacion
     {
         return AdmFacturacion::where('idcotizacion', $idcotizacion)
-            ->where('estado', 1)          // vigente
+             ->whereIn('estado', [0, 1])           // vigente
             ->where('resultado', 'S')     // certificada OK
             ->latest('idfactura')
             ->first();
     }
 
     /** Arma el objeto "cabecera" que tu vista pdf.factura espera, SIN cambiar la vista */
+    // private function cabeceraParaVista(AdmFacturacion $f, AdmCotizacion $c): \stdClass
+    // {
+    //     $obj = new \stdClass();
+    //     $obj->idcotizacion        = $c->idcotizacion;
+    //     $obj->serie               = $f->serie;
+    //     $obj->numero              = $f->numero;
+    //     $obj->numero_autorizacion = $f->uuid; // antes venía de c.uuid
+    //     $obj->fecha_emision       = Carbon::parse($f->fecha_certificacion)->toDateString();
+    //     $obj->total               = $c->total_general;
+
+    //     // Receptor: usar SIEMPRE lo fotografiado en adm_facturacion
+    //     $obj->nit        = $f->numero_crtf;
+    //     $obj->nombre     = $f->nombre_crtf;
+    //     $obj->direccion  = $f->direccion_crtf;
+
+    //     // Correlativos que tu vista usa tal cual
+    //     $obj->nofactura    = $f->nofactura;       // interno (ya se genera en certif.)
+    //     $obj->nocotizacion = $c->nocotizacion;
+    //     $obj->estado       = $c->estado ?? 6;
+
+    //     // Número interno con el mismo formato de siempre
+    //     $facturaStr    = $this->pad((int) ($f->nofactura ?? 0), 6);
+    //     $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
+    //     $obj->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
+
+    //     return $obj;
+    // }
     private function cabeceraParaVista(AdmFacturacion $f, AdmCotizacion $c): \stdClass
     {
         $obj = new \stdClass();
+
+        // 🔹 Identificadores y datos base
         $obj->idcotizacion        = $c->idcotizacion;
         $obj->serie               = $f->serie;
         $obj->numero              = $f->numero;
-        $obj->numero_autorizacion = $f->uuid; // antes venía de c.uuid
-        $obj->fecha_emision       = Carbon::parse($f->fecha_certificacion)->toDateString();
+        $obj->numero_autorizacion = $f->uuid; // Antes venía de c.uuid
+        $obj->fecha_emision       = $f->fecha_certificacion
+            ? Carbon::parse($f->fecha_certificacion)->toDateString()
+            : Carbon::now()->toDateString();
         $obj->total               = $c->total_general;
 
-        // Receptor: usar SIEMPRE lo fotografiado en adm_facturacion
+        // 🔹 Receptor: usar SIEMPRE lo fotografiado en adm_facturacion
         $obj->nit        = $f->numero_crtf;
         $obj->nombre     = $f->nombre_crtf;
         $obj->direccion  = $f->direccion_crtf;
 
-        // Correlativos que tu vista usa tal cual
+        // 🔹 Correlativos que tu vista usa tal cual
         $obj->nofactura    = $f->nofactura;       // interno (ya se genera en certif.)
         $obj->nocotizacion = $c->nocotizacion;
-        $obj->estado       = $c->estado ?? 6;
 
-        // Número interno con el mismo formato de siempre
+        // 🔹 Estado: si la factura está anulada, reemplaza el estado de la cotización
+        if (isset($f->estado) && (int) $f->estado === 0) {
+            $obj->estado = 0; // Factura ANULADA
+        } else {
+            // Mantiene el estado de la cotización (por ejemplo, 6 = facturada)
+            $obj->estado = $c->estado ?? 6;
+        }
+
+        // 🔹 Número interno con el mismo formato de siempre
         $facturaStr    = $this->pad((int) ($f->nofactura ?? 0), 6);
         $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
         $obj->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
 
         return $obj;
     }
+
 
     public function generarPdf($id)
     {
@@ -805,37 +995,97 @@ class MonitorFacturacionController extends Controller
         //     ->header('Content-Disposition', 'attachment; filename="FEL_' . $uuid . '.xml"');
     }
 
-    public function generarImpresionFactura($id)
-    {
-        // $id es idcotizacion (ruta actual)
+    // public function generarImpresionFactura($id)
+    // {
+    //     // $id es idcotizacion (ruta actual)
+    //     $fact = $this->facturaVigente((int)$id);
+    //     if (!$fact) {
+    //         return response()->json(['message' => 'No hay DTE vigente para esta cotización'], 404);
+    //     }
+
+    //     // Trae solo lo necesario de la cotización (total/nocotizacion)
+    //     $cot = AdmCotizacion::select('idcotizacion', 'total_general', 'nocotizacion', 'estado')
+    //         ->findOrFail($id);
+
+    //     // Cabecera "compatible" con tu vista pdf.factura sin modificarla
+    //     $cabecera = $this->cabeceraParaVista($fact, $cot);
+
+    //     // Detalle (igual que antes)
+    //     $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+
+    //     // Total en letras (con tu helper)
+    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cabecera->total);
+
+    //     // ============ PASO 2: Guardar HTML de depuración ============
+    // $html = view('pdf.factura', [
+    //     'cotizacion'     => $cabecera,
+    //     'detalles'       => $detalles,
+    //     'totalEnLetras'  => $totalEnLetras,
+    // ])->render();
+
+    // // Guardar archivo temporalmente en storage/app
+    // $path = storage_path('app/debug_factura.html');
+    // file_put_contents($path, $html);
+
+    // // Registrar en log para confirmar
+    // Log::info("✅ Archivo debug_factura.html generado en: {$path}");
+    // // =============================================================
+
+    //     // Render sin tocar la vista
+    //     $pdf = Pdf::loadView('pdf.factura', [
+    //         'cotizacion'     => $cabecera,
+    //         'totalEnLetras'  => $totalEnLetras,
+    //         'detalles'       => $detalles,
+    //     ])
+    //         ->setPaper('letter', 'portrait');
+
+    //     return $pdf->stream('factura-' . $cabecera->serie . '-' . $cabecera->numero . '.pdf');
+    // }
+
+public function generarImpresionFactura($id)
+{
+    //Log::info("➡️ Entrando a generarImpresionFactura con ID={$id}");
+
+    try {
         $fact = $this->facturaVigente((int)$id);
         if (!$fact) {
+           // Log::warning("❌ No hay DTE vigente para cotización ID={$id}");
             return response()->json(['message' => 'No hay DTE vigente para esta cotización'], 404);
         }
 
-        // Trae solo lo necesario de la cotización (total/nocotizacion)
         $cot = AdmCotizacion::select('idcotizacion', 'total_general', 'nocotizacion', 'estado')
             ->findOrFail($id);
 
-        // Cabecera "compatible" con tu vista pdf.factura sin modificarla
         $cabecera = $this->cabeceraParaVista($fact, $cot);
+        //Log::info("✅ Cabecera generada. Estado={$cabecera->estado}");
 
-        // Detalle (igual que antes)
         $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-
-        // Total en letras (con tu helper)
         $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cabecera->total);
 
-        // Render sin tocar la vista
-        $pdf = Pdf::loadView('pdf.factura', [
+        // ======= Paso 2: Intentar guardar HTML =======
+        $html = view('pdf.factura', [
             'cotizacion'     => $cabecera,
-            'totalEnLetras'  => $totalEnLetras,
             'detalles'       => $detalles,
-        ])
-            ->setPaper('letter', 'portrait');
+            'totalEnLetras'  => $totalEnLetras,
+        ])->render();
 
+        $path = storage_path('app/debug_factura.html');
+        file_put_contents($path, $html);
+        //Log::info("📝 HTML guardado en {$path}");
+        // ============================================
+
+        $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
+       // Log::info("📄 PDF renderizado correctamente para {$cabecera->numero_interno}");
         return $pdf->stream('factura-' . $cabecera->serie . '-' . $cabecera->numero . '.pdf');
+
+    } catch (\Throwable $e) {
+        Log::error("⚠️ Error en generarImpresionFactura: " . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json(['message' => 'Error interno al generar PDF.'], 500);
     }
+}
+
 
     public function facturaData($id)
     {

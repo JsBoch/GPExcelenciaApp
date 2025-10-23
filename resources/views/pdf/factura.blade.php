@@ -184,11 +184,17 @@
 
     <!-- *** SIN footer HTML fijo *** -->
 
-
+@php
+    // Evaluar el estado antes de entrar al script
+    $estadoLiteral = isset($cotizacion->estado) ? (int)$cotizacion->estado : -1;
+@endphp
     <script type="text/php">
 if (isset($pdf)) {
-  $mm = 2.83465;
-
+    // ======== Inyección segura de variables desde Blade ========
+    $estadoFactura = (int) {{ (int)($cotizacion->estado ?? -1) }};
+    $__esAnulada = in_array($estadoFactura, [0, 7], true) ? 1 : 0;
+  
+$mm = 2.83465;
   // ==== Parámetros del pie (sin cambios de imágenes) ====
   $bottomMargin_mm = 18;     // igual al @page margin-bottom
   $imgH_mm         = 35;     // alto visible de la onda (footer_gp.jpg)
@@ -237,12 +243,19 @@ if (isset($pdf)) {
   $txtFELFecha  = addslashes($fechaVenc);
   $txtFELMonto  = addslashes($montoAb);
 
-  // === NUEVO: bandera para sello ANULADA ===
-  $__esAnulada = (int) {{ (int) $cotizacion->estado }} === 7 ? 1 : 0;
+  //$pdf->text(50, 50, "Estado actual: ' . (int)$cotizacion->estado . '", $font, 12);
+
+    // === NUEVO: bandera para sello ANULADA ===
+  
+
+// Debug opcional (ver en storage/logs/laravel.log)
+\Log::info('Generando PDF con estado: ' . (int)($cotizacion->estado ?? -1) . ' | esAnulada=' . $__esAnulada);
 
   $pdf->page_script('
   // ====== SELLO ANULADA EN TODAS LAS PÁGINAS ======
-   if ('.$__esAnulada.') {
+   
+    $flagAnulada = ' . (int)$__esAnulada . ';
+    if (isset($flagAnulada) && $flagAnulada === 1) {
   $w = $pdf->get_width();
   $h = $pdf->get_height();
   $font  = $fontMetrics->getFont("DejaVu Sans", "bold");

@@ -91,31 +91,57 @@ class CuentasPorCobrarController extends Controller
     }
 
     // GET /api/cuentas-por-cobrar/por-cliente?cliente=375
+    // public function porCliente(Request $request)
+    // {
+    //     $clienteId = $request->query('cliente');
+    //     abort_if(!$clienteId, 422, 'Falta el parámetro cliente');
+
+    //     $q = AdmCuentasPorCobrar::query()
+    //         ->leftJoin('adm_facturacion as f', 'f.idfactura', '=', 'adm_cuentas_porcobrar.idfactura')
+    //         ->where('adm_cuentas_porcobrar.idcliente', $clienteId)
+    //         ->where('adm_cuentas_porcobrar.estado', 1)
+    //         ->select([
+    //             'adm_cuentas_porcobrar.idcuentaporcobrar',
+    //             'adm_cuentas_porcobrar.idcotizacion',
+    //             DB::raw('CAST(f.nofactura AS CHAR) AS nofactura'),
+    //             DB::raw('IFNULL(CAST(f.numero AS CHAR), "") AS numero'),
+    //             'adm_cuentas_porcobrar.fecha_emision',
+    //             'adm_cuentas_porcobrar.monto_original',
+    //             'adm_cuentas_porcobrar.saldo_pendiente',
+    //         ])
+    //         ->orderBy('adm_cuentas_porcobrar.fecha_emision', 'desc');
+
+    //     if ($request->boolean('solo_pendientes')) {
+    //         $q->where('adm_cuentas_porcobrar.saldo_pendiente', '>', 0);
+    //     }
+    //     //log::info('Cuentas por cobrar query: ' . $q->toSql() . ' con cliente=' . $clienteId);
+    //     return response()->json($q->get());
+    // }
     public function porCliente(Request $request)
-    {
-        $clienteId = $request->query('cliente');
-        abort_if(!$clienteId, 422, 'Falta el parámetro cliente');
+{
+    $clienteId = $request->query('cliente');
+    abort_if(!$clienteId, 422, 'Falta el parámetro cliente');
 
-        $q = AdmCuentasPorCobrar::query()
-            ->leftJoin('adm_facturacion as f', 'f.idfactura', '=', 'adm_cuentas_porcobrar.idfactura')
-            ->where('adm_cuentas_porcobrar.idcliente', $clienteId)
-            ->where('adm_cuentas_porcobrar.estado', 1)
-            ->select([
-                'adm_cuentas_porcobrar.idcuentaporcobrar',
-                'adm_cuentas_porcobrar.idcotizacion',
-                DB::raw('CAST(f.nofactura AS CHAR) AS nofactura'),
-                'adm_cuentas_porcobrar.fecha_emision',
-                'adm_cuentas_porcobrar.monto_original',
-                'adm_cuentas_porcobrar.saldo_pendiente',
-            ])
-            ->orderBy('adm_cuentas_porcobrar.fecha_emision', 'desc');
+    $q = AdmCuentasPorCobrar::query()
+        ->leftJoin('adm_facturacion as f', 'f.idfactura', '=', 'adm_cuentas_porcobrar.idfactura')
+        ->where('adm_cuentas_porcobrar.idcliente', $clienteId)
+        ->where('adm_cuentas_porcobrar.estado', 1)
+        // 👇 excluye los registros con saldo_pendiente <= 0
+        ->where('adm_cuentas_porcobrar.saldo_pendiente', '>', 0)
+        ->select([
+            'adm_cuentas_porcobrar.idcuentaporcobrar',
+            'adm_cuentas_porcobrar.idcotizacion',
+            DB::raw('CAST(f.nofactura AS CHAR) AS nofactura'),
+            DB::raw('IFNULL(CAST(f.numero AS CHAR), "") AS numero'),
+            'adm_cuentas_porcobrar.fecha_emision',
+            'adm_cuentas_porcobrar.monto_original',
+            'adm_cuentas_porcobrar.saldo_pendiente',
+        ])
+        ->orderBy('adm_cuentas_porcobrar.fecha_emision', 'desc');
 
-        if ($request->boolean('solo_pendientes')) {
-            $q->where('adm_cuentas_porcobrar.saldo_pendiente', '>', 0);
-        }
-        //log::info('Cuentas por cobrar query: ' . $q->toSql() . ' con cliente=' . $clienteId);
-        return response()->json($q->get());
-    }
+    return response()->json($q->get());
+}
+
 
     public function update(Request $request, $id)
     {
