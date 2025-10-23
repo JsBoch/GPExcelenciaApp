@@ -87,12 +87,17 @@ class ReportesContabilidadController extends Controller
     {
         // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
         $facAgg = DB::table('adm_facturacion')
-            ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
+            ->select(
+                'idcotizacion',
+                DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'),
+                DB::raw('MAX(nofactura) AS nofactura') // 👈 nuevo
+            )
             ->when(
                 Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
                 fn($q) => $q->whereNull('fecha_anulacion')
             )
             ->groupBy('idcotizacion');
+
 
         // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
         $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
@@ -106,7 +111,7 @@ class ReportesContabilidadController extends Controller
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->select(
                 'ac.idcotizacion',
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),                
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
@@ -114,6 +119,7 @@ class ReportesContabilidadController extends Controller
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
             "),
+            'fac.nofactura AS nofactura',
                 'ae.nombre AS vendedor',
                 'c.nombre AS cliente',
                 'ac.total_general',

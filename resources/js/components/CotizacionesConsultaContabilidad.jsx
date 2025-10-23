@@ -123,16 +123,6 @@ const CotizacionesConsultaContabilidad = () => {
             });
     };
 
-    // const exportPdf = () => {
-    //   axios.get(`${import.meta.env.VITE_API_URL}/reportes-contabilidad/export/pdf`, {
-    //     headers, params: { desde, hasta, vendedor_id: vendedorId, estado, search }, responseType: 'blob'
-    //   }).then(res => {
-    //     const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-    //     const link = document.createElement('a');
-    //     link.href = url; link.setAttribute('download','cotizaciones.pdf');
-    //     document.body.appendChild(link); link.click();
-    //   });
-    // };
     const exportPdf = async () => {
         try {
             const res = await axios.get(
@@ -250,6 +240,7 @@ const CotizacionesConsultaContabilidad = () => {
                         <TableRow>
                             {/* <TableCell>ID</TableCell> */}
                             <TableCell>No. Cotización</TableCell>
+                            <TableCell>No.Interno</TableCell>
                             <TableCell>Fecha</TableCell>
                             <TableCell>Días Vencidos</TableCell>
                             <TableCell>Vendedor</TableCell>
@@ -263,6 +254,7 @@ const CotizacionesConsultaContabilidad = () => {
                             <TableRow key={row.idcotizacion}>
                                 {/* <TableCell>{row.idcotizacion}</TableCell> */}
                                 <TableCell>{row.nocotizacion}</TableCell>
+                                 <TableCell>{row.nofactura || ""}</TableCell>
                                 <TableCell>
                                     {new Date(
                                         row.fecha_cotizacion

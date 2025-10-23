@@ -147,6 +147,15 @@ function MonitorFacturacion() {
         });
     };
 
+    const [columnVisibilityModel, setColumnVisibilityModel] = useState({
+        idcliente: false,
+        idcontacto: false,
+        estado: false,
+    });
+
+    const [vendedores, setVendedores] = useState([]);
+    const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
+
     // ====== Carga fecha del servidor y primer fetch ======
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -167,11 +176,27 @@ function MonitorFacturacion() {
             });
     }, []);
 
+    useEffect(() => {
+        const fetchVendedores = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const { data } = await axios.get("/api/vendedores", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setVendedores([{ id_empleado: "", nombre: "Todos" }, ...data]);
+            } catch (error) {
+                alertify.error("Error al cargar vendedores.");
+            }
+        };
+        fetchVendedores();
+    }, []);
+
     // ====== Fetch cotizaciones ======
     const fetchCotizaciones = async (
         fi = fechaInicio,
         ff = fechaFinal,
-        est = estadoFiltro
+        est = estadoFiltro,
+        idvendedor = vendedorSeleccionado
     ) => {
         if (fetchingRef.current) return;
         fetchingRef.current = true;
@@ -188,12 +213,13 @@ function MonitorFacturacion() {
             const hoy = new Date().toISOString().slice(0, 10);
             const params = { fechaInicio: fi || hoy, fechaFinal: ff || hoy };
             if (est) params.estado = est;
+            if (idvendedor) params.idvendedor = idvendedor;
 
             const { data } = await axios.get("/api/monitorfacturacion", {
                 headers: { Authorization: `Bearer ${token}` },
                 params,
             });
-            console.log("Cotizaciones fetched:", data);
+
             setCotizaciones(data || []);
         } catch (e) {
             alertify.error("Error al obtener las cotizaciones.");
@@ -737,7 +763,7 @@ function MonitorFacturacion() {
         : [];
 
     const muiColumns = [
-        { field: "idcotizacion", headerName: "ID", hide: true },
+        // { field: "idcotizacion", headerName: "ID", hide: true },
         {
             field: "nocotizacion",
             headerName: "No.Cotización",
@@ -815,6 +841,13 @@ function MonitorFacturacion() {
             minWidth: 180,
             flex: 1,
             sortable: false,
+        },
+        {
+            field:"vendedor",
+            headerName:"Vendedor",
+            minWidth:180,
+            flex:1,
+            sortable:false,
         },
         {
             field: "observaciones_cliente",
@@ -1084,7 +1117,7 @@ function MonitorFacturacion() {
                             <option value="4">PRE-FACTURACIÓN</option>
                             <option value="5">PARA FACTURAR</option>
                             <option value="6">FACTURADA</option>
-                            <option value="7">ANULADA</option>
+                            <option value="0">ANULADA</option>
                         </select>
                     </div>
                     <div className="col-md-3">
@@ -1109,6 +1142,27 @@ function MonitorFacturacion() {
                             onChange={(e) => setFechaFinal(e.target.value)}
                         />
                     </div>
+                    <div className="col-md-3">
+                        <label className="form-label fw-bold">
+                            🧑‍💼 Vendedor:
+                        </label>
+                        <select
+                            className="form-select"
+                            value={vendedorSeleccionado}
+                            onChange={(e) =>
+                                setVendedorSeleccionado(e.target.value)
+                            }
+                        >
+                            {vendedores.map((v) => (
+                                <option
+                                    key={v.id_empleado}
+                                    value={v.id_empleado}
+                                >
+                                    {v.nombre}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="col-md-3 d-flex align-items-end">
                         <button
                             className="btn btn-primary w-100"
@@ -1117,7 +1171,8 @@ function MonitorFacturacion() {
                                 fetchCotizaciones(
                                     fechaInicio,
                                     fechaFinal,
-                                    estadoFiltro
+                                    estadoFiltro,
+                                    vendedorSeleccionado
                                 )
                             }
                         >
@@ -1540,6 +1595,10 @@ function MonitorFacturacion() {
                                             "rgba(13,110,253,.12) !important",
                                     },
                                 }}
+                                columnVisibilityModel={columnVisibilityModel}
+                                onColumnVisibilityModelChange={
+                                    setColumnVisibilityModel
+                                }
                             />
                         </Box>
                     )}
