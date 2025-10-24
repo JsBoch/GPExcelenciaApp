@@ -795,9 +795,24 @@ class MonitorFacturacionController extends Controller
                     $cotizacion->update(['estado' => 6]);
 
                     // ⭐ CxC por factura (NO por cotización genérica)
-                    if (!AdmCuentasPorCobrar::where('idfactura', $factura->idfactura)
-                        ->where('estado', 1)
-                        ->exists()) {
+                    // ⭐ CxC por factura (NO por cotización genérica)
+                    $cxcoriginal = AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->first();
+
+                    if ($cxcoriginal && $cxcoriginal->estado == 0) {
+                        // 🟢 Reactivar (ya estaba anulada)
+                        $cxcoriginal->update([
+                            'idfactura'          => $factura->idfactura,
+                            'fecha_emision'      => now(),
+                            'fecha_vencimiento'  => now()->addDays(30),
+                            'monto_original'     => $cotizacion->total_general,
+                            'saldo_pendiente'    => $cotizacion->total_general,
+                            'monto_pagado'       => 0,
+                            'descuento_aplicado' => 0,
+                            'estado'             => 1, // reactivada
+                            'fecha_creacion'     => now(),
+                        ]);
+                    } elseif (!$cxcoriginal) {
+                        // 🆕 Crear una nueva si no existe
                         $correlativoCXC = Correlativo::lockForUpdate()->find('adm_cuentas_porcobrar');
                         if (!$correlativoCXC) {
                             throw new \RuntimeException('No se encontró correlativo para cuentas por cobrar');
@@ -809,7 +824,7 @@ class MonitorFacturacionController extends Controller
                         AdmCuentasPorCobrar::create([
                             'idcuentaporcobrar'  => $nuevoIdCXC,
                             'idcotizacion'       => $cotizacion->idcotizacion,
-                            'idfactura'          => $factura->idfactura,  // ⭐ link directo
+                            'idfactura'          => $factura->idfactura,
                             'idcliente'          => $cotizacion->idcliente,
                             'fecha_emision'      => now(),
                             'fecha_vencimiento'  => now()->addDays(30),
