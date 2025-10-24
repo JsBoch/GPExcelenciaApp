@@ -37,10 +37,9 @@ class MonitorFacturacionController extends Controller
         $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
 
         // ==============================
-        // 🔹 Consulta 1: Cotizaciones (estados 4,5,6)
+        // 🔹 Consulta 1: Cotizaciones (estados 4 y 5)
         // ==============================
         $cotizacionesQuery = DB::table('adm_cotizacion as c')
-            ->leftJoin('adm_facturacion as f', 'f.idcotizacion', '=', 'c.idcotizacion')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
@@ -48,6 +47,7 @@ class MonitorFacturacionController extends Controller
             ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
             ->select([
                 'c.idcotizacion',
+                'c.idcliente',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 DB::raw("DATE_FORMAT(c.fecha_cotizacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
@@ -61,21 +61,54 @@ class MonitorFacturacionController extends Controller
                 CASE 
                     WHEN c.estado = 4 THEN 'PRE-FACTURACION'
                     WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                    WHEN c.estado = 6 THEN 'FACTURADA'
                     ELSE 'DESCONOCIDO'
                 END as estado_texto
             "),
-                'c.nofactura',
-                'c.uuid',
-                'c.serie',
-                'c.numero',
-                'c.resultado',
-                'c.errores',
+                // valores nulos (no aplica factura todavía)
+                DB::raw('NULL as nofactura'),
+                DB::raw('NULL as uuid'),
+                DB::raw('NULL as serie'),
+                DB::raw('NULL as numero'),
+                DB::raw('NULL as resultado'),
+                DB::raw('NULL as errores'),
             ])
-            ->whereIn('c.estado', [4, 5, 6]);
+            ->whereIn('c.estado', [4, 5]);
 
         // ==============================
-        // 🔹 Consulta 2: Facturas anuladas (estado = 0 o 7)
+        // 🔹 Consulta 2: Facturas facturadas (estado = 6 → f.estado=1)
+        // ==============================
+        $facturadasQuery = DB::table('adm_facturacion as f')
+            ->join('adm_cotizacion as c', 'c.idcotizacion', '=', 'f.idcotizacion')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->join('users as u', 'c.idusuario', '=', 'u.id')
+            ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
+            ->select([
+                'c.idcotizacion',
+                'c.idcliente',
+                DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
+                DB::raw("DATE_FORMAT(f.fecha_certificacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
+                't.tipo as tipo_pago',
+                'e.nombre as vendedor',
+                DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
+                'cl.nombre as cliente',
+                'ct.nombre as contacto',
+                'c.observaciones_cliente',
+                DB::raw('6 as estado'),
+                DB::raw("'FACTURADA' as estado_texto"),
+                'f.nofactura',
+                'f.uuid',
+                'f.serie',
+                'f.numero',
+                'f.resultado',
+                'f.errores',
+            ])
+            ->where('f.estado', 1)
+            ->where('c.estado', 6);
+
+        // ==============================
+        // 🔹 Consulta 3: Facturas anuladas (estado = 7 → f.estado=0)
         // ==============================
         $anuladasQuery = DB::table('adm_facturacion as f')
             ->join('adm_cotizacion as c', 'c.idcotizacion', '=', 'f.idcotizacion')
@@ -86,6 +119,7 @@ class MonitorFacturacionController extends Controller
             ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
             ->select([
                 'c.idcotizacion',
+                'c.idcliente',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
                 DB::raw("DATE_FORMAT(f.fecha_anulacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
@@ -108,32 +142,40 @@ class MonitorFacturacionController extends Controller
         // ==============================
         // 🔹 Filtros adicionales
         // ==============================
-        if (!empty($idvendedor)) {
-            $cotizacionesQuery->where('e.id_empleado', $idvendedor);
-            $anuladasQuery->where('e.id_empleado', $idvendedor);
-        }
+        foreach ([$cotizacionesQuery, $facturadasQuery, $anuladasQuery] as $q) {
+            if (!empty($idvendedor)) {
+                $q->where('e.id_empleado', $idvendedor);
+            }
 
-        if ($fechaInicio && $fechaFinal) {
-            $cotizacionesQuery->whereBetween('c.fecha_cotizacion', [$desde, $hasta]);
-            $anuladasQuery->whereBetween('f.fecha_anulacion', [$desde, $hasta]);
+            if ($fechaInicio && $fechaFinal) {
+                if ($q === $cotizacionesQuery) {
+                    $q->whereBetween('c.fecha_cotizacion', [$desde, $hasta]);
+                } elseif ($q === $facturadasQuery) {
+                    $q->whereBetween('f.fecha_certificacion', [$desde, $hasta]);
+                } else {
+                    $q->whereBetween('f.fecha_anulacion', [$desde, $hasta]);
+                }
+            }
         }
 
         // ==============================
         // 🔹 Condición según estado
         // ==============================
-        if ($estado === '7' || $estado === '0') {
-            // Solo anuladas
+        if (in_array($estado, ['4', '5'])) {
+            $query = $cotizacionesQuery->where('c.estado', (int)$estado);
+        } elseif ($estado === '6') {
+            $query = $facturadasQuery;
+        } elseif ($estado === '7' || $estado === '0') {
             $query = $anuladasQuery;
-        } elseif (in_array($estado, ['4', '5', '6'])) {
-            // Solo cotizaciones normales
-            $query = $cotizacionesQuery->where('c.estado', (int) $estado);
         } else {
-            // Todos → unir ambas
-            $query = $cotizacionesQuery->unionAll($anuladasQuery);
+            // Todos → unir las tres
+            $query = $cotizacionesQuery
+                ->unionAll($facturadasQuery)
+                ->unionAll($anuladasQuery);
         }
 
         // ==============================
-        // 🔹 Ejecución y limpieza de datos
+        // 🔹 Ejecución y limpieza
         // ==============================
         $cotizaciones = DB::table(DB::raw("({$query->toSql()}) as sub"))
             ->mergeBindings($query)
@@ -145,12 +187,13 @@ class MonitorFacturacionController extends Controller
                 $cot->errores = json_decode($cot->errores, true);
             }
             if (isset($cot->total_general)) {
-                $cot->total_general = (float) $cot->total_general;
+                $cot->total_general = (float)$cot->total_general;
             }
         }
 
         return response()->json($cotizaciones);
     }
+
 
 
 
@@ -753,7 +796,7 @@ class MonitorFacturacionController extends Controller
 
                     // ⭐ CxC por factura (NO por cotización genérica)
                     if (!AdmCuentasPorCobrar::where('idfactura', $factura->idfactura)
-                         ->where('estado', 1)
+                        ->where('estado', 1)
                         ->exists()) {
                         $correlativoCXC = Correlativo::lockForUpdate()->find('adm_cuentas_porcobrar');
                         if (!$correlativoCXC) {

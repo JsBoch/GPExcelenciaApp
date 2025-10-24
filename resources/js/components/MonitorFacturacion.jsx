@@ -483,6 +483,7 @@ function MonitorFacturacion() {
     const abrirModalCertificar = async () => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro.");
+        console.log("Registro seleccionado:", registroSeleccionado);
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
 
@@ -1033,17 +1034,33 @@ function MonitorFacturacion() {
                 icon: <MoreVert />,
             };
         }
-        switch (Number(registroSeleccionado.estado)) {
+
+        const estado = Number(registroSeleccionado.estado);
+
+        switch (estado) {
             case 4:
+                // 🔹 Estado PRE-FACTURACIÓN → solo PDF COTIZACIÓN
+                return {
+                    label: "PDF Cotización",
+                    onClick: () =>
+                        generarPDF(registroSeleccionado.idcotizacion),
+                    color: "success",
+                    icon: <PictureAsPdf />,
+                };
+
             case 5:
+                // 🔹 Estado PARA FACTURAR → Certificar
                 return {
                     label: "Certificar",
                     onClick: abrirModalCertificar,
                     color: "warning",
                     icon: <AssignmentTurnedIn />,
                 };
+
             case 6:
             case 7:
+            case 0:
+                // 🔹 Estados FACTURADA o ANULADA → PDF Factura
                 return {
                     label: "PDF Factura",
                     onClick: () =>
@@ -1051,7 +1068,9 @@ function MonitorFacturacion() {
                     color: "primary",
                     icon: <ReceiptLong />,
                 };
+
             default:
+                // 🔹 Cualquier otro → PDF Cotización por defecto
                 return {
                     label: "PDF Cotización",
                     onClick: () =>
@@ -1292,9 +1311,7 @@ function MonitorFacturacion() {
                         }}
                         disabled={
                             !registroSeleccionado ||
-                            ![4, 5].includes(
-                                Number(registroSeleccionado.estado)
-                            )
+                            Number(registroSeleccionado.estado) !== 5
                         }
                     >
                         <ListItemIcon>
