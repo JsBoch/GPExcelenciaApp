@@ -249,7 +249,7 @@ $mm = 2.83465;
   
 
 // Debug opcional (ver en storage/logs/laravel.log)
-\Log::info('Generando PDF con estado: ' . (int)($cotizacion->estado ?? -1) . ' | esAnulada=' . $__esAnulada);
+// Log::info('Generando PDF con estado: ' . (int)($cotizacion->estado ?? -1) . ' | esAnulada=' . $__esAnulada);
 
   $pdf->page_script('
   // ====== SELLO ANULADA EN TODAS LAS PÁGINAS ======
