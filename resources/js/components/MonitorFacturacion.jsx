@@ -759,7 +759,7 @@ function MonitorFacturacion() {
     });
 
     const selectionModel = registroSeleccionado
-        ? [registroSeleccionado.idcotizacion]
+        ? [registroSeleccionado.__rowId]
         : [];
 
     const muiColumns = [
@@ -843,11 +843,11 @@ function MonitorFacturacion() {
             sortable: false,
         },
         {
-            field:"vendedor",
-            headerName:"Vendedor",
-            minWidth:180,
-            flex:1,
-            sortable:false,
+            field: "vendedor",
+            headerName: "Vendedor",
+            minWidth: 180,
+            flex: 1,
+            sortable: false,
         },
         {
             field: "observaciones_cliente",
@@ -940,7 +940,20 @@ function MonitorFacturacion() {
                 );
             },
         },
-
+        {
+            field: "origen",
+            headerName: "Origen",
+            minWidth: 120,
+            align: "center",
+            headerAlign: "center",
+            sortable: false,
+            renderCell: ({ row }) =>
+                row.estado === 7 ? (
+                    <Chip size="small" color="error" label="Factura" />
+                ) : (
+                    <Chip size="small" color="primary" label="Cotización" />
+                ),
+        },
         {
             field: "comentarios_count",
             headerName: "💬",
@@ -1558,19 +1571,41 @@ function MonitorFacturacion() {
                                         : []
                                 }
                                 columns={muiColumns}
-                                getRowId={(row) => row.idcotizacion}
+                                getRowId={(row) => {
+                                    // 🔹 Si tiene idcotizacion (cotizaciones normales)
+                                    if (row.idcotizacion)
+                                        return `COT-${row.idcotizacion}`;
+                                    // 🔹 Si es factura anulada (estado 7)
+                                    if (row.estado === 7) {
+                                        // Usa uuid si existe, si no, nofactura como fallback
+                                        return `FAC-${
+                                            row.uuid ||
+                                            row.nofactura ||
+                                            Math.random()
+                                        }`;
+                                    }
+                                    // fallback por seguridad
+                                    return Math.random();
+                                }}
                                 rowSelectionModel={selectionModel}
                                 onRowSelectionModelChange={(newSel) => {
                                     const id = newSel[0];
                                     const row =
                                         cotizaciones.find(
-                                            (c) => c.idcotizacion === id
+                                            (c) =>
+                                                `COT-${c.idcotizacion}` ===
+                                                    id ||
+                                                `FAC-${c.uuid}` === id ||
+                                                `FAC-${c.nofactura}` === id
                                         ) || null;
+                                    if (row) row.__rowId = id;
                                     setRegistroSeleccionado(row);
                                 }}
-                                onRowClick={(params) =>
-                                    setRegistroSeleccionado(params.row)
-                                }
+                                onRowClick={(params) => {
+                                    const row = params.row;
+                                    row.__rowId = params.id; // agrega el ID real de la fila
+                                    setRegistroSeleccionado(row);
+                                }}
                                 getRowClassName={(params) =>
                                     `estado-${params.row.estado || ""}`
                                 }
