@@ -442,14 +442,14 @@ class MonitorFacturacionController extends Controller
             d.cantidad,
             IF(CHAR_LENGTH(d.unidad_medida) > 3, LEFT(d.unidad_medida, 3), d.unidad_medida) AS unidad_medida,
             d.descripcion,
-            ROUND(d.precio_unitario, 3) AS precio_unitario,
-            ROUND(d.precio, 3) AS precio,
-            ROUND(d.descuento, 3) AS descuento,
-            ROUND(d.subtotal) AS monto_gravable,
-            ROUND(d.impuesto_iva, 3) AS monto_impuesto,
-            ROUND(d.total, 3) AS total,
-            ROUND(c.total,3) AS gran_total,
-            ROUND(c.total,3) AS monto_abono,
+            d.precio_unitario,
+            d.precio,
+            d.descuento,
+            d.subtotal AS monto_gravable,
+            d.impuesto_iva AS monto_impuesto,
+            d.total,
+            c.total AS gran_total,
+            c.total AS monto_abono,
             cl.nombre,
             cl.nit,
             cl.cui,
@@ -719,7 +719,7 @@ class MonitorFacturacionController extends Controller
         $Complemento->appendChild($Abonos);
 
         $xmlString = $doc->saveXML();
-
+        // Log::info("XML generado para cotización {$idcotizacion}:\n" . $xmlString);
         // URL del proveedor o SAT a donde enviarás el XML
         $apiUrl = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
 
