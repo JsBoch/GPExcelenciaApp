@@ -60,6 +60,7 @@ function ListaCotizaciones() {
     const [detalleCotizacion, setDetalleCotizacion] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [fechaActual, setFechaActual] = useState("");
 
     const navigate = useNavigate();
     const [pdfData, setPdfData] = useState(null);
@@ -102,7 +103,26 @@ function ListaCotizaciones() {
     const openActions = (e) => setActionsAnchor(e.currentTarget);
     const closeActions = () => setActionsAnchor(null);
 
+    const [esComodin, setEsComodin] = useState(false);
+    const [vendedores, setVendedores] = useState([]);
+    const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
+
     const searchDebounceRef = useRef(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .then((res) => {
+                setFechaActual(res.data.fecha);
+            })
+            .catch(() => {
+                const localDate = new Date().toISOString().split("T")[0];
+                setFechaActual(localDate); // fallback
+            });
+    }, []);
 
     const handleSearchChange = (e) => {
         const value = e.target.value;
@@ -150,6 +170,31 @@ function ListaCotizaciones() {
                 setFechaFin(today);
                 fetchCotizaciones(today, today);
             });
+    }, []);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const headers = { Authorization: `Bearer ${token}` };
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/user`, { headers })
+            .then((res) => {
+                if (res.data.es_comodin === 1) {
+                    setEsComodin(true);
+                    // cargar lista de vendedores
+                    axios
+                        .get(
+                            `${import.meta.env.VITE_API_URL}/lista_vendedores`,
+                            { headers }
+                        )
+                        .then((r) => setVendedores(r.data))
+                        .catch(() =>
+                            alertify.error("Error al cargar vendedores")
+                        );
+                }
+            })
+            .catch(() => alertify.error("Error verificando usuario"));
     }, []);
 
     useEffect(() => {
@@ -211,7 +256,9 @@ function ListaCotizaciones() {
         if (endDate) params.append("fecha_fin", endDate);
         if (estado) params.append("estado", estado);
         if (q) params.append("q", q); // <- 🔎
-
+        if (esComodin && vendedorSeleccionado) {
+            params.append("idvendedor", vendedorSeleccionado);
+        }
         axios
             .get(`/api/cotizaciones?${params}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -381,7 +428,8 @@ function ListaCotizaciones() {
 
     useEffect(() => {
         if (showPdfModal && registroSeleccionado) {
-            setFechaPdf(toDateInput(registroSeleccionado.fecha_cotizacion));
+            //setFechaPdf(toDateInput(registroSeleccionado.fecha_cotizacion));
+            setFechaPdf(fechaActual);
         }
     }, [showPdfModal, registroSeleccionado]);
 
@@ -772,6 +820,41 @@ function ListaCotizaciones() {
                                     ))}
                                 </select>
                             </div>
+                            {esComodin && (
+                                <>
+                                    <div className="col-auto">
+                                        <label
+                                            htmlFor="vendedorFiltro"
+                                            className="form-label"
+                                        >
+                                            Vendedor:
+                                        </label>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <select
+                                            id="vendedorFiltro"
+                                            className="form-select form-select-sm"
+                                            value={vendedorSeleccionado}
+                                            onChange={(e) =>
+                                                setVendedorSeleccionado(
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            <option value="">Todos</option>
+                                            {vendedores.map((v) => (
+                                                <option
+                                                    key={v.id_empleado}
+                                                    value={v.id_empleado}
+                                                >
+                                                    {v.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+
                             <div className="col-auto">
                                 <button
                                     className="btn btn-primary btn-sm"
@@ -1063,6 +1146,12 @@ function ListaCotizaciones() {
                                         <TableCell>Fecha</TableCell>
                                         <TableCell>Forma Pago</TableCell>
                                         <TableCell align="right">
+                                            Total General
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            Descuento
+                                        </TableCell>
+                                        <TableCell align="right">
                                             Total
                                         </TableCell>
                                         <TableCell>Costear</TableCell>
@@ -1141,6 +1230,16 @@ function ListaCotizaciones() {
                                                     <TableCell align="right">
                                                         {fmtMoney(
                                                             row.total_general
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {fmtMoney(
+                                                            row.descuento_monto
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {fmtMoney(
+                                                            row.total
                                                         )}
                                                     </TableCell>
                                                     <TableCell>

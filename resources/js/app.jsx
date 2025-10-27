@@ -36,6 +36,9 @@ import ClienteContactosForm from './components/ClienteContactosForm';
 import VentasPrefacturacion from './components/reportes/contabilidad/ReportePrefacturacion'; 
 import ResumenFactuasPagadas from './components/reportes/contabilidad/ResumenFacturasPagadas';
 import ResumenVentasPorVendedor from './components/reportes/contabilidad/ReporteVentasPorCliente';
+import FacturasAnuladas from './components/reportes/contabilidad/ReporteFacturasAnuladas.jsx';
+import ReporteNotasAjuste from './components/reportes/contabilidad/ReporteNotasAjuste.jsx';
+import ReporteCuentasPorCobrar from './components/reportes/contabilidad/ReporteCuentasPorCobrar.jsx';
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -96,6 +99,9 @@ function App() {
                     <Route path="/reportes/contabilidad/prefacturacion" element={<ProtectedRoute><VentasPrefacturacion /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/facturas-pagadas" element={<ProtectedRoute><ResumenFactuasPagadas /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/ventas-vendedor" element={<ProtectedRoute><ResumenVentasPorVendedor /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/facturas-anuladas" element={<ProtectedRoute><FacturasAnuladas /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/notas-ajuste" element={<ProtectedRoute><ReporteNotasAjuste /></ProtectedRoute>} />
+                    <Route path="/reportes/contabilidad/cuentas-por-cobrar" element={<ProtectedRoute><ReporteCuentasPorCobrar /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

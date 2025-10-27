@@ -193,7 +193,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                   })()
                                 : "N/A"}
                         </Text> */}
-                         <Text>{fechaDMY(cotizacion.fecha_cotizacion)}</Text>
+                        <Text>{fechaDMY(cotizacion.fecha_cotizacion)}</Text>
                     </View>
                 </View>
             </View>
@@ -208,6 +208,20 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     <Text style={styles.label}>
                         <Text style={styles.boldText}>Nit:</Text>{" "}
                         {cotizacion.nit || "N/A"}
+                    </Text>
+                </View>
+                <View style={{ flexDirection: "row", marginBottom: 2 }}>
+                    <Text
+                        style={{
+                            width: "30%",
+                            fontSize: 10,
+                            fontWeight: "bold",
+                        }}
+                    >
+                        Tipo Facturación:
+                    </Text>
+                    <Text style={{ width: "70%", fontSize: 10 }}>
+                        {cotizacion.tipo_facturacion || "BIEN"}
                     </Text>
                 </View>
 
@@ -324,7 +338,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                             ]}
                         >
                             <Text style={styles.tableCell}>
-                                {formatoMoneda.format(detalle.precio)}
+                                {formatoMoneda.format(detalle.precio_unitario)}
                             </Text>
                         </View>
                         <View
@@ -334,101 +348,11 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                             ]}
                         >
                             <Text style={styles.tableCell}>
-                                {formatoMoneda.format(detalle.total)}
+                                {formatoMoneda.format(detalle.precio)}
                             </Text>
                         </View>
                     </View>
                 ))}
-                {/* {cotizacion.detalles.map((detalle, index) => (
-                    <React.Fragment key={index}>
-                        {index % 20 === 0 && (
-                            <View style={styles.tableRow} break>
-                                <View
-                                    style={[styles.tableCol, { width: "8%" }]}
-                                >
-                                    <Text style={styles.tableCell}>CANT.</Text>
-                                </View>
-                                <View
-                                    style={[styles.tableCol, { width: "62%" }]}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.tableCell,
-                                            { textAlign: "center" },
-                                        ]}
-                                    >
-                                        DESCRIPCIÓN
-                                    </Text>
-                                </View>
-                                <View
-                                    style={[styles.tableCol, { width: "15%" }]}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.tableCell,
-                                            { textAlign: "center" },
-                                        ]}
-                                    >
-                                        PRECIO
-                                    </Text>
-                                </View>
-                                <View
-                                    style={[styles.tableCol, { width: "15%" }]}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.tableCell,
-                                            { textAlign: "center" },
-                                        ]}
-                                    >
-                                        TOTAL
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
-                        <View style={styles.tableRowData}>
-                            <View style={[styles.tableCol, { width: "8%" }]}>
-                                <Text style={styles.tableCell}>
-                                    {detalle.cantidad}
-                                </Text>
-                            </View>
-                            <View style={[styles.tableCol, { width: "62%" }]}>
-                                <Text
-                                    style={[
-                                        styles.tableCell,
-                                        {
-                                            textAlign: "left",
-                                            margin: 0,
-                                            paddingRight: 2,
-                                        },
-                                    ]}
-                                >
-                                    {detalle.descripcion}
-                                </Text>
-                            </View>
-                            <View style={[styles.tableCol, { width: "15%" }]}>
-                                <Text
-                                    style={[
-                                        styles.tableCell,
-                                        { textAlign: "right" },
-                                    ]}
-                                >
-                                    {formatoMoneda.format(detalle.precio)}
-                                </Text>
-                            </View>
-                            <View style={[styles.tableCol, { width: "15%" }]}>
-                                <Text
-                                    style={[
-                                        styles.tableCell,
-                                        { textAlign: "right" },
-                                    ]}
-                                >
-                                    {formatoMoneda.format(detalle.total)}
-                                </Text>
-                            </View>
-                        </View>
-                    </React.Fragment>
-                ))} */}
             </View>
 
             {/* Total General */}
@@ -468,11 +392,31 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         </>
                     )}
                 </View>
-                <View>
-                    <Text style={{ fontSize: 14 }}>
-                        Total: {formatoMoneda.format(cotizacion.total_general)}
-                    </Text>
-                </View>
+                {cotizacion.descuento_monto > 0 ? (
+                    <View>
+                        <Text style={{ fontSize: 10 }}>
+                            Subtotal:{" "}
+                            {formatoMoneda.format(cotizacion.total_general)}
+                        </Text>
+                        <Text style={{ fontSize: 10 }}>
+                            Descuento:{" "}
+                            {formatoMoneda.format(cotizacion.descuento_monto)}
+                        </Text>
+                        <Text style={{ fontSize: 14 }}>
+                            Total:{" "}
+                            {formatoMoneda.format(
+                                cotizacion.total_general - cotizacion.descuento_monto
+                            )}
+                        </Text>
+                    </View>
+                ) : (
+                    <View>
+                        <Text style={{ fontSize: 14 }}>
+                            Total:{" "}
+                            {formatoMoneda.format(cotizacion.total_general)}
+                        </Text>
+                    </View>
+                )}
             </View>
             <View style={{ marginTop: 5, marginBottom: 5, width: "100%" }}>
                 <Text>

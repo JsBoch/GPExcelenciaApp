@@ -141,7 +141,7 @@ function CotizacionesPreFacturacion() {
         //     size: 150,
         // },
         {
-            accessorKey: "total_general",
+            accessorKey: "total",
             header: "Total",
             size: 100,
             Cell: ({ cell }) =>

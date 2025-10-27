@@ -41,7 +41,7 @@ function ListaContactoCliente() {
                 },
             })
                 .then(response => {
-                    console.log('Clientes obtenidos:', response.data); // Agrega esta línea para depuración
+                   // console.log('Clientes obtenidos:', response.data); // Agrega esta línea para depuración
                     setClientes(response.data);
                     setLoading(false);
                 })

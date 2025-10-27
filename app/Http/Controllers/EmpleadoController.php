@@ -9,6 +9,7 @@ use App\Models\Puesto;
 use App\Models\DepartamentoPais;
 use App\Models\Correlativo;
 use Illuminate\Support\Facades\DB; // Importa la clase DB para transacciones
+use Illuminate\Support\Facades\Log;
 
 /*
  * Es una clase que representa una solicitud Http
@@ -177,4 +178,25 @@ class EmpleadoController extends Controller
         $departamentosPais = DepartamentoPais::where('estado',1)->get(['iddepartamentopais', 'nombre']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
         return response()->json($departamentosPais);
     }    
+
+    public function listarVendedores()
+    {
+        try {
+            $vendedores = DB::table('adm_empleados as e')
+                ->join('adm_puestos as p', 'p.id_puesto', '=', 'e.id_puesto')
+                ->select('e.iduser as id_empleado', 'e.nombre', 'p.nombre as puesto')
+                ->where('e.estado', 1)
+                ->whereRaw('LOWER(p.nombre) = ?', ['vendedor'])
+                ->orderBy('e.nombre')
+                ->get();
+
+            return response()->json($vendedores, 200);
+        } catch (\Throwable $e) {
+            Log::error('Error al listar vendedores: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error al obtener la lista de vendedores',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

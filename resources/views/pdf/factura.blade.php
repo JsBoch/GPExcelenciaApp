@@ -227,8 +227,8 @@ $mm = 2.83465;
   // Datos (solo valores)
   $fechaVenc   = "{{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}";
   $numAbono    = "1";
-  $montoAb     = "{{ 'Q' . number_format($cotizacion->total ?? $cotizacion->total_general, 2, '.', ',') }}";
-  $totalNum    = "{{ number_format($cotizacion->total_general ?? $cotizacion->total, 2, '.', ',') }}";
+  $montoAb     = "{{ 'Q' . number_format($cotizacion->total ?? $cotizacion->total, 2, '.', ',') }}";
+  $totalNum    = "{{ number_format($cotizacion->total ?? $cotizacion->total, 2, '.', ',') }}";
   $totalLetras = "{{ addslashes($totalEnLetras ?? '') }}";
   $numAuto     = "{{ addslashes($cotizacion->numero_autorizacion ?? '') }}";
   $fecCert     = "{{ addslashes($cotizacion->fecha_emision ?? '') }}";

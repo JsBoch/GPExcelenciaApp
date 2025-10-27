@@ -193,6 +193,18 @@ function Home() {
                     to = `/reportes/contabilidad/ventas-vendedor`;
                     text = 'Resumen de ventas por vendedor';
                     icon = <FiFileText />;
+                }else if (opcion.nombre === 'Anuladas Reportes-Contabilidad' && opcion.accion === 'anuladas') {
+                    to = `/reportes/contabilidad/facturas-anuladas`;
+                    text = 'Facturas Anuladas';
+                    icon = <FiFileText />;
+                }else if (opcion.nombre === 'NotasAjuste Reportes-Contabilidad' && opcion.accion === 'notasajuste') {
+                    to = `/reportes/contabilidad/notas-ajuste`;
+                    text = 'Notas de Ajuste';
+                    icon = <FiFileText />;
+                }else if (opcion.nombre === 'CXC Reportes-Contabilidad' && opcion.accion === 'cxc') {
+                    to = `/reportes/contabilidad/cuentas-por-cobrar`;
+                    text = 'Cuentas por Cobrar';
+                    icon = <FiFileText />;
                 }
 
                 if (to && text) {

@@ -24,104 +24,6 @@ use App\Models\AdmEnvioItem;
 
 class CotizacionController extends Controller
 {
-    // public function index(Request $request)
-    // {
-    //     $user = Auth::user();
-    //     $cotizacionesTodas = $user->cotizaciones_todas;
-
-    //     $query = AdmCotizacion::query()
-    //         ->select(
-    //             'c.idcotizacion',
-    //             DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
-    //             'c.fecha_cotizacion',
-    //             'c.fecha_prefacturacion',
-    //             'c.fecha_certificacion',
-    //             't.tipo as tipo_pago',
-    //             'c.total_general',
-    //             'c.costear',
-    //             'cl.nombre as cliente',
-    //             'cl.nit',
-    //             'ct.nombre as contacto',
-    //             'c.direccion_entrega',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.costeo_observaciones',
-    //             'c.idcotizacionoriginal',
-    //             'c.idcliente',
-    //             'c.idcontacto',
-    //             'c.trabajo',
-    //             'c.version',
-    //             'c.idtipopago',
-    //             'c.estado',
-
-    //             // 👇👇👇 AÑADIR ESTAS 4 COLUMNAS
-    //             DB::raw("(SELECT COUNT(*)
-    //                   FROM adm_comentarios_prefacturacion cp
-    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS comentarios_count"),
-
-    //             DB::raw("CAST(EXISTS(
-    //                   SELECT 1 FROM adm_comentarios_prefacturacion cp
-    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-    //                 ) AS UNSIGNED) AS has_comentarios"),
-
-    //             DB::raw("(SELECT MAX(cp.fecha_registro)
-    //                   FROM adm_comentarios_prefacturacion cp
-    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1) AS last_comentario_at"),
-
-    //             DB::raw("(SELECT LEFT(cp.comentario, 100)
-    //                   FROM adm_comentarios_prefacturacion cp
-    //                   WHERE cp.idcotizacion = c.idcotizacion AND cp.estado = 1
-    //                   ORDER BY cp.fecha_registro DESC
-    //                   LIMIT 1) AS last_comentario_snippet"),
-    //             // 👆👆👆 FIN NUEVO
-
-    //             DB::raw("CASE
-    //             WHEN c.estado = 1 THEN 'REGISTRO'
-    //             WHEN c.estado = 2 THEN 'COSTEO'
-    //             WHEN c.estado = 3 THEN 'COSTEADA'
-    //             WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-    //             WHEN c.estado = 5 THEN 'PARA FACTURAR'
-    //             WHEN c.estado = 6 THEN 'FACTURADA'
-    //             WHEN c.estado = 7 THEN 'ANULADA'
-    //             WHEN c.estado = 8 THEN 'RECHAZADA'
-    //             ELSE 'DESCONOCIDO'
-    //         END as estado_texto")
-    //         )
-    //         ->from('adm_cotizacion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-    //         ->where('c.estado', '!=', 0);
-
-    //     // filtros que ya tenías…
-    //     if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
-    //         $query->whereBetween(DB::raw('DATE(c.fecha_cotizacion)'), [$request->fecha_inicio, $request->fecha_fin]);
-    //     } elseif ($request->filled('fecha_inicio')) {
-    //         $query->whereDate('c.fecha_cotizacion', '>=', $request->fecha_inicio);
-    //     } elseif ($request->filled('fecha_fin')) {
-    //         $query->whereDate('c.fecha_cotizacion', '<=', $request->fecha_fin);
-    //     }
-    //     if ($request->filled('estado') && $request->estado !== 'todos') {
-    //         $query->where('c.estado', (int) $request->estado);
-    //     }
-    //     if ($cotizacionesTodas == 'N') {
-    //         $query->where('c.idusuario', $user->id);
-    //     }
-
-    //     $rows = $query
-    //         ->orderBy('c.fecha_cotizacion', 'asc')
-    //         ->orderBy('c.nocotizacion', 'asc')
-    //         ->get();
-
-    //     // Normaliza tipos para el front
-    //     $rows->transform(function ($r) {
-    //         $r->comentarios_count = (int) ($r->comentarios_count ?? 0);
-    //         $r->has_comentarios   = (bool) $r->has_comentarios;
-    //         return $r;
-    //     });
-
-    //     return response()->json($rows);
-    // }
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -136,6 +38,8 @@ class CotizacionController extends Controller
                 'c.fecha_certificacion',
                 't.tipo as tipo_pago',
                 'c.total_general',
+                'c.descuento_monto',
+                'c.total',
                 'c.costear',
                 'cl.nombre as cliente',
                 'cl.nit',
@@ -193,8 +97,19 @@ class CotizacionController extends Controller
         if ($request->filled('estado') && $request->estado !== 'todos') {
             $query->where('c.estado', (int) $request->estado);
         }
-        if ($cotizacionesTodas == 'N') {
-            $query->where('c.idusuario', $user->id);
+
+
+        // 🔹 Prioridad: si se especifica idvendedor → ignorar cotizaciones_todas
+        if ($request->filled('idvendedor')) {
+            $query->where('c.idusuario', $request->idvendedor);
+            //Log::info('Filtro idvendedor aplicado: ' . $request->idvendedor);
+        } else {
+            if ($cotizacionesTodas == 'N') {
+                $query->where('c.idusuario', $user->id);
+                // Log::info('Filtro cotizaciones_todas=N para usuario: ' . $user->id);
+            } else {
+                //Log::info('Sin filtro por usuario, mostrando todas las cotizaciones');
+            }
         }
 
         // 🔎 BÚSQUEDA GLOBAL EN BD
@@ -248,10 +163,10 @@ class CotizacionController extends Controller
         // Puedes exigirla o tratarla como opcional; aquí la tratamos como opcional.
         $idemKey = $request->header('Idempotency-Key') ?? $request->input('idempotency_key');
 
-        Log::info("Cotización store iniciada, idempotency_key = {$idemKey}", [
-            'input' => $request->all(),
-            'files' => array_keys($request->files->all()),
-        ]);
+        // Log::info("Cotización store iniciada, idempotency_key = {$idemKey}", [
+        //     'input' => $request->all(),
+        //     'files' => array_keys($request->files->all()),
+        // ]);
 
         try {
             return DB::transaction(function () use ($request, $idemKey) {
@@ -288,22 +203,33 @@ class CotizacionController extends Controller
                 DB::table('cor_correlativo')->where('tabla', 'no_cotizacion')->update(['correlativo' => $nocotizacion]);
 
                 // --- Cabecera ---
-                $datosCotizacion = $request->except('detalles', 'idempotency_key'); // no intentes hacer mass-assign de detalles
+                $datosCotizacion = $request->except('detalles', 'idempotency_key');
+                $datosCotizacion['tipo_facturacion'] = $request->input('tipo_facturacion', 'BIEN'); // no intentes hacer mass-assign de detalles
                 $datosCotizacion['idcotizacion']     = $idCotizacion;
                 $datosCotizacion['nocotizacion']     = $nocotizacion;
+                $user = auth()->user();
                 $datosCotizacion['usuario_registro'] = auth()->user()->name ?? 'system';
                 $datosCotizacion['fecha_registro']   = now();
-                $datosCotizacion['idusuario']        = auth()->id();
+                $datosCotizacion['idusuario'] = $user->es_comodin
+                    ? $request->input('idvendedor_asignado', $user->id)
+                    : $user->id;
                 if ($idemKey) {
                     $datosCotizacion['idempotency_key'] = $idemKey;
                 }
+
+                $datosCotizacion['subtotal'] = $request->input('subtotal');
+                $datosCotizacion['descuento_porcentaje'] = $request->input('descuento_porcentaje');
+                $datosCotizacion['descuento_monto'] = $request->input('descuento_monto');
+                $datosCotizacion['impuesto_iva'] = $request->input('impuesto_iva');
+                $datosCotizacion['total'] = $request->input('total');
+
 
                 $cotizacion = AdmCotizacion::create($datosCotizacion);
 
                 // --- Detalles ---
                 $detalles = $request->input('detalles', []);
                 if (!is_array($detalles)) {
-                    Log::error('Los detalles no son un array: ' . print_r($detalles, true));
+                    //Log::error('Los detalles no son un array: ' . print_r($detalles, true));
                     return response()->json(['message' => 'Error: Los detalles deben ser un array'], 422);
                 }
 
@@ -312,7 +238,10 @@ class CotizacionController extends Controller
                 $incDet        = $rowDet->incremento ?: 1;
                 $lastUsedDetId = null;
 
+                //Log::info("Detalles recibidos para la cotización", ['detalles' => $detalles]);
+
                 foreach ($detalles as $index => $detalleData) {
+                    Log::debug("Detalle #{$index}", $detalleData);
                     $imagenRuta = null;
                     if ($request->hasFile("detalles.{$index}.imagen")) {
                         $img    = $request->file("detalles.{$index}.imagen");
@@ -333,8 +262,6 @@ class CotizacionController extends Controller
                         'ancho'               => $detalleData['ancho'] ?? 0,
                         'alto'                => $detalleData['alto'] ?? 0,
                         'profundidad'         => $detalleData['profundidad'] ?? 0,
-                        'precio'              => $detalleData['precio'] ?? 0,
-                        'total'               => $detalleData['total'] ?? 0,
                         'fecha_registro'      => now(),
                         'usuario_registro'    => auth()->user()->name ?? 'system',
                         'costeado'            => 'N',
@@ -343,6 +270,13 @@ class CotizacionController extends Controller
                         'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
                         'm2'                  => $detalleData['m2'] ?? 0,
                         'imagen'              => $imagenRuta,
+                        'precio_unitario'     => $detalleData['precio_unitario'] ?? 0, //ok
+                        'precio'              => $detalleData['precio'] ?? 0, //no
+                        'descuento'           => $detalleData['descuento'] ?? 0, //no
+                        'impuesto_iva'        => $detalleData['impuesto_iva'] ?? 0, //ok pero mal calculado                        
+                        'subtotal'            => $detalleData['subtotal'] ?? 0, //no
+                        'total'               => $detalleData['total'] ?? 0, //si pero esto debería ser precio
+                        'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
                     ]);
 
                     $lastUsedDetId = $nextDetalleId;
@@ -374,7 +308,7 @@ class CotizacionController extends Controller
         } catch (\Throwable $e) {
             Log::error("Error Throwable en CotizacionController@store: " . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'input' => $request->all()  
+                'input' => $request->all()
             ]);
             DB::rollBack();
             return response()->json(['message' => 'Error al crear la cotización: ' . $e->getMessage()], 500);
@@ -388,6 +322,8 @@ class CotizacionController extends Controller
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->leftJoin('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->join('users as u', 'u.id', '=', 'c.idusuario')
+            ->leftJoin('adm_empleados as e', 'e.iduser', '=', 'u.id')
             ->select(
                 'c.idcotizacionoriginal',
                 'c.idcotizacion',
@@ -408,6 +344,17 @@ class CotizacionController extends Controller
                 'c.costear',
                 'c.total_general',
                 'cl.nit',
+                'c.tipo_facturacion',
+                'c.idusuario',
+                'u.name as usuario',
+                'e.iduser as idvendedor',
+                'e.nombre as vendedor',
+                'c.subtotal',
+                'c.descuento_porcentaje',
+                'c.descuento_monto',
+                'c.impuesto_iva',
+                'c.total',
+
             )
             ->first();
 
@@ -440,6 +387,12 @@ class CotizacionController extends Controller
                 'd.incluye_foto',
                 'd.unidad_medida',
                 'd.m2',
+                'd.precio_unitario',
+                'd.descuento',
+                'd.impuesto_iva',
+                'd.subtotal',
+                'd.porcentaje_aplicado',
+
                 DB::raw('d.imagen as imagen_ruta'),
             ]);
 
@@ -469,8 +422,21 @@ class CotizacionController extends Controller
                 'fecha_registro',
                 'idempotency_key',
             ]);
+
+            $datosCabecera['tipo_facturacion'] = $request->input('tipo_facturacion', 'BIEN');
             $datosCabecera['usuario_modificacion'] = auth()->user()->name ?? 'system';
             $datosCabecera['fecha_modificacion']   = now();
+            $datosCabecera['subtotal'] = $request->input('subtotal');
+            $datosCabecera['descuento_porcentaje'] = $request->input('descuento_porcentaje');
+            $datosCabecera['descuento_monto'] = $request->input('descuento_monto');
+            $datosCabecera['impuesto_iva'] = $request->input('impuesto_iva');
+            $datosCabecera['total'] = $request->input('total');
+
+
+            $user = auth()->user();
+            if ($user->es_comodin) {
+                $datosCabecera['idusuario'] = $request->input('idvendedor_asignado', $user->id);
+            }
 
             $cotizacion->update($datosCabecera);
 
@@ -524,7 +490,6 @@ class CotizacionController extends Controller
                     'ancho'               => $detalleData['ancho'] ?? 0,
                     'alto'                => $detalleData['alto'] ?? 0,
                     'profundidad'         => $detalleData['profundidad'] ?? 0,
-                    'precio'              => $detalleData['precio'] ?? 0,
                     'total'               => $detalleData['total'] ?? 0,
                     'fecha_registro'      => now(),
                     'usuario_registro'    => auth()->user()->name ?? 'system',
@@ -534,6 +499,12 @@ class CotizacionController extends Controller
                     'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
                     'm2'                  => $detalleData['m2'] ?? 0,
                     'imagen'              => $imagenRuta,
+                    'precio_unitario'     => $detalleData['precio_unitario'] ?? 0,
+                    'descuento'           => $detalleData['descuento'] ?? 0,
+                    'impuesto_iva'        => $detalleData['impuesto_iva'] ?? 0,
+                    'precio'              => $detalleData['precio'] ?? 0,
+                    'subtotal'           => $detalleData['subtotal'] ?? 0,
+                    'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
                 ]);
 
                 $lastUsedDetId = $nextDetalleId;
@@ -634,6 +605,7 @@ class CotizacionController extends Controller
             ->from('adm_detalle_cotizacion as d')
             ->get();
 
+            log::debug("Detalles obtenidos para la cotización {$id}", ['detalles' => $detalles]);
         return response()->json($detalles);
     }
 
@@ -793,7 +765,12 @@ class CotizacionController extends Controller
                     'c.observaciones_cliente',
                     'c.costeo_observaciones',
                     'c.trabajo',
-                    'c.version'
+                    'c.version',
+                    'c.tipo_facturacion',
+                    'c.descuento_monto',
+                    'c.subtotal',
+                    'c.impuesto_iva',
+                    'c.total'                    
                 )
                 ->from('adm_cotizacion as c')
                 ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -810,15 +787,7 @@ class CotizacionController extends Controller
             $cotizacion->detalles = $detalles;
             $cotizacion->fecha_cotizacion = $fecha_cot;
 
-            $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total_general);
-
-            // AdmHistorialEnvioCotizacion::create([
-            //     'idcotizacion' => $id,
-            //     'fecha_cotizacion' => $fechaOriginal,
-            //     'fecha_envio' => $fechaInput,
-            //     'no_envio'         => null,
-            //     'direccion_envio'  => null,
-            // ]);
+            $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
 
             return response()->json([
                 'cotizacion' => $cotizacion,

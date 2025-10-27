@@ -22,9 +22,7 @@ class AdmDetalleCotizacion extends Model
         'cantidad',
         'ancho',
         'alto',
-        'profundidad',
-        'precio',
-        'total',
+        'profundidad',        
         'fecha_registro',
         'usuario_registro',
         'costeado',
@@ -35,6 +33,13 @@ class AdmDetalleCotizacion extends Model
         'unidad_medida',
         'm2',    
         'imagen',    
+        'precio_unitario',
+        'precio',        
+        'descuento',
+        'impuesto_iva',
+        'subtotal',
+        'total',
+        'porcentaje_aplicado',
     ];
 
     public function cotizacion()
