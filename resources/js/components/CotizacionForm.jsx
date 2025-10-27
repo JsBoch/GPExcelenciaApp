@@ -27,24 +27,30 @@ import CotizacionPDF from "./CotizacionPDF";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 import "../../css/cotizacion-form.css";
 import { v4 as uuidv4 } from "uuid";
+import {
+    aplicarDescuentoAGrilla,
+    calcularCabeceraDesdeTotalConIva,
+    calcularDetalleConIVA,
+} from "../utils/calculosCotizacion.js";
 
 DataTable.use(DT);
 
 // Interceptor global de errores Axios
 axios.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      alertify.error("Su sesión ha expirado. Por favor, inicie sesión nuevamente.");
-      // Aquí puedes limpiar token y redirigir si lo deseas
-      localStorage.removeItem("token");
-      // Redirigir al login (si usas react-router-dom)
-      window.location.href = "/login"; // o usa navigate("/login") si estás dentro del componente
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            alertify.error(
+                "Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+            );
+            // Aquí puedes limpiar token y redirigir si lo deseas
+            localStorage.removeItem("token");
+            // Redirigir al login (si usas react-router-dom)
+            window.location.href = "/login"; // o usa navigate("/login") si estás dentro del componente
+        }
+        return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
-
 
 function CotizacionForm() {
     // const fechaActual = new Date().toISOString().split("T")[0];
@@ -52,6 +58,9 @@ function CotizacionForm() {
     const [fechaActual, setFechaActual] = useState("");
     const { id } = useParams();
     const navigate = useNavigate();
+    const [esComodin, setEsComodin] = useState(false);
+    const [vendedores, setVendedores] = useState([]);
+    const [vendedorAsignado, setVendedorAsignado] = useState(null);
     const [tiposPago, setTiposPago] = useState([]);
     const [unidadesMedida, setUnidadesMedida] = useState([]);
     const [contactos, setContactos] = useState([]);
@@ -73,6 +82,10 @@ function CotizacionForm() {
     const [pdfData, setPdfData] = useState(null); // payload para renderizar el PDF
     const [saving, setSaving] = useState(false);
     const idemKeyRef = useRef(null);
+    const fechaRef = useRef(null);
+    const [inputDescuentoPorcentaje, setInputDescuentoPorcentaje] =
+        useState("");
+
     const ensureIdemKey = () => {
         if (!idemKeyRef.current) {
             // usa crypto.randomUUID() si está disponible en tu runtime
@@ -100,6 +113,31 @@ function CotizacionForm() {
             });
     }, []);
 
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const headers = { Authorization: `Bearer ${token}` };
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/user`, { headers })
+            .then((res) => {
+                if (res.data.es_comodin === 1) {
+                    setEsComodin(true);
+                    // cargar todos los vendedores activos
+                    axios
+                        .get(
+                            `${import.meta.env.VITE_API_URL}/lista_vendedores`,
+                            { headers }
+                        )
+                        .then((r) => setVendedores(r.data))
+                        .catch(() =>
+                            alertify.error("Error cargando vendedores")
+                        );
+                }
+            })
+            .catch(() => alertify.error("Error verificando rol de usuario"));
+    }, []);
+
     //Estado de la cotización principal
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
@@ -119,6 +157,12 @@ function CotizacionForm() {
         idtipopago: "",
         direccion_entrega: "",
         costear: "N",
+        tipo_facturacion: "BIEN",
+        subtotal: 0,
+        descuento_porcentaje: 0,
+        descuento_monto: 0,
+        impuesto_iva: 0,
+        total: 0,
     });
 
     //Estado del detalle de la cotización
@@ -130,21 +174,31 @@ function CotizacionForm() {
         alto: 0,
         m2: 0,
         profundidad: 0,
-        precio: 0,
-        total: 0,
         imagen: null, //nuevo estado para el archivo de imagen
         imagen_preview: null, //para mostrar una vista previa de la imágen
         imagen_ruta: null, //para almacenar la ruta de la imagen
+        precio_unitario: 0,
+        precio: 0,
+        descuento: 0,
+        impuesto_iva: 0,
+        subtotal: 0,
+        total: 0,
+        porcentaje_aplicado: 0,
     });
 
     useEffect(() => {
-        if (!id && fechaActual) {
+        if (fechaActual) {
             setCotizacion((prev) => ({
                 ...prev,
                 fecha_cotizacion: fechaActual,
             }));
         }
-    }, [fechaActual]);
+    }, [fechaActual, id]);
+
+    //sincronizar valor al cargar cotización
+    useEffect(() => {
+        setInputDescuentoPorcentaje(cotizacion.descuento_porcentaje || "");
+    }, [cotizacion.descuento_porcentaje]);
 
     //CAMBIO: Estados para almacenar precios y cantidades del modal
     const [productoPredefinido, setProductoPredefinido] = useState(null);
@@ -205,8 +259,7 @@ function CotizacionForm() {
                                     cliente: data.cliente || "",
                                     idcontacto: data.idcontacto || 0,
                                     contacto: data.contacto || "",
-                                    fecha_cotizacion:
-                                        formattedDate || fechaActual,
+                                    fecha_cotizacion: fechaActual,
                                     trabajo: data.trabajo || "",
                                     observaciones_costeo:
                                         data.observaciones_costeo || "",
@@ -221,7 +274,21 @@ function CotizacionForm() {
                                     direccion_entrega:
                                         data.direccion_entrega || "",
                                     costear: data.costear || "N",
+                                    tipo_facturacion:
+                                        data.tipo_facturacion || "BIEN",
+                                    subtotal: data.subtotal || 0,
+                                    descuento_porcentaje:
+                                        data.descuento_porcentaje || 0,
+                                    descuento_monto: data.descuento_monto || 0,
+                                    impuesto_iva: data.impuesto_iva || 0,
+                                    total: data.total || 0,
                                 });
+
+                                if (data.idvendedor) {
+                                    setVendedorAsignado(data.idvendedor);
+                                    //console.log("[LOAD] Vendedor asignado:", data.idvendedor);
+                                }
+
                                 setNitCliente(data.nit || "");
                                 if (data.idcliente) {
                                     setClienteId(data.idcliente);
@@ -274,14 +341,22 @@ function CotizacionForm() {
 
     //Calcular el total del detalle ---
     useEffect(() => {
-        const cantidadNum = parseFloat(detalle.cantidad) || 0;
-        const precioNum = parseFloat(detalle.precio) || 0;
-        const totalCalculado = (cantidadNum * precioNum).toFixed(2);
-        setDetalle((prevDetalle) => ({
-            ...prevDetalle,
-            total: totalCalculado,
+        const { precio, total, impuesto_iva, subtotal, porcentaje_aplicado } =
+            calcularDetalleConIVA({
+                cantidad: detalle.cantidad,
+                precio_unitario: detalle.precio_unitario,
+                descuento: detalle.descuento,
+            });
+
+        setDetalle((prev) => ({
+            ...prev,
+            precio,
+            total,
+            impuesto_iva,
+            subtotal,
+            porcentaje_aplicado,
         }));
-    }, [detalle.cantidad, detalle.precio]);
+    }, [detalle.cantidad, detalle.precio_unitario, detalle.descuento]);
 
     // --- Calcula los m2 del detalle ---
     useEffect(() => {
@@ -294,13 +369,29 @@ function CotizacionForm() {
         }));
     }, [detalle.ancho, detalle.alto]);
 
+    useEffect(() => {
+        if (detalles.length && cotizacion.descuento_porcentaje > 0) {
+            const nuevosDetalles = aplicarDescuentoAGrilla(
+                detalles,
+                cotizacion.descuento_porcentaje
+            );
+            setDetalles(nuevosDetalles);
+        }
+    }, [cotizacion.descuento_porcentaje]);
+
     //-- función para calcular el total general de la cotización ---
     const calcularTotalGeneral = () => {
-        let total = 0;
-        detalles.forEach((detalle) => {
-            total += parseFloat(detalle.total) || 0;
-        });
-        setCotizacion({ ...cotizacion, total_general: total.toFixed(2) });
+        const totalBruto = detalles.reduce(
+            (acc, item) =>
+                acc +
+                parseFloat(item.precio_unitario || 0) *
+                    parseFloat(item.cantidad || 0),
+            0
+        );
+        setCotizacion((prev) => ({
+            ...prev,
+            total_general: totalBruto.toFixed(2),
+        }));
     };
 
     useEffect(() => {
@@ -327,6 +418,35 @@ function CotizacionForm() {
                 alertify.error("Error al cargar clientes");
             });
     }, []);
+
+    /**
+     * Recalcula la cabecera de la cotización a partir del detalle
+     */
+    useEffect(() => {
+        const totalBruto = detalles.reduce(
+            (acc, item) =>
+                acc +
+                parseFloat(item.precio_unitario || 0) *
+                    parseFloat(item.cantidad || 0),
+            0
+        );
+
+        const porcentaje = parseFloat(cotizacion.descuento_porcentaje) || 0;
+        const monto = parseFloat(cotizacion.descuento_monto) || 0;
+
+        const resumen = calcularCabeceraDesdeTotalConIva(
+            totalBruto,
+            porcentaje,
+            monto
+        );
+
+        setCotizacion((prev) => ({
+            ...prev,
+            ...resumen,
+        }));
+    }, [detalles, cotizacion.descuento_porcentaje, cotizacion.descuento_monto]);
+
+    /*********************************** */
 
     // helper: garantiza un nombre de archivo con extensión
     const ensureNamedFile = (file) => {
@@ -370,9 +490,9 @@ function CotizacionForm() {
         }
 
         alertify.message("Generando PDF…");
-        console.log("[PDF] Solicitando:", `/api/cotizaciones/${idCot}/pdf`, {
-            fecha,
-        });
+        // console.log("[PDF] Solicitando:", `/api/cotizaciones/${idCot}/pdf`, {
+        //     fecha,
+        // });
 
         try {
             const res = await fetch(`/api/cotizaciones/${idCot}/pdf`, {
@@ -396,7 +516,7 @@ function CotizacionForm() {
                 alertify.error(data?.message || "Error generando PDF.");
                 return;
             }
-            console.log("[PDF] OK:", data);
+            //console.log("[PDF] OK:", data);
             setPdfData(data); // 👉 esto abre el overlay
             limpiarCampos();
         } catch (err) {
@@ -420,6 +540,96 @@ function CotizacionForm() {
         );
     };
 
+    /**
+     * Funciones para el calculo de descuento e impuesto
+     */
+
+    const IVA_FACTOR = 1.12; // si el IVA es 12%, multiplico por 1.12
+
+    const calcularCabecera = (totalConIva, descPorcentaje, descMonto) => {
+        let descuentoMontoCalc = descMonto;
+        let descuentoPorcentajeCalc = descPorcentaje;
+
+        if (descPorcentaje > 0) {
+            descuentoMontoCalc = totalConIva * (descPorcentaje / 100);
+        } else if (descMonto > 0) {
+            descuentoPorcentajeCalc = (descMonto / totalConIva) * 100;
+        }
+
+        const totalConDescuento = totalConIva - descuentoMontoCalc;
+
+        const subtotalSinIva = totalConDescuento / IVA_FACTOR;
+        const impuestoIva = totalConDescuento - subtotalSinIva;
+        const totalFinal = totalConDescuento;
+
+        return {
+            descuento_porcentaje: descuentoPorcentajeCalc,
+            descuento_monto: descuentoMontoCalc,
+            subtotal: subtotalSinIva,
+            impuesto_iva: impuestoIva,
+            total: totalFinal,
+        };
+    };
+
+    const handleDescuentoPorcentajeChange = (e) => {
+        const porcentaje = parseFloat(e.target.value) || 0;
+        setInputDescuentoPorcentaje(porcentaje); // actualizar input
+        const totalBruto = parseFloat(cotizacion.total_general) || 0;
+
+        // Calcula cabecera con el porcentaje nuevo
+        const calc = calcularCabecera(totalBruto, porcentaje, 0);
+        const nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
+
+        // 🔥 Aplica los cálculos al estado
+        setDetalles(nuevosDetalles);
+        setCotizacion((prev) => ({
+            ...prev,
+            descuento_porcentaje: calc.descuento_porcentaje,
+            descuento_monto: calc.descuento_monto,
+            subtotal: calc.subtotal,
+            impuesto_iva: calc.impuesto_iva,
+            total: calc.total,
+        }));
+    };
+
+    const handleDescuentoMontoChange = (e) => {
+        const monto = parseFloat(e.target.value) || 0;
+        const totalBruto = detalles.reduce(
+            (acc, item) =>
+                acc +
+                parseFloat(item.precio_unitario || 0) *
+                    parseFloat(item.cantidad || 0),
+            0
+        );
+
+        const calc = calcularCabecera(totalBruto, 0, monto);
+        const porcentaje = parseFloat(calc.descuento_porcentaje) || 0;
+
+        // 🔥 recalcula toda la grilla con el porcentaje equivalente
+        const nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
+
+        setDetalles(nuevosDetalles);
+        setCotizacion((prev) => ({
+            ...prev,
+            descuento_porcentaje: calc.descuento_porcentaje,
+            descuento_monto: calc.descuento_monto,
+            subtotal: calc.subtotal,
+            impuesto_iva: calc.impuesto_iva,
+            total: calc.total,
+        }));
+    };
+
+    const handleEliminarDetalle = (index) => {
+        const nuevosDetalles = detalles.filter((_, i) => i !== index);
+        const resumen = recalcularCabeceraDesdeDetalles(nuevosDetalles);
+
+        setDetalles(nuevosDetalles);
+        setCotizacion((prev) => ({
+            ...prev,
+            ...resumen,
+        }));
+    };
+    /*********************************************************** */
     //Envía los datos al back-end para registrar, en el método store.
     const handleSubmit = async (e) => {
         // Make handleSubmit async
@@ -431,6 +641,14 @@ function CotizacionForm() {
             Authorization: `Bearer ${token}`,
             "Idempotency-Key": ensureIdemKey(),
         };
+
+        // 🟢 Asegurar que la fecha se actualice desde el input
+        const fechaSeleccionada = fechaRef.current?.value || fechaActual;
+        const cotizacionActualizada = {
+            ...cotizacion,
+            fecha_cotizacion: fechaSeleccionada,
+        };
+
         const formData = new FormData();
 
         // Validaciones
@@ -483,7 +701,10 @@ function CotizacionForm() {
         formData.append("idcliente", cotizacion.idcliente);
         formData.append("idcontacto", cotizacion.idcontacto);
         formData.append("idtipopago", cotizacion.idtipopago);
-        formData.append("fecha_cotizacion", cotizacion.fecha_cotizacion);
+        formData.append(
+            "fecha_cotizacion",
+            cotizacionActualizada.fecha_cotizacion
+        );
         formData.append("trabajo", cotizacion.trabajo);
         formData.append(
             "observaciones_costeo",
@@ -508,6 +729,19 @@ function CotizacionForm() {
         );
         formData.append("version", cotizacion.version);
         formData.append("total_general", cotizacion.total_general);
+        formData.append("tipo_facturacion", cotizacion.tipo_facturacion);
+        if (esComodin && vendedorAsignado) {
+            formData.append("idvendedor_asignado", vendedorAsignado);
+        }
+
+        formData.append("subtotal", cotizacion.subtotal);
+        formData.append(
+            "descuento_porcentaje",
+            cotizacion.descuento_porcentaje
+        );
+        formData.append("descuento_monto", cotizacion.descuento_monto);
+        formData.append("impuesto_iva", cotizacion.impuesto_iva);
+        formData.append("total", cotizacion.total);
 
         detalles.forEach((detalle, index) => {
             formData.append(
@@ -529,8 +763,30 @@ function CotizacionForm() {
                 `detalles[${index}][profundidad]`,
                 detalle.profundidad || 0
             );
-            formData.append(`detalles[${index}][precio]`, detalle.precio);
-            formData.append(`detalles[${index}][total]`, detalle.total);
+            formData.append(
+                `detalles[${index}][precio_unitario]`,
+                detalle.precio_unitario || 0
+            );
+            formData.append(`detalles[${index}][precio]`, detalle.precio || 0);
+            formData.append(
+                `detalles[${index}][descuento]`,
+                parseFloat(detalle.descuento) || 0
+            );
+            formData.append(
+                `detalles[${index}][porcentaje_aplicado]`,
+                detalle.porcentaje_aplicado || 0
+            );
+
+            formData.append(
+                `detalles[${index}][impuesto_iva]`,
+                detalle.impuesto_iva
+            );
+            formData.append(
+                `detalles[${index}][subtotal]`,
+                detalle.subtotal || 0
+            );
+
+            formData.append(`detalles[${index}][total]`, detalle.total || 0);
             // --- Manejo de IMAGEN al enviar FormData ---
             if (detalle.imagen) {
                 // Caso 1: Se seleccionó un NUEVO archivo
@@ -550,6 +806,12 @@ function CotizacionForm() {
                 );
                 //console.log(`Frontend: Adjuntando ruta existente para índice ${index}: ${detalle.imagen_ruta}`); // Log para verificar
             }
+
+            // console.log(
+            //     "Detalles preparados para enviar:",
+            //     JSON.stringify(detalles, null, 2)
+            // );
+
             // Caso 3: No hay imagen (ni nueva ni vieja) -> No se adjunta nada relacionado con imagen
 
             // Opcional: Si tus detalles tienen un ID (iddetallecotizacion) al editar, envíalo también
@@ -573,14 +835,14 @@ function CotizacionForm() {
                 idemKeyRef.current = null;
                 await generarPDFPorId(id, cotizacion.fecha_cotizacion);
             } else {
-                console.log(
-                    "Enviando cotización con Idempotency-Key:",
-                    headers["Idempotency-Key"]
-                );
-                console.log("FormData entries:");
-                for (let pair of formData.entries()) {
-                    console.log(pair[0], pair[1]);
-                }
+                // console.log(
+                //     "Enviando cotización con Idempotency-Key:",
+                //     headers["Idempotency-Key"]
+                // );
+                // console.log("FormData entries:");
+                // for (let pair of formData.entries()) {
+                //     console.log(pair[0], pair[1]);
+                // }
 
                 res = await axios.post("/api/cotizaciones", formData, {
                     headers,
@@ -588,12 +850,12 @@ function CotizacionForm() {
                 //alertify.success("Cotización creada correctamente");
                 // El backend devuelve la cotización creada con su id
                 const nuevoId = getIdFromCreateResponse(res);
-                console.log(
-                    "[CREATE] Respuesta creación:",
-                    res?.data,
-                    "→ id:",
-                    nuevoId
-                );
+                // console.log(
+                //     "[CREATE] Respuesta creación:",
+                //     res?.data,
+                //     "→ id:",
+                //     nuevoId
+                // );
                 if (!nuevoId) {
                     alertify.warning(
                         "Se guardó la cotización, pero no pude obtener el ID para generar el PDF. Revisa la respuesta en consola."
@@ -734,7 +996,13 @@ function CotizacionForm() {
                     m2: formState.m2, // Asegúrate que m2 se calcula y está en formState si no es readOnly
                     profundidad: formState.profundidad,
                     precio: formState.precio,
-                    total: formState.total, // Asegúrate que total se calcula y está en formState si no es readOnly
+                    subtotal: formState.subtotal,
+                    total: formState.total,
+                    porcentaje_aplicado: formState.porcentaje_aplicado,
+                    impuesto_iva: formState.impuesto_iva,
+                    descuento: formState.descuento,
+                    precio_unitario: formState.precio_unitario || 0,
+
                     // MANEJO EXPLÍCITO DE IMAGEN:
                     imagen:
                         formState.imagen instanceof File
@@ -771,12 +1039,18 @@ function CotizacionForm() {
                 alto: formState.alto,
                 m2: formState.m2,
                 profundidad: formState.profundidad,
+                precio_unitario: formState.precio_unitario || 0,
                 precio: formState.precio,
+                subtotal: formState.subtotal,
                 total: formState.total,
+                porcentaje_aplicado: formState.porcentaje_aplicado,
+                impuesto_iva: formState.impuesto_iva,
+                descuento: formState.descuento,
                 imagen:
                     formState.imagen instanceof File ? formState.imagen : null,
                 imagen_preview: formState.imagen_preview,
                 imagen_ruta: null, // Un nuevo ítem no tiene ruta de BD aún
+
                 // otros campos que necesites para un nuevo detalle, como incluye_foto, etc.
                 incluye_foto: formState.imagen instanceof File ? "S" : "N",
             };
@@ -797,6 +1071,7 @@ function CotizacionForm() {
             imagen: null,
             imagen_preview: null,
             imagen_ruta: null,
+            precio_unitario: 0,
         });
         // Enfocar cantidad tras limpiar (sirve para Enter y para clic en Agregar)
         requestAnimationFrame(() => {
@@ -843,6 +1118,7 @@ function CotizacionForm() {
                     profundidad: 0,
                     precio: 0,
                     total: 0,
+                    precio_unitario: 0,
                     imagen: null,
                     imagen_preview: null,
                 });
@@ -948,6 +1224,11 @@ function CotizacionForm() {
             m2: rowData.m2,
             profundidad: rowData.profundidad,
             precio: rowData.precio,
+            precio_unitario: rowData.precio_unitario || 0,
+            descuento: rowData.descuento || 0,
+            impuesto_iva: rowData.impuesto_iva || 0,
+            subtotal: rowData.subtotal || 0,
+            porcentaje_aplicado: rowData.porcentaje_aplicado || 0,
             total: rowData.total,
             imagen: null, // Cuando se edita, la imagen ya está guardada, no se "carga" aquí
             imagen_preview: previewUrl,
@@ -979,7 +1260,7 @@ function CotizacionForm() {
         { title: "Profundidad", data: "profundidad" },
         {
             title: "Precio",
-            data: "precio",
+            data: "precio_unitario",
             render: (data) =>
                 parseFloat(data).toLocaleString("es-GT", {
                     style: "currency",
@@ -988,7 +1269,7 @@ function CotizacionForm() {
         },
         {
             title: "Total",
-            data: "total",
+            data: "precio",
             render: (data) =>
                 parseFloat(data).toLocaleString("es-GT", {
                     style: "currency",
@@ -1028,6 +1309,7 @@ function CotizacionForm() {
             cantidad: 0, // Cantidad inicial es 0 al seleccionar el producto
             precio: 0, // El precio se calculará a continuación
             total: 0, // El total también se calculará
+            precio_unitario: 0,
             imagen: null,
             imagen_preview: null, // El producto predefinido no trae imagen de detalle aquí
         };
@@ -1134,6 +1416,7 @@ function CotizacionForm() {
                 ...prevDetalle,
                 precio: 0,
                 total: 0,
+                precio_unitario: 0,
             }));
             return;
         }
@@ -1231,6 +1514,7 @@ function CotizacionForm() {
             profundidad: 0,
             precio: 0,
             total: 0,
+            precio_unitario: 0,
             imagen: null,
             imagen_preview: null,
             imagen_ruta: null,
@@ -1262,6 +1546,37 @@ function CotizacionForm() {
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <FormSection title="Datos generales">
+                            {esComodin && (
+                                <div className="row g-2 mb-3">
+                                    <div className="col-md-6">
+                                        <label className="form-label">
+                                            Vendedor asignado
+                                        </label>
+                                        <select
+                                            className="form-select form-select-sm campo-obligatorio-fondo"
+                                            value={vendedorAsignado || ""}
+                                            onChange={(e) =>
+                                                setVendedorAsignado(
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            <option value="">
+                                                Seleccionar vendedor
+                                            </option>
+                                            {vendedores.map((v) => (
+                                                <option
+                                                    key={v.id_empleado}
+                                                    value={v.id_empleado}
+                                                >
+                                                    {v.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="row g-2 mb-3">
                                 <div className="col-md-5">
                                     <label className="form-label">
@@ -1355,6 +1670,23 @@ function CotizacionForm() {
                                         ))}
                                     </select>
                                 </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">
+                                        Tipo de Facturación
+                                    </label>
+                                    <select
+                                        name="tipo_facturacion"
+                                        value={cotizacion.tipo_facturacion}
+                                        onChange={handleChange}
+                                        className="form-select form-select-sm campo-obligatorio-fondo"
+                                    >
+                                        <option value="BIEN">BIEN</option>
+                                        <option value="SERVICIO">
+                                            SERVICIO
+                                        </option>
+                                    </select>
+                                </div>
+
                                 <div className="col-md-1 d-flex align-items-end">
                                     <button
                                         type="button"
@@ -1380,7 +1712,12 @@ function CotizacionForm() {
                                     <input
                                         type="date"
                                         name="fecha_cotizacion"
-                                        value={cotizacion.fecha_cotizacion}
+                                        ref={fechaRef}
+                                        value={
+                                            cotizacion.fecha_cotizacion ||
+                                            fechaActual ||
+                                            ""
+                                        }
                                         onChange={handleChange}
                                         placeholder="Fecha cotización"
                                         className="form-control form-control-sm"
@@ -1550,8 +1887,8 @@ function CotizacionForm() {
                                         </label>
                                         <input
                                             type="number"
-                                            name="precio"
-                                            value={detalle.precio}
+                                            name="precio_unitario"
+                                            value={detalle.precio_unitario}
                                             onChange={handleDetalleChange}
                                             className="form-control form-control-sm"
                                             step="0.01"
@@ -1718,6 +2055,109 @@ function CotizacionForm() {
                                         }}
                                     />
                                 </div>
+                                <div className="row g‑2 mb‑3">
+                                    <div className="col‑md‑3">
+                                        <label className="form-label">
+                                            Descuento (%)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="descuento_porcentaje"
+                                            value={inputDescuentoPorcentaje}
+                                            onChange={(e) =>
+                                                setInputDescuentoPorcentaje(
+                                                    e.target.value
+                                                )
+                                            }
+                                            onBlur={() => {
+                                                const porcentaje =
+                                                    parseFloat(
+                                                        inputDescuentoPorcentaje
+                                                    ) || 0;
+                                                setCotizacion((prev) => ({
+                                                    ...prev,
+                                                    descuento_porcentaje:
+                                                        porcentaje,
+                                                    descuento_monto: 0, // opcional: resetear monto si estás usando %
+                                                }));
+                                            }}
+                                            className="form-control form-control-sm"
+                                            step="0.01"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col‑md‑3">
+                                        <label className="form-label">
+                                            Descuento monto
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="descuento_monto"
+                                            value={cotizacion.descuento_monto}
+                                            onChange={
+                                                handleDescuentoMontoChange
+                                            }
+                                            className="form-control form-control-sm"
+                                            step="0.01"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div className="col‑md‑3">
+                                        <label className="form-label">
+                                            Subtotal
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="subtotal"
+                                            value={parseFloat(
+                                                cotizacion.subtotal || 0
+                                            ).toFixed(2)}
+                                            readOnly
+                                            className="form-control form-control-sm"
+                                        />
+                                    </div>
+                                    <div className="col‑md‑3">
+                                        <label className="form-label">
+                                            IVA
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="impuesto_iva"
+                                            value={parseFloat(
+                                                cotizacion.impuesto_iva || 0
+                                            ).toFixed(2)}
+                                            readOnly
+                                            className="form-control form-control-sm"
+                                        />
+                                    </div>
+                                    <div className="mb-3 d-flex justify-content-end">
+                                        <label
+                                            className="form-label fw-bold me-2"
+                                            style={{ alignSelf: "center" }}
+                                        >
+                                            Total:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="total"
+                                            value={parseFloat(
+                                                cotizacion.total || 0
+                                            ).toLocaleString("es-GT", {
+                                                style: "currency",
+                                                currency: "GTQ",
+                                            })}
+                                            readOnly
+                                            className="form-control"
+                                            style={{
+                                                maxWidth: "150px",
+                                                textAlign: "right",
+                                                fontWeight: "bold",
+                                                fontSize: "1.1em",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* --- Sección Observaciones --- */}
                                 <div className="row g-2 mb-3">
                                     <div className="col-md-6">
@@ -1930,13 +2370,6 @@ function CotizacionForm() {
                                 </PDFDownloadLink>
 
                                 <button
-                                    className="btn btn-danger"
-                                    onClick={() => setPdfData(null)}
-                                >
-                                    Cerrar PDF
-                                </button>
-                                {/* Opcional: volver a la lista al cerrar */}
-                                <button
                                     className="btn btn-secondary"
                                     onClick={() => {
                                         setPdfData(null);
@@ -1944,6 +2377,12 @@ function CotizacionForm() {
                                     }}
                                 >
                                     Ir a la lista
+                                </button>
+                                <button
+                                    className="btn btn-outline-danger"
+                                    onClick={() => setPdfData(null)}
+                                >
+                                    Cerrar
                                 </button>
                             </div>
                         </div>

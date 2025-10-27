@@ -52,9 +52,10 @@ class MonitorFacturacionController extends Controller
                 DB::raw("DATE_FORMAT(c.fecha_cotizacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
                 'e.nombre as vendedor',
-                DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
+                DB::raw('CAST(c.total AS DECIMAL(15,2)) AS total_general'),
                 'cl.nombre as cliente',
                 'ct.nombre as contacto',
+                'c.tipo_facturacion as tipo_facturacion',
                 'c.observaciones_cliente',
                 'c.estado',
                 DB::raw("
@@ -64,53 +65,30 @@ class MonitorFacturacionController extends Controller
                     ELSE 'DESCONOCIDO'
                 END as estado_texto
             "),
-                // valores nulos (no aplica factura todavía)
                 DB::raw('NULL as nofactura'),
                 DB::raw('NULL as uuid'),
                 DB::raw('NULL as serie'),
-                DB::raw('NULL as numero'),
+                DB::raw('NULL as numero_fel'),
                 DB::raw('NULL as resultado'),
                 DB::raw('NULL as errores'),
             ])
             ->whereIn('c.estado', [4, 5]);
 
         // ==============================
-        // 🔹 Consulta 2: Facturas facturadas (estado = 6 → f.estado=1)
+        // 🔹 Subconsulta: última factura por cotización
         // ==============================
-        $facturadasQuery = DB::table('adm_facturacion as f')
-            ->join('adm_cotizacion as c', 'c.idcotizacion', '=', 'f.idcotizacion')
-            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-            ->join('users as u', 'c.idusuario', '=', 'u.id')
-            ->join('adm_empleados as e', 'u.id', '=', 'e.iduser')
-            ->select([
-                'c.idcotizacion',
-                'c.idcliente',
-                DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
-                DB::raw("DATE_FORMAT(f.fecha_certificacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
-                't.tipo as tipo_pago',
-                'e.nombre as vendedor',
-                DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
-                'cl.nombre as cliente',
-                'ct.nombre as contacto',
-                'c.observaciones_cliente',
-                DB::raw('6 as estado'),
-                DB::raw("'FACTURADA' as estado_texto"),
-                'f.nofactura',
-                'f.uuid',
-                'f.serie',
-                'f.numero',
-                'f.resultado',
-                'f.errores',
-            ])
-            ->where('f.estado', 1)
-            ->where('c.estado', 6);
+        $ultimaFacturaSub = DB::table('adm_facturacion')
+            ->select('idcotizacion', DB::raw('MAX(idfactura) AS idfactura'))
+            ->groupBy('idcotizacion');
 
         // ==============================
-        // 🔹 Consulta 3: Facturas anuladas (estado = 7 → f.estado=0)
+        // 🔹 Consulta 2: Facturas (vigentes o anuladas)
         // ==============================
-        $anuladasQuery = DB::table('adm_facturacion as f')
+        $facturacionQuery = DB::table('adm_facturacion as f')
+            ->joinSub($ultimaFacturaSub, 'ult', function ($join) {
+                $join->on('f.idcotizacion', '=', 'ult.idcotizacion')
+                    ->on('f.idfactura', '=', 'ult.idfactura');
+            })
             ->join('adm_cotizacion as c', 'c.idcotizacion', '=', 'f.idcotizacion')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
@@ -121,28 +99,41 @@ class MonitorFacturacionController extends Controller
                 'c.idcotizacion',
                 'c.idcliente',
                 DB::raw("CONCAT('CT',CAST(c.nocotizacion AS CHAR)) as nocotizacion"),
-                DB::raw("DATE_FORMAT(f.fecha_anulacion, '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
+                DB::raw("DATE_FORMAT(COALESCE(f.fecha_certificacion, f.fecha_anulacion), '%Y-%m-%dT%H:%i:%s') AS fecha_cotizacion"),
                 't.tipo as tipo_pago',
                 'e.nombre as vendedor',
-                DB::raw('CAST(c.total_general AS DECIMAL(15,2)) AS total_general'),
+                DB::raw('CAST(c.total AS DECIMAL(15,2)) AS total_general'),
                 'cl.nombre as cliente',
                 'ct.nombre as contacto',
+                'c.tipo_facturacion as tipo_facturacion',
                 'c.observaciones_cliente',
-                DB::raw('7 as estado'),
-                DB::raw("'ANULADA' as estado_texto"),
+                DB::raw("
+                CASE 
+                    WHEN f.estado = 1 THEN 6
+                    WHEN f.estado = 0 THEN 7
+                    ELSE 6
+                END as estado
+            "),
+                DB::raw("
+                CASE 
+                    WHEN f.estado = 1 THEN 'FACTURADA'
+                    WHEN f.estado = 0 THEN 'ANULADA'
+                    ELSE 'FACTURADA'
+                END as estado_texto
+            "),
                 'f.nofactura',
                 'f.uuid',
                 'f.serie',
-                'f.numero',
+                'f.numero as numero_fel',
                 'f.resultado',
                 'f.errores',
             ])
-            ->where('f.estado', 0);
+            ->where('f.resultado', 'S');
 
         // ==============================
         // 🔹 Filtros adicionales
         // ==============================
-        foreach ([$cotizacionesQuery, $facturadasQuery, $anuladasQuery] as $q) {
+        foreach ([$cotizacionesQuery, $facturacionQuery] as $q) {
             if (!empty($idvendedor)) {
                 $q->where('e.id_empleado', $idvendedor);
             }
@@ -150,10 +141,8 @@ class MonitorFacturacionController extends Controller
             if ($fechaInicio && $fechaFinal) {
                 if ($q === $cotizacionesQuery) {
                     $q->whereBetween('c.fecha_cotizacion', [$desde, $hasta]);
-                } elseif ($q === $facturadasQuery) {
-                    $q->whereBetween('f.fecha_certificacion', [$desde, $hasta]);
                 } else {
-                    $q->whereBetween('f.fecha_anulacion', [$desde, $hasta]);
+                    $q->whereBetween(DB::raw("COALESCE(f.fecha_certificacion, f.fecha_anulacion)"), [$desde, $hasta]);
                 }
             }
         }
@@ -163,15 +152,11 @@ class MonitorFacturacionController extends Controller
         // ==============================
         if (in_array($estado, ['4', '5'])) {
             $query = $cotizacionesQuery->where('c.estado', (int)$estado);
-        } elseif ($estado === '6') {
-            $query = $facturadasQuery;
-        } elseif ($estado === '7' || $estado === '0') {
-            $query = $anuladasQuery;
+        } elseif (in_array($estado, ['6', '7', '0'])) {
+            $query = $facturacionQuery->where('c.estado', 6);
         } else {
-            // Todos → unir las tres
-            $query = $cotizacionesQuery
-                ->unionAll($facturadasQuery)
-                ->unionAll($anuladasQuery);
+            // Todos → unir las dos
+            $query = $cotizacionesQuery->unionAll($facturacionQuery);
         }
 
         // ==============================
@@ -216,7 +201,24 @@ class MonitorFacturacionController extends Controller
     // }
     private function facturaVigente(int $idcotizacion): ?AdmFacturacion
     {
-        // 1️⃣ Si existe una factura ANULADA certificada (estado=0, resultado='S'), devuélvela primero
+        // 1️⃣ Buscar primero la factura vigente más reciente (estado=1)
+        $vigente = AdmFacturacion::where('idcotizacion', $idcotizacion)
+            ->where('estado', 1)
+            ->where('resultado', 'S')
+            ->latest('idfactura')
+            ->first();
+
+        if ($vigente) {
+            // Log::info("🧾 Factura vigente seleccionada", [
+            //     'idcotizacion' => $idcotizacion,
+            //     'idfactura'    => $vigente->idfactura,
+            //     'estado'       => $vigente->estado,
+            //     'resultado'    => $vigente->resultado,
+            // ]);
+            return $vigente;
+        }
+
+        // 2️⃣ Si no hay vigente, buscar la anulada más reciente (estado=0)
         $anulada = AdmFacturacion::where('idcotizacion', $idcotizacion)
             ->where('estado', 0)
             ->where('resultado', 'S')
@@ -224,7 +226,7 @@ class MonitorFacturacionController extends Controller
             ->first();
 
         if ($anulada) {
-            // Log::info("🧾 Factura ANULADA detectada", [
+            // Log::info("🧾 Factura ANULADA seleccionada (no hay vigente)", [
             //     'idcotizacion' => $idcotizacion,
             //     'idfactura'    => $anulada->idfactura,
             //     'estado'       => $anulada->estado,
@@ -233,22 +235,10 @@ class MonitorFacturacionController extends Controller
             return $anulada;
         }
 
-        // 2️⃣ Si no hay anulada, buscar la vigente (estado=1)
-        $vigente = AdmFacturacion::where('idcotizacion', $idcotizacion)
-            ->where('estado', 1)
-            ->where('resultado', 'S')
-            ->latest('idfactura')
-            ->first();
-
-        // Log::info("🧾 Factura vigente seleccionada", [
-        //     'idcotizacion' => $idcotizacion,
-        //     'idfactura'    => $vigente?->idfactura,
-        //     'estado'       => $vigente?->estado,
-        //     'resultado'    => $vigente?->resultado,
-        // ]);
-
-        return $vigente;
+        // 3️⃣ Si no hay ninguna, devolver null
+        return null;
     }
+
 
 
     private function cabeceraParaVista(AdmFacturacion $f, AdmCotizacion $c): \stdClass
@@ -263,7 +253,7 @@ class MonitorFacturacionController extends Controller
         $obj->fecha_emision       = $f->fecha_certificacion
             ? Carbon::parse($f->fecha_certificacion)->toDateString()
             : Carbon::now()->toDateString();
-        $obj->total               = $c->total_general;
+        $obj->total               = $c->total;
 
         // 🔹 Receptor: usar SIEMPRE lo fotografiado en adm_facturacion
         $obj->nit        = $f->numero_crtf;
@@ -380,7 +370,8 @@ class MonitorFacturacionController extends Controller
                     'c.observaciones_cliente',
                     'c.costeo_observaciones',
                     'c.trabajo',
-                    'c.version'
+                    'c.version',
+                    'c.tipo_facturacion',
                 )
                 ->from('adm_cotizacion as c')
                 ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -451,14 +442,14 @@ class MonitorFacturacionController extends Controller
             d.cantidad,
             IF(CHAR_LENGTH(d.unidad_medida) > 3, LEFT(d.unidad_medida, 3), d.unidad_medida) AS unidad_medida,
             d.descripcion,
-            ROUND(d.precio, 3) AS precio_unitario,
-            ROUND(d.total, 3) AS precio,
-            0 AS descuento,
-            ROUND(d.total / 1.12, 3) AS monto_gravable,
-            ROUND(d.total - (d.total / 1.12), 3) AS monto_impuesto,
+            ROUND(d.precio_unitario, 3) AS precio_unitario,
+            ROUND(d.precio, 3) AS precio,
+            ROUND(d.descuento, 3) AS descuento,
+            ROUND(d.subtotal) AS monto_gravable,
+            ROUND(d.impuesto_iva, 3) AS monto_impuesto,
             ROUND(d.total, 3) AS total,
-            ROUND(c.total_general,3) AS gran_total,
-            ROUND(c.total_general,3) AS monto_abono,
+            ROUND(c.total,3) AS gran_total,
+            ROUND(c.total,3) AS monto_abono,
             cl.nombre,
             cl.nit,
             cl.cui,
@@ -486,6 +477,16 @@ class MonitorFacturacionController extends Controller
         }
 
         $detalle = $detalles[0];
+
+        // 2.1) Obtener el tipo_facturacion de la cotización (BIEN | SERVICIO)
+        $tipoFacturaDB = DB::table('adm_cotizacion')
+            ->where('idcotizacion', $idcotizacion)
+            ->value('tipo_facturacion');
+
+        // Normalizar y mapear a B/S (default: B)
+        $tipoFacturaNorm = strtoupper(trim((string)$tipoFacturaDB));
+        $bienOServicio = ($tipoFacturaNorm === 'SERVICIO') ? 'S' : 'B';
+
 
         // 3) SE LEEN Y PREPARAN LOS DATOS DEL MODAL PARA EL RECEPTOR
         $docTipo   = $validated['documento_tipo'];        // NIT | CUI | PASAPORTE | CF
@@ -648,7 +649,8 @@ class MonitorFacturacionController extends Controller
 
         foreach ($detalles as $d) {
             $Item = $doc->createElement('dte:Item');
-            $Item->setAttribute('BienOServicio', 'B');
+            // $Item->setAttribute('BienOServicio', 'B');
+            $Item->setAttribute('BienOServicio', $bienOServicio);
             $Item->setAttribute('NumeroLinea', $d->numero_linea);
 
             $Item->appendChild($doc->createElement('dte:Cantidad', $d->cantidad));
@@ -830,10 +832,10 @@ class MonitorFacturacionController extends Controller
                             'fecha_vencimiento'  => now()->addDays(30),
                             'moneda'             => 'GTQ',
                             'tasa_cambio'        => 1,
-                            'monto_original'     => $cotizacion->total_general,
-                            'saldo_pendiente'    => $cotizacion->total_general,
+                            'monto_original'     => $cotizacion->total,
+                            'saldo_pendiente'    => $cotizacion->total,
                             'monto_pagado'       => 0,
-                            'descuento_aplicado' => 0,
+                            'descuento_aplicado' => $cotizacion->descuento_monto,
                             'idusuario_creacion' => auth()->id(),
                             'usuario_creacion'   => auth()->user()->name ?? 'sistema',
                             'fecha_creacion'     => now(),
@@ -917,7 +919,7 @@ class MonitorFacturacionController extends Controller
                 return response()->json(['message' => 'No hay DTE vigente para esta cotización'], 404);
             }
 
-            $cot = AdmCotizacion::select('idcotizacion', 'total_general', 'nocotizacion', 'estado')
+            $cot = AdmCotizacion::select('idcotizacion', 'total', 'nocotizacion', 'estado')
                 ->findOrFail($id);
 
             $cabecera = $this->cabeceraParaVista($fact, $cot);
@@ -1183,9 +1185,17 @@ class MonitorFacturacionController extends Controller
                 'cl.codigo_postal',
                 'cl.excento_iva',
                 'm.nombre          as municipio',
-                'dp.nombre         as departamento'
+                'dp.nombre         as departamento',
+                'c.tipo_facturacion'
             )
             ->first();
+
+        // Determina si es bien o servicio
+        $bienOServicio = 'B'; // por defecto
+        if (!empty($cli->tipo_facturacion) && strtoupper($cli->tipo_facturacion) === 'SERVICIO') {
+            $bienOServicio = 'S';
+        }
+
 
         // 3) Normalización de montos
         $monto = round((float)$monto, 2);
@@ -1289,7 +1299,7 @@ class MonitorFacturacionController extends Controller
         // Ítems: una única línea de ajuste
         $Items = $doc->createElement('dte:Items');
         $Item = $doc->createElement('dte:Item');
-        $Item->setAttribute('BienOServicio', 'B');
+        $Item->setAttribute('BienOServicio', $bienOServicio);
         $Item->setAttribute('NumeroLinea', 1);
         $Item->appendChild($doc->createElement('dte:Cantidad', '1'));
         $Item->appendChild($doc->createElement('dte:UnidadMedida', 'UND'));
@@ -1768,5 +1778,181 @@ class MonitorFacturacionController extends Controller
 
         $comentarios = $query->paginate(5);
         return response()->json($comentarios);
+    }
+
+    public function anularCotizacion(Request $request, $idcotizacion)
+    {
+        try {
+            $cotizacion = DB::table('adm_cotizacion')->where('idcotizacion', $idcotizacion)->first();
+
+            if (!$cotizacion) {
+                return response()->json(['message' => 'Cotización no encontrada'], 404);
+            }
+
+            // Solo permitir anular estados 4 (Pre-facturación) o 5 (Para facturar)
+            if (!in_array($cotizacion->estado, [4, 5])) {
+                return response()->json(['message' => 'Solo se pueden anular cotizaciones en estado 4 o 5'], 400);
+            }
+
+            $motivo = trim($request->input('motivo'));
+            if (empty($motivo)) {
+                return response()->json(['message' => 'Debe ingresar un motivo de anulación'], 422);
+            }
+
+            $usuario = auth()->user()->name ?? 'sistema';
+
+            DB::table('adm_cotizacion')
+                ->where('idcotizacion', $idcotizacion)
+                ->update([
+                    'estado' => 0,
+                    'motivo_anulacion' => $motivo,
+                    'usuario_anulacion' => $usuario,
+                    'fecha_anulacion' => now(),
+                ]);
+
+            return response()->json(['message' => 'Cotización anulada correctamente']);
+        } catch (\Throwable $e) {
+            Log::error('Error al anular cotización', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error al anular cotización'], 500);
+        }
+    }
+
+    public function reporteAnuladas(Request $request)
+    {
+        $fechaInicio = $request->query('fechaInicio');
+        $fechaFinal  = $request->query('fechaFinal');
+        $format      = $request->query('format', 'json');
+
+        $end   = $fechaFinal  ? Carbon::parse($fechaFinal)  : Carbon::today();
+        $start = $fechaInicio ? Carbon::parse($fechaInicio) : $end->copy();
+
+        $desde = $start->copy()->startOfDay()->toDateTimeString();
+        $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
+
+        // 🔹 Datos base
+        $registros = DB::table('adm_facturacion as f')
+            ->join('adm_cotizacion as c', 'c.idcotizacion', '=', 'f.idcotizacion')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->leftJoin('users as u', 'f.idusuario_anula', '=', 'u.id')
+            ->leftJoin('adm_empleados as e', 'u.id', '=', 'e.iduser')
+            ->select([
+                DB::raw("CONCAT('CT', CAST(c.nocotizacion AS CHAR)) AS nocotizacion"),
+                'cl.nombre AS cliente',
+                DB::raw('f.nofactura AS nointerno'),
+                'f.numero',
+                'f.uuid',
+                DB::raw("DATE_FORMAT(f.fecha_certificacion, '%Y-%m-%d %H:%i:%s') AS fecha_certificacion"),
+                DB::raw("DATE_FORMAT(f.fecha_anulacion, '%Y-%m-%d %H:%i:%s') AS fecha_anulacion"),
+                DB::raw("COALESCE(e.nombre, '—') AS usuario_anulacion"),
+            ])
+            ->where('f.estado', 0)
+            ->whereBetween('f.fecha_anulacion', [$desde, $hasta])
+            ->orderByDesc('f.fecha_anulacion')
+            ->get();
+
+
+        // 🔹 Totales por usuario
+        $porUsuario = $registros->groupBy('usuario_anulacion')->map(function ($items, $usuario) {
+            return [
+                'usuario' => $usuario,
+                'total' => $items->count(),
+            ];
+        })->values();
+
+        $totalGeneral = $registros->count();
+
+        // 🔹 Formato PDF
+        if ($format === 'pdf') {
+            $pdf = Pdf::loadView('pdf.reporte_anuladas', [
+                'registros'     => $registros,
+                'porUsuario'    => $porUsuario,
+                'totalGeneral'  => $totalGeneral,
+                'fechaInicio'   => $start->format('Y-m-d'),
+                'fechaFinal'    => $end->format('Y-m-d'),
+            ])->setPaper('letter', 'landscape');
+
+            return $pdf->download("reporte_facturas_anuladas_{$start->format('Ymd')}_{$end->format('Ymd')}.pdf");
+        }
+
+        // 🔹 Formato JSON
+        return response()->json([
+            'registros'     => $registros,
+            'porUsuario'    => $porUsuario,
+            'totalGeneral'  => $totalGeneral,
+        ]);
+    }
+
+    public function reporteNotasAjuste(Request $request)
+    {
+        $fechaInicio = $request->query('fechaInicio');
+        $fechaFinal  = $request->query('fechaFinal');
+        $tipo        = $request->query('tipo'); // NCRE | NDEB | TODOS
+        $format      = $request->query('format', 'json');
+
+        $end   = $fechaFinal  ? Carbon::parse($fechaFinal)  : Carbon::today();
+        $start = $fechaInicio ? Carbon::parse($fechaInicio) : $end->copy();
+
+        $desde = $start->copy()->startOfDay()->toDateTimeString();
+        $hasta = $end->copy()->addDay()->startOfDay()->toDateTimeString();
+
+        // 🔹 Datos base
+        $query = DB::table('adm_notas_fel as n')
+            ->join('adm_cotizacion as c', 'n.idcotizacion', '=', 'c.idcotizacion')
+            ->join('adm_facturacion as f', 'c.idcotizacion', '=', 'f.idcotizacion')
+            ->join('clientes as cl', 'n.idcliente', '=', 'cl.idcliente')
+            ->select([
+                DB::raw("CONCAT('CT', CAST(c.nocotizacion AS CHAR)) AS nocotizacion"),
+                'cl.nombre AS cliente',
+                DB::raw('f.nofactura AS nointerno'),
+                'f.numero AS numero_factura',
+                DB::raw("DATE_FORMAT(f.fecha_certificacion, '%Y-%m-%d %H:%i:%s') AS fecha_certificacion"),
+                'n.tipo AS tipo_nota',
+                'n.numero_nota',
+                DB::raw("DATE_FORMAT(n.fecha_nota, '%Y-%m-%d %H:%i:%s') AS fecha_nota"),
+                DB::raw('CAST(n.monto_total AS DECIMAL(15,2)) AS monto_total'),
+            ])
+            ->where('n.resultado', 'S')
+            ->whereBetween('n.fecha_nota', [$desde, $hasta]);
+
+        if (!empty($tipo) && $tipo !== 'TODOS') {
+            $query->where('n.tipo', $tipo); // filtra por NCRE o NDEB
+        }
+
+        $registros = $query->orderByDesc('n.fecha_nota')->get();
+
+        // 🔹 Totales por tipo
+        $porTipo = $registros->groupBy('tipo_nota')->map(function ($items, $tipo) {
+            return [
+                'tipo' => $tipo,
+                'total' => $items->count(),
+                'monto' => $items->sum('monto_total'),
+            ];
+        })->values();
+
+        $totalGeneral = $registros->count();
+        $sumaGeneral  = $registros->sum('monto_total');
+
+        // 🔹 Formato PDF
+        if ($format === 'pdf') {
+            $pdf = Pdf::loadView('pdf.reporte_notasajuste', [
+                'registros'     => $registros,
+                'porTipo'       => $porTipo,
+                'totalGeneral'  => $totalGeneral,
+                'sumaGeneral'   => $sumaGeneral,
+                'fechaInicio'   => $start->format('Y-m-d'),
+                'fechaFinal'    => $end->format('Y-m-d'),
+                'tipo'          => $tipo ?? 'TODOS',
+            ])->setPaper('letter', 'landscape');
+
+            return $pdf->download("reporte_notas_ajuste_{$start->format('Ymd')}_{$end->format('Ymd')}.pdf");
+        }
+
+        // 🔹 Formato JSON
+        return response()->json([
+            'registros'     => $registros,
+            'porTipo'       => $porTipo,
+            'totalGeneral'  => $totalGeneral,
+            'sumaGeneral'   => $sumaGeneral,
+        ]);
     }
 }

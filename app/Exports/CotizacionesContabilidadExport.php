@@ -60,7 +60,7 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
             "),
                 'ae.nombre as vendedor',
                 'c.nombre as cliente',
-                'ac.total_general',
+                'ac.total as total_general',
             )
             ->where('ac.estado', '>', 0)
             // ⬇️ opcional: ignora cotizaciones anuladas si tu tabla tiene este campo

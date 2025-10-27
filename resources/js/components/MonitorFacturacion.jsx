@@ -29,6 +29,8 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = pdfFonts.vfs; // registra las fuentes embebidas (Roboto)
 import FacturaPDF from "./FacturaPDF";
+import DetalleCotizacionModal from "./DetalleCotizacionModal";
+
 
 // ✅ MUI DataGrid
 import {
@@ -80,6 +82,8 @@ function MonitorFacturacion() {
     const [estadoFiltro, setEstadoFiltro] = useState("");
     const [showPrefModal, setShowPrefModal] = useState(false);
     const [prefDate, setPrefDate] = useState("");
+    const [modalVisible, setModalVisible] = useState(false);
+    const [detalleCotizacion, setDetalleCotizacion] = useState(null);
 
     // ====== Modal Certificación (datos cliente) ======
     const [showCertModal, setShowCertModal] = useState(false);
@@ -479,11 +483,56 @@ function MonitorFacturacion() {
         );
     };
 
+    // ====== Anular cotización (estados 4 o 5) ======
+    const handleAnularCotizacion = () => {
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro para anular.");
+
+        const estado = Number(registroSeleccionado.estado);
+        if (![4, 5].includes(estado))
+            return alertify.error(
+                "Solo puede anular cotizaciones en estado 4 o 5."
+            );
+
+        alertify.prompt(
+            "Anular cotización",
+            "Ingrese el motivo de la anulación:",
+            "",
+            async function (evt, motivo) {
+                if (!motivo || motivo.trim() === "") {
+                    alertify.error("Debe ingresar un motivo.");
+                    return;
+                }
+
+                try {
+                    const token = localStorage.getItem("token");
+                    await axios.put(
+                        `/api/monitorfacturacion/${registroSeleccionado.idcotizacion}/anular`,
+                        { motivo },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    alertify.success("Cotización anulada correctamente.");
+                    fetchCotizaciones();
+                } catch (error) {
+                    console.error(error);
+                    const msg =
+                        error.response?.data?.message ||
+                        "Error al anular la cotización.";
+                    alertify.error(msg);
+                }
+            },
+            function () {
+                alertify.error("Anulación cancelada.");
+            }
+        );
+    };
+
     // ====== Certificación: abrir modal (del ORIGINAL) ======
     const abrirModalCertificar = async () => {
         if (!registroSeleccionado)
             return alertify.error("Seleccione un registro.");
-        console.log("Registro seleccionado:", registroSeleccionado);
+        //console.log("Registro seleccionado:", registroSeleccionado);
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
 
@@ -746,6 +795,41 @@ function MonitorFacturacion() {
         }
     };
 
+    const obtenerDetalleCotizacion = async (id) => {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alertify.error("Token de autenticación no encontrado.");
+            setLoading(false);
+            return;
+        }
+        try {
+            console.log("Obteniendo detalle de cotización ID:", id);
+            const response = await axios.get(
+                `/api/cotizaciones/detalle/${id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const detalle = response.data;
+            const cotizacionSeleccionada = cotizaciones.find(
+                (c) => Number(c.idcotizacion) === Number(id)
+            );
+            if (!cotizacionSeleccionada) {
+                alertify.error("No se encontró el estado de la cotización.");
+                return;
+            }
+            setDetalleCotizacion({
+                detalle,
+                estado: cotizacionSeleccionada.estado,
+            });
+            setModalVisible(true);
+        } catch(err) {
+            console.error("Error al obtener el detalle de la cotización.", err);
+            alertify.error("Error al obtener el detalle de la cotización.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const toNumberSafe = (v) => {
         if (v === null || v === undefined) return null;
         if (typeof v === "number") return Number.isFinite(v) ? v : null;
@@ -799,6 +883,32 @@ function MonitorFacturacion() {
             minWidth: 140,
             sortable: false,
         },
+        {
+            field: "tipo_facturacion",
+            headerName: "Tipo Fact.",
+            minWidth: 120,
+            align: "center",
+            headerAlign: "center",
+            sortable: false,
+            renderCell: ({ value }) => {
+                if (!value) return "";
+                const color =
+                    value.toUpperCase() === "BIEN" ? "success" : "info";
+                const icon =
+                    value.toUpperCase() === "BIEN" ? "bi-box-seam" : "bi-tools";
+
+                return (
+                    <span
+                        className={`badge bg-${color}`}
+                        style={{ fontSize: "0.8rem" }}
+                    >
+                        <i className={`bi ${icon} me-1`} />
+                        {value}
+                    </span>
+                );
+            },
+        },
+
         {
             field: "total_general",
             headerName: "Total",
@@ -863,7 +973,12 @@ function MonitorFacturacion() {
             minWidth: 120,
             sortable: false,
         },
-
+        {
+            field: "numero_fel",
+            headerName: "Número FEL",
+            minWidth: 120,
+            flex: 1,
+        },
         {
             field: "uuid",
             headerName: "Autorización",
@@ -1195,7 +1310,7 @@ function MonitorFacturacion() {
                             ))}
                         </select>
                     </div>
-                    <div className="col-md-3 d-flex align-items-end">
+                    <div className="col-md-3 d-flex align-items-end mt-3">
                         <button
                             className="btn btn-primary w-100"
                             disabled={loading || fetchingRef.current}
@@ -1508,6 +1623,24 @@ function MonitorFacturacion() {
                         </ListItemIcon>
                         <ListItemText primary="Anular factura" />
                     </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            handleAnularCotizacion();
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            ![4, 5].includes(
+                                Number(registroSeleccionado.estado)
+                            )
+                        }
+                    >
+                        <ListItemIcon>
+                            <Cancel fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Anular cotización" />
+                    </MenuItem>
+
                     <Divider />
 
                     {/* CLIENTE */}
@@ -1540,7 +1673,9 @@ function MonitorFacturacion() {
                         }}
                         disabled={
                             !registroSeleccionado ||
-                            Number(registroSeleccionado.estado) !== 4
+                            ![4, 5].includes(
+                                Number(registroSeleccionado.estado)
+                            )
                         }
                     >
                         <ListItemIcon>
@@ -1567,6 +1702,29 @@ function MonitorFacturacion() {
                             <ErrorOutline fontSize="small" />
                         </ListItemIcon>
                         <ListItemText primary="Ver errores de certificación" />
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            if (
+                                registroSeleccionado &&
+                                Number(registroSeleccionado.estado) === 4
+                            ) {
+                                obtenerDetalleCotizacion(
+                                    registroSeleccionado.idcotizacion
+                                );
+                            } else {
+                                alertify.error(
+                                    "Seleccione una cotización en estado PRE‑FACTURACIÓN (estado 4)."
+                                );
+                            }
+                        }}
+                        disabled={!registroSeleccionado}
+                    >
+                        <ListItemIcon>
+                            <Visibility fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Detalle" />
                     </MenuItem>
                 </Menu>
 
@@ -2358,6 +2516,16 @@ function MonitorFacturacion() {
                     </Button>
                 </ModalFooter>
             </Modal>
+            {modalVisible && detalleCotizacion && (
+                <DetalleCotizacionModal
+                    detalle={detalleCotizacion.detalle}
+                    estadoCotizacion={detalleCotizacion.estado}
+                    onClose={() => {
+                        setModalVisible(false);
+                        setDetalleCotizacion(null);
+                    }}
+                />
+            )}
         </div>
     );
 }

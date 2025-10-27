@@ -122,7 +122,7 @@ class ReportesContabilidadController extends Controller
             'fac.nofactura AS nofactura',
                 'ae.nombre AS vendedor',
                 'c.nombre AS cliente',
-                'ac.total_general',
+                'ac.total as total_general',
                 'ac.estado',
                 DB::raw("
                 COALESCE(
@@ -444,7 +444,7 @@ class ReportesContabilidadController extends Controller
             CONCAT('CT', ac.nocotizacion) as nocotizacion,
             ac.nofactura,
             DATE(ac.fecha_prefacturacion) as fecha_prefacturacion,
-            ac.total_general as total,
+            ac.total as total,
             atp.tipo as tipo_pago,
             c.nombre as cliente,
             ae.nombre as vendedor,
@@ -709,7 +709,7 @@ class ReportesContabilidadController extends Controller
                 'c.idcliente as cliente_id',
                 'c.nit as cliente_codigo',
                 'c.nombre as cliente_nombre',
-                DB::raw('SUM(ac.total_general) as total_ventas')
+                DB::raw('SUM(ac.total) as total_ventas')
             )
             ->whereIn('ac.estado', [4, 5, 6])
             ->whereNotNull('ac.fecha_prefacturacion')

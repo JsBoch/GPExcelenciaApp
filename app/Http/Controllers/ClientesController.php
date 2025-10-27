@@ -34,7 +34,7 @@ class ClientesController extends Controller
                 'clientes.monto_credito',
                 'clientes.dias_credito',
                 'clientes.comentario',
-                'adm_empleados.nombre as vendedor',
+                 DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
                 'clientes.id_empleado',
                 'clientes.id_municipio',
                 'clientes.idtipocliente',
@@ -49,7 +49,7 @@ class ClientesController extends Controller
                 'clientes.extranjero',
             )
             ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-            ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
             ->orderBy('clientes.nombre')
             ->get();
         return response()->json($clientes);
@@ -127,7 +127,7 @@ class ClientesController extends Controller
                 'clientes.monto_credito',
                 'clientes.dias_credito',
                 'clientes.comentario',
-                'adm_empleados.nombre as vendedor',
+                 DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
                 'clientes.id_empleado',
                 'clientes.id_municipio',
                 'clientes.idtipocliente',
@@ -142,7 +142,7 @@ class ClientesController extends Controller
                 'clientes.extranjero',
             )
             ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-            ->join('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
             ->first(); // Usa first() en lugar de get() para obtener un solo resultado
 
         if (!$cliente) {

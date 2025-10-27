@@ -21,6 +21,9 @@ use App\Http\Controllers\CuentasPorCobrarController;
 use App\Http\Controllers\AdmRecibosController;
 use App\Http\Controllers\ReportesContabilidadController;
 use App\Http\Controllers\ClienteContactoController;
+use App\Http\Controllers\ReportesCXCController;
+use Illuminate\Support\Facades\DB;
+
 //
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -64,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/departamentos', [EmpleadoController::class, 'getDepartamentos']);
     Route::get('/puestos', [EmpleadoController::class, 'getPuestos']);
     Route::get('/departamentos-pais', [EmpleadoController::class, 'getDepartamentosPais']);
+    Route::get('/lista_vendedores', [EmpleadoController::class, 'listarVendedores']);
 });
 
 //CLIENTES
@@ -73,7 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rutas adicionales para las listas desplegables
     //Aquí está accediendo al método que devuelve las listas desplegables de departamentos, puestos y identificaciones   
     Route::get('/departamentos-pais', [ClientesController::class, 'getDepartamentosPais']);
-     Route::get('/municipios/{iddepartamento}', [ClientesController::class, 'getMunicipios']); 
+    Route::get('/municipios/{iddepartamento}', [ClientesController::class, 'getMunicipios']);
     Route::get('/vendedores', [ClientesController::class, 'getVendedores']);
     /**
      * Este endpoint devuelve las opciones de facturación para un cliente específico.
@@ -124,6 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);
     Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);
     Route::get('/cotizaciones/{id}/historial-envios', [CotizacionController::class, 'historialEnvios']);
+    
+
 });
 
 //COSTEO COTIZACIONES
@@ -160,6 +166,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/monitorfacturacion/comentarios', [MonitorFacturacionController::class, 'storeComentario']);
     Route::get('/monitorfacturacion/{idcotizacion}/comentarios', [MonitorFacturacionController::class, 'comentarios']);
+    Route::put('/monitorfacturacion/{idcotizacion}/anular', [MonitorFacturacionController::class, 'anularCotizacion']);
+    Route::get('/reporte/anuladas', [MonitorFacturacionController::class, 'reporteAnuladas']);
+    Route::get('/reporte/notas-credito', [MonitorFacturacionController::class, 'reporteNotasCredito']);
+    Route::get('/reporte/notas-ajuste', [MonitorFacturacionController::class, 'reporteNotasAjuste']);
 });
 
 //CONSULTA COTIZACIONES COSTEO
@@ -242,10 +252,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ▶️ Resumen de Facturas Pagadas
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data', [ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf', [ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
-    
+
     Route::get('/reportes-contabilidad/cotizacionesventas', [ReportesContabilidadController::class, 'VentasPorVendedor']);
     Route::get('/reportes-contabilidad/export/excelventas', [ReportesContabilidadController::class, 'exportVentasVendedorExcel']);
-    Route::get('/reportes-contabilidad/export/pdfventas', [ReportesContabilidadController::class, 'exportVentasVendedorPdf']);    
+    Route::get('/reportes-contabilidad/export/pdfventas', [ReportesContabilidadController::class, 'exportVentasVendedorPdf']);
 });
 
 //CLIENTES CONTACTO CONTROLLER
@@ -254,4 +264,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clientes-contacto/{idcliente}/contactos', [ClienteContactoController::class, 'show']);
     Route::post('/clientes-contacto/{idcliente}/contactos', [ClienteContactoController::class, 'storeOrUpdate']);
     Route::get('/departamentos/options', [ClienteContactoController::class, 'departamentosOptions']);
+});
+
+//REPORTES CXC
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/reporte/cxc', [ReportesCXCController::class, 'index']);              // JSON o PDF
+    Route::get('/reporte/cxc/{idcuentaporcobrar}/detalles', [ReportesCXCController::class, 'detalles']); // detalles de una CxC    
 });

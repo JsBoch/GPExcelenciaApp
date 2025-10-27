@@ -60,6 +60,12 @@ class AdmCotizacion extends Model
         'fecha_prefacturacion',
         'fecha_facturacion',
         'idempotency_key',
+        'tipo_facturacion',
+        'subtotal',
+        'descuento_porcentaje',
+        'descuento_monto',
+        'impuesto_iva',
+        'total',
     ];
 
     protected $casts = [

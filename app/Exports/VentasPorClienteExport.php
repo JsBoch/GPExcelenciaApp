@@ -29,7 +29,7 @@ class VentasPorClienteExport implements FromView
                 'e.nombre as vendedor_nombre',
                 'c.nit as cliente_codigo',
                 'c.nombre as cliente_nombre',
-                DB::raw('SUM(ac.total_general) as total_ventas')
+                DB::raw('SUM(ac.total) as total_ventas')
             )
             ->whereIn('ac.estado', [4,5,6])
             ->whereNotNull('ac.fecha_prefacturacion')
