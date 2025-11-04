@@ -239,6 +239,8 @@ class CotizacionController extends Controller
                 $lastUsedDetId = null;
 
                 //Log::info("Detalles recibidos para la cotización", ['detalles' => $detalles]);
+                $porcentajeAplicado = floatval($datosCotizacion['descuento_porcentaje'] ?? 0);
+                $detalles = $this->recalcularDetallesConAjuste($detalles, $porcentajeAplicado);
 
                 foreach ($detalles as $index => $detalleData) {
                     Log::debug("Detalle #{$index}", $detalleData);
@@ -250,6 +252,9 @@ class CotizacionController extends Controller
                         $img->move(public_path('images_cotizaciones'), $nombre);
                         $imagenRuta = $nombre;
                     }
+
+                    //$porcentajeAplicado = floatval($datosCotizacion['descuento_porcentaje'] ?? 0);
+                    //$detalleData = $this->recalcularDetalle($detalleData, $porcentajeAplicado);
 
                     AdmDetalleCotizacion::create([
                         'iddetallecotizacion' => $nextDetalleId,
@@ -605,7 +610,7 @@ class CotizacionController extends Controller
             ->from('adm_detalle_cotizacion as d')
             ->get();
 
-            log::debug("Detalles obtenidos para la cotización {$id}", ['detalles' => $detalles]);
+        log::debug("Detalles obtenidos para la cotización {$id}", ['detalles' => $detalles]);
         return response()->json($detalles);
     }
 
@@ -770,7 +775,7 @@ class CotizacionController extends Controller
                     'c.descuento_monto',
                     'c.subtotal',
                     'c.impuesto_iva',
-                    'c.total'                    
+                    'c.total'
                 )
                 ->from('adm_cotizacion as c')
                 ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -1165,5 +1170,80 @@ class CotizacionController extends Controller
 
             return response()->json(['ok' => true, 'message' => 'Envío actualizado.']);
         });
+    }
+
+    private function recalcularDetalle(array $detalle, float $porcentajeDescuento): array
+    {
+        $IVA_FACTOR = 1.12;
+
+        $cantidad = floatval($detalle['cantidad'] ?? 0);
+        $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
+        $precio = $cantidad * $precioUnitario;
+
+        $descuento = round($precio * ($porcentajeDescuento / 100));
+        $totalConDescuento = $precio - $descuento;
+
+        $subtotal = round($totalConDescuento / $IVA_FACTOR);
+        $impuestoIva = $totalConDescuento - $subtotal;
+
+        return array_merge($detalle, [
+            'precio' => $precio,
+            'descuento' => $descuento,
+            'subtotal' => $subtotal,
+            'impuesto_iva' => $impuestoIva,
+            'total' => $precio,
+            'porcentaje_aplicado' => $porcentajeDescuento,
+        ]);
+    }
+    private function recalcularDetallesConAjuste(array $detalles, float $porcentajeDescuento): array
+    {
+        $IVA_FACTOR = 1.12;
+        $detallesRecalculados = [];
+        $totalBruto = 0;
+
+
+        // 1. Calcular todos los datos con porcentaje aplicado
+        foreach ($detalles as $detalle) {
+            $cantidad = floatval($detalle['cantidad'] ?? 0);
+            $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
+            $precio = $cantidad * $precioUnitario;
+            $totalBruto += $precio;
+
+
+            $descuento = round($precio * ($porcentajeDescuento / 100));
+            $totalConDescuento = $precio - $descuento;
+
+
+            $subtotal = round($totalConDescuento / $IVA_FACTOR);
+            $impuestoIva = $totalConDescuento - $subtotal;
+
+
+            $detallesRecalculados[] = array_merge($detalle, [
+                'precio' => $precio,
+                'descuento' => $descuento,
+                'subtotal' => $subtotal,
+                'impuesto_iva' => $impuestoIva,
+                'total' => $precio, // sin descuento
+                'porcentaje_aplicado' => $porcentajeDescuento,
+            ]);
+        }
+
+
+        // 2. Ajustar si hay diferencia por redondeo
+        $descuentoEsperado = round($totalBruto * ($porcentajeDescuento / 100));
+        $descuentoAplicado = array_sum(array_column($detallesRecalculados, 'descuento'));
+        $diferencia = $descuentoEsperado - $descuentoAplicado;
+
+
+        if (abs($diferencia) > 0 && count($detallesRecalculados)) {
+            $ultima = &$detallesRecalculados[count($detallesRecalculados) - 1];
+            $ultima['descuento'] += $diferencia;
+            $nuevoTotalConDescuento = $ultima['precio'] - $ultima['descuento'];
+            $ultima['subtotal'] = round($nuevoTotalConDescuento / $IVA_FACTOR);
+            $ultima['impuesto_iva'] = $nuevoTotalConDescuento - $ultima['subtotal'];
+        }
+
+
+        return $detallesRecalculados;
     }
 }
