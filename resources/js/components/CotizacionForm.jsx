@@ -96,6 +96,7 @@ function CotizacionForm() {
     const [nitCliente, setNitCliente] = useState("");
 
     const cantidadRef = useRef(null);
+    const [inputDescuentoMonto, setInputDescuentoMonto] = useState("");
 
     // Cargar la fecha desde el servidor
     useEffect(() => {
@@ -199,6 +200,10 @@ function CotizacionForm() {
     useEffect(() => {
         setInputDescuentoPorcentaje(cotizacion.descuento_porcentaje || "");
     }, [cotizacion.descuento_porcentaje]);
+
+    useEffect(() => {
+        setInputDescuentoMonto(cotizacion.descuento_monto || "");
+    }, [cotizacion.descuento_monto]);
 
     //CAMBIO: Estados para almacenar precios y cantidades del modal
     const [productoPredefinido, setProductoPredefinido] = useState(null);
@@ -423,28 +428,32 @@ function CotizacionForm() {
      * Recalcula la cabecera de la cotización a partir del detalle
      */
     useEffect(() => {
+        if (!detalles.length) return;
+
         const totalBruto = detalles.reduce(
-            (acc, item) =>
-                acc +
-                parseFloat(item.precio_unitario || 0) *
-                    parseFloat(item.cantidad || 0),
+            (acc, item) => acc + item.precio_unitario * item.cantidad,
             0
         );
 
-        const porcentaje = parseFloat(cotizacion.descuento_porcentaje) || 0;
-        const monto = parseFloat(cotizacion.descuento_monto) || 0;
-
-        const resumen = calcularCabeceraDesdeTotalConIva(
-            totalBruto,
-            porcentaje,
-            monto
+        const descuento = detalles.reduce(
+            (acc, item) => acc + (parseFloat(item.descuento) || 0),
+            0
         );
+        const totalConDescuento = totalBruto - descuento;
+        const subtotal = Math.round(totalConDescuento / IVA_FACTOR);
+        const impuestoIva = totalConDescuento - subtotal;
+        const porcentaje = totalBruto > 0 ? (descuento / totalBruto) * 100 : 0;
+        const porcentajeRedondeado = Math.round(porcentaje * 100) / 100;
 
         setCotizacion((prev) => ({
             ...prev,
-            ...resumen,
+            descuento_monto: Math.round(descuento),
+            descuento_porcentaje: porcentajeRedondeado,
+            subtotal,
+            impuesto_iva: impuestoIva,
+            total: Math.round(totalConDescuento),
         }));
-    }, [detalles, cotizacion.descuento_porcentaje, cotizacion.descuento_monto]);
+    }, [detalles]);
 
     /*********************************** */
 
@@ -551,14 +560,15 @@ function CotizacionForm() {
         let descuentoPorcentajeCalc = descPorcentaje;
 
         if (descPorcentaje > 0) {
-            descuentoMontoCalc = totalConIva * (descPorcentaje / 100);
+            descuentoMontoCalc = Math.round(
+                totalConIva * (descPorcentaje / 100)
+            );
         } else if (descMonto > 0) {
             descuentoPorcentajeCalc = (descMonto / totalConIva) * 100;
         }
 
-        const totalConDescuento = totalConIva - descuentoMontoCalc;
-
-        const subtotalSinIva = totalConDescuento / IVA_FACTOR;
+        const totalConDescuento = Math.round(totalConIva - descuentoMontoCalc);
+        const subtotalSinIva = Math.round(totalConDescuento / IVA_FACTOR);
         const impuestoIva = totalConDescuento - subtotalSinIva;
         const totalFinal = totalConDescuento;
 
@@ -592,31 +602,53 @@ function CotizacionForm() {
         }));
     };
 
-    const handleDescuentoMontoChange = (e) => {
-        const monto = parseFloat(e.target.value) || 0;
-        const totalBruto = detalles.reduce(
-            (acc, item) =>
-                acc +
-                parseFloat(item.precio_unitario || 0) *
-                    parseFloat(item.cantidad || 0),
+    const handleDescuentoMontoChange = (event) => {
+        const monto = parseFloat(event.target.value || 0);
+
+        const totalBruto = detalles.reduce((acc, item) => {
+            return acc + item.precio_unitario * item.cantidad;
+        }, 0);
+
+        // Convertimos monto a porcentaje
+        const porcentaje = (monto / totalBruto) * 100;
+
+        let nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
+
+        // 🔧 Ajustar para que el descuento aplicado cuadre con el monto exacto
+        const descuentoAplicado = nuevosDetalles.reduce(
+            (acc, item) => acc + item.descuento,
             0
         );
+        const diferencia = Math.round(monto) - descuentoAplicado;
 
-        const calc = calcularCabecera(totalBruto, 0, monto);
-        const porcentaje = parseFloat(calc.descuento_porcentaje) || 0;
+        if (Math.abs(diferencia) > 0 && nuevosDetalles.length > 0) {
+            const idx = nuevosDetalles.length - 1;
+            nuevosDetalles[idx].descuento += diferencia;
+            const totalConDescuento =
+                nuevosDetalles[idx].precio - nuevosDetalles[idx].descuento;
+            const subtotal = Math.round(totalConDescuento / IVA_FACTOR);
+            const iva = totalConDescuento - subtotal;
 
-        // 🔥 recalcula toda la grilla con el porcentaje equivalente
-        const nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
+            nuevosDetalles[idx].subtotal = subtotal;
+            nuevosDetalles[idx].impuesto_iva = iva;
+        }
+
+        const totalConDescuento = nuevosDetalles.reduce(
+            (acc, item) => acc + (item.precio - item.descuento),
+            0
+        );
+        const subtotalSinIva = Math.round(totalConDescuento / IVA_FACTOR);
+        const impuestoIva = totalConDescuento - subtotalSinIva;
 
         setDetalles(nuevosDetalles);
-        setCotizacion((prev) => ({
-            ...prev,
-            descuento_porcentaje: calc.descuento_porcentaje,
-            descuento_monto: calc.descuento_monto,
-            subtotal: calc.subtotal,
-            impuesto_iva: calc.impuesto_iva,
-            total: calc.total,
-        }));
+        setCotizacion({
+            ...cotizacion,
+            descuento_monto: monto,
+            descuento_porcentaje: porcentaje,
+            total: totalConDescuento,
+            subtotal: subtotalSinIva,
+            impuesto_iva: impuestoIva,
+        });
     };
 
     const handleEliminarDetalle = (index) => {
@@ -2084,6 +2116,7 @@ function CotizacionForm() {
                                             className="form-control form-control-sm"
                                             step="0.01"
                                             min="0"
+                                             max="100"
                                         />
                                     </div>
                                     <div className="col‑md‑3">
@@ -2093,10 +2126,13 @@ function CotizacionForm() {
                                         <input
                                             type="number"
                                             name="descuento_monto"
-                                            value={cotizacion.descuento_monto}
-                                            onChange={
-                                                handleDescuentoMontoChange
+                                            value={inputDescuentoMonto}
+                                            onChange={(e) =>
+                                                setInputDescuentoMonto(
+                                                    e.target.value
+                                                )
                                             }
+                                            onBlur={handleDescuentoMontoChange}
                                             className="form-control form-control-sm"
                                             step="0.01"
                                             min="0"

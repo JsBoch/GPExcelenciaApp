@@ -48,22 +48,42 @@ export function calcularCabeceraDesdeTotalConIva(totalConIva, descuentoPorcentaj
   };
 }
 
-export function aplicarDescuentoAGrilla(detalles, descuentoPorcentaje) {
-  const porcentaje = parseFloat(descuentoPorcentaje) || 0;
+// export function aplicarDescuentoAGrilla(detalles, descuentoPorcentaje) {
+//   const porcentaje = parseFloat(descuentoPorcentaje) || 0;
+//   return detalles.map((item) => {
+//     const cantidad = parseFloat(item.cantidad) || 0;
+//     const precio_unitario = parseFloat(item.precio_unitario) || 0;
+//     const precioBruto = cantidad * precio_unitario;
+//     const descuento = (porcentaje > 0 ? precioBruto * (porcentaje / 100) : 0);
+
+//     return {
+//       ...item,
+//       ...calcularDetalleConIVA({
+//         cantidad,
+//         precio_unitario,
+//         descuento,
+//       }),
+//       descuento: descuento.toFixed(2),
+//     };
+//   });
+// }
+export const aplicarDescuentoAGrilla = (detalles, porcentaje) => {
+  const IVA_FACTOR = 1.12;
   return detalles.map((item) => {
-    const cantidad = parseFloat(item.cantidad) || 0;
-    const precio_unitario = parseFloat(item.precio_unitario) || 0;
-    const precioBruto = cantidad * precio_unitario;
-    const descuento = (porcentaje > 0 ? precioBruto * (porcentaje / 100) : 0);
+    const precio = item.cantidad * item.precio_unitario;
+    const descuento = Math.round(precio * (porcentaje / 100));
+    const totalConDescuento = precio - descuento;
+    const subtotal = Math.round(totalConDescuento / IVA_FACTOR);
+    const impuesto_iva = totalConDescuento - subtotal;
 
     return {
       ...item,
-      ...calcularDetalleConIVA({
-        cantidad,
-        precio_unitario,
-        descuento,
-      }),
-      descuento: descuento.toFixed(2),
+      precio: precio,
+      descuento: descuento,
+      subtotal: subtotal,
+      impuesto_iva: impuesto_iva,
+      total: precio,
+      porcentaje_aplicado: porcentaje,
     };
   });
-}
+};
