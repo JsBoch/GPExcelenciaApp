@@ -66,6 +66,7 @@ class AdmCotizacion extends Model
         'descuento_monto',
         'impuesto_iva',
         'total',
+        'modo_descuento',
     ];
 
     protected $casts = [
