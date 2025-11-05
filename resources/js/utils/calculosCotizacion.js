@@ -37,16 +37,17 @@ export function calcularCabeceraDesdeTotalConIva(totalConIva, descuentoPorcentaj
 
   const totalConDescuento = totalConIva - descuento_monto;
   const subtotal = totalConDescuento / IVA_FACTOR;
-  const impuesto_iva = subtotal * 0.12;
+  const impuesto_iva = totalConDescuento - subtotal;
 
   return {
-    descuento_monto: descuento_monto.toFixed(2),
-    descuento_porcentaje: descuento_porcentaje.toFixed(2),
-    subtotal: subtotal.toFixed(2),
-    impuesto_iva: impuesto_iva.toFixed(2),
-    total: totalConDescuento.toFixed(2),
+    descuento_monto: parseFloat(descuento_monto.toFixed(2)),
+    descuento_porcentaje: parseFloat(descuento_porcentaje.toFixed(2)),
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    impuesto_iva: parseFloat(impuesto_iva.toFixed(2)),
+    total: parseFloat(totalConDescuento.toFixed(2)),
   };
 }
+
 
 // export function aplicarDescuentoAGrilla(detalles, descuentoPorcentaje) {
 //   const porcentaje = parseFloat(descuentoPorcentaje) || 0;
@@ -71,19 +72,20 @@ export const aplicarDescuentoAGrilla = (detalles, porcentaje) => {
   const IVA_FACTOR = 1.12;
   return detalles.map((item) => {
     const precio = item.cantidad * item.precio_unitario;
-    const descuento = Math.round(precio * (porcentaje / 100));
+    const descuento = precio * (porcentaje / 100);
     const totalConDescuento = precio - descuento;
-    const subtotal = Math.round(totalConDescuento / IVA_FACTOR);
+    const subtotal = totalConDescuento / IVA_FACTOR;
     const impuesto_iva = totalConDescuento - subtotal;
 
     return {
       ...item,
-      precio: precio,
-      descuento: descuento,
-      subtotal: subtotal,
-      impuesto_iva: impuesto_iva,
-      total: precio,
-      porcentaje_aplicado: porcentaje,
+      precio: parseFloat(precio.toFixed(2)),
+      descuento: parseFloat(descuento.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      impuesto_iva: parseFloat(impuesto_iva.toFixed(2)),
+      total: parseFloat(precio.toFixed(2)),
+      porcentaje_aplicado: parseFloat(porcentaje.toFixed(2)),
     };
   });
 };
+
