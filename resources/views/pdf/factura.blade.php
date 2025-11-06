@@ -158,7 +158,7 @@
                 <tr>
                     <th style="width: 10%; border-right: 1px solid #000; padding: 4px; border-top-left-radius: 8px;">Cant.</th>
                     <th style="width: 60%; border-right: 1px solid #000; padding: 4px;">Descripción</th>
-                    <th style="width: 15%; border-right: 1px solid #000; padding: 4px; text-align: right;">Precio</th>
+                    <th style="width: 15%; border-right: 1px solid #000; padding: 4px; text-align: right;">P.U.</th>
                     <th style="width: 15%; padding: 4px; text-align: right; border-top-right-radius: 8px;">Total</th>
                 </tr>
             </thead>
