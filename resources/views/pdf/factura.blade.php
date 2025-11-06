@@ -171,7 +171,7 @@
                 <tr>
                     <td style="padding: 4px; text-align: center; width: 10%;">{{ number_format($item->cantidad, 0) }}</td>
                     <td style="padding: 4px; width: 60%;">{{ $item->descripcion }}</td>
-                    <td style="padding: 4px; text-align: right; width: 15%;">{{ number_format($item->precio, 2) }}</td>
+                    <td style="padding: 4px; text-align: right; width: 15%;">{{ number_format($item->precio_unitario, 2) }}</td>
                     <td style="padding: 4px; text-align: right; width: 15%;">{{ number_format($item->total, 2) }}</td>
                 </tr>
                 @endforeach
