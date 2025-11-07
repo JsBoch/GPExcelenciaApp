@@ -205,7 +205,7 @@ function MonitorFacturacion() {
         if (fetchingRef.current) return;
         fetchingRef.current = true;
         setLoading(true);
-
+ setCotizaciones([]);
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -224,7 +224,8 @@ function MonitorFacturacion() {
                 params,
             });
 
-            setCotizaciones(data || []);
+            // setCotizaciones(data || []);
+            setCotizaciones([...new Map(data.map(x => [x.idcotizacion, x])).values()]);
         } catch (e) {
             alertify.error("Error al obtener las cotizaciones.");
         } finally {
@@ -1762,6 +1763,9 @@ function MonitorFacturacion() {
                                     // fallback por seguridad
                                     return Math.random();
                                 }}
+                                // getRowId={(row) => `COT-${row.idcotizacion}`}
+
+                                
                                 rowSelectionModel={selectionModel}
                                 onRowSelectionModelChange={(newSel) => {
                                     const id = newSel[0];
