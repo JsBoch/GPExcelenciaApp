@@ -72,16 +72,18 @@
       <!-- ▼ Ahora con 6 columnas: agregamos Días vencidos -->
       <colgroup>
         <col style="width:15%">   <!-- No. Cotización -->
+        <col style="width:15%">   <!-- No. Interno -->
         <col style="width:12%">   <!-- Fecha -->
-        <col style="width:10%">   <!-- Días vencidos -->
-        <col style="width:18%">   <!-- Vendedor -->
-        <col style="width:30%">   <!-- Cliente -->
+        <col style="width:8%">   <!-- Días vencidos -->
+        <col style="width:14%">   <!-- Vendedor -->
+        <col style="width:23%">   <!-- Cliente -->
         <col style="width:15%">   <!-- Total -->
       </colgroup>
 
       <thead>
         <tr>
           <th>No. Cotización</th>
+           <th>No. Interno</th>
           <th>Fecha</th>
           <th>Días vencidos</th>
           <th>Vendedor</th>
@@ -94,6 +96,7 @@
         @foreach($rows as $row)
           <tr>
             <td>{{ $row->nocotizacion }}</td>
+            <td>{{ $row->nointerno }}</td>
             <td>{{ \Carbon\Carbon::parse($row->fecha_cotizacion)->format('d/m/Y') }}</td>
             <td class="col-num">{{ (int)($row->dias_desde_prefacturacion ?? 0) }}</td>
             <td>{{ $row->vendedor }}</td>

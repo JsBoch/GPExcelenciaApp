@@ -111,7 +111,8 @@ class ReportesContabilidadController extends Controller
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->select(
                 'ac.idcotizacion',
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),                
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),        
+                'fac.nofactura as nointerno',     
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
