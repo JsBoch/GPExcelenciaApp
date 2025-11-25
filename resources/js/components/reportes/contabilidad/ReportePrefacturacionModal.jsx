@@ -84,7 +84,7 @@ export const ReportePrefacturacionDoc = ({ data }) => {
             <Col w={14}><Text style={styles.th}>Fecha Prefact.</Text></Col>
             <Col w={26}><Text style={styles.th}>Cliente</Text></Col>
             <Col w={12}><Text style={styles.th}>Vendedor</Text></Col>
-            <Col w={10}><Text style={styles.th}>Tipo Pago</Text></Col>
+            {/* <Col w={10}><Text style={styles.th}>Tipo Pago</Text></Col> */}
             <Col w={12}><Text style={styles.th}>Total</Text></Col>
             <Col w={10}><Text style={[styles.th, styles.estadoTh]}>Estado</Text></Col>
           </View>
@@ -95,7 +95,7 @@ export const ReportePrefacturacionDoc = ({ data }) => {
               <Col w={14}><Text style={styles.td}>{toDMY(r.fecha_prefacturacion)}</Text></Col>
               <Col w={26}><Text style={styles.td}>{r.cliente}</Text></Col>
               <Col w={12}><Text style={styles.td}>{r.vendedor || ''}</Text></Col>
-              <Col w={10}><Text style={styles.td}>{r.tipo_pago}</Text></Col>
+              {/* <Col w={10}><Text style={styles.td}>{r.tipo_pago}</Text></Col> */}
               <Col w={12}><Text style={[styles.td, styles.right]}>{fmtQ.format(Number(r.total || 0))}</Text></Col>
               <Col w={10}><Text style={[styles.td, styles.estadoTd]}>{r.estado}</Text></Col>
             </View>

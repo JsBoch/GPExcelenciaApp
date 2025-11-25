@@ -24,13 +24,13 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
         // Subquery: 1 fila por idcotizacion con la fecha de certificación (NO anuladas)
         $facAgg = DB::table('adm_facturacion')
-            ->select('idcotizacion', DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
+            ->select('idcotizacion', DB::raw('MAX(nofactura) AS nofactura'), DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
             // ⬇️ ignora facturas anuladas
             ->when(
                 Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
                 fn($q) => $q->whereNull('fecha_anulacion')
             )
-            ->groupBy('idcotizacion');
+            ->groupBy('idcotizacion', 'nofactura');
 
         // Expresión reutilizable (coalesce entre nueva y histórica)
         $fechaCertExpr = DB::raw('DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))');
@@ -43,6 +43,7 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->select(
                 DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) as nocotizacion"),
+                'fac.nofactura as nointerno',
                 // Fecha mostrada
                 DB::raw("
                 CASE
@@ -114,6 +115,6 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
     public function headings(): array
     {
-        return ['No. Cotización', 'Fecha', 'Dias Vencidos', 'Vendedor', 'Cliente', 'Total'];
+        return ['No. Cotización','No.Interno', 'Fecha', 'Dias Vencidos', 'Vendedor', 'Cliente', 'Total'];
     }
 }
