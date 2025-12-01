@@ -128,7 +128,12 @@ const NotaEnvioPDF = ({ data }) => {
         <Document>
             <Page size="A4" style={styles.page}>
                 {/* Encabezado */}
-                <View style={[styles.row, { alignItems: "center", marginBottom: 10 }]}>
+                <View
+                    style={[
+                        styles.row,
+                        { alignItems: "center", marginBottom: 10 },
+                    ]}
+                >
                     <View style={{ width: "33%" }}>
                         <Image src={logoBase64} style={{ width: 100 }} />
                     </View>
@@ -137,41 +142,68 @@ const NotaEnvioPDF = ({ data }) => {
                         <Text style={[styles.title, { textAlign: "center" }]}>
                             GP Excelencia S.A.
                         </Text>
-                        <Text style={styles.contact}>ventas@gpexcelencia.com</Text>
+                        <Text style={styles.contact}>
+                            ventas@gpexcelencia.com
+                        </Text>
                         <Text style={styles.contact}>www.gpexcelencia.com</Text>
                         <Text style={styles.contact}>
-                            11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco, Guatemala
+                            11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco,
+                            Guatemala
                         </Text>
                         <View style={styles.contactPhonesRow}>
-                            <Text style={styles.contactPhoneText}>Tel: 2309-9419</Text>
+                            <Text style={styles.contactPhoneText}>
+                                Tel: 2309-9419
+                            </Text>
                             <View style={styles.whatsappGroup}>
-                                <Image src={whatsappIcon} style={styles.whatsappIcon} />
-                                <Text style={styles.contactPhoneText}>3595-5875</Text>
+                                <Image
+                                    src={whatsappIcon}
+                                    style={styles.whatsappIcon}
+                                />
+                                <Text style={styles.contactPhoneText}>
+                                    3595-5875
+                                </Text>
                             </View>
                         </View>
                     </View>
 
                     <View style={{ width: "33%", textAlign: "right" }}>
-                        <Text style={{ fontSize: 14, fontWeight: "bold" }}>NOTA DE ENVÍO</Text>
+                        <Text style={{ fontSize: 14, fontWeight: "bold" }}>
+                            NOTA DE ENVÍO
+                        </Text>
                         <Text style={{ fontSize: 12, fontWeight: "bold" }}>
-                            {noCotizacion ? `${noCotizacion} / Envío ${no_envio}` : `Envío ${no_envio}`}
+                            {noCotizacion
+                                ? `${noCotizacion} / Envío ${no_envio}`
+                                : `Envío ${no_envio}`}
                         </Text>
                     </View>
                 </View>
 
                 {/* Datos principales */}
                 <View style={{ marginBottom: 10 }}>
-                    <Text><Text style={styles.bold}>EMPRESA:</Text> {cliente}</Text>
-                    <Text><Text style={styles.bold}>DIRECCIÓN:</Text> {direccion || "-"}</Text>
-                    <Text><Text style={styles.bold}>FECHA:</Text> {fecha}</Text>
-                    <Text><Text style={styles.bold}>CONTACTO:</Text> {contacto}</Text>
-                    <Text><Text style={styles.bold}>TELÉFONO:</Text> {telefono}</Text>
+                    <Text>
+                        <Text style={styles.bold}>EMPRESA:</Text> {cliente}
+                    </Text>
+                    <Text>
+                        <Text style={styles.bold}>DIRECCIÓN:</Text>{" "}
+                        {direccion || "-"}
+                    </Text>
+                    <Text>
+                        <Text style={styles.bold}>FECHA:</Text> {fecha}
+                    </Text>
+                    {/* <Text><Text style={styles.bold}>CONTACTO:</Text> {contacto}</Text>
+                    <Text><Text style={styles.bold}>TELÉFONO:</Text> {telefono}</Text> */}
+                    <Text>CONTACTO: {data.cabecera.contacto}</Text>
+                    <Text>TELÉFONO: {data.cabecera.telefono}</Text>
                 </View>
 
                 {/* Tabla */}
                 <View style={styles.tableHeader}>
-                    <Text style={[styles.tableHeaderCell, styles.qtyCol]}>CANT.</Text>
-                    <Text style={[styles.tableHeaderCell, styles.descCol]}>DESCRIPCIÓN</Text>
+                    <Text style={[styles.tableHeaderCell, styles.qtyCol]}>
+                        CANT.
+                    </Text>
+                    <Text style={[styles.tableHeaderCell, styles.descCol]}>
+                        DESCRIPCIÓN
+                    </Text>
                 </View>
 
                 {productos.length === 0 ? (
@@ -179,8 +211,10 @@ const NotaEnvioPDF = ({ data }) => {
                 ) : (
                     productos.map((item, index) => (
                         <View key={index} style={styles.tableRow} wrap={false}>
-                            <Text style={styles.qtyCol}>{item.cantidad}</Text>
-                            <Text style={styles.descCol}>{item.descripcion}</Text>
+                            <Text style={styles.qtyCol}>{Number(item.cantidad).toFixed(0)}</Text>
+                            <Text style={styles.descCol}>
+                                {item.descripcion}
+                            </Text>
                         </View>
                     ))
                 )}
@@ -191,10 +225,13 @@ const NotaEnvioPDF = ({ data }) => {
                 {/* Footer compacto */}
                 <View style={styles.footer}>
                     <Text style={styles.redText}>
-                        Verificar producto, no se aceptan cambios ni devoluciones.
+                        Verificar producto, no se aceptan cambios ni
+                        devoluciones.
                     </Text>
 
-                    <Text>OBSERVACIÓN: ___________________________________________</Text>
+                    <Text>
+                        OBSERVACIÓN: ___________________________________________
+                    </Text>
 
                     <View style={styles.signatureGroup}>
                         <View style={styles.signatureBox}>

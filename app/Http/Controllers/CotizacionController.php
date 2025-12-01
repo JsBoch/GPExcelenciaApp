@@ -21,6 +21,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\QueryException;
 use App\Models\AdmEnvioItem;
+use App\Services\NotaEnvioService;
 
 class CotizacionController extends Controller
 {
@@ -719,7 +720,7 @@ class CotizacionController extends Controller
     public function listarContactos(Request $request)
     {
         $idcliente = $request->input('idcliente');
-        $contactos = ContactoCliente::where('idcliente', $idcliente)->get(['id_contactocliente', 'nombre']);
+        $contactos = ContactoCliente::where('idcliente', $idcliente)->get(['id_contactocliente', 'nombre', 'telefono', 'correo']);
         return response()->json($contactos);
     }
 
@@ -896,86 +897,12 @@ class CotizacionController extends Controller
         return response()->json($historial);
     }
 
-    public function notaEnvioConfig($id)
+    public function notaEnvioConfig(int $idCotizacion, NotaEnvioService $service)
     {
-        $cot = AdmCotizacion::findOrFail($id);
-
-        // columnas base
-        $cols = ['iddetallecotizacion', 'descripcion', 'cantidad', 'total', 'estado'];
-
-        // agrega numero_envio solo si existe
-        $hasNumeroEnvio = Schema::hasColumn('adm_detalle_cotizacion', 'numero_envio');
-        if ($hasNumeroEnvio) {
-            $cols[] = 'numero_envio';
-        } else {
-            $cols[] = DB::raw('NULL as numero_envio');
-        }
-
-        // $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)
-        //     ->orderBy('iddetallecotizacion')
-        //     ->get($cols);
-
-        $detalles = AdmDetalleCotizacion::from('adm_detalle_cotizacion as d')
-            ->where('d.idcotizacion', $id)
-            ->leftJoin('adm_envio_item as ei', 'ei.iddetallecotizacion', '=', 'd.iddetallecotizacion')
-            ->groupBy(
-                'd.iddetallecotizacion',
-                'd.descripcion',
-                'd.cantidad',
-                'd.total',
-                'd.estado'
-                // agrega aquí cualquier otra columna de d que devuelvas
-            )
-            ->orderBy('d.iddetallecotizacion')
-            ->get([
-                'd.iddetallecotizacion',
-                'd.descripcion',
-                'd.cantidad as cantidad_total',
-                DB::raw('COALESCE(SUM(ei.cantidad),0) as cantidad_enviada'),
-                DB::raw('(d.cantidad - COALESCE(SUM(ei.cantidad),0)) as cantidad_pendiente'),
-                'd.total',
-                'd.estado',
-                // Si aún usas numero_envio en d, puedes incluirlo como referencia
-                DB::raw('NULL as numero_envio'),
-            ]);
-
-        // siguiente envío ignorando 0/NULL solo si existe la columna
-        // $maxEnvio = 0;
-        // if ($hasNumeroEnvio) {
-        //     $maxEnvio = AdmDetalleCotizacion::where('idcotizacion', $id)
-        //         ->where('numero_envio', '>', 0)
-        //         ->max('numero_envio');
-        // }
-
-        $envios = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
-            ->whereNotNull('no_envio')
-            ->where('no_envio', '>', 0)
-            ->orderBy('no_envio', 'asc')
-            ->get(['no_envio', 'direccion_envio', 'fecha_envio']);
-
-        $ultimaDireccion = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
-            ->orderByDesc('fecha_envio')
-            ->value('direccion_envio');
-
-        $direccionSugerida = $ultimaDireccion ?: ($cot->direccion_entrega ?? '');
-
-        $maxEnvio = AdmEnvioItem::where('idcotizacion', $id)->max('no_envio') ?? 0;
-
-        return response()->json([
-            'cotizacion' => [
-                'idcotizacion' => $cot->idcotizacion,
-                'nocotizacion' => $cot->nocotizacion,
-                'cliente'      => Clientes::find($cot->idcliente)->nombre ?? '',
-                'contacto'     => ContactoCliente::find($cot->idcontacto)->nombre ?? '',
-                'fecha'        => $cot->fecha_cotizacion,
-            ],
-            'detalles'          => $detalles,
-            'siguiente_envio'   => (int)($maxEnvio ?? 0) + 1,
-            'envios'            => $envios,
-            'direccion_sugerida' => $direccionSugerida,
-        ]);
+        return response()->json(
+            $service->obtenerConfigNotaEnvio($idCotizacion)
+        );
     }
-
 
     // 2.2.2. Generar (primer) PDF para un conjunto de ítems SIN envio, asignando nuevo número
     public function notaEnvioGenerar(Request $request, $id)
@@ -987,8 +914,16 @@ class CotizacionController extends Controller
                 'integer',
                 Rule::exists('adm_detalle_cotizacion', 'iddetallecotizacion')->where('idcotizacion', $id)
             ],
-            'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'items.*.cantidad' => ['required', 'numeric', 'min:0'],
             'direccion_envio' => ['required', 'string', 'max:500'],
+            'id_contacto' => [
+                'nullable',
+                'integer',
+                Rule::exists('contacto_cliente', 'id_contactocliente')
+                    ->where(function ($q) use ($id) {
+                        $q->where('idcliente', AdmCotizacion::find($id)->idcliente);
+                    }),
+            ],
         ]);
 
         return DB::transaction(function () use ($request, $id) {
@@ -1029,10 +964,13 @@ class CotizacionController extends Controller
 
             // Cabecera historial
             $cabecera = AdmCotizacion::findOrFail($id);
+            $idContacto = $request->input('id_contacto');
+
             AdmHistorialEnvioCotizacion::create([
                 'idcotizacion'     => $id,
                 'no_envio'         => $noEnvio,
                 'direccion_envio'  => $direccion,
+                'id_contactocliente' => $idContacto,
                 'fecha_cotizacion' => $cabecera->fecha_cotizacion,
                 'fecha_envio'      => now(),
             ]);
@@ -1051,8 +989,8 @@ class CotizacionController extends Controller
                 'direccion' => $direccion,
                 'cabecera'  => [
                     'cliente'      => optional(Clientes::find($cabecera->idcliente))->nombre ?? '',
-                    'contacto'     => optional(ContactoCliente::find($cabecera->idcontacto))->nombre ?? '',
-                    'telefono'     => optional(ContactoCliente::find($cabecera->idcontacto))->telefono ?? '',
+                    'contacto' => optional(ContactoCliente::find($idContacto))->nombre ?? '',
+                    'telefono' => optional(ContactoCliente::find($idContacto))->telefono ?? '',
                     'nocotizacion' => 'CT' . $cabecera->nocotizacion,
                     'fecha'        => $cabecera->fecha_cotizacion,
                 ],
@@ -1078,7 +1016,7 @@ class CotizacionController extends Controller
             ->join('adm_detalle_cotizacion as d', 'd.iddetallecotizacion', '=', 'ei.iddetallecotizacion')
             ->where('ei.idcotizacion', $id)
             ->where('ei.no_envio', $noEnvio)
-            ->get(['ei.cantidad', 'd.descripcion']);
+            ->get(['ei.iddetallecotizacion','ei.cantidad', 'd.descripcion']);
 
 
         // Fallback legacy (si tuvieras envíos viejos sin pivote)
@@ -1116,16 +1054,28 @@ class CotizacionController extends Controller
 
     public function notaEnvioActualizar(Request $request, $id)
     {
+        //Log::info("ACTUALIZAR ENVIO REQUEST", request()->all());
+
         $request->validate([
             'no_envio' => ['required', 'integer', 'min:1'],
             'direccion_envio' => ['required', 'string', 'max:500'],
-            'items' => ['required', 'array', 'min:1'],
+            'id_contacto' => [
+                'nullable',
+                'integer',
+                Rule::exists('contacto_cliente', 'id_contactocliente')->where(
+                    function ($q) use ($id) {
+                        $idCliente = AdmCotizacion::find($id)->idcliente;
+                        $q->where('idcliente', $idCliente);
+                    }
+                ),
+            ],
+            'items' => ['required', 'array'],
             'items.*.iddetallecotizacion' => [
                 'required',
                 'integer',
                 Rule::exists('adm_detalle_cotizacion', 'iddetallecotizacion')->where('idcotizacion', $id)
             ],
-            'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'items.*.cantidad' => ['required', 'numeric', 'min:0'],
         ]);
         $noEnvio = (int)$request->no_envio;
 
@@ -1153,6 +1103,8 @@ class CotizacionController extends Controller
             // Reemplazar líneas del envío
             AdmEnvioItem::where('idcotizacion', $id)->where('no_envio', $noEnvio)->delete();
             foreach ($items as $iddet => $it) {
+                // ⛔ saltar items en cero (equivale a quitar de envío)
+                if ((float)$it['cantidad'] == 0) continue;
                 AdmEnvioItem::create([
                     'idcotizacion' => $id,
                     'iddetallecotizacion' => $iddet,
@@ -1162,8 +1114,23 @@ class CotizacionController extends Controller
             }
 
             // Actualizar dirección
-            AdmHistorialEnvioCotizacion::where('idcotizacion', $id)->where('no_envio', $noEnvio)
-                ->update(['direccion_envio' => $request->direccion_envio]);
+            // AdmHistorialEnvioCotizacion::where('idcotizacion', $id)->where('no_envio', $noEnvio)
+            //     ->update(['direccion_envio' => $request->direccion_envio]);
+            // Actualizar dirección y contacto
+            $hist = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
+                ->where('no_envio', $noEnvio)
+                ->firstOrFail();
+
+            // Dirección
+            $hist->direccion_envio = $request->direccion_envio;
+
+            // Contacto (solo si lo mandan, si no, dejar el mismo)
+            if ($request->filled('id_contacto')) {
+                $hist->id_contactocliente = $request->id_contacto;
+            }
+
+            $hist->save();
+
 
             return response()->json(['ok' => true, 'message' => 'Envío actualizado.']);
         });
@@ -1192,101 +1159,49 @@ class CotizacionController extends Controller
             'porcentaje_aplicado' => $porcentajeDescuento,
         ]);
     }
-    // private function recalcularDetallesConAjuste(array $detalles, float $porcentajeDescuento): array
-    // {
-    //     $IVA_FACTOR = 1.12;
-    //     $detallesRecalculados = [];
-    //     $totalBruto = 0;
-
-
-    //     // 1. Calcular todos los datos con porcentaje aplicado
-    //     foreach ($detalles as $detalle) {
-    //         $cantidad = floatval($detalle['cantidad'] ?? 0);
-    //         $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
-    //         $precio = $cantidad * $precioUnitario;
-    //         $totalBruto += $precio;
-
-
-    //         $descuento = round($precio * ($porcentajeDescuento / 100));
-    //         $totalConDescuento = $precio - $descuento;
-
-
-    //         $subtotal = round($totalConDescuento / $IVA_FACTOR, 2);
-    //         $impuestoIva = round($totalConDescuento - $subtotal, 2);
-
-
-    //         $detallesRecalculados[] = array_merge($detalle, [
-    //             'precio' => $precio,
-    //             'descuento' => $descuento,
-    //             'subtotal' => $subtotal,
-    //             'impuesto_iva' => $impuestoIva,
-    //             'total' => $precio, // sin descuento
-    //             'porcentaje_aplicado' => $porcentajeDescuento,
-    //         ]);
-    //     }
-
-
-    //     // 2. Ajustar si hay diferencia por redondeo
-    //     $descuentoEsperado = round($totalBruto * ($porcentajeDescuento / 100));
-    //     $descuentoAplicado = array_sum(array_column($detallesRecalculados, 'descuento'));
-    //     $diferencia = $descuentoEsperado - $descuentoAplicado;
-
-
-    //     if (abs($diferencia) > 0 && count($detallesRecalculados)) {
-    //         $ultima = &$detallesRecalculados[count($detallesRecalculados) - 1];
-    //         $ultima['descuento'] += $diferencia;
-    //         $nuevoTotalConDescuento = $ultima['precio'] - $ultima['descuento'];
-    //         $ultima['subtotal'] = round($nuevoTotalConDescuento / $IVA_FACTOR);
-    //         $ultima['impuesto_iva'] = $nuevoTotalConDescuento - $ultima['subtotal'];
-    //     }
-
-
-    //     return $detallesRecalculados;
-    // }
 
     private function recalcularDetallesConAjuste(array $detalles, float $porcentajeDescuento): array
-{
-    $IVA_FACTOR = 1.12;
-    $detallesRecalculados = [];
-    $totalBruto = 0;
+    {
+        $IVA_FACTOR = 1.12;
+        $detallesRecalculados = [];
+        $totalBruto = 0;
 
-    // 1. Calcular todos los datos con porcentaje aplicado
-    foreach ($detalles as $detalle) {
-        $cantidad = floatval($detalle['cantidad'] ?? 0);
-        $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
-        $precio = $cantidad * $precioUnitario;
-        $totalBruto += $precio;
+        // 1. Calcular todos los datos con porcentaje aplicado
+        foreach ($detalles as $detalle) {
+            $cantidad = floatval($detalle['cantidad'] ?? 0);
+            $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
+            $precio = $cantidad * $precioUnitario;
+            $totalBruto += $precio;
 
-        $descuento = $precio * ($porcentajeDescuento / 100);
-        $totalConDescuento = $precio - $descuento;
+            $descuento = $precio * ($porcentajeDescuento / 100);
+            $totalConDescuento = $precio - $descuento;
 
-        $subtotal = $totalConDescuento / $IVA_FACTOR;
-        $impuestoIva = $totalConDescuento - $subtotal;
+            $subtotal = $totalConDescuento / $IVA_FACTOR;
+            $impuestoIva = $totalConDescuento - $subtotal;
 
-        $detallesRecalculados[] = array_merge($detalle, [
-            'precio' => round($precio, 2),
-            'descuento' => round($descuento, 2),
-            'subtotal' => round($subtotal, 2),
-            'impuesto_iva' => round($impuestoIva, 2),
-            'total' => round($precio, 2),
-            'porcentaje_aplicado' => round($porcentajeDescuento, 2),
-        ]);
+            $detallesRecalculados[] = array_merge($detalle, [
+                'precio' => round($precio, 2),
+                'descuento' => round($descuento, 2),
+                'subtotal' => round($subtotal, 2),
+                'impuesto_iva' => round($impuestoIva, 2),
+                'total' => round($precio, 2),
+                'porcentaje_aplicado' => round($porcentajeDescuento, 2),
+            ]);
+        }
+
+        // 2. Ajustar si hay diferencia por redondeo
+        $descuentoEsperado = $totalBruto * ($porcentajeDescuento / 100);
+        $descuentoAplicado = array_sum(array_column($detallesRecalculados, 'descuento'));
+        $diferencia = $descuentoEsperado - $descuentoAplicado;
+
+        if (abs($diferencia) > 0.01 && count($detallesRecalculados)) {
+            $ultima = &$detallesRecalculados[count($detallesRecalculados) - 1];
+            $ultima['descuento'] += $diferencia;
+            $nuevoTotalConDescuento = $ultima['precio'] - $ultima['descuento'];
+            $ultima['subtotal'] = round($nuevoTotalConDescuento / $IVA_FACTOR, 2);
+            $ultima['impuesto_iva'] = round($nuevoTotalConDescuento - $ultima['subtotal'], 2);
+        }
+
+        return $detallesRecalculados;
     }
-
-    // 2. Ajustar si hay diferencia por redondeo
-    $descuentoEsperado = $totalBruto * ($porcentajeDescuento / 100);
-    $descuentoAplicado = array_sum(array_column($detallesRecalculados, 'descuento'));
-    $diferencia = $descuentoEsperado - $descuentoAplicado;
-
-    if (abs($diferencia) > 0.01 && count($detallesRecalculados)) {
-        $ultima = &$detallesRecalculados[count($detallesRecalculados) - 1];
-        $ultima['descuento'] += $diferencia;
-        $nuevoTotalConDescuento = $ultima['precio'] - $ultima['descuento'];
-        $ultima['subtotal'] = round($nuevoTotalConDescuento / $IVA_FACTOR, 2);
-        $ultima['impuesto_iva'] = round($nuevoTotalConDescuento - $ultima['subtotal'], 2);
-    }
-
-    return $detallesRecalculados;
-}
-
 }

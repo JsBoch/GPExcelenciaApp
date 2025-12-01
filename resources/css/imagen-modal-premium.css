@@ -1,0 +1,89 @@
+/* ============================
+   MODAL PREMIUM PARA IMÁGENES
+   ============================ */
+
+/* Fondo oscuro con blur */
+.imgmodal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75); /* slate dark */
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* Contenedor premium */
+.imgmodal-content {
+    position: relative;
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    animation: scaleIn 0.25s ease-out;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+/* Imagen con estilo */
+.imgmodal-image {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 10px;
+    object-fit: contain;
+    transition: transform 0.25s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Zoom suave */
+.imgmodal-image:hover {
+    transform: scale(1.03);
+}
+
+/* Botón cerrar */
+.imgmodal-close-btn {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    background: #0d6efd;
+    border: none;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.4);
+}
+
+.imgmodal-close-btn:hover {
+    background: #0a58ca;
+    transform: scale(1.07);
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

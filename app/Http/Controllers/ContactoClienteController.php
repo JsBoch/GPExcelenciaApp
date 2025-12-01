@@ -65,11 +65,6 @@ class ContactoClienteController extends Controller
 
     public function show($id)
     {
-        // $contactoCliente = ContactoCliente::find($id);
-        // if (!$contactoCliente) {
-        //     return response()->json(['message' => 'Contacto no encontrado'], 404);
-        // }
-        // return response()->json($contactoCliente);
         $contactosCliente = ContactoCliente::where('cc.id_contactocliente',$id)           
             ->select(
                 'cc.id_contactocliente', 

@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
 import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
@@ -25,15 +23,20 @@ import FormSection from "./FormSection";
 import TipoPagoModal from "./TipoPagoModal";
 import CotizacionPDF from "./CotizacionPDF";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
-import "../../css/cotizacion-form.css";
+import "../../css/form-cotizacion.css";
 import { v4 as uuidv4 } from "uuid";
 import {
     aplicarDescuentoAGrilla,
     calcularCabeceraDesdeTotalConIva,
     calcularDetalleConIVA,
 } from "../utils/calculosCotizacion.js";
-
-DataTable.use(DT);
+import { MaterialReactTable } from "material-react-table";
+import { MRT_Localization_ES } from "material-react-table/locales/es";
+import { Box, IconButton, Tooltip } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import ImageIcon from "@mui/icons-material/Image";
+import CloseIcon from "@mui/icons-material/Close";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 // Interceptor global de errores Axios
 axios.interceptors.response.use(
@@ -282,7 +285,8 @@ function CotizacionForm() {
                                     cliente: data.cliente || "",
                                     idcontacto: data.idcontacto || 0,
                                     contacto: data.contacto || "",
-                                    fecha_cotizacion: fechaActual,
+                                    fecha_cotizacion:
+                                        formattedDate || fechaActual,
                                     trabajo: data.trabajo || "",
                                     observaciones_costeo:
                                         data.observaciones_costeo || "",
@@ -402,15 +406,6 @@ function CotizacionForm() {
         }));
     }, [detalle.ancho, detalle.alto]);
 
-    // useEffect(() => {
-    //     if (detalles.length && cotizacion.descuento_porcentaje > 0) {
-    //         const nuevosDetalles = aplicarDescuentoAGrilla(
-    //             detalles,
-    //             cotizacion.descuento_porcentaje
-    //         );
-    //         setDetalles(nuevosDetalles);
-    //     }
-    // }, [cotizacion.descuento_porcentaje]);
     useEffect(() => {
         if (
             detalles.length &&
@@ -704,120 +699,128 @@ function CotizacionForm() {
         }));
     };
     /*********************************************************** */
-    //Envía los datos al back-end para registrar, en el método store.
-    const handleSubmit = async (e) => {
-        // Make handleSubmit async
-        e.preventDefault();
-        if (saving) return; // ← evita doble click
-        setSaving(true);
-        const token = localStorage.getItem("token");
-        const headers = {
-            Authorization: `Bearer ${token}`,
-            "Idempotency-Key": ensureIdemKey(),
-        };
 
-        // 🟢 Asegurar que la fecha se actualice desde el input
-        const fechaSeleccionada = fechaRef.current?.value || fechaActual;
-        const cotizacionActualizada = {
-            ...cotizacion,
-            fecha_cotizacion: fechaSeleccionada,
-        };
-
-        const formData = new FormData();
-
-        // Validaciones
-        if (!cotizacion.idcliente || cotizacion.idcliente === "") {
-            alertify.alert("CAMPO OBLIGATORIO", "Debe seleccionar un cliente.");
-            return;
+    /**
+     * Valida los campos obligatorios de la cotización antes de enviarla al back-end en una sola función
+     * fuera del handleSubmit para mejor legibilidad
+     */
+    const validarCotizacion = (cotizacion, detalles) => {
+        if (!cotizacion.idcliente) {
+            return "Debe seleccionar un cliente.";
         }
 
-        if (!cotizacion.idcontacto || cotizacion.idcontacto === "") {
-            cotizacion.idcontacto = 0; // Si no hay contacto, asignamos 0
+        if (!cotizacion.idcontacto) {
+            // No es obligatorio, solo asignamos 0
+            cotizacion.idcontacto = 0;
         }
 
-        if (!cotizacion.idtipopago || cotizacion.idtipopago === "") {
-            alertify.alert(
-                "CAMPO OBLIGATORIO",
-                "Debe seleccionar una forma de pago."
-            );
-            return;
+        if (!cotizacion.idtipopago) {
+            return "Debe seleccionar una forma de pago.";
         }
 
         if (!detalles || detalles.length === 0) {
-            alertify.alert(
-                "CAMPO OBLIGATORIO",
-                "Debe asignar registros en el detalle de la cotización."
-            );
-            return;
+            return "Debe asignar registros en el detalle de la cotización.";
         }
 
         if (
             !cotizacion.direccion_entrega ||
             cotizacion.direccion_entrega.trim() === ""
         ) {
-            alertify.alert(
-                "CAMPO OBLIGATORIO",
-                "Debe ingresar la dirección de entrega."
-            );
+            return "Debe ingresar la dirección de entrega.";
+        }
+
+        return null; // ✔️ Todo OK
+    };
+
+    //Envía los datos al back-end para registrar, en el método store.
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (saving) return;
+        setSaving(true);
+
+        const token = localStorage.getItem("token");
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            "Idempotency-Key": ensureIdemKey(),
+        };
+
+        // Actualizar fecha
+        const fechaSeleccionada = fechaRef.current?.value || fechaActual;
+        const cotizacionActualizada = {
+            ...cotizacion,
+            fecha_cotizacion: fechaSeleccionada,
+        };
+
+        // ✔️ VALIDAR ANTES DE HACER FORM DATA
+        const errorValidacion = validarCotizacion(
+            cotizacionActualizada,
+            detalles
+        );
+
+        if (errorValidacion) {
+            alertify.alert("CAMPO OBLIGATORIO", errorValidacion);
+            setSaving(false); // ⬅️ Fix crítico
             return;
         }
 
-        // --- VALIDACIÓN DEL DETALLE PARA COSTEAR ---
-        const tieneTotalCero = detalles.some(
-            (detalle) => parseFloat(detalle.total) === 0
-        );
-        const costearValue = tieneTotalCero ? "S" : "N"; // Guardamos el valor en una constante
-        setCotizacion((prevState) => ({
-            ...prevState,
-            costear: costearValue,
-        }));
-
-        formData.append("idcliente", cotizacion.idcliente);
-        formData.append("idcontacto", cotizacion.idcontacto);
-        formData.append("idtipopago", cotizacion.idtipopago);
+        // Si todo está OK, preparar formData
+        const formData = new FormData();
+        formData.append("idcliente", cotizacionActualizada.idcliente);
+        formData.append("idcontacto", cotizacionActualizada.idcontacto);
+        formData.append("idtipopago", cotizacionActualizada.idtipopago);
         formData.append(
             "fecha_cotizacion",
             cotizacionActualizada.fecha_cotizacion
         );
-        formData.append("trabajo", cotizacion.trabajo);
+        formData.append("trabajo", cotizacionActualizada.trabajo);
         formData.append(
             "observaciones_costeo",
-            cotizacion.observaciones_costeo
+            cotizacionActualizada.observaciones_costeo
         );
         formData.append(
             "observaciones_cliente",
-            cotizacion.observaciones_cliente
+            cotizacionActualizada.observaciones_cliente
         );
-        formData.append("direccion_entrega", cotizacion.direccion_entrega);
-        formData.append("costear", "N");
-        // if(costearValue === "S"){
-        //     formData.append("estado","2");
-        // }else{
-        //     formData.append("estado","1");
-        // }
+        formData.append(
+            "direccion_entrega",
+            cotizacionActualizada.direccion_entrega
+        );
+
+        // COSTEAR
+        const tieneTotalCero = detalles.some((d) => parseFloat(d.total) === 0);
+        formData.append("costear", tieneTotalCero ? "S" : "N");
 
         formData.append("estado", "1");
         formData.append(
             "idcotizacionoriginal",
-            cotizacion.idcotizacionoriginal
+            cotizacionActualizada.idcotizacionoriginal
         );
-        formData.append("version", cotizacion.version);
-        formData.append("total_general", cotizacion.total_general);
-        formData.append("tipo_facturacion", cotizacion.tipo_facturacion);
+        formData.append("version", cotizacionActualizada.version);
+        formData.append("total_general", cotizacionActualizada.total_general);
+        formData.append(
+            "tipo_facturacion",
+            cotizacionActualizada.tipo_facturacion
+        );
+
         if (esComodin && vendedorAsignado) {
             formData.append("idvendedor_asignado", vendedorAsignado);
         }
 
-        formData.append("subtotal", cotizacion.subtotal);
+        formData.append("subtotal", cotizacionActualizada.subtotal);
         formData.append(
             "descuento_porcentaje",
-            cotizacion.descuento_porcentaje
+            cotizacionActualizada.descuento_porcentaje
         );
-        formData.append("descuento_monto", cotizacion.descuento_monto);
-        formData.append("impuesto_iva", cotizacion.impuesto_iva);
-        formData.append("total", cotizacion.total);
+        formData.append(
+            "descuento_monto",
+            cotizacionActualizada.descuento_monto
+        );
+        formData.append("impuesto_iva", cotizacionActualizada.impuesto_iva);
+        formData.append("total", cotizacionActualizada.total);
         formData.append("modo_descuento", modoDescuento);
 
+        // DETALLES (igual)
         detalles.forEach((detalle, index) => {
             formData.append(
                 `detalles[${index}][unidad_medida]`,
@@ -851,7 +854,6 @@ function CotizacionForm() {
                 `detalles[${index}][porcentaje_aplicado]`,
                 detalle.porcentaje_aplicado || 0
             );
-
             formData.append(
                 `detalles[${index}][impuesto_iva]`,
                 detalle.impuesto_iva
@@ -860,114 +862,54 @@ function CotizacionForm() {
                 `detalles[${index}][subtotal]`,
                 detalle.subtotal || 0
             );
-
             formData.append(`detalles[${index}][total]`, detalle.total || 0);
-            // --- Manejo de IMAGEN al enviar FormData ---
+
+            // Imagenes
             if (detalle.imagen) {
-                // Caso 1: Se seleccionó un NUEVO archivo
-                //formData.append(`detalles[${index}][imagen]`, detalle.imagen);
-                //console.log(`Frontend: Adjuntando nuevo archivo para índice ${index}`); // Log para verificar
                 formData.append(
                     `detalles[${index}][imagen]`,
                     detalle.imagen,
                     detalle.imagen.name || "imagen.png"
                 );
             } else if (detalle.imagen_ruta) {
-                // Caso 2: NO se seleccionó un archivo nuevo, pero existe una ruta vieja
-                // Enviamos la ruta vieja para que el backend sepa que debe mantenerla
                 formData.append(
                     `detalles[${index}][imagen_ruta]`,
                     detalle.imagen_ruta
                 );
-                //console.log(`Frontend: Adjuntando ruta existente para índice ${index}: ${detalle.imagen_ruta}`); // Log para verificar
             }
-
-            // console.log(
-            //     "Detalles preparados para enviar:",
-            //     JSON.stringify(detalles, null, 2)
-            // );
-
-            // Caso 3: No hay imagen (ni nueva ni vieja) -> No se adjunta nada relacionado con imagen
-
-            // Opcional: Si tus detalles tienen un ID (iddetallecotizacion) al editar, envíalo también
-            // Esto es necesario si quieres que el backend actualice detalles existentes en lugar de eliminarlos y recrearlos
-            // if (detalle.iddetallecotizacion) {
-            //     formData.append(`detalles[${index}][iddetallecotizacion]`, detalle.iddetallecotizacion);
-            // }
         });
 
         try {
             let res;
+
             if (id) {
-                formData.append("_method", "PUT"); // Para indicar que es una actualización
-                //console.log('Detalles a enviar:', detalles);
+                formData.append("_method", "PUT");
                 res = await axios.post(`/api/cotizaciones/${id}`, formData, {
                     headers,
                 });
-                //alertify.success("Cotización actualizada correctamente");
-                // Generar PDF del id existente con la fecha del formulario
-                // si llegó OK, puedes “cerrar” la llave para futuras altas
                 idemKeyRef.current = null;
-                await generarPDFPorId(id, cotizacion.fecha_cotizacion);
+                await generarPDFPorId(
+                    id,
+                    cotizacionActualizada.fecha_cotizacion
+                );
             } else {
-                // console.log(
-                //     "Enviando cotización con Idempotency-Key:",
-                //     headers["Idempotency-Key"]
-                // );
-                // console.log("FormData entries:");
-                // for (let pair of formData.entries()) {
-                //     console.log(pair[0], pair[1]);
-                // }
-
                 res = await axios.post("/api/cotizaciones", formData, {
                     headers,
                 });
-                //alertify.success("Cotización creada correctamente");
-                // El backend devuelve la cotización creada con su id
                 const nuevoId = getIdFromCreateResponse(res);
-                // console.log(
-                //     "[CREATE] Respuesta creación:",
-                //     res?.data,
-                //     "→ id:",
-                //     nuevoId
-                // );
-                if (!nuevoId) {
-                    alertify.warning(
-                        "Se guardó la cotización, pero no pude obtener el ID para generar el PDF. Revisa la respuesta en consola."
-                    );
-                    return;
-                }
-                // si llegó OK, puedes “cerrar” la llave para futuras altas
                 idemKeyRef.current = null;
-                await generarPDFPorId(nuevoId, cotizacion.fecha_cotizacion);
+                await generarPDFPorId(
+                    nuevoId,
+                    cotizacionActualizada.fecha_cotizacion
+                );
             }
 
             navigate("/cotizaciones/crear");
         } catch (error) {
             console.error("Error al guardar la cotización:", error);
-            if (error.response) {
-                console.error(
-                    "Respuesta del servidor:",
-                    error.response.status,
-                    error.response.data
-                );
-                alertify.error(
-                    `Error ${error.response.status}: ${
-                        error.response.data?.message || "Problema en servidor"
-                    }`
-                );
-            } else if (error.request) {
-                console.error(
-                    "La petición fue hecha pero no hay respuesta:",
-                    error.request
-                );
-                alertify.error("No hay respuesta del servidor.");
-            } else {
-                console.error("Error inesperado:", error.message);
-                alertify.error("Error inesperado: " + error.message);
-            }
+            alertify.error("Error guardando la cotización.");
         } finally {
-            setSaving(false);
+            setSaving(false); // ✔️ SIEMPRE SE RESETEA
         }
     };
 
@@ -1205,82 +1147,6 @@ function CotizacionForm() {
         );
     };
 
-    //Ejecutan la función handleRowClick cuando se hace clic en una fila del DataTable
-    const slots = {
-        0: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        1: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        2: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        3: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        4: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        5: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        6: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        7: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        8: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-    };
-
     //Carga los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
     const handleRowClick = (rowData) => {
         //console.log('rowData:', rowData);
@@ -1324,51 +1190,123 @@ function CotizacionForm() {
         }
     };
 
-    //Se establecen las columnas que se mostrarán en el DataTable
     const columns = [
-        { title: "Unidad Medida", data: "unidad_medida" },
-        { title: "Descripción", data: "descripcion" },
-        { title: "Cantidad", data: "cantidad" },
-        { title: "Ancho", data: "ancho" },
-        { title: "Alto", data: "alto" },
-        { title: "M2", data: "m2" },
-        { title: "Profundidad", data: "profundidad" },
         {
-            title: "Precio",
-            data: "precio_unitario",
-            render: (data) =>
-                parseFloat(data).toLocaleString("es-GT", {
+            accessorKey: "unidad_medida",
+            header: "UM",
+            size: 50,
+        },
+        {
+            accessorKey: "cantidad",
+            header: "Cant",
+            size: 50,
+        },
+        // {
+        //     accessorKey: "ancho",
+        //     header: "Ancho",
+        //     size: 50,
+        // },
+        // {
+        //     accessorKey: "alto",
+        //     header: "Alto",
+        //     size: 50,
+        // },
+        // {
+        //     accessorKey: "m2",
+        //     header: "M2",
+        //     size: 60,
+        // },
+        // {
+        //     accessorKey: "profundidad",
+        //     header: "Prof.",
+        //     size: 60,
+        // },
+        {
+            accessorKey: "precio_unitario",
+            header: "Precio",
+            size: 60,
+            Cell: ({ cell }) =>
+                parseFloat(cell.getValue() || 0).toLocaleString("es-GT", {
                     style: "currency",
                     currency: "GTQ",
                 }),
         },
         {
-            title: "Total",
-            data: "precio",
-            render: (data) =>
-                parseFloat(data).toLocaleString("es-GT", {
+            accessorKey: "precio",
+            header: "Total",
+            size: 60,
+            Cell: ({ cell }) =>
+                parseFloat(cell.getValue() || 0).toLocaleString("es-GT", {
                     style: "currency",
                     currency: "GTQ",
                 }),
+            Footer: () => (
+                <strong>
+                    {detalles
+                        .reduce(
+                            (acc, item) => acc + (parseFloat(item.precio) || 0),
+                            0
+                        )
+                        .toLocaleString("es-GT", {
+                            style: "currency",
+                            currency: "GTQ",
+                        })}
+                </strong>
+            ),
         },
         {
-            title: "Imagen",
-            data: "imagen_ruta", // Mantenemos 'imagen_ruta' como data key principal si viene del backend
-            render: (data, type, row) => {
-                // 'data' es imagen_ruta, 'row' es el objeto completo del detalle
-                // Verifica si hay imagen_ruta (desde backend) O si hay imagen (File object) O si hay imagen_preview (URL temporal)
-                const hasImage =
-                    row.imagen_ruta ||
-                    (row.imagen && row.imagen instanceof File) ||
-                    row.imagen_preview;
-
-                if (hasImage) {
-                    // Muestra un texto o ícono indicando que hay una imagen
-                    return "Con imagen"; // O podrías usar '<i class="fas fa-image"></i>' si tienes Font Awesome
-                } else {
-                    return "Sin imagen";
-                }
+            accessorKey: "descripcion",
+            header: "Descripción",
+            size: 400,
+            grow: true,
+            muiTableBodyCellProps: {
+                sx: {
+                    whiteSpace: "normal !important",
+                    wordBreak: "break-word !important",
+                    lineHeight: "1.3rem",
+                },
             },
+            muiTableHeadCellProps: {
+                sx: { backgroundColor: "#f5f6fa", fontWeight: "bold" },
+            },
+            enableColumnDragging: false,
+            Cell: ({ cell }) => <strong>{cell.getValue()}</strong>,
+            enablePinning: true, // 👉 columna sticky izquierda
+        },
+        {
+            accessorKey: "acciones",
+            header: "Acciones",
+            size: 70,
+            enablePinning: true, // 👉 sticky derecha
+            Cell: ({ row }) => (
+                <Box sx={{ display: "flex", gap: "6px" }}>
+                    {/* Ver imagen */}
+                    {row.original.imagen_ruta || row.original.imagen_preview ? (
+                        <Tooltip title="Ver imagen">
+                            <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => {
+                                    const src = row.original.imagen_ruta
+                                        ? `/images_cotizaciones/${row.original.imagen_ruta}`
+                                        : row.original.imagen_preview;
+
+                                    setSelectedImageUrl(src);
+                                    setIsImageModalOpen(true);
+                                }}
+                            >
+                                <VisibilityIcon />
+                            </IconButton>
+                        </Tooltip>
+                    ) : (
+                        <Tooltip title="Sin imagen">
+                            <IconButton size="small" disabled>
+                                <CloseIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
+            ),
         },
     ];
 
@@ -1401,13 +1339,6 @@ function CotizacionForm() {
 
     const handleCantidadDetalleChange = (e) => {
         const value = parseInt(e.target.value, 10) || 0;
-        // setCantidadDetalle(value); // This is unnecessary in this setup!
-        // if (!productoPredefinido) {
-        //     alertify.error(
-        //         "Selecciona un producto antes de ingresar una cantidad."
-        //     );
-        //     return;
-        // }
 
         setDetalle((prevDetalle) => ({
             //const updatedDetalle = {
@@ -1610,19 +1541,67 @@ function CotizacionForm() {
         }
     };
 
+    const exportarExcel = () => {
+        // Si ya tenés algún exportador, lo integro; si no, uso este rápido:
+        const encabezados = columns.map((c) => c.header).join(",");
+        const filas = detalles
+            .map((d) =>
+                columns
+                    .map((c) => {
+                        const key = c.accessorKey;
+                        return key ? (d[key] != null ? d[key] : "") : "";
+                    })
+                    .join(",")
+            )
+            .join("\n");
+
+        const contenido = encabezados + "\n" + filas;
+        const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `detalles_cotizacion_${Date.now()}.csv`;
+        link.click();
+    };
+
     return (
-        <div className="mt-4 mb-4">
+        <div className="cotizacion-layout mt-4 mb-4">
             <Header title={id ? "Editar Cotización" : "Crear Cotización"} />
-            <div className="card shadow p-4">
-                {/* <div className="card-header bg-primary text-white">
-                    <h4 className="mb-0">{id ? 'Editar Cotización' : 'Crear Nueva Cotización'}</h4>
-                </div> */}
+
+            <div className="card cotizacion-card shadow-sm p-4">
                 <div className="card-body card-form">
+                    {/* Meta header ERP */}
+                    <div className="erp-meta-header mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span className="badge erp-badge me-2">
+                                Módulo · Cotizaciones
+                            </span>
+                            <span className="text-muted small d-block">
+                                {id
+                                    ? "Edición de cotización existente"
+                                    : "Registro de nueva cotización para cliente"}
+                            </span>
+                        </div>
+                        <div className="text-end small text-muted">
+                            <div>
+                                Fecha servidor:{" "}
+                                <strong>{fechaActual || "--"}</strong>
+                            </div>
+                            {cotizacion.nocotizacion && (
+                                <div>
+                                    No. Cotización:{" "}
+                                    <strong>{cotizacion.nocotizacion}</strong>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <FormSection title="Datos generales">
                             {esComodin && (
-                                <div className="row g-2 mb-3">
+                                <div className="row g-3 mb-3">
                                     <div className="col-md-6">
                                         <label className="form-label">
                                             Vendedor asignado
@@ -1652,7 +1631,8 @@ function CotizacionForm() {
                                 </div>
                             )}
 
-                            <div className="row g-2 mb-3">
+                            {/* Fila cliente / NIT / contacto */}
+                            <div className="row g-3 mb-3">
                                 <div className="col-md-5">
                                     <label className="form-label">
                                         Cliente
@@ -1667,9 +1647,10 @@ function CotizacionForm() {
                                         options={clienteOptions}
                                         isSearchable={true}
                                         placeholder="Seleccionar Cliente"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
+                                        className="react-select-erp campo-obligatorio-fondo"
                                     />
                                 </div>
+
                                 <div className="col-md-3">
                                     <label className="form-label">NIT</label>
                                     <input
@@ -1680,6 +1661,7 @@ function CotizacionForm() {
                                         placeholder="NIT del cliente"
                                     />
                                 </div>
+
                                 <div className="col-md-4">
                                     <label className="form-label">
                                         Contacto
@@ -1709,22 +1691,20 @@ function CotizacionForm() {
                                     </select>
                                     <button
                                         type="button"
-                                        className="btn btn-link btn-sm"
+                                        className="btn btn-link p-0 ms-1 erp-small-link-btn"
                                         onClick={handleAgregarContacto}
-                                        style={{
-                                            textDecoration: "none",
-                                            color: "#007bff",
-                                            cursor: "pointer",
-                                        }}
                                     >
-                                        Agregar Contacto
+                                        <i className="bi bi-person-plus me-1"></i>{" "}
+                                        Nuevo contacto
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Fila forma pago / tipo facturación / fecha / trabajo */}
                             <div className="row g-2 mb-3">
                                 <div className="col-md-3">
                                     <label className="form-label">
-                                        Forma pago
+                                        Forma de pago
                                     </label>
                                     <select
                                         name="idtipopago"
@@ -1745,6 +1725,21 @@ function CotizacionForm() {
                                         ))}
                                     </select>
                                 </div>
+
+                                {/* BOTÓN + aquí */}
+                                <div className="col-auto d-flex align-items-end">
+                                    <button
+                                        type="button"
+                                        className="erp-btn-add shadow-sm"
+                                        onClick={toggleTipoPagoModal}
+                                        title="Agregar nueva forma de pago"
+                                    >
+                                        <span className="erp-btn-add-icon">
+                                            +
+                                        </span>
+                                    </button>
+                                </div>
+
                                 <div className="col-md-3">
                                     <label className="form-label">
                                         Tipo de Facturación
@@ -1762,61 +1757,43 @@ function CotizacionForm() {
                                     </select>
                                 </div>
 
-                                <div className="col-md-1 d-flex align-items-end">
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-primary btn-sm w-100 d-flex justify-content-center align-items-center"
-                                        onClick={toggleTipoPagoModal}
-                                        title="Agregar nueva forma de pago"
-                                        style={{
-                                            fontSize: "0.9rem",
-                                            fontWeight: "bold",
-                                            padding: "4px",
-                                            color: "#0d6efd", // azul de Bootstrap
-                                            borderColor: "#0d6efd",
-                                            backgroundColor: "#ffffff", // fondo blanco para mejor contraste
-                                        }}
-                                    >
-                                        <FaPlus />
-                                    </button>
-                                </div>
                                 <div className="col-md-3">
                                     <label className="form-label">
-                                        Fecha cotizacion
+                                        Fecha cotización
                                     </label>
                                     <input
                                         type="date"
                                         name="fecha_cotizacion"
                                         ref={fechaRef}
                                         value={
-                                            cotizacion.fecha_cotizacion ||
-                                            fechaActual ||
-                                            ""
+                                            cotizacion.fecha_cotizacion ??
+                                            fechaActual
                                         }
                                         onChange={handleChange}
-                                        placeholder="Fecha cotización"
-                                        className="form-control form-control-sm"
-                                        required
-                                    />
-                                </div>
-                                <div className="col-md-5">
-                                    <label className="form-label">
-                                        Trabajo
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="trabajo"
-                                        value={cotizacion.trabajo}
-                                        onChange={handleChange}
-                                        placeholder="Nombre del trabajo o proyecto"
                                         className="form-control form-control-sm"
                                     />
                                 </div>
                             </div>
-                            <div className="row g-2 mb-4">
+
+                            <div className="col-md-5">
+                                <label className="form-label">
+                                    Trabajo / proyecto
+                                </label>
+                                <input
+                                    type="text"
+                                    name="trabajo"
+                                    value={cotizacion.trabajo}
+                                    onChange={handleChange}
+                                    placeholder="Nombre del trabajo o proyecto"
+                                    className="form-control form-control-sm"
+                                />
+                            </div>
+
+                            {/* Dirección de entrega */}
+                            <div className="row g-3 mb-4">
                                 <div className="col-md-12">
                                     <label className="form-label">
-                                        Dirección entrega
+                                        Dirección de entrega
                                     </label>
                                     <input
                                         type="text"
@@ -1829,10 +1806,13 @@ function CotizacionForm() {
                                 </div>
                             </div>
                         </FormSection>
+
+                        {/* --- Sección Detalle de Cotización --- */}
                         <FormSection title="Detalle de Cotización">
                             <div onKeyDown={handleKeyDownDetalle}>
-                                <div className="row g-1 mb-2">
-                                    <div className="col-md-4">
+                                {/* Toolbar detalle */}
+                                <div className="detalle-toolbar mb-3">
+                                    <div className="d-flex align-items-center gap-2">
                                         <button
                                             type="button"
                                             className="btn btn-sm btn-producto-predefinido"
@@ -1840,16 +1820,24 @@ function CotizacionForm() {
                                                 toggleProductoPredefinidoModal
                                             }
                                         >
-                                            <FaProductHunt /> Seleccionar
-                                            Producto Predefinido
+                                            <FaProductHunt /> Producto
+                                            predefinido
                                         </button>
+                                        <span className="text-muted small">
+                                            Usá productos guardados o carga un
+                                            detalle manualmente.
+                                        </span>
+                                    </div>
+                                    <div className="small text-muted">
+                                        Enter = Agregar detalle
                                     </div>
                                 </div>
+
+                                {/* Fila 1: unidad, cantidad, descripción */}
                                 <div className="row g-3 mb-2">
-                                    {/* Este bloque va aquí, después del botón */}
                                     <div className="col-md-2">
                                         <label className="form-label">
-                                            Unidad Medida
+                                            Unidad medida
                                         </label>
                                         <select
                                             name="unidad_medida"
@@ -1857,7 +1845,6 @@ function CotizacionForm() {
                                             onChange={handleDetalleChange}
                                             className="form-select form-select-sm"
                                         >
-                                            {/* <option value="">Seleccionar</option> */}
                                             {unidadesMedida.map((um) => (
                                                 <option
                                                     key={um.idunidadmedida}
@@ -1879,13 +1866,14 @@ function CotizacionForm() {
                                             value={detalle.cantidad}
                                             onChange={
                                                 handleCantidadDetalleChange
-                                            } // <-- Use this!!!
+                                            }
                                             className="form-control form-control-sm"
                                             step="1"
                                             min="0"
                                             ref={cantidadRef}
                                         />
                                     </div>
+
                                     <div className="col-md-9">
                                         <label className="form-label">
                                             Descripción
@@ -1900,7 +1888,7 @@ function CotizacionForm() {
                                     </div>
                                 </div>
 
-                                {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
+                                {/* Fila 2: medidas / precio / total / imagen / botones */}
                                 <div className="row g-2 align-items-end mb-3">
                                     <div className="col">
                                         <label className="form-label">
@@ -1916,6 +1904,7 @@ function CotizacionForm() {
                                             min="0"
                                         />
                                     </div>
+
                                     <div className="col">
                                         <label className="form-label">
                                             Alto
@@ -1930,6 +1919,7 @@ function CotizacionForm() {
                                             min="0"
                                         />
                                     </div>
+
                                     <div className="col">
                                         <label className="form-label">M2</label>
                                         <input
@@ -1942,6 +1932,7 @@ function CotizacionForm() {
                                             min="0"
                                         />
                                     </div>
+
                                     <div className="col">
                                         <label className="form-label">
                                             Prof.
@@ -1956,9 +1947,10 @@ function CotizacionForm() {
                                             min="0"
                                         />
                                     </div>
+
                                     <div className="col">
                                         <label className="form-label">
-                                            Precio
+                                            Precio unitario
                                         </label>
                                         <input
                                             type="number"
@@ -1970,6 +1962,7 @@ function CotizacionForm() {
                                             min="0"
                                         />
                                     </div>
+
                                     <div className="col">
                                         <label className="form-label">
                                             Total
@@ -1983,27 +1976,17 @@ function CotizacionForm() {
                                             step="0.01"
                                         />
                                     </div>
+
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold">
-                                            Imagen (Opcional)
+                                            Imagen (opcional)
                                         </label>
-                                        {/* <input
-                                        type="file"
-                                        name="imagen"
-                                        className="form-control form-control-sm"
-                                        onChange={handleImagenChange}
-                                    /> */}
                                         <div
-                                            className="form-control form-control-sm d-flex flex-column align-items-center justify-content-center"
+                                            className="form-control form-control-sm d-flex flex-column align-items-center justify-content-center image-dropzone-erp"
                                             onPaste={handlePasteImage}
                                             onDragOver={handleDragOverImage}
                                             onDrop={handleDropImage}
-                                            tabIndex={0} // ← hace focusable el área para Ctrl+V
-                                            style={{
-                                                height: 90,
-                                                borderStyle: "dashed",
-                                                cursor: "pointer",
-                                            }}
+                                            tabIndex={0}
                                             onClick={() =>
                                                 fileInputRef.current?.click()
                                             }
@@ -2017,238 +2000,293 @@ function CotizacionForm() {
                                                 style={{ display: "none" }}
                                                 onChange={handleImagenChange}
                                             />
-                                            <div
-                                                style={{
-                                                    fontSize: 12,
-                                                    textAlign: "center",
-                                                    lineHeight: 1.2,
-                                                }}
-                                            >
+                                            <div className="text-center small">
                                                 <strong>Click</strong> para
                                                 seleccionar
                                                 <br />o{" "}
                                                 <strong>
-                                                    arrastra/pega
+                                                    arrastra / pega
                                                 </strong>{" "}
-                                                aquí una imagen
+                                                una imagen
                                             </div>
                                         </div>
                                         {detalle.imagen_preview && (
                                             <img
                                                 src={detalle.imagen_preview}
                                                 alt="Vista previa"
-                                                style={{
-                                                    maxWidth: "50px",
-                                                    marginTop: "5px",
-                                                }}
+                                                className="mt-1 erp-thumb"
                                             />
                                         )}
                                     </div>
-                                    <div className="col-auto">
+
+                                    <div className="col-auto d-flex flex-column gap-2">
                                         <button
                                             type="button"
                                             onClick={handleAddDetalle}
-                                            className={
-                                                detalleSeleccionado
-                                                    ? "btn btn-sm btn-agregar"
-                                                    : "btn btn-sm btn-agregar"
-                                            }
+                                            className="btn erp-btn-primary btn-sm me-2"
                                         >
-                                            <FaCheckSquare />
+                                            <i className="bi bi-plus-square me-1"></i>
                                             {detalleSeleccionado
-                                                ? " Actualizar"
-                                                : " Agregar"}
+                                                ? "Actualizar"
+                                                : "Agregar"}
                                         </button>
+
                                         <button
                                             type="button"
                                             onClick={handleQuitarDetalle}
-                                            className="btn btn-danger btn-sm ms-2"
+                                            className="btn erp-btn-danger btn-sm"
                                         >
-                                            <FaWindowClose /> Quitar
+                                            <i className="bi bi-x-circle me-1"></i>
+                                            Quitar
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* --- Tabla de Detalles Agregados --- */}
-                                <h5 className="mt-4 mb-3 border-bottom pb-2">
-                                    Detalles Agregados
+                                <h5 className="mt-4 mb-3 erp-subsection-title">
+                                    Detalles agregados
                                 </h5>
-                                <div className="table-responsive mb-4">
-                                    <DataTable
-                                        data={detalles}
+                                <div
+                                    className="mb-4"
+                                    style={{
+                                        maxHeight: "400px",
+                                        overflowY: "auto",
+                                    }}
+                                >
+                                    <MaterialReactTable
                                         columns={columns}
-                                        options={{
-                                            paging: false,
-                                            searching: false,
-                                            info: false,
-                                            ordering: true,
+                                        data={detalles}
+                                        localization={MRT_Localization_ES}
+                                        enableColumnFilters={false}
+                                        enableDensityToggle={false}
+                                        enableFullScreenToggle={false}
+                                        enableColumnActions={false}
+                                        enableHiding={false}
+                                        enableStickyHeader
+                                        enableStickyFooter
+                                        initialState={{
+                                            density: "compact",
+                                            pagination: { pageSize: 50 },
+                                            columnPinning: {
+                                                left: [],
+                                                right: [
+                                                    "descripcion",
+                                                    "acciones",
+                                                ],
+                                            },
                                         }}
-                                        slots={slots}
-                                        className="table table-striped table-bordered table-hover table-sm"
-                                        //style={{fontWeight: "#ddd" }}
-                                        id="tabla-detalles"
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th>Unidad Medida</th>
-                                                <th>Descripción</th>
-                                                <th>Cantidad</th>
-                                                <th>Ancho</th>
-                                                <th>Alto</th>
-                                                <th>M2</th>
-                                                <th>Profundidad</th>
-                                                <th>Precio</th>
-                                                <th>Total</th>
-                                            </tr>
-                                        </thead>
-                                    </DataTable>
-                                </div>
-                                {/* Input del total general */}
-                                <div className="mb-3 d-flex justify-content-end">
-                                    <label
-                                        className="form-label fw-bold me-2"
-                                        style={{ alignSelf: "center" }}
-                                    >
-                                        Total General:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="total_general"
-                                        value={parseFloat(
-                                            cotizacion.total_general || 0
-                                        ).toLocaleString("es-GT", {
-                                            style: "currency",
-                                            currency: "GTQ",
+                                        muiTableBodyRowProps={({ row }) => ({
+                                            onClick: () =>
+                                                handleRowClick(row.original),
+                                            sx: {
+                                                cursor: "pointer",
+                                                backgroundColor:
+                                                    detalleSeleccionado ===
+                                                    row.original
+                                                        ? "#e8f1ff"
+                                                        : "white",
+                                                borderLeft:
+                                                    detalleSeleccionado ===
+                                                    row.original
+                                                        ? "4px solid #0d6efd"
+                                                        : "4px solid transparent",
+                                            },
                                         })}
-                                        readOnly
-                                        className="form-control"
-                                        style={{
-                                            maxWidth: "150px",
-                                            textAlign: "right",
-                                            fontWeight: "bold",
-                                            fontSize: "1.1em",
+                                        muiTableContainerProps={{
+                                            sx: {
+                                                borderRadius: "8px",
+                                                boxShadow:
+                                                    "0 0 6px rgba(0,0,0,0.15)",
+                                            },
                                         }}
+                                        renderTopToolbarCustomActions={() => (
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    gap: "10px",
+                                                    padding: "8px",
+                                                }}
+                                            >
+                                                <Tooltip title="Exportar Excel">
+                                                    <IconButton
+                                                        color="success"
+                                                        onClick={exportarExcel}
+                                                    >
+                                                        <FileDownloadIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
+                                        )}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label>Método de descuento</label>
-                                    <select
-                                        className="form-control"
-                                        value={modoDescuento}
-                                        onChange={(e) =>
-                                            setModoDescuento(e.target.value)
-                                        }
-                                    >
-                                        <option value="NO APLICA">
-                                            NO APLICA
-                                        </option>
-                                        <option value="PORCENTAJE">
-                                            PORCENTAJE
-                                        </option>
-                                        <option value="MONTO">MONTO</option>
-                                    </select>
-                                </div>
 
-                                <div className="row g‑2 mb‑3">
-                                    <div className="col‑md‑3">
-                                        <label className="form-label">
-                                            Descuento (%)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="descuento_porcentaje"
-                                            value={inputDescuentoPorcentaje}
-                                            onChange={(e) =>
-                                                setInputDescuentoPorcentaje(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={
-                                                handleDescuentoPorcentajeChange
-                                            }
-                                            className="form-control form-control-sm"
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                        />
+                                {/* Totales y descuento */}
+                                <div className="row g-3 mb-3">
+                                    <div className="col-md-6">
+                                        <div className="mb-3 d-flex justify-content-start">
+                                            <div className="erp-summary-box me-3">
+                                                <label>
+                                                    Total general (sin
+                                                    descuento)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="total_general"
+                                                    value={parseFloat(
+                                                        cotizacion.total_general ||
+                                                            0
+                                                    ).toLocaleString("es-GT", {
+                                                        style: "currency",
+                                                        currency: "GTQ",
+                                                    })}
+                                                    readOnly
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="card erp-discount-card">
+                                            <div className="card-body p-3">
+                                                <label className="form-label mb-2">
+                                                    Método de descuento
+                                                </label>
+                                                <select
+                                                    className="form-select form-select-sm mb-3"
+                                                    value={modoDescuento}
+                                                    onChange={(e) =>
+                                                        setModoDescuento(
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="NO APLICA">
+                                                        NO APLICA
+                                                    </option>
+                                                    <option value="PORCENTAJE">
+                                                        PORCENTAJE
+                                                    </option>
+                                                    <option value="MONTO">
+                                                        MONTO
+                                                    </option>
+                                                </select>
+
+                                                <div className="row g-2">
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">
+                                                            Descuento (%)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            name="descuento_porcentaje"
+                                                            value={
+                                                                inputDescuentoPorcentaje
+                                                            }
+                                                            onChange={(e) =>
+                                                                setInputDescuentoPorcentaje(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            onBlur={
+                                                                handleDescuentoPorcentajeChange
+                                                            }
+                                                            className="form-control form-control-sm"
+                                                            step="0.01"
+                                                            min="0"
+                                                            max="100"
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">
+                                                            Descuento monto
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            name="descuento_monto"
+                                                            value={
+                                                                inputDescuentoMonto
+                                                            }
+                                                            onChange={(e) =>
+                                                                setInputDescuentoMonto(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            onBlur={
+                                                                handleDescuentoMontoChange
+                                                            }
+                                                            className="form-control form-control-sm"
+                                                            step="0.01"
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="form-text small mt-1">
+                                                    El descuento se reparte en
+                                                    todos los renglones según el
+                                                    método seleccionado.
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="col‑md‑3">
-                                        <label className="form-label">
-                                            Descuento monto
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="descuento_monto"
-                                            value={inputDescuentoMonto}
-                                            onChange={(e) =>
-                                                setInputDescuentoMonto(
-                                                    e.target.value
-                                                )
-                                            }
-                                            onBlur={handleDescuentoMontoChange}
-                                            className="form-control form-control-sm"
-                                            step="0.01"
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div className="col‑md‑3">
-                                        <label className="form-label">
-                                            Subtotal
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="subtotal"
-                                            value={parseFloat(
-                                                cotizacion.subtotal || 0
-                                            ).toFixed(2)}
-                                            readOnly
-                                            className="form-control form-control-sm"
-                                        />
-                                    </div>
-                                    <div className="col‑md‑3">
-                                        <label className="form-label">
-                                            IVA
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="impuesto_iva"
-                                            value={parseFloat(
-                                                cotizacion.impuesto_iva || 0
-                                            ).toFixed(2)}
-                                            readOnly
-                                            className="form-control form-control-sm"
-                                        />
-                                    </div>
-                                    <div className="mb-3 d-flex justify-content-end">
-                                        <label
-                                            className="form-label fw-bold me-2"
-                                            style={{ alignSelf: "center" }}
-                                        >
-                                            Total:
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="total"
-                                            value={parseFloat(
-                                                cotizacion.total || 0
-                                            ).toLocaleString("es-GT", {
-                                                style: "currency",
-                                                currency: "GTQ",
-                                            })}
-                                            readOnly
-                                            className="form-control"
-                                            style={{
-                                                maxWidth: "150px",
-                                                textAlign: "right",
-                                                fontWeight: "bold",
-                                                fontSize: "1.1em",
-                                            }}
-                                        />
+
+                                    {/* Resumen de subtotal / IVA / total */}
+                                    <div className="col-md-6 d-flex flex-column justify-content-between">
+                                        <div className="row g-2 mb-2">
+                                            <div className="col-md-4">
+                                                <label className="form-label">
+                                                    Subtotal
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="subtotal"
+                                                    value={parseFloat(
+                                                        cotizacion.subtotal || 0
+                                                    ).toFixed(2)}
+                                                    readOnly
+                                                    className="form-control form-control-sm"
+                                                />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">
+                                                    IVA
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="impuesto_iva"
+                                                    value={parseFloat(
+                                                        cotizacion.impuesto_iva ||
+                                                            0
+                                                    ).toFixed(2)}
+                                                    readOnly
+                                                    className="form-control form-control-sm"
+                                                />
+                                            </div>
+                                            <div className="col-md-4 d-flex align-items-end">
+                                                <div className="erp-summary-box erp-summary-box-main w-100">
+                                                    <label>Total</label>
+                                                    <input
+                                                        type="text"
+                                                        name="total"
+                                                        value={parseFloat(
+                                                            cotizacion.total ||
+                                                                0
+                                                        ).toLocaleString(
+                                                            "es-GT",
+                                                            {
+                                                                style: "currency",
+                                                                currency: "GTQ",
+                                                            }
+                                                        )}
+                                                        readOnly
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* --- Sección Observaciones --- */}
-                                <div className="row g-2 mb-3">
+                                <div className="row g-3 mb-3">
                                     <div className="col-md-6">
                                         <label className="form-label">
                                             Observaciones cliente
@@ -2260,13 +2298,13 @@ function CotizacionForm() {
                                                 cotizacion.observaciones_cliente
                                             }
                                             onChange={handleChange}
-                                            placeholder="Observaciones para cliente"
+                                            placeholder="Observaciones visibles para el cliente en la cotización"
                                             className="form-control form-control-sm"
                                         ></textarea>
                                     </div>
                                     <div className="col-md-6">
                                         <label className="form-label">
-                                            Observaciones costeo (Internas)
+                                            Observaciones costeo (internas)
                                         </label>
                                         <textarea
                                             rows="3"
@@ -2275,7 +2313,7 @@ function CotizacionForm() {
                                                 cotizacion.observaciones_costeo
                                             }
                                             onChange={handleChange}
-                                            placeholder="Observaciones internas para costeo"
+                                            placeholder="Notas internas para costeo y seguimiento"
                                             className="form-control form-control-sm"
                                         ></textarea>
                                     </div>
@@ -2283,15 +2321,12 @@ function CotizacionForm() {
                             </div>
                         </FormSection>
 
-                        <div
-                            className="mt-4 p-3 border rounded shadow-sm bg-light"
-                            style={{ borderColor: "#ddd" }}
-                        >
-                            {/* --- Barra de acciones --- */}
-                            <div className="mt-4 action-toolbar">
+                        {/* --- Barra de acciones inferior --- */}
+                        <div className="mt-4 p-3 border rounded shadow-sm bg-light erp-footer">
+                            <div className="mt-1 action-toolbar">
                                 <button
                                     type="submit"
-                                    className="btn-action btn-save flex-fill "
+                                    className="btn-action btn-save flex-fill"
                                     disabled={saving}
                                 >
                                     <FaSave />{" "}
@@ -2318,7 +2353,8 @@ function CotizacionForm() {
                                 </Link>
                             </div>
                         </div>
-                        {/* Modal para ContactoClienteForm */}
+
+                        {/* Modales existentes (SIN CAMBIOS) */}
                         <Modal
                             isOpen={modalIsOpen}
                             toggle={toggleModal}
@@ -2341,7 +2377,7 @@ function CotizacionForm() {
                                 </Button>
                             </ModalFooter>
                         </Modal>
-                        {/* Modal para ProductoPredefinidoForm */}
+
                         <ProductoPredefinidoModal
                             isOpen={productoPredefinidoModalIsOpen}
                             onClose={toggleProductoPredefinidoModal}
@@ -2349,7 +2385,7 @@ function CotizacionForm() {
                                 handleProductoPredefinidoSeleccionado
                             }
                         />
-                        {/* Modal para mostrar la imagen del detalle */}
+
                         <Modal
                             isOpen={isImageModalOpen}
                             toggle={toggleImageModal}
@@ -2386,48 +2422,33 @@ function CotizacionForm() {
                             </ModalFooter>
                         </Modal>
                     </form>
+
+                    {/* Modal TipoPago + Overlay PDF (SIN CAMBIOS DE LÓGICA) */}
                     <TipoPagoModal
                         isOpen={tipoPagoModalOpen}
                         toggle={toggleTipoPagoModal}
                         onTipoPagoCreado={(nuevoTipo) => {
                             setTiposPago((prevTipos) => {
                                 const nuevaLista = [...prevTipos, nuevoTipo];
-
-                                // Ordenar por el campo 'tipo' alfabéticamente
                                 nuevaLista.sort((a, b) =>
                                     a.tipo.localeCompare(b.tipo, "es", {
                                         sensitivity: "base",
                                     })
                                 );
-
                                 return nuevaLista;
                             });
 
-                            // Asignar el nuevo tipo al select automáticamente
                             setCotizacion((prev) => ({
                                 ...prev,
                                 idtipopago: nuevoTipo.idtipopago,
                             }));
                         }}
-                        tiposExistentes={tiposPago} // ✅ aquí pasamos la lista existente
-                    />{" "}
+                        tiposExistentes={tiposPago}
+                    />
+
                     {pdfData && (
-                        <div
-                            style={{
-                                position: "fixed",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                backgroundColor: "rgba(0,0,0,0.5)",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                zIndex: 1000,
-                            }}
-                        >
-                            <div style={{ width: "80%", height: "80%" }}>
+                        <div className="pdf-overlay-erp">
+                            <div className="pdf-container-erp">
                                 <PDFViewer width="100%" height="100%">
                                     <CotizacionPDF
                                         cotizacion={pdfData.cotizacion}

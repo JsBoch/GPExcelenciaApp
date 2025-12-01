@@ -112,4 +112,14 @@ class AdmCotizacion extends Model
     {
         return $this->hasOne(AdmFacturacion::class, 'idcotizacion')->where('estado', 1)->latest('idfactura');
     }
+
+    public function cliente()
+    {
+        return $this->belongsTo(\App\Models\Clientes::class, 'idcliente', 'idcliente');
+    }
+
+    public function contacto()
+    {
+        return $this->belongsTo(\App\Models\ContactoCliente::class, 'idcontacto', 'id_contactocliente');
+    }
 }
