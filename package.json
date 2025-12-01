@@ -40,6 +40,7 @@
         "bootstrap": "^5.3.7",
         "bootstrap-icons": "^1.11.3",
         "buffer": "^6.0.3",
+        "carbone": "^3.5.6",
         "datatables.net": "^2.2.2",
         "datatables.net-bs4": "^2.2.2",
         "datatables.net-bs5": "^2.2.2",

@@ -1,133 +1,7 @@
-// NotaEnvioModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import alertify from "alertifyjs";
-
-function EnvioEditModal({
-    open,
-    onClose,
-    noEnvio,
-    direccionInicial,
-    itemsIniciales,
-    onSubmit,
-}) {
-    const [direccion, setDireccion] = useState(direccionInicial || "");
-    const [rows, setRows] = useState(itemsIniciales || []); // [{iddetallecotizacion, descripcion, cantidad}]
-
-    useEffect(() => {
-        setDireccion(direccionInicial || "");
-        setRows(itemsIniciales || []);
-    }, [open, direccionInicial, itemsIniciales]);
-
-    if (!open) return null;
-
-    return (
-        <div
-            className="modal d-block"
-            style={{ background: "rgba(0,0,0,0.5)" }}
-        >
-            <div className="modal-dialog modal-lg">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className="modal-title">Editar envío #{noEnvio}</h5>
-                        <button className="btn-close" onClick={onClose} />
-                    </div>
-                    <div className="modal-body">
-                        <div className="mb-2">
-                            <label className="form-label fw-bold">
-                                Dirección
-                            </label>
-                            <textarea
-                                className="form-control"
-                                rows={3}
-                                value={direccion}
-                                onChange={(e) => setDireccion(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="table-responsive">
-                            <table className="table table-sm table-bordered align-middle">
-                                <thead className="table-dark">
-                                    <tr>
-                                        <th style={{ width: 80 }}>Cant.</th>
-                                        <th>Descripción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {rows.map((r, idx) => (
-                                        <tr key={r.iddetallecotizacion ?? idx}>
-                                            <td style={{ width: 80 }}>
-                                                <input
-                                                    type="number"
-                                                    className="form-control form-control-sm text-end"
-                                                    min={0}
-                                                    step="0.01"
-                                                    value={r.cantidad}
-                                                    onChange={(e) => {
-                                                        const v = Math.max(
-                                                            0,
-                                                            Number(
-                                                                e.target
-                                                                    .value || 0
-                                                            )
-                                                        );
-                                                        setRows((prev) =>
-                                                            prev.map((x, i) =>
-                                                                i === idx
-                                                                    ? {
-                                                                          ...x,
-                                                                          cantidad:
-                                                                              v,
-                                                                      }
-                                                                    : x
-                                                            )
-                                                        );
-                                                    }}
-                                                />
-                                            </td>
-                                            <td>{r.descripcion}</td>
-                                        </tr>
-                                    ))}
-                                    {rows.length === 0 && (
-                                        <tr>
-                                            <td
-                                                colSpan={2}
-                                                className="text-center text-muted"
-                                            >
-                                                Sin ítems
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div className="modal-footer">
-                        <button
-                            className="btn btn-success"
-                            onClick={() =>
-                                onSubmit({
-                                    no_envio: noEnvio,
-                                    direccion_envio: direccion.trim(),
-                                    items: rows.map((r) => ({
-                                        iddetallecotizacion:
-                                            r.iddetallecotizacion,
-                                        cantidad: Number(r.cantidad || 0),
-                                    })),
-                                })
-                            }
-                        >
-                            Guardar cambios
-                        </button>
-                        <button className="btn btn-secondary" onClick={onClose}>
-                            Cancelar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+import EnvioEditModal from "./EnvioEditModal"; // Asegúrate del path correcto
 
 export default function NotaEnvioModal({
     open,
@@ -135,39 +9,173 @@ export default function NotaEnvioModal({
     idCotizacion,
     onPdfReady,
     direccionSugerida = "",
-    coerceZeroAsNoShipment = false,
 }) {
     const [loading, setLoading] = useState(false);
-    const [config, setConfig] = useState(null); // { cotizacion, detalles, siguiente_envio, envios, direccion_sugerida }
+    const [config, setConfig] = useState(null);
+    const [contactos, setContactos] = useState([]);
+
     const [checked, setChecked] = useState(new Set());
     const [direccion, setDireccion] = useState("");
-    const [noEnvioReimp, setNoEnvioReimp] = useState("");
-    const envios = (config?.envios || []).filter(
-        (e) => e?.no_envio && Number(e.no_envio) > 0 && e?.fecha_envio
-    );
+    const [idContacto, setIdContacto] = useState("");
 
-    const [qty, setQty] = useState({}); // { iddetalle: cantidad a enviar }
-    useEffect(() => {
-        // cuando llega config, autollenar qty con cantidad_pendiente
-        const q = {};
-        (config?.detalles || []).forEach((d) => {
-            const pend = Number(d.cantidad_pendiente ?? d.cantidad ?? 0);
-            if (pend > 0) q[d.iddetallecotizacion] = pend;
-        });
-        setQty(q);
-    }, [config]);
+    const [qty, setQty] = useState({});
+    const [editOpen, setEditOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
+    const [noEnvioReimp, setNoEnvioReimp] = useState("");
 
     const token = useMemo(() => localStorage.getItem("token"), []);
 
-    const [editOpen, setEditOpen] = useState(false);
-    const [editData, setEditData] = useState(null);
-    // { noEnvio, direccion, items: [{iddetallecotizacion, descripcion, cantidad}] }
+    const envios = (config?.envios || []).filter(
+        (e) => e?.no_envio && Number(e.no_envio) > 0
+    );
 
-    const abrirEditorEnvio = async () => {
-        if (!noEnvioReimp) {
-            alertify.warning("Selecciona un envío.");
-            return;
+    /* ============================================
+       1. Cargar configuración
+    ============================================ */
+    useEffect(() => {
+        if (!open || !idCotizacion) return;
+
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const { data } = await axios.get(
+                    `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                setConfig(data || null);
+
+                // Cargar contactos del cliente desde backend
+                try {
+                    // console.log(
+                    //     "Cargando contactos para cliente:",
+                    //     data.cotizacion.idcliente
+                    // );
+                    const resp = await axios.get(`/api/lista_contactos`, {
+                        params: { idcliente: data.cotizacion.idcliente },
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    //console.log("Contactos cargados:", resp.data);
+                    setContactos(resp.data);
+                } catch (error) {
+                    alertify.error("No se pudieron cargar los contactos.");
+                }
+
+                // preseleccionar items "sin envío"
+                const initialChecked = new Set(
+                    (data?.detalles || [])
+                        .filter(
+                            (d) =>
+                                !d.numero_envio || Number(d.numero_envio) === 0
+                        )
+                        .map((d) => d.iddetallecotizacion)
+                );
+                setChecked(initialChecked);
+
+                // prellenar dirección
+                const sug =
+                    (data?.direccion_sugerida &&
+                        String(data.direccion_sugerida).trim()) ||
+                    (direccionSugerida && String(direccionSugerida).trim()) ||
+                    "";
+                setDireccion(sug);
+
+                // llenar cantidades por defecto
+                const qtyMap = {};
+                (data?.detalles || []).forEach((it) => {
+                    const pend = Number(
+                        it.cantidad_pendiente ?? it.cantidad ?? 0
+                    );
+                    if (pend > 0) qtyMap[it.iddetallecotizacion] = pend;
+                });
+                setQty(qtyMap);
+
+                // preseleccionar último envío para reimpresión
+                const last =
+                    data?.envios?.length > 0
+                        ? data.envios[data.envios.length - 1].no_envio
+                        : "";
+                setNoEnvioReimp(last);
+            } catch (err) {
+                alertify.error(
+                    "No se pudo cargar información de Nota de Envío"
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [open, idCotizacion, token, direccionSugerida]);
+
+    const detalles = config?.detalles || [];
+    const siguienteEnvio = config?.siguiente_envio || 1;
+
+    /* ============================================
+       2. Toggle de ítems
+    ============================================ */
+    const toggle = (id) => {
+        const next = new Set(checked);
+        next.has(id) ? next.delete(id) : next.add(id);
+        setChecked(next);
+
+        // si se activa, rellenar automáticamente la cantidad
+        if (!qty[id]) {
+            const d = detalles.find((x) => x.iddetallecotizacion === id);
+            const pend = Number(d?.cantidad_pendiente ?? d?.cantidad ?? 0);
+            setQty((prev) => ({ ...prev, [id]: pend }));
         }
+    };
+
+    /* ============================================
+       3. Generar nuevo PDF
+    ============================================ */
+    const generar = async () => {
+        if (!checked.size) return alertify.warning("Selecciona un ítem.");
+        if (!direccion.trim())
+            return alertify.warning("Ingresa una dirección.");
+
+        const items = Array.from(checked)
+            .map((id) => ({
+                iddetallecotizacion: id,
+                cantidad: Number(qty[id] || 0),
+            }))
+            .filter((x) => x.cantidad > 0);
+
+        if (!items.length)
+            return alertify.warning("Todas las cantidades son 0.");
+
+        try {
+            setLoading(true);
+            const { data } = await axios.post(
+                `/api/cotizaciones/${idCotizacion}/nota-envio/generar`,
+                {
+                    items,
+                    direccion_envio: direccion.trim(),
+                    id_contacto: idContacto || null,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            onPdfReady?.(data);
+            onClose?.();
+        } catch (err) {
+            alertify.error(
+                err?.response?.data?.message ||
+                    "Error al generar Nota de Envío."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ============================================
+       4. Reimprimir
+    ============================================ */
+    const reimprimir = async () => {
+        if (!noEnvioReimp) return alertify.warning("Selecciona un envío.");
+
         try {
             setLoading(true);
             const { data } = await axios.post(
@@ -175,39 +183,93 @@ export default function NotaEnvioModal({
                 { no_envio: Number(noEnvioReimp) },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            // Espera que data.items traiga iddetallecotizacion, descripcion, cantidad
+            onPdfReady?.(data);
+            onClose?.();
+        } catch (err) {
+            alertify.error("Error al reimprimir PDF.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ============================================
+       5. Abrir editor
+    ============================================ */
+    const abrirEditorEnvio = async () => {
+        if (!noEnvioReimp) return alertify.warning("Selecciona un envío.");
+
+        try {
+            setLoading(true);
+
+            const { data } = await axios.post(
+                `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
+                { no_envio: Number(noEnvioReimp) },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
             setEditData({
                 noEnvio: Number(noEnvioReimp),
                 direccion: data?.direccion || "",
+                id_contacto: data?.id_contacto || "",
                 items: (data?.items || []).map((it) => ({
                     iddetallecotizacion: it.iddetallecotizacion,
                     descripcion: it.descripcion,
                     cantidad: Number(it.cantidad || 0),
                 })),
             });
+
             setEditOpen(true);
-        } catch (e) {
-            alertify.error(
-                e?.response?.data?.message || "No se pudo cargar el envío."
-            );
+        } catch (err) {
+            alertify.error("No se pudo cargar el envío.");
         } finally {
             setLoading(false);
         }
     };
 
+    /* ============================================
+       6. Guardar edición
+    ============================================ */
     const guardarEdicionEnvio = async (payload) => {
-        // payload = { no_envio, direccion_envio, items: [{iddetallecotizacion, cantidad}] }
-        if (!payload.items?.length) {
-            alertify.warning("Agrega al menos un ítem con cantidad > 0.");
-            return;
-        }
+        //console.log("Payload completo recibido:", payload);
+
+        const fixedItems = (payload.items || [])
+            .filter((it) => {
+                const cantidad = Number(it.cantidad);
+                const valido = cantidad > 0;
+                // console.log(
+                //     `Item ${it.iddetallecotizacion}: cantidad=${it.cantidad}, valido=${valido}`
+                // );
+                return valido;
+            })
+            .map((it) => ({
+                iddetallecotizacion: Number(it.iddetallecotizacion),
+                cantidad: Number(it.cantidad),
+            }));
+
+        //console.log("Items enviados al backend:", fixedItems);
+
+        const body = {
+            no_envio: Number(payload.no_envio),
+            direccion_envio: payload.direccion,
+            id_contacto: payload.id_contacto || null,
+            items: fixedItems,
+        };
+
+        //console.log("Body final:", body);
         try {
             setLoading(true);
+            // console.log("Llamando API actualizar envío:", {
+            //     url: `/api/cotizaciones/${idCotizacion}/nota-envio/actualizar`,
+            //     body,
+            // });
+
+            //console.log("DEBUG → enviando body al backend:", JSON.stringify(body, null, 2));
             await axios.post(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/actualizar`,
-                payload,
+                body,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
+
             alertify.success("Envío actualizado.");
             setEditOpen(false);
             setEditData(null);
@@ -218,167 +280,18 @@ export default function NotaEnvioModal({
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setConfig(data || null);
-        } catch (e) {
-            alertify.error(
-                e?.response?.data?.message || "No se pudo actualizar el envío."
-            );
+        } catch (err) {
+            alertify.error("No se pudo actualizar el envío.");
         } finally {
             setLoading(false);
         }
     };
 
-    // Cargar config al abrir
-    useEffect(() => {
-        if (!open || !idCotizacion) return;
-
-        const fetchConfig = async () => {
-            try {
-                setLoading(true);
-                const { data } = await axios.get(
-                    `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                setConfig(data || null);
-
-                // Preseleccionar ítems sin envío (numero_envio == null/0)
-                const initial = new Set(
-                    (data?.detalles || [])
-                        .filter(
-                            (d) =>
-                                !d.numero_envio || Number(d.numero_envio) === 0
-                        )
-                        .map((d) => d.iddetallecotizacion)
-                );
-                setChecked(initial);
-
-                // 👉 Precargar dirección: prioridad config > prop > vacío
-                const sugerida =
-                    (data?.direccion_sugerida &&
-                        String(data.direccion_sugerida).trim()) ||
-                    (direccionSugerida && String(direccionSugerida).trim()) ||
-                    "";
-                setDireccion(sugerida);
-
-                // NUEVO: preseleccionar el último envío para reimpresión
-                const ultimo =
-                    data?.envios && data.envios.length
-                        ? data.envios[data.envios.length - 1].no_envio
-                        : "";
-                setNoEnvioReimp(ultimo);
-            } catch (err) {
-                console.error(err);
-                const msg =
-                    err?.response?.data?.message ||
-                    `Error ${err?.response?.status || ""}`;
-                alertify.error(
-                    `No se pudo cargar la configuración de Nota de Envío. ${msg}`
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchConfig();
-    }, [open, idCotizacion, token, direccionSugerida]);
+    /* ============================================
+       UI
+    ============================================ */
 
     if (!open) return null;
-
-    const detalles = config?.detalles || [];
-    const siguienteEnvio = config?.siguiente_envio || 1;
-
-    const toggle = (id) => {
-        const next = new Set(checked);
-        next.has(id) ? next.delete(id) : next.add(id);
-        setChecked(next);
-        if (!qty[id]) {
-            const d = detalles.find((x) => x.iddetallecotizacion === id);
-            const pend = Number(d?.cantidad_pendiente ?? d?.cantidad ?? 0);
-            setQty((prev) => ({ ...prev, [id]: Math.max(0, pend) }));
-        }
-    };
-
-    const countReady = checked.size;
-
-    const fmtMoney = (n) =>
-        Number(n || 0).toLocaleString("es-GT", {
-            style: "currency",
-            currency: "GTQ",
-        });
-
-    const estadoBadge = (numero_envio) => {
-        const has = !!(numero_envio && Number(numero_envio) > 0);
-        return (
-            <span className={`badge ${has ? "bg-secondary" : "bg-success"}`}>
-                {has ? `Envío #${numero_envio}` : "Sin envío"}
-            </span>
-        );
-    };
-
-    const generar = async () => {
-        if (!checked.size) {
-            alertify.warning("Selecciona al menos un ítem.");
-            return;
-        }
-        if (!direccion.trim()) {
-            alertify.warning("Ingresa una dirección de envío.");
-            return;
-        }
-
-        const payloadItems = Array.from(checked)
-            .map((id) => ({
-                iddetallecotizacion: id,
-                cantidad: Number(qty[id] ?? 0),
-            }))
-            .filter((it) => it.cantidad > 0);
-
-        if (payloadItems.length === 0) {
-            alertify.warning("Todas las cantidades son 0.");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const { data } = await axios.post(
-                `/api/cotizaciones/${idCotizacion}/nota-envio/generar`,
-                { items: payloadItems, direccion_envio: direccion.trim() },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            onPdfReady?.(data);
-            onClose?.();
-        } catch (err) {
-            alertify.error(
-                err?.response?.data?.message ||
-                    "No se pudo generar la Nota de Envío."
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const reimprimir = async () => {
-        if (!noEnvioReimp) {
-            alertify.warning("Selecciona un envío para reimprimir.");
-            return;
-        }
-        try {
-            setLoading(true);
-            const { data } = await axios.post(
-                `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
-                { no_envio: Number(noEnvioReimp) },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            onPdfReady?.(data); // reutilizas el overlay del PDF ya implementado
-            onClose?.();
-        } catch (err) {
-            const msg =
-                err?.response?.data?.message ||
-                "No se pudo reimprimir la Nota de Envío.";
-            alertify.error(msg);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div
@@ -393,58 +306,21 @@ export default function NotaEnvioModal({
                     </div>
 
                     <div className="modal-body">
-                        {/* Header info */}
-                        <div
-                            className="d-flex align-items-center justify-content-between p-2 mb-3 rounded"
-                            style={{
-                                background: "#e7f5ff",
-                                border: "1px solid #b6e0fe",
-                            }}
-                        >
-                            <strong>Siguiente envío: {siguienteEnvio}</strong>
-                            <small className="text-muted">
-                                Selecciona ítems <em>Sin envío</em> para crear
-                                uno nuevo.
-                            </small>
-                        </div>
-
-                        {/* Tabla de detalles */}
-                        <div className="table-responsive">
-                            <table className="table table-sm table-bordered align-middle">
+                        {/* Tabla de ítems */}
+                        <div className="table-responsive mb-3">
+                            <table className="table table-sm table-bordered">
                                 <thead className="table-dark">
                                     <tr>
-                                        <th style={{ width: 40 }}></th>
+                                        <th></th>
                                         <th>Descripción</th>
-                                        <th
-                                            style={{
-                                                width: 80,
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            Cant.
-                                        </th>
-                                        <th
-                                            style={{
-                                                width: 140,
-                                                textAlign: "right",
-                                            }}
-                                        >
-                                            Total
-                                        </th>
-                                        <th style={{ width: 140 }}>Estado</th>
+                                        <th style={{ width: 80 }}>Cant.</th>
+                                        <th style={{ width: 120 }}>Total</th>
+                                        <th style={{ width: 120 }}>Estado</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td
-                                                colSpan={5}
-                                                className="text-center"
-                                            >
-                                                Cargando…
-                                            </td>
-                                        </tr>
-                                    ) : detalles.length === 0 ? (
+                                    {detalles.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan={5}
@@ -455,9 +331,10 @@ export default function NotaEnvioModal({
                                         </tr>
                                     ) : (
                                         detalles.map((it) => {
-                                            const disabled = !!(
-                                                it.numero_envio &&
-                                                Number(it.numero_envio) > 0
+                                            const pend = Number(
+                                                it.cantidad_pendiente ??
+                                                    it.cantidad ??
+                                                    0
                                             );
                                             const isChecked = checked.has(
                                                 it.iddetallecotizacion
@@ -471,13 +348,10 @@ export default function NotaEnvioModal({
                                                             type="checkbox"
                                                             className="form-check-input"
                                                             disabled={
+                                                                it.numero_envio &&
                                                                 Number(
-                                                                    it.cantidad_pendiente ??
-                                                                        (it.numero_envio
-                                                                            ? 0
-                                                                            : it.cantidad) ??
-                                                                        0
-                                                                ) <= 0
+                                                                    it.numero_envio
+                                                                ) > 0
                                                             }
                                                             checked={isChecked}
                                                             onChange={() =>
@@ -488,97 +362,85 @@ export default function NotaEnvioModal({
                                                         />
                                                     </td>
                                                     <td>{it.descripcion}</td>
-                                                    <td style={{ width: 80 }}>
-                                                        {(() => {
-                                                            const pend = Number(
-                                                                it.cantidad_pendiente ??
-                                                                    (it.numero_envio
-                                                                        ? 0
-                                                                        : it.cantidad) ??
-                                                                    0
-                                                            );
-                                                            const isChecked =
-                                                                checked.has(
-                                                                    it.iddetallecotizacion
-                                                                );
-                                                            const value =
-                                                                qty[
-                                                                    it
-                                                                        .iddetallecotizacion
-                                                                ] ?? pend;
 
-                                                            if (pend <= 0)
-                                                                return (
-                                                                    <span className="text-muted">
-                                                                        0
-                                                                    </span>
-                                                                );
-
-                                                            return isChecked ? (
-                                                                <div>
-                                                                    <input
-                                                                        type="number"
-                                                                        className="form-control form-control-sm text-end"
-                                                                        min={0}
-                                                                        max={
-                                                                            pend
-                                                                        }
-                                                                        step="0.01"
-                                                                        value={
-                                                                            value
-                                                                        }
-                                                                        onChange={(
-                                                                            e
-                                                                        ) => {
-                                                                            const v =
-                                                                                Math.max(
-                                                                                    0,
-                                                                                    Math.min(
-                                                                                        pend,
-                                                                                        Number(
-                                                                                            e
-                                                                                                .target
-                                                                                                .value ||
-                                                                                                0
-                                                                                        )
-                                                                                    )
-                                                                                );
-                                                                            setQty(
-                                                                                (
-                                                                                    prev
-                                                                                ) => ({
-                                                                                    ...prev,
-                                                                                    [it.iddetallecotizacion]:
-                                                                                        v,
-                                                                                })
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                    <div className="small text-muted">
-                                                                        Pend.:{" "}
-                                                                        {pend}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <span className="text-muted">
-                                                                        {pend}
-                                                                    </span>
-                                                                    <div className="small text-muted">
-                                                                        Pend.:{" "}
-                                                                        {pend}
-                                                                    </div>
-                                                                </>
-                                                            );
-                                                        })()}
+                                                    <td>
+                                                        {pend <= 0 ? (
+                                                            <span className="text-muted">
+                                                                0
+                                                            </span>
+                                                        ) : isChecked ? (
+                                                            <input
+                                                                type="number"
+                                                                className="form-control form-control-sm text-end"
+                                                                min={0}
+                                                                max={pend}
+                                                                value={
+                                                                    qty[
+                                                                        it
+                                                                            .iddetallecotizacion
+                                                                    ] ?? pend
+                                                                }
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    const v =
+                                                                        Math.max(
+                                                                            0,
+                                                                            Math.min(
+                                                                                pend,
+                                                                                Number(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value ||
+                                                                                        0
+                                                                                )
+                                                                            )
+                                                                        );
+                                                                    setQty(
+                                                                        (
+                                                                            prev
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [it.iddetallecotizacion]:
+                                                                                v,
+                                                                        })
+                                                                    );
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <span className="text-muted">
+                                                                {pend}
+                                                            </span>
+                                                        )}
                                                     </td>
 
                                                     <td className="text-end">
-                                                        {fmtMoney(it.total)}
+                                                        {Number(
+                                                            it.total || 0
+                                                        ).toLocaleString(
+                                                            "es-GT",
+                                                            {
+                                                                style: "currency",
+                                                                currency: "GTQ",
+                                                            }
+                                                        )}
                                                     </td>
+
                                                     <td>
-                                                        {estadoBadge(
+                                                        {it.numero_envio &&
+                                                        Number(
                                                             it.numero_envio
+                                                        ) > 0 ? (
+                                                            <span className="badge bg-secondary">
+                                                                Envío #
+                                                                {
+                                                                    it.numero_envio
+                                                                }
+                                                            </span>
+                                                        ) : (
+                                                            <span className="badge bg-success">
+                                                                Sin envío
+                                                            </span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -588,29 +450,48 @@ export default function NotaEnvioModal({
                                 </tbody>
                             </table>
                         </div>
+                        {/* CONTACTO */}
 
-                        {/* Dirección */}
-                        <div className="mb-2 fw-bold">
-                            Dirección para este envío (nuevo):
-                        </div>
+                        <label className="form-label fw-bold">Contacto</label>
+                        {/* {console.log(
+                            "Renderizando <select> contactos:",
+                            contactos
+                        )} */}
+                        <select
+                            className="form-select mb-3"
+                            value={idContacto}
+                            onChange={(e) => setIdContacto(e.target.value)}
+                        >
+                            <option value="">-- Seleccionar --</option>
+                            {contactos.map((c) => (
+                                <option
+                                    key={`cont-${
+                                        c.id_contactocliente
+                                    }-${Math.random()}`}
+                                    value={c.id_contactocliente}
+                                >
+                                    {c.nombre} — {c.telefono}
+                                </option>
+                            ))}
+                        </select>
+                        {/* DIRECCIÓN */}
+                        <label className="form-label fw-bold">
+                            Dirección de Envío
+                        </label>
                         <textarea
                             className="form-control"
                             rows={3}
-                            placeholder="Ej.: 5a avenida 10-20 zona 10, Ciudad de Guatemala"
                             value={direccion}
                             onChange={(e) => setDireccion(e.target.value)}
                         />
-                        {/* ===== Reimprimir envío existente ===== */}
+                        {/* SECCIÓN DE REIMPRESIÓN */}
                         {envios.length > 0 && (
-                            <div className="mt-4 p-2 border rounded">
-                                <div className="fw-bold mb-2">
-                                    Reimprimir envío existente
-                                </div>
-                                <div className="row g-2 align-items-end">
+                            <div className="mt-4 p-3 border rounded">
+                                <div className="fw-bold">Reimprimir envío</div>
+
+                                <div className="row mt-2 g-2">
                                     <div className="col-md-6">
-                                        <label className="form-label">
-                                            Envío
-                                        </label>
+                                        {/* {console.log("Renderizando lista de envíos reimpresión:", envios)} */}
                                         <select
                                             className="form-select"
                                             value={noEnvioReimp}
@@ -621,145 +502,56 @@ export default function NotaEnvioModal({
                                             <option value="">
                                                 -- Selecciona --
                                             </option>
-                                            {envios.map((e) => (
+                                            {envios.map((e, idx) => (
                                                 <option
-                                                    key={e.no_envio}
+                                                    key={`env-${e.no_envio}-${idx}`}
                                                     value={e.no_envio}
                                                 >
-                                                    {`#${
-                                                        e.no_envio
-                                                    } — ${new Date(
+                                                    {`#${e.no_envio} — ${
                                                         e.fecha_envio
-                                                    )
-                                                        .toISOString()
-                                                        .slice(0, 10)}`}
+                                                            ? new Date(
+                                                                  e.fecha_envio
+                                                              )
+                                                                  .toISOString()
+                                                                  .slice(0, 10)
+                                                            : "Sin fecha"
+                                                    }`}
                                                 </option>
                                             ))}
                                         </select>
-                                        <div className="col-md-3">
-                                            <button
-                                                className="btn btn-outline-secondary w-100"
-                                                onClick={async () => {
-                                                    if (!noEnvioReimp)
-                                                        return alertify.warning(
-                                                            "Selecciona un envío."
-                                                        );
-                                                    if (
-                                                        !confirm(
-                                                            `Eliminar envío #${noEnvioReimp}?`
-                                                        )
-                                                    )
-                                                        return;
-                                                    try {
-                                                        setLoading(true);
-                                                        await axios.post(
-                                                            `/api/cotizaciones/${idCotizacion}/nota-envio/eliminar`,
-                                                            {
-                                                                no_envio:
-                                                                    Number(
-                                                                        noEnvioReimp
-                                                                    ),
-                                                            },
-                                                            {
-                                                                headers: {
-                                                                    Authorization: `Bearer ${token}`,
-                                                                },
-                                                            }
-                                                        );
-                                                        alertify.success(
-                                                            "Envío eliminado."
-                                                        );
-                                                        // Refresca config
-                                                        const { data } =
-                                                            await axios.get(
-                                                                `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
-                                                                {
-                                                                    headers: {
-                                                                        Authorization: `Bearer ${token}`,
-                                                                    },
-                                                                }
-                                                            );
-                                                        setConfig(data || null);
-                                                        setNoEnvioReimp("");
-                                                    } catch (e) {
-                                                        alertify.error(
-                                                            e?.response?.data
-                                                                ?.message ||
-                                                                "No se pudo eliminar."
-                                                        );
-                                                    } finally {
-                                                        setLoading(false);
-                                                    }
-                                                }}
-                                                disabled={
-                                                    loading || !noEnvioReimp
-                                                }
-                                            >
-                                                Eliminar envío
-                                            </button>
-                                        </div>
-
-                                        <div className="col-md-3">
-                                            <button
-                                                className="btn btn-outline-success w-100"
-                                                onClick={abrirEditorEnvio}
-                                                disabled={
-                                                    loading || !noEnvioReimp
-                                                }
-                                            >
-                                                Editar envío
-                                            </button>
-                                        </div>
-
-                                        {noEnvioReimp && (
-                                            <small className="text-muted d-block mt-1">
-                                                {(() => {
-                                                    const x = envios.find(
-                                                        (v) =>
-                                                            String(
-                                                                v.no_envio
-                                                            ) ===
-                                                            String(noEnvioReimp)
-                                                    );
-                                                    return x
-                                                        ? `Dirección: ${x.direccion_envio}`
-                                                        : "";
-                                                })()}
-                                            </small>
-                                        )}
                                     </div>
+
+                                    <div className="col-md-3">
+                                        <button
+                                            className="btn btn-outline-success w-100"
+                                            onClick={abrirEditorEnvio}
+                                            disabled={loading || !noEnvioReimp}
+                                        >
+                                            Editar envío
+                                        </button>
+                                    </div>
+
                                     <div className="col-md-3">
                                         <button
                                             className="btn btn-outline-primary w-100"
                                             onClick={reimprimir}
                                             disabled={loading || !noEnvioReimp}
                                         >
-                                            {loading
-                                                ? "Generando…"
-                                                : "Reimprimir PDF"}
+                                            Reimprimir PDF
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         )}
-
-                        <div className="mt-2 text-muted">
-                            Ítems listos para generar:{" "}
-                            <strong>{countReady}</strong>
-                        </div>
                     </div>
 
                     <div className="modal-footer">
                         <button
                             className="btn btn-primary"
                             onClick={generar}
-                            disabled={
-                                loading || !countReady || !direccion.trim()
-                            }
+                            disabled={loading || !direccion.trim()}
                         >
-                            {loading
-                                ? "Generando…"
-                                : "Generar PDF (nuevo envío)"}
+                            {loading ? "Generando…" : "Generar PDF"}
                         </button>
                         <button
                             className="btn btn-secondary"
@@ -771,6 +563,7 @@ export default function NotaEnvioModal({
                     </div>
                 </div>
             </div>
+
             <EnvioEditModal
                 open={editOpen}
                 onClose={() => {
@@ -779,6 +572,8 @@ export default function NotaEnvioModal({
                 }}
                 noEnvio={editData?.noEnvio}
                 direccionInicial={editData?.direccion}
+                contactoInicial={editData?.id_contacto}
+                contactosLista={contactos}
                 itemsIniciales={editData?.items || []}
                 onSubmit={guardarEdicionEnvio}
             />

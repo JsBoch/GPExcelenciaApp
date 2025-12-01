@@ -13,21 +13,19 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import alertify from "alertifyjs";
-import {
-    Modal,
-    ModalBody,
-    ModalHeader,
-    ModalFooter,
-    Button as BootstrapButton,
-} from "reactstrap";
-import "../../css/tableFormat.css";
 import ImagenModal from "./ImagenModal";
+import "../../css/detalle-cotizacion-premium.css";
 
 const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
     const [detalleItems, setDetalleItems] = useState([]);
     const [totalGeneral, setTotalGeneral] = useState(0);
     const [porcentajeGlobal, setPorcentajeGlobal] = useState(0);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = useState(null);
 
+    /* -------------------------------
+          NORMALIZACIÓN DE DETALLE
+       ------------------------------- */
     useEffect(() => {
         if (Array.isArray(detalle)) {
             const normalizados = detalle.map((item) => ({
@@ -42,6 +40,9 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         }
     }, [detalle]);
 
+    /* -------------------------------
+          TOTAL GENERAL
+       ------------------------------- */
     useEffect(() => {
         const total = detalleItems.reduce((sum, item) => {
             const subtotal = parseFloat(item.total);
@@ -50,26 +51,33 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         setTotalGeneral(total);
     }, [detalleItems]);
 
+    /* -------------------------------
+        CAMBIO DE PORCENTAJE POR FILA
+       ------------------------------- */
     const handlePorcentajeChange = (rowIndex, nuevoPorcentaje) => {
         if (nuevoPorcentaje >= 0 && nuevoPorcentaje <= 10) {
             const items = [...detalleItems];
             const item = { ...items[rowIndex] };
-            const porcentajeDecimal = nuevoPorcentaje / 100;
+
             const precioOriginal =
                 item.precio / (1 + (item.porcentaje_aplicado || 0) / 100);
+
+            const porcentajeDecimal = nuevoPorcentaje / 100;
+
             item.precio = parseFloat(
                 (precioOriginal * (1 + porcentajeDecimal)).toFixed(2)
             );
             item.porcentaje_aplicado = nuevoPorcentaje;
             item.total = parseFloat((item.precio * item.cantidad).toFixed(2));
+
             items[rowIndex] = item;
             setDetalleItems(items);
         }
     };
 
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-    const [selectedImageUrl, setSelectedImageUrl] = useState(null);
-
+    /* -------------------------------
+              VER IMAGEN
+       ------------------------------- */
     const handleViewImage = (imagen_ruta) => {
         const url = imagen_ruta ? `/images_cotizaciones/${imagen_ruta}` : null;
         setSelectedImageUrl(url || null);
@@ -80,9 +88,13 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         setIsImageModalOpen(!isImageModalOpen);
     };
 
+    /* -------------------------------
+            GUARDAR DETALLE
+       ------------------------------- */
     const handleGuardarDetalle = async () => {
         const token = localStorage.getItem("token");
         const idCotizacion = detalle[0]?.idcotizacion;
+
         if (!token || !idCotizacion) {
             alertify.error("Error: Token o ID no encontrados.");
             return;
@@ -105,6 +117,9 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         }
     };
 
+    /* -------------------------------
+    % GLOBAL
+    ------------------------------- */
     const aplicarPorcentajeGlobal = (nuevoPorcentaje) => {
         if (nuevoPorcentaje >= 0 && nuevoPorcentaje <= 10) {
             setPorcentajeGlobal(nuevoPorcentaje);
@@ -112,9 +127,11 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
             const nuevosItems = detalleItems.map((item) => {
                 const precioOriginal =
                     item.precio / (1 + (item.porcentaje_aplicado || 0) / 100);
+
                 const nuevoPrecio = parseFloat(
                     (precioOriginal * (1 + nuevoPorcentaje / 100)).toFixed(2)
                 );
+
                 return {
                     ...item,
                     precio: nuevoPrecio,
@@ -127,44 +144,19 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         }
     };
 
+    /* -------------------------------
+              COLUMNAS TABLA
+       ------------------------------- */
     const columns = useMemo(
         () => [
-            {
-                accessorKey: "producto",
-                header: "Producto",
-            },
-            {
-                accessorKey: "unidad_medida",
-                header: "Unidad",
-            },
-            // {
-            //   accessorKey: 'titulo',
-            //   header: 'Título',
-            // },
-            // {
-            //   accessorKey: 'descripcion',
-            //   header: 'Descripción',
-            // },
-            {
-                accessorKey: "cantidad",
-                header: "Cantidad",
-            },
-            {
-                accessorKey: "ancho",
-                header: "Ancho",
-            },
-            {
-                accessorKey: "alto",
-                header: "Alto",
-            },
-            {
-                accessorKey: "m2",
-                header: "M2",
-            },
-            {
-                accessorKey: "profundidad",
-                header: "Profundidad",
-            },
+            { accessorKey: "producto", header: "Producto" },
+            { accessorKey: "unidad_medida", header: "Unidad" },
+            { accessorKey: "cantidad", header: "Cantidad" },
+            { accessorKey: "ancho", header: "Ancho" },
+            { accessorKey: "alto", header: "Alto" },
+            { accessorKey: "m2", header: "M2" },
+            { accessorKey: "profundidad", header: "Prof." },
+
             {
                 accessorKey: "precio",
                 header: "Precio Unitario",
@@ -174,6 +166,7 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
                         currency: "GTQ",
                     }),
             },
+
             {
                 accessorKey: "porcentaje_aplicado",
                 header: "Porcentaje (%)",
@@ -192,6 +185,7 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
                     />
                 ),
             },
+
             {
                 accessorKey: "total",
                 header: "Subtotal",
@@ -201,13 +195,14 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
                         currency: "GTQ",
                     }),
             },
+
             {
-                id: "imagen_ruta", // <- obligatorio si header no es string
+                id: "imagen_ruta",
                 header: "Imagen",
                 accessorKey: "imagen_ruta",
                 Cell: ({ row }) => (
                     <button
-                        className="btn btn-outline-info btn-sm"
+                        className="detalle-image-btn"
                         onClick={() =>
                             handleViewImage(row.original.imagen_ruta)
                         }
@@ -226,25 +221,39 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
         [detalleItems]
     );
 
+    /* -------------------------------
+            RENDER
+       ------------------------------- */
     return (
-        <Dialog open onClose={onClose} maxWidth="xl" fullWidth>
-            <DialogTitle>
-                Detalle de Cotización No. {detalle[0]?.idcotizacion}
+        <Dialog
+            open
+            onClose={onClose}
+            maxWidth="xl"
+            fullWidth
+            className="detalle-modal"
+        >
+            <DialogTitle className="detalle-modal-title">
+                Detalle de Cotización No.{" "}
+                <strong>{detalle[0]?.idcotizacion}</strong>
             </DialogTitle>
-            <Box display="flex" justifyContent="flex-end" mb={2}>
+
+            {/* % GLOBAL */}
+            <Box display="flex" justifyContent="flex-end" mb={2} px={2}>
                 <TextField
                     label="Aplicar % a todos"
                     type="number"
                     size="small"
+                    className="detalle-input-global"
                     inputProps={{ min: 0, max: 10 }}
                     value={porcentajeGlobal}
                     onChange={(e) =>
                         aplicarPorcentajeGlobal(parseFloat(e.target.value))
                     }
-                    style={{ width: "150px" }}
+                    style={{ width: "160px" }}
                 />
             </Box>
-            <DialogContent>
+
+            <DialogContent className="detalle-body">
                 <MaterialReactTable
                     columns={columns}
                     data={detalleItems}
@@ -260,16 +269,19 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
                         },
                     }}
                 />
-                <Box mt={2} textAlign="right">
-                    <Typography variant="h6">
-                        Total General:{" "}
+
+                {/* TOTAL GENERAL */}
+                <Box mt={2} textAlign="right" className="detalle-total-box">
+                    <div className="label">Total General</div>
+                    <div className="value">
                         {totalGeneral.toLocaleString("es-GT", {
                             style: "currency",
                             currency: "GTQ",
                         })}
-                    </Typography>
+                    </div>
                 </Box>
 
+                {/* MODAL DE IMAGEN */}
                 {isImageModalOpen && selectedImageUrl && (
                     <ImagenModal
                         imagenSrc={selectedImageUrl}
@@ -277,16 +289,21 @@ const DetalleCotizacionModal = ({ detalle, estadoCotizacion, onClose }) => {
                     />
                 )}
             </DialogContent>
-            <DialogActions>
+
+            <DialogActions className="detalle-modal-footer">
                 <Button
                     variant="contained"
                     onClick={handleGuardarDetalle}
-                    color="primary"
-                    disabled={estadoCotizacion === 2 || estadoCotizacion === 4} 
+                    className="detalle-btn detalle-btn-primary"
+                    disabled={estadoCotizacion === 2 || estadoCotizacion === 4}
                 >
                     Guardar Cambios
                 </Button>
-                <Button onClick={onClose} color="secondary">
+
+                <Button
+                    onClick={onClose}
+                    className="detalle-btn detalle-btn-close"
+                >
                     Cerrar
                 </Button>
             </DialogActions>

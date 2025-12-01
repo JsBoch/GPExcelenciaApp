@@ -1,0 +1,362 @@
+/* ============================================================
+   PREMIUM ENTERPRISE UI — GPExcelenciaApp
+   Estilo: Botones Degradado Azul (CRM)
+   Tablas Material Design
+   ============================================================ */
+
+/* ==========================
+   LAYOUT
+   ========================== */
+.cotizacion-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.cotizacion-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.card-form {
+  padding-top: 0.5rem;
+}
+
+/* ==========================
+   ENCABEZADO META ERP
+   ========================== */
+.erp-meta-header .erp-badge {
+  background: #dceaff;
+  color: #2b59d1;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.75rem;
+}
+
+/* ==========================
+   LABELS, INPUTS
+   ========================== */
+.form-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1b2533;
+}
+
+.form-control-sm,
+.form-select-sm,
+.react-select-erp .css-13cymwt-control {
+  border-radius: 10px;
+  border-color: #d1d5db;
+  background: #fdfdfd;
+  font-size: 0.88rem;
+}
+
+.form-control-sm:focus,
+.form-select-sm:focus,
+.react-select-erp .css-13cymwt-control:focus-within {
+  border-color: #4d8bff;
+  box-shadow: 0 0 0 2px rgba(77, 139, 255, 0.25);
+}
+
+/* Campo obligatorio */
+.campo-obligatorio-fondo {
+  border-left: 3px solid #4d8bff;
+}
+
+/* ==========================
+   LINKS (Pequeños)
+   ========================== */
+.erp-small-link-btn {
+  font-size: 0.85rem;
+  text-decoration: none !important;
+  color: #2363eb !important;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.erp-small-link-btn:hover {
+  color: #1e4fc3 !important;
+  text-decoration: underline !important;
+}
+
+/* ==========================
+   TOOLBAR DETALLE
+   ========================== */
+.detalle-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.9rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px dashed #d0d7e2;
+}
+
+/* ==========================
+   BOTÓN: Producto Predefinido
+   ========================== */
+.btn-producto-predefinido {
+  background: #1a1f2b;
+  color: white;
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  font-size: 0.78rem;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: 0.15s ease;
+}
+
+.btn-producto-predefinido:hover {
+  background: #10141d;
+}
+
+/* ==========================
+   DROPZONE
+   ========================== */
+.image-dropzone-erp {
+  height: 95px;
+  border-radius: 12px;
+  border: 2px dashed #c3cbd6 !important;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: 0.15s ease;
+}
+
+.image-dropzone-erp:hover {
+  background: #f1f5f9;
+  border-color: #4d8bff !important;
+}
+
+.erp-thumb {
+  max-width: 55px;
+  border-radius: 6px;
+  border: 1px solid #e4e9f1;
+}
+
+/* ==========================
+   SUBTÍTULOS
+   ========================== */
+.erp-subsection-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e2a38;
+}
+
+/* ==========================
+   TABLAS (Material Design)
+   ========================== */
+
+.mrt-table {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.mrt-table thead tr th {
+  background: #f3f6fb !important;
+  font-weight: 700 !important;
+  color: #344050 !important;
+  font-size: 0.82rem !important;
+  border-bottom: 1px solid #e1e7ef !important;
+}
+
+.mrt-table tbody tr {
+  background: white !important;
+}
+
+.mrt-table tbody tr:hover {
+  background: #eef4ff !important;
+}
+
+.mrt-table-container {
+  border-radius: 12px !important;
+  box-shadow: 0 0 6px rgba(0,0,0,0.08) !important;
+}
+
+/* ==========================
+   CAJA DE TOTALES
+   ========================== */
+.erp-summary-box {
+  padding: 0.6rem 0.85rem;
+  background: #1e2a38;
+  color: #ffffff;
+  border-radius: 12px;
+}
+
+.erp-summary-box-main {
+  background: #2563eb;
+}
+
+.erp-summary-box input {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  text-align: right;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Ajuste overflow */
+.erp-summary-box-main input {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================
+   TARJETA DESCUENTOS
+   ========================== */
+.erp-discount-card {
+  border-radius: 12px;
+  border: 1px solid #d7dce4;
+  background: #f8fafc;
+}
+
+/* ==========================
+   PIE DEL FORMULARIO
+   ========================== */
+.erp-footer {
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f8 100%);
+  border-radius: 12px;
+}
+
+/* ==========================
+   OVERLAY PDF
+   ========================== */
+.pdf-overlay-erp {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.pdf-container-erp {
+  width: 82%;
+  height: 82%;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+}
+
+/* ==========================
+   BARRA ACCIONES INFERIOR
+   ========================== */
+.action-toolbar {
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+}
+
+/* ==========================
+   BOTONES PREMIUM DEGRADADOS (CRM)
+   ========================== */
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.68rem 1.2rem;
+  border-radius: 12px;
+  font-weight: 700;
+  border: 0;
+  min-height: 44px;
+  transition: all .15s ease;
+}
+
+/* Guardar — Degradado moderno */
+.btn-save {
+  background: linear-gradient(135deg, #4d8bff 0%, #1e67ff 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30,103,255,0.25);
+}
+.btn-save:hover {
+  background: linear-gradient(135deg, #3a75e8 0%, #1a58d9 100%);
+}
+
+/* Limpiar */
+.btn-clean {
+  background: #f1f5f9;
+  color: #435366;
+  border: 1px solid #d3dce6;
+}
+.btn-clean:hover {
+  background: #e2e8f0;
+}
+
+/* Consultar */
+.btn-consult {
+  background: #1e293b;
+  color: white;
+}
+.btn-consult:hover {
+  background: #121a24;
+}
+
+/* ==========================
+   BOTÓN + (Premium)
+   ========================== */
+.erp-btn-add {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #cfd7df;
+  background: linear-gradient(180deg, #f9fafc 0%, #eef1f5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.erp-btn-add:hover {
+  background: linear-gradient(180deg, #eef1f5 0%, #e3e8ee 100%);
+  border-color: #b9c3cf;
+}
+
+.erp-btn-add-icon {
+  color: #2463eb;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* ==========================
+   BOTÓN AGREGAR / QUITAR DETALLE
+   ========================== */
+.erp-btn-primary {
+  background: linear-gradient(135deg, #4d8bff 0%, #1e67ff 100%) !important;
+  color: white !important;
+  border-radius: 10px;
+  border: 1px solid #1e67ff !important;
+  padding: 6px 16px;
+}
+.erp-btn-primary:hover {
+  background: linear-gradient(135deg, #3a75e8 0%, #1a58d9 100%) !important;
+}
+
+.erp-btn-danger {
+  background: linear-gradient(135deg, #ff4d59 0%, #e22234 100%) !important;
+  color: white !important;
+  border-radius: 10px;
+  padding: 6px 16px;
+  border: 1px solid #e22234 !important;
+}
+.erp-btn-danger:hover {
+  background: linear-gradient(135deg, #e3424d 0%, #c01b29 100%) !important;
+}
+
+/* ============================================================
+   FIN CSS PREMIUM ENTERPRISE GPExcelenciaApp
+   ============================================================ */

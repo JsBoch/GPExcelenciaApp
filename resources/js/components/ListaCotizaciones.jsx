@@ -1,20 +1,29 @@
-// ListaCotizaciones.jsx
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { Link, useNavigate } from "react-router-dom";
-import CotizacionPDF from "./CotizacionPDF";
-import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
-import alertify from "alertifyjs";
-import DetalleCotizacionModal from "./DetalleCotizacionModal";
-import "../../css/tableFormat.css";
-import { FaRegFileAlt } from "react-icons/fa";
-import Header from "./Header";
-import NotaEnvioPDF from "./NotaEnvioPDF";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import * as bootstrap from "bootstrap";
+// ===============================================================
+// LISTA COTIZACIONES — VERSIÓN COMPLETA, CORREGIDA Y ESTABLE
+// ===============================================================
 
-// 🟦 MUI
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import alertify from "alertifyjs";
+
+// Hook optimizado
+import { useCotizaciones } from "../hooks/useCotizaciones";
+
+// Modales
+import DetalleCotizacionModal from "./DetalleCotizacionModal";
+import NotaEnvioModal from "./NotaEnvioModal";
+
+// PDF
+import CotizacionPDF from "./CotizacionPDF";
+import NotaEnvioPDF from "./NotaEnvioPDF";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
+
+// Bootstrap y CSS
+import "bootstrap/dist/css/bootstrap.min.css";
+import "../../css/lista-cotizaciones.css";
+
+// MUI
 import {
     Table,
     TableHead,
@@ -27,19 +36,17 @@ import {
     Chip,
     Tooltip,
     IconButton,
-    Badge,
-    // ✅ barra de acciones
-    Button as MUIButton,
-    Stack,
     Menu,
     MenuItem,
     Divider,
     ListItemIcon,
     ListItemText,
+    Stack,
+    Button as MUIButton,
+    Badge,
 } from "@mui/material";
 
 // Icons
-import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import {
     MoreVert,
     PictureAsPdf,
@@ -53,150 +60,82 @@ import {
     Block,
 } from "@mui/icons-material";
 
-import NotaEnvioModal from "./NotaEnvioModal";
+import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
+import { FaRegFileAlt } from "react-icons/fa";
+import Header from "./Header";
 
 function ListaCotizaciones() {
-    const [cotizaciones, setCotizaciones] = useState([]);
-    const [detalleCotizacion, setDetalleCotizacion] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [fechaActual, setFechaActual] = useState("");
-
     const navigate = useNavigate();
-    const [pdfData, setPdfData] = useState(null);
-    const [fechaInicio, setFechaInicio] = useState("");
-    const [fechaFin, setFechaFin] = useState("");
-    const cotizacionesRef = useRef([]);
-    const fechaInicioRef = useRef("");
-    const fechaFinRef = useRef("");
 
-    // 🟦 selección persistente
-    const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
-    const [selectedId, setSelectedId] = useState(null);
+    // ===========================================================
+    //   Hook centralizado
+    // ===========================================================
+    const {
+        cotizaciones,
+        loading,
+        fechaActual,
+        fechaInicio,
+        fechaFin,
+        setFechaInicio,
+        setFechaFin,
+        estadoFiltro,
+        setEstadoFiltro,
+        filtro,
+        setFiltro,
+        handleSearchChange,
+        fetchCotizaciones,
+        esComodin,
+        vendedores,
+        vendedorSeleccionado,
+        setVendedorSeleccionado,
+    } = useCotizaciones();
 
-    const [filtro, setFiltro] = useState("");
-    const [motivosRechazo, setMotivosRechazo] = useState([]);
-    const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
-    const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
-
-    const [showPdfModal, setShowPdfModal] = useState(false);
-    const [fechaPdf, setFechaPdf] = useState("");
-    const [historialEnvios, setHistorialEnvios] = useState([]);
-    const [estadoFiltro, setEstadoFiltro] = useState(""); // '' = todos
-
-    // 🟦 paginación controlada (MUI TablePagination)
+    // ===========================================================
+    //   Estados locales UI
+    // ===========================================================
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(25);
 
-    // Nota Envío (nuevo flujo)
-    const [showNotaEnvioModal, setShowNotaEnvioModal] = useState(false);
-    const [notaEnvioPayload, setNotaEnvioPayload] = useState(null); // data para ReactPDF
+    const [selectedId, setSelectedId] = useState(null);
+    const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
 
-    // Comentarios (modal en ListaCotizaciones)
+    const [modalVisible, setModalVisible] = useState(false);
+    const [detalleCotizacion, setDetalleCotizacion] = useState(null);
+
+    const [pdfData, setPdfData] = useState(null);
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [fechaPdf, setFechaPdf] = useState("");
+
+    const [notaEnvioPayload, setNotaEnvioPayload] = useState(null);
+    const [showNotaEnvioModal, setShowNotaEnvioModal] = useState(false);
+    const [historialEnvios, setHistorialEnvios] = useState([]);
+
+    const [actionsAnchor, setActionsAnchor] = useState(null);
+
+    const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
+    const [motivosRechazo, setMotivosRechazo] = useState([]);
+    const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
+
     const [openComentarios, setOpenComentarios] = useState(false);
+    const [comentariosSearch, setComentariosSearch] = useState("");
     const [comentariosPag, setComentariosPag] = useState(null);
     const [comentariosPage, setComentariosPage] = useState(1);
-    const [comentariosSearch, setComentariosSearch] = useState("");
+    const [fechasSincronizadas, setFechasSincronizadas] = useState(false);
 
-    // ====== NUEVO: barra "Más acciones"
-    const [actionsAnchor, setActionsAnchor] = useState(null);
-    const openActions = (e) => setActionsAnchor(e.currentTarget);
-    const closeActions = () => setActionsAnchor(null);
-
-    const [esComodin, setEsComodin] = useState(false);
-    const [vendedores, setVendedores] = useState([]);
-    const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
-
-    const searchDebounceRef = useRef(null);
-
+    // ===========================================================
+    //   Sync selección cuando cambian las cotizaciones
+    // ===========================================================
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+        if (!selectedId) return;
+        const r = cotizaciones.find(
+            (c) => Number(c.idcotizacion) === Number(selectedId)
+        );
+        if (r) setRegistroSeleccionado(r);
+    }, [cotizaciones, selectedId]);
 
-        axios
-            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
-            .then((res) => {
-                setFechaActual(res.data.fecha);
-            })
-            .catch(() => {
-                const localDate = new Date().toISOString().split("T")[0];
-                setFechaActual(localDate); // fallback
-            });
-    }, []);
-
-    const handleSearchChange = (e) => {
-        const value = e.target.value;
-        setFiltro(value);
-        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-        searchDebounceRef.current = setTimeout(() => {
-            setPage(0);
-            // 👇 si hay texto, no limitamos por fecha
-            const hasQ = value.trim().length > 0;
-            fetchCotizaciones(
-                hasQ ? "" : fechaInicioRef.current,
-                hasQ ? "" : fechaFinRef.current,
-                estadoFiltro,
-                value.trim()
-            );
-        }, 400);
-    };
-
-    const ESTADOS = [
-        { value: "", label: "Todos" },
-        { value: "1", label: "REGISTRO" },
-        { value: "2", label: "PARA COSTEO" },
-        { value: "3", label: "COSTEADA" },
-        { value: "4", label: "PRE-FACTURACIÓN" },
-        { value: "5", label: "PARA FACTURAR" },
-        { value: "6", label: "FACTURADA" },
-        { value: "7", label: "ANULADA" },
-        { value: "8", label: "RECHAZADA" },
-    ];
-
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        axios
-            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((res) => {
-                setFechaInicio(res.data.fecha);
-                setFechaFin(res.data.fecha);
-                fetchCotizaciones(res.data.fecha, res.data.fecha);
-            })
-            .catch(() => {
-                const today = new Date().toISOString().split("T")[0];
-                setFechaInicio(today);
-                setFechaFin(today);
-                fetchCotizaciones(today, today);
-            });
-    }, []);
-
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const headers = { Authorization: `Bearer ${token}` };
-        axios
-            .get(`${import.meta.env.VITE_API_URL}/user`, { headers })
-            .then((res) => {
-                if (res.data.es_comodin === 1) {
-                    setEsComodin(true);
-                    // cargar lista de vendedores
-                    axios
-                        .get(
-                            `${import.meta.env.VITE_API_URL}/lista_vendedores`,
-                            { headers }
-                        )
-                        .then((r) => setVendedores(r.data))
-                        .catch(() =>
-                            alertify.error("Error al cargar vendedores")
-                        );
-                }
-            })
-            .catch(() => alertify.error("Error verificando usuario"));
-    }, []);
-
+    // ===========================================================
+    //   Comentarios: refetch al escribir en el buscador del modal
+    // ===========================================================
     useEffect(() => {
         if (openComentarios && registroSeleccionado?.idcotizacion) {
             fetchComentarios(
@@ -205,155 +144,21 @@ function ListaCotizaciones() {
                 comentariosSearch
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [comentariosSearch]);
 
-    // const fetchCotizaciones = (startDate = "", endDate = "", estado = "") => {
-    //   setLoading(true);
-    //   const token = localStorage.getItem("token");
-    //   const params = new URLSearchParams();
-    //   if (startDate) params.append("fecha_inicio", startDate);
-    //   if (endDate) params.append("fecha_fin", endDate);
-    //   if (estado) params.append("estado", estado);
-
-    //   if (token && startDate && endDate) {
-    //     axios
-    //       .get(`/api/cotizaciones?${params.toString()}`, {
-    //         headers: { Authorization: `Bearer ${token}` },
-    //       })
-    //       .then((response) => {
-    //         setCotizaciones(response.data);
-    //         setLoading(false);
-
-    //         // si el seleccionado aún existe en el nuevo dataset, lo mantenemos
-    //         if (selectedId) {
-    //           const r = response.data.find(
-    //             (c) => Number(c.idcotizacion) === Number(selectedId)
-    //           );
-    //           setRegistroSeleccionado(r ?? null);
-    //           if (!r) setSelectedId(null);
-    //         }
-    //       })
-    //       .catch(() => {
-    //         alertify.error("Error al obtener las cotizaciones.");
-    //         setLoading(false);
-    //       });
-    //   } else {
-    //     setCotizaciones([]);
-    //     setLoading(false);
-    //     if (!token) alertify.error("Token de autenticación no encontrado");
-    //   }
-    // };
-    const fetchCotizaciones = (
-        startDate = "",
-        endDate = "",
-        estado = "",
-        q = ""
-    ) => {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        const params = new URLSearchParams();
-        if (startDate) params.append("fecha_inicio", startDate);
-        if (endDate) params.append("fecha_fin", endDate);
-        if (estado) params.append("estado", estado);
-        if (q) params.append("q", q); // <- 🔎
-        if (esComodin && vendedorSeleccionado) {
-            params.append("idvendedor", vendedorSeleccionado);
-        }
-        axios
-            .get(`/api/cotizaciones?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then(({ data }) => {
-                setCotizaciones(data);
-                setLoading(false);
-                if (selectedId) {
-                    const r = data.find(
-                        (c) => Number(c.idcotizacion) === Number(selectedId)
-                    );
-                    setRegistroSeleccionado(r ?? null);
-                    if (!r) setSelectedId(null);
-                }
-            })
-            .catch(() => {
-                alertify.error("Error al obtener las cotizaciones.");
-                setLoading(false);
-            });
-    };
-
-    const handleFiltrar = () => {
-        setPage(0);
-        fetchCotizaciones(fechaInicio, fechaFin, estadoFiltro, filtro.trim());
-    };
-
-    const fetchComentarios = async (idcot, pageParam = 1, searchParam = "") => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado.");
-        try {
-            const { data } = await axios.get(
-                `/api/cotizaciones/${idcot}/comentarios`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                    params: { page: pageParam, search: searchParam },
-                }
-            );
-            setComentariosPag(data);
-            setComentariosPage(pageParam);
-            setOpenComentarios(true);
-        } catch {
-            alertify.error("Error al obtener comentarios.");
-        }
-    };
-
-    const obtenerDetalleCotizacion = async (id) => {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alertify.error("Token de autenticación no encontrado.");
-            setLoading(false);
-            return;
-        }
-        try {
-            const response = await axios.get(
-                `/api/cotizaciones/detalle/${id}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            const detalle = response.data;
-
-            const cotizacionSeleccionada = cotizacionesRef.current.find(
-                (c) => Number(c.idcotizacion) === Number(id)
-            );
-            if (!cotizacionSeleccionada) {
-                alertify.error("No se encontró el estado de la cotización.");
-                return;
-            }
-
-            setDetalleCotizacion({
-                detalle,
-                estado: cotizacionSeleccionada.estado,
-            });
-            setModalVisible(true);
-        } catch {
-            alertify.error("Error al obtener el detalle de la cotización.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // ===========================================================
+    //   PDF: fijar fecha cuando se abre el modal
+    // ===========================================================
     useEffect(() => {
-        cotizacionesRef.current = cotizaciones;
-    }, [cotizaciones]);
+        if (showPdfModal && registroSeleccionado) {
+            setFechaPdf(fechaActual || "");
+        }
+    }, [showPdfModal, registroSeleccionado, fechaActual]);
 
-    useEffect(() => {
-        fechaInicioRef.current = fechaInicio;
-    }, [fechaInicio]);
-
-    useEffect(() => {
-        fechaFinRef.current = fechaFin;
-    }, [fechaFin]);
-
-    // ---- helpers de formato ----
+    // ===========================================================
+    //   Helpers
+    // ===========================================================
     const fmtFecha = (value) => {
         if (!value) return "";
         const d = new Date(value);
@@ -364,6 +169,7 @@ function ListaCotizaciones() {
             year: "numeric",
         });
     };
+
     const fmtMoney = (v) =>
         v == null
             ? ""
@@ -394,7 +200,34 @@ function ListaCotizaciones() {
         );
     };
 
-    // ---- filtros en memoria ----
+    const isSelected = (row) => Number(row.idcotizacion) === Number(selectedId);
+
+    // ===========================================================
+    //   Filtro / búsqueda
+    // ===========================================================
+    const ESTADOS = [
+        { value: "", label: "Todos" },
+        { value: "1", label: "REGISTRO" },
+        { value: "2", label: "PARA COSTEO" },
+        { value: "3", label: "COSTEADA" },
+        { value: "4", label: "PRE-FACTURACIÓN" },
+        { value: "5", label: "PARA FACTURAR" },
+        { value: "6", label: "FACTURADA" },
+        { value: "7", label: "ANULADA" },
+        { value: "8", label: "RECHAZADA" },
+    ];
+
+    const handleFiltrar = () => {
+        setPage(0);
+        fetchCotizaciones(fechaInicio, fechaFin, estadoFiltro, filtro.trim());
+    };
+
+    const limpiarFiltro = () => {
+        setFiltro("");
+        setPage(0);
+        fetchCotizaciones(fechaInicio, fechaFin, estadoFiltro, "");
+    };
+
     const cotizacionesFiltradas = cotizaciones.filter((cot) => {
         const texto = filtro.toLowerCase();
         return (
@@ -405,7 +238,6 @@ function ListaCotizaciones() {
         );
     });
 
-    // ---- segmentación por paginación ----
     const rowsToShow = cotizacionesFiltradas.slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
@@ -417,113 +249,101 @@ function ListaCotizaciones() {
         if (page > totalPages - 1) setPage(0);
     }, [cotizacionesFiltradas.length, rowsPerPage, page]);
 
+    // Sincronizar FECHA SOLO UNA VEZ al inicio (y no recargar nada)
     useEffect(() => {
-        const tooltipTriggerList = [].slice.call(
-            document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        );
-        tooltipTriggerList.forEach((el) => {
-            new bootstrap.Tooltip(el);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (showPdfModal && registroSeleccionado) {
-            //setFechaPdf(toDateInput(registroSeleccionado.fecha_cotizacion));
-            setFechaPdf(fechaActual);
+        if (!fechasSincronizadas && fechaInicio && fechaFin) {
+            setFechasSincronizadas(true); // evita loops
+            setFechaInicio(fechaInicio);
+            setFechaFin(fechaFin);
         }
-    }, [showPdfModal, registroSeleccionado]);
+    }, [
+        fechaInicio,
+        fechaFin,
+        fechasSincronizadas,
+        setFechaInicio,
+        setFechaFin,
+    ]);
 
-    const limpiarFiltro = () => {
-        setFiltro("");
-        setPage(0);
-        fetchCotizaciones(
-            fechaInicioRef.current,
-            fechaFinRef.current,
-            estadoFiltro,
-            ""
-        );
+    // ===========================================================
+    //   Acciones: menú
+    // ===========================================================
+    const openActions = (e) => {
+        setActionsAnchor(e.currentTarget);
     };
+    const closeActions = () => setActionsAnchor(null);
 
-    const handleDesactivar = (id) => {
+    // ===========================================================
+    //   Comentarios
+    // ===========================================================
+    const fetchComentarios = async (idcot, pageParam = 1, searchParam = "") => {
         const token = localStorage.getItem("token");
-        if (token) {
-            axios
-                .put(
-                    `/api/cotizaciones/desactivar/${id}`,
-                    {},
-                    { headers: { Authorization: `Bearer ${token}` } }
-                )
-                .then(() => {
-                    setCotizaciones((prev) =>
-                        prev.filter(
-                            (c) => Number(c.idcotizacion) !== Number(id)
-                        )
-                    );
-                })
-                .catch(() => {
-                    alertify.error("Error al desactivar la cotizacion.");
-                });
+        if (!token) return alertify.error("Token no encontrado.");
+        try {
+            const { data } = await axios.get(
+                `/api/cotizaciones/${idcot}/comentarios`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    params: { page: pageParam, search: searchParam },
+                }
+            );
+            setComentariosPag(data);
+            setComentariosPage(pageParam);
+            setOpenComentarios(true);
+        } catch {
+            alertify.error("Error al obtener comentarios.");
         }
     };
 
-    const handleFacturar = (id, cotizacion, estado) => {
-        const cid = cotizacion?.idcotizacion || id;
-        if (!cotizacion || !cid) {
-            alertify.alert(
-                "Error",
-                "No se encontró la cotización seleccionada."
-            );
-            return;
-        }
-        if (
-            Number(cotizacion.total_general) === 0 &&
-            Number(cotizacion.estado) > 3
-        ) {
-            alertify.alert(
-                "TOTAL EN CERO",
-                "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
-            );
-            return;
-        }
-        if (Number(cotizacion.estado) === 5) {
-            alertify.alert(
-                "PRE-FACTURACIÓN",
-                "El registro ya está en FACTURACIÓN, No se puede volver a enviar"
-            );
-            return;
-        }
-        if (Number(cotizacion.estado) > 5) {
-            alertify.alert(
-                "FACTURACIÓN",
-                "El registro ya paso la etapa de FACTURACIÓN, No se puede volver a enviar"
-            );
-            return;
-        }
-
+    // ===========================================================
+    //   Detalle cotización
+    // ===========================================================
+    const obtenerDetalleCotizacion = async (id) => {
         const token = localStorage.getItem("token");
-        if (token) {
-            axios
-                .put(
-                    `/api/cotizaciones/activarfacturacion/${cid}`,
-                    { estado },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                )
-                .then((response) => {
-                    alertify.success(response.data.message);
-                    fetchCotizaciones(
-                        fechaInicioRef.current,
-                        fechaFinRef.current,
-                        estadoFiltro
-                    );
-                })
-                .catch(() => {
-                    alertify.error(
-                        "Ocurrió un error al actualizar la cotización."
-                    );
-                });
+        if (!token) {
+            alertify.error("Token de autenticación no encontrado.");
+            return;
+        }
+        try {
+            const response = await axios.get(
+                `/api/cotizaciones/detalle/${id}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const detalle = response.data;
+            setDetalleCotizacion({
+                detalle,
+                estado: registroSeleccionado?.estado,
+            });
+            setModalVisible(true);
+        } catch {
+            alertify.error("Error al obtener el detalle de la cotización.");
         }
     };
 
+    // ===========================================================
+    //   Historial Envíos / Nota Envío
+    // ===========================================================
+    const obtenerHistorialEnvios = async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Token no encontrado");
+        try {
+            const res = await fetch(
+                `/api/cotizaciones/${id}/historial-envios`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const data = await res.json();
+            setHistorialEnvios(data);
+        } catch {
+            alertify.error("No se pudo obtener el historial de envíos.");
+        }
+    };
+
+    // ===========================================================
+    //   PDF Cotización
+    // ===========================================================
     const generarPDF = async () => {
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
@@ -552,8 +372,103 @@ function ListaCotizaciones() {
         setPdfData(data);
     };
 
+    const abrirModalPDF = async () => {
+        const cot = registroSeleccionado;
+        if (!cot) return alertify.error("Cotización no seleccionada");
+        setFechaPdf(fechaActual);
+        await obtenerHistorialEnvios(cot.idcotizacion);
+        setShowPdfModal(true);
+    };
+
+    // ===========================================================
+    //   Desactivar / Estado / Rechazo
+    // ===========================================================
+    const handleDesactivar = () => {
+        if (!registroSeleccionado) return;
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        axios
+            .put(
+                `/api/cotizaciones/desactivar/${registroSeleccionado.idcotizacion}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            .then(() => {
+                alertify.success("Cotización desactivada.");
+                fetchCotizaciones(
+                    fechaInicio,
+                    fechaFin,
+                    estadoFiltro,
+                    filtro.trim()
+                );
+            })
+            .catch(() => {
+                alertify.error("Error al desactivar la cotización.");
+            });
+    };
+
+    const handleFacturar = (estadoDestino) => {
+        const cotizacion = registroSeleccionado;
+        if (!cotizacion?.idcotizacion) {
+            alertify.alert(
+                "Error",
+                "No se encontró la cotización seleccionada."
+            );
+            return;
+        }
+        const cid = cotizacion.idcotizacion;
+
+        if (
+            Number(cotizacion.total_general) === 0 &&
+            Number(cotizacion.estado) > 3
+        ) {
+            alertify.alert(
+                "TOTAL EN CERO",
+                "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
+            );
+            return;
+        }
+        if (Number(cotizacion.estado) === 5) {
+            alertify.alert(
+                "PRE-FACTURACIÓN",
+                "El registro ya está en FACTURACIÓN, no se puede volver a enviar."
+            );
+            return;
+        }
+        if (Number(cotizacion.estado) > 5) {
+            alertify.alert(
+                "FACTURACIÓN",
+                "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar."
+            );
+            return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        axios
+            .put(
+                `/api/cotizaciones/activarfacturacion/${cid}`,
+                { estado: estadoDestino },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            .then((response) => {
+                alertify.success(response.data.message);
+                fetchCotizaciones(
+                    fechaInicio,
+                    fechaFin,
+                    estadoFiltro,
+                    filtro.trim()
+                );
+            })
+            .catch(() => {
+                alertify.error("Ocurrió un error al actualizar la cotización.");
+            });
+    };
+
     const abrirModalRechazo = async () => {
         const token = localStorage.getItem("token");
+        if (!token) return;
         try {
             const { data } = await axios.get("/api/motivos-rechazo", {
                 headers: { Authorization: `Bearer ${token}` },
@@ -580,9 +495,10 @@ function ListaCotizaciones() {
             alertify.success("Cotización rechazada.");
             setMostrarModalRechazo(false);
             fetchCotizaciones(
-                fechaInicioRef.current,
-                fechaFinRef.current,
-                estadoFiltro
+                fechaInicio,
+                fechaFin,
+                estadoFiltro,
+                filtro.trim()
             );
         } catch (error) {
             alertify.error(
@@ -591,38 +507,9 @@ function ListaCotizaciones() {
         }
     };
 
-    const obtenerHistorialEnvios = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token) return alertify.error("Token no encontrado");
-        try {
-            const res = await fetch(
-                `/api/cotizaciones/${id}/historial-envios`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            const data = await res.json();
-            setHistorialEnvios(data);
-        } catch {
-            alertify.error("No se pudo obtener el historial de envíos.");
-        }
-    };
-
-    const toDateInput = (value) => {
-        if (!value) return new Date().toISOString().slice(0, 10);
-        const s = String(value).trim();
-        const m1 = s.match(/^(\d{2})-(\d{2})-(\d{4})$/); // dd-mm-yyyy
-        if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-        const m2 = s.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/); // yyyy-mm-dd|/
-        if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
-        const d = new Date(s.includes(" ") ? s.replace(" ", "T") : s);
-        if (!isNaN(d)) return d.toISOString().slice(0, 10);
-        return "";
-    };
-
-    const isSelected = (row) => Number(row.idcotizacion) === Number(selectedId);
-
-    // ====== HABILITADORES (igual que en tu UI anterior)
+    // ===========================================================
+    //   Habilitadores según estado
+    // ===========================================================
     const estado = Number(registroSeleccionado?.estado);
     const puedeEditar = estado === 1 || estado === 3;
     const puedeEliminar = estado === 1;
@@ -630,15 +517,9 @@ function ListaCotizaciones() {
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeEnviarAFacturacion = estado === 4;
 
-    // ====== NUEVO: CTA primaria estilo MonitorFacturación
-    const abrirModalPDF = async () => {
-        const cot = registroSeleccionado;
-        if (!cot) return alertify.error("Cotización no seleccionada");
-        setFechaPdf(toDateInput(cot.fecha_cotizacion));
-        await obtenerHistorialEnvios(cot.idcotizacion);
-        setShowPdfModal(true);
-    };
-
+    // ===========================================================
+    //   Acción primaria (botón grande)
+    // ===========================================================
     const primaryAction = (() => {
         if (!registroSeleccionado) {
             return {
@@ -653,24 +534,14 @@ function ListaCotizaciones() {
             case 3:
                 return {
                     label: "Pre-Facturar",
-                    onClick: () =>
-                        handleFacturar(
-                            registroSeleccionado.idcotizacion,
-                            registroSeleccionado,
-                            4
-                        ),
+                    onClick: () => handleFacturar(4),
                     color: "warning",
                     icon: <HourglassTop />,
                 };
             case 4:
                 return {
                     label: "Enviar a Facturación",
-                    onClick: () =>
-                        handleFacturar(
-                            registroSeleccionado.idcotizacion,
-                            registroSeleccionado,
-                            5
-                        ),
+                    onClick: () => handleFacturar(5),
                     color: "primary",
                     icon: <Send />,
                 };
@@ -684,6 +555,9 @@ function ListaCotizaciones() {
         }
     })();
 
+    // ===========================================================
+    //   Render
+    // ===========================================================
     return (
         <div className="mt-4 px-3 px-md-4">
             {/* Overlay PDF Cotización */}
@@ -739,6 +613,7 @@ function ListaCotizaciones() {
                     </div>
                 </div>
             )}
+
             {/* Modal detalle */}
             {modalVisible && detalleCotizacion && (
                 <DetalleCotizacionModal
@@ -820,6 +695,7 @@ function ListaCotizaciones() {
                                     ))}
                                 </select>
                             </div>
+
                             {esComodin && (
                                 <>
                                     <div className="col-auto">
@@ -881,7 +757,6 @@ function ListaCotizaciones() {
                                 className="form-control form-control-lg"
                                 placeholder="Buscar por número, cliente, total, observación..."
                                 value={filtro}
-                                // onChange={(e) => setFiltro(e.target.value)}
                                 onChange={handleSearchChange}
                             />
                             {filtro && (
@@ -895,7 +770,7 @@ function ListaCotizaciones() {
                         </div>
                     </div>
 
-                    {/* ====== NUEVO: Barra de acciones (igual a MonitorFacturación) */}
+                    {/* Barra de acciones */}
                     <Stack
                         direction="row"
                         spacing={1.5}
@@ -932,6 +807,7 @@ function ListaCotizaciones() {
                         )}
                     </Stack>
 
+                    {/* Menú de acciones */}
                     <Menu
                         anchorEl={actionsAnchor}
                         open={Boolean(actionsAnchor)}
@@ -945,6 +821,7 @@ function ListaCotizaciones() {
                                 Documentos
                             </ListItemText>
                         </MenuItem>
+
                         <MenuItem
                             onClick={async () => {
                                 closeActions();
@@ -962,11 +839,13 @@ function ListaCotizaciones() {
                                 }
                             />
                         </MenuItem>
+
                         <MenuItem
                             onClick={() => {
                                 closeActions();
+                                if (!registroSeleccionado) return;
                                 obtenerDetalleCotizacion(
-                                    registroSeleccionado?.idcotizacion
+                                    registroSeleccionado.idcotizacion
                                 );
                             }}
                             disabled={!registroSeleccionado}
@@ -976,6 +855,7 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Detalle" />
                         </MenuItem>
+
                         <MenuItem
                             onClick={() => {
                                 closeActions();
@@ -988,6 +868,7 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Nota de Envío…" />
                         </MenuItem>
+
                         <Divider />
 
                         {/* COMENTARIOS */}
@@ -1015,6 +896,7 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Ver comentarios…" />
                         </MenuItem>
+
                         <Divider />
 
                         {/* ESTADO */}
@@ -1025,15 +907,11 @@ function ListaCotizaciones() {
                                 Estado
                             </ListItemText>
                         </MenuItem>
+
                         <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                handleFacturar(
-                                    registroSeleccionado?.idcotizacion,
-                                    registroSeleccionado,
-                                    2
-                                );
-                            }}
+                            onClick={
+                                () => handleFacturar(2) // Enviar a costeo
+                            }
                             disabled={
                                 !puedeEnviarCosteo || !registroSeleccionado
                             }
@@ -1043,15 +921,9 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Enviar a costeo" />
                         </MenuItem>
+
                         <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                handleFacturar(
-                                    registroSeleccionado?.idcotizacion,
-                                    registroSeleccionado,
-                                    4
-                                );
-                            }}
+                            onClick={() => handleFacturar(4)}
                             disabled={
                                 !puedePreFacturar || !registroSeleccionado
                             }
@@ -1061,15 +933,9 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Pre-Facturar" />
                         </MenuItem>
+
                         <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                handleFacturar(
-                                    registroSeleccionado?.idcotizacion,
-                                    registroSeleccionado,
-                                    5
-                                );
-                            }}
+                            onClick={() => handleFacturar(5)}
                             disabled={
                                 !puedeEnviarAFacturacion ||
                                 !registroSeleccionado
@@ -1080,6 +946,7 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Enviar a Facturación" />
                         </MenuItem>
+
                         <MenuItem
                             onClick={() => {
                                 closeActions();
@@ -1094,12 +961,11 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Editar" />
                         </MenuItem>
+
                         <MenuItem
                             onClick={() => {
                                 closeActions();
-                                handleDesactivar(
-                                    registroSeleccionado?.idcotizacion
-                                );
+                                handleDesactivar();
                             }}
                             disabled={!registroSeleccionado || !puedeEliminar}
                         >
@@ -1108,6 +974,7 @@ function ListaCotizaciones() {
                             </ListItemIcon>
                             <ListItemText primary="Eliminar" />
                         </MenuItem>
+
                         <MenuItem
                             onClick={() => {
                                 closeActions();
@@ -1125,7 +992,7 @@ function ListaCotizaciones() {
                         </MenuItem>
                     </Menu>
 
-                    {/* 🟦 Tabla Material Design */}
+                    {/* Tabla MUI */}
                     <Paper
                         elevation={1}
                         sx={{
@@ -1165,7 +1032,6 @@ function ListaCotizaciones() {
                                         <TableCell>
                                             Fecha Prefacturación
                                         </TableCell>
-                                        {/* <TableCell>Fecha Certificación</TableCell> */}
                                     </TableRow>
                                 </TableHead>
 
@@ -1173,7 +1039,7 @@ function ListaCotizaciones() {
                                     {loading ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={12}
+                                                colSpan={15}
                                                 align="center"
                                             >
                                                 Cargando cotizaciones…
@@ -1182,7 +1048,7 @@ function ListaCotizaciones() {
                                     ) : rowsToShow.length === 0 ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={12}
+                                                colSpan={15}
                                                 align="center"
                                             >
                                                 Sin resultados
@@ -1191,6 +1057,30 @@ function ListaCotizaciones() {
                                     ) : (
                                         rowsToShow.map((row) => {
                                             const selected = isSelected(row);
+                                            const isPre =
+                                                Number(row?.estado) === 4;
+                                            const hasCom =
+                                                Number(
+                                                    row?.comentarios_count ??
+                                                        row?.has_comentarios ??
+                                                        0
+                                                ) > 0 ||
+                                                Number(row?.has_comentarios) ===
+                                                    1 ||
+                                                row?.has_comentarios === true;
+
+                                            const disabled = !(isPre && hasCom);
+                                            const badgeColor = !disabled
+                                                ? "warning"
+                                                : "default";
+                                            const tooltipTitle = !isPre
+                                                ? "Comentarios visibles en Pre-Facturación (estado 4)"
+                                                : hasCom
+                                                ? row.last_comentario_snippet
+                                                    ? `Último: ${row.last_comentario_snippet}`
+                                                    : "Ver comentarios"
+                                                : "Sin comentarios";
+
                                             return (
                                                 <TableRow
                                                     hover
@@ -1238,9 +1128,7 @@ function ListaCotizaciones() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell align="right">
-                                                        {fmtMoney(
-                                                            row.total
-                                                        )}
+                                                        {fmtMoney(row.total)}
                                                     </TableCell>
                                                     <TableCell>
                                                         {row.costear}
@@ -1266,104 +1154,68 @@ function ListaCotizaciones() {
                                                     </TableCell>
 
                                                     <TableCell align="center">
-                                                        {(() => {
-                                                            const isPre =
-                                                                Number(
-                                                                    row?.estado
-                                                                ) === 4;
-                                                            const hasCom =
-                                                                Number(
-                                                                    row?.comentarios_count ??
-                                                                        row?.has_comentarios ??
-                                                                        0
-                                                                ) > 0 ||
-                                                                Number(
-                                                                    row?.has_comentarios
-                                                                ) === 1 ||
-                                                                row?.has_comentarios ===
-                                                                    true;
-
-                                                            const disabled = !(
-                                                                isPre && hasCom
-                                                            );
-                                                            const badgeColor =
-                                                                !disabled
-                                                                    ? "warning"
-                                                                    : "default";
-                                                            const tooltipTitle =
-                                                                !isPre
-                                                                    ? "Comentarios visibles en Pre-Facturación (estado 4)"
-                                                                    : hasCom
-                                                                    ? row.last_comentario_snippet
-                                                                        ? `Último: ${row.last_comentario_snippet}`
-                                                                        : "Ver comentarios"
-                                                                    : "Sin comentarios";
-
-                                                            return (
-                                                                <Tooltip
-                                                                    title={
-                                                                        <>
-                                                                            <div>
-                                                                                {
-                                                                                    tooltipTitle
-                                                                                }
-                                                                            </div>
-                                                                            {row.last_comentario_at &&
-                                                                                hasCom && (
-                                                                                    <small>
-                                                                                        {new Date(
-                                                                                            row.last_comentario_at
-                                                                                        ).toLocaleString()}
-                                                                                    </small>
-                                                                                )}
-                                                                        </>
+                                                        <Tooltip
+                                                            title={
+                                                                <>
+                                                                    <div>
+                                                                        {
+                                                                            tooltipTitle
+                                                                        }
+                                                                    </div>
+                                                                    {row.last_comentario_at &&
+                                                                        hasCom && (
+                                                                            <small>
+                                                                                {new Date(
+                                                                                    row.last_comentario_at
+                                                                                ).toLocaleString()}
+                                                                            </small>
+                                                                        )}
+                                                                </>
+                                                            }
+                                                        >
+                                                            <span>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    disabled={
+                                                                        disabled
                                                                     }
+                                                                    onClick={(
+                                                                        e
+                                                                    ) => {
+                                                                        if (
+                                                                            disabled
+                                                                        )
+                                                                            return;
+                                                                        e.stopPropagation();
+                                                                        setSelectedId(
+                                                                            row.idcotizacion
+                                                                        );
+                                                                        setRegistroSeleccionado(
+                                                                            row
+                                                                        );
+                                                                        fetchComentarios(
+                                                                            row.idcotizacion,
+                                                                            1,
+                                                                            ""
+                                                                        );
+                                                                    }}
                                                                 >
-                                                                    <span>
-                                                                        <IconButton
-                                                                            size="small"
-                                                                            disabled={
-                                                                                disabled
-                                                                            }
-                                                                            onClick={(
-                                                                                e
-                                                                            ) => {
-                                                                                if (
-                                                                                    disabled
-                                                                                )
-                                                                                    return;
-                                                                                e.stopPropagation();
-                                                                                setSelectedId(
-                                                                                    row.idcotizacion
-                                                                                );
-                                                                                setRegistroSeleccionado(
-                                                                                    row
-                                                                                );
-                                                                                fetchComentarios(
-                                                                                    row.idcotizacion,
-                                                                                    1,
-                                                                                    ""
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            <Badge
-                                                                                badgeContent={
-                                                                                    Number(
-                                                                                        row?.comentarios_count
-                                                                                    ) ||
-                                                                                    0
-                                                                                }
-                                                                                color={
-                                                                                    badgeColor
-                                                                                }
-                                                                            >
-                                                                                <ChatBubbleIcon />
-                                                                            </Badge>
-                                                                        </IconButton>
-                                                                    </span>
-                                                                </Tooltip>
-                                                            );
-                                                        })()}
+                                                                    <Badge
+                                                                        badgeContent={
+                                                                            Number(
+                                                                                row?.comentarios_count
+                                                                            ) ||
+                                                                            0
+                                                                        }
+                                                                        color={
+                                                                            badgeColor
+                                                                        }
+                                                                    >
+                                                                        <ChatBubbleIcon />
+                                                                    </Badge>
+                                                                </IconButton>
+                                                            </span>
+                                                        </Tooltip>
                                                     </TableCell>
 
                                                     <TableCell>
@@ -1374,7 +1226,6 @@ function ListaCotizaciones() {
                                                             row.fecha_prefacturacion
                                                         )}
                                                     </TableCell>
-                                                    {/* <TableCell>{fmtFecha(row.fecha_certificacion)}</TableCell> */}
                                                 </TableRow>
                                             );
                                         })
@@ -1400,6 +1251,7 @@ function ListaCotizaciones() {
                     </Paper>
                 </div>
 
+                {/* Botón crear */}
                 <div
                     className="mt-4 p-3 border rounded shadow-sm bg-light"
                     style={{ borderColor: "#ddd" }}
@@ -1478,7 +1330,7 @@ function ListaCotizaciones() {
                 </div>
             )}
 
-            {/* Modal PDF */}
+            {/* Modal PDF (fecha + historial) */}
             {showPdfModal && (
                 <div
                     className="modal d-block"
@@ -1544,13 +1396,12 @@ function ListaCotizaciones() {
                                                 return;
                                             }
                                             await generarPDF();
+                                            setShowPdfModal(false);
                                         } catch (err) {
                                             alertify.error(
                                                 err?.message ||
                                                     "Error generando PDF"
                                             );
-                                        } finally {
-                                            setShowPdfModal(false);
                                         }
                                     }}
                                 >
@@ -1568,7 +1419,7 @@ function ListaCotizaciones() {
                 </div>
             )}
 
-            {/* Modal Nota Envío (nuevo flujo) */}
+            {/* Modal Nota Envío */}
             {showNotaEnvioModal && registroSeleccionado && (
                 <NotaEnvioModal
                     idCotizacion={registroSeleccionado.idcotizacion}
@@ -1578,7 +1429,6 @@ function ListaCotizaciones() {
                         setNotaEnvioPayload(data);
                     }}
                     coerceZeroAsNoShipment
-                    // 👇 Dirección por defecto desde la cotización seleccionada
                     direccionSugerida={
                         registroSeleccionado.direccion_entrega || ""
                     }
