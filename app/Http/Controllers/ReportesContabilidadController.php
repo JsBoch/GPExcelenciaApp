@@ -111,8 +111,8 @@ class ReportesContabilidadController extends Controller
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->select(
                 'ac.idcotizacion',
-                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),        
-                'fac.nofactura as nointerno',     
+                DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+                'fac.nofactura as nointerno',
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
@@ -120,7 +120,7 @@ class ReportesContabilidadController extends Controller
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
             "),
-            'fac.nofactura AS nofactura',
+                'fac.nofactura AS nofactura',
                 'ae.nombre AS vendedor',
                 'c.nombre AS cliente',
                 'ac.total as total_general',
@@ -189,7 +189,10 @@ class ReportesContabilidadController extends Controller
         return DB::table('adm_cuentas_porcobrar as cxc')
             ->join('clientes as cli', 'cli.idcliente', '=', 'cxc.idcliente')
             ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
-            ->leftJoin('adm_facturacion as fac', 'cot.idcotizacion', '=', 'fac.idcotizacion')
+            ->leftJoin('adm_facturacion as fac', function ($join) {
+                $join->on('cot.idcotizacion', '=', 'fac.idcotizacion')
+                    ->where('fac.estado', '>', 0); // ← evita tomar facturas estado 0
+            })
             ->leftJoin('adm_departamentopais as dep', 'dep.iddepartamentopais', '=', 'cli.iddepartamento')
             ->leftJoin('adm_empleados as emp', 'emp.iduser', '=', 'cot.idusuario')
             ->selectRaw("
