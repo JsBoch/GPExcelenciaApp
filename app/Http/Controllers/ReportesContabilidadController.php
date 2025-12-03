@@ -598,6 +598,7 @@ class ReportesContabilidadController extends Controller
             ->join('adm_cuentas_porcobrar as cxc', 'cxc.idcuentaporcobrar', '=', 'det.idcuentaporcobrar')
             ->leftJoin('adm_facturacion as fac', 'fac.idfactura', '=', 'cxc.idfactura')
             ->whereBetween('rec.fecha_recibo', [$start, $end])
+             ->where('rec.estado', '<>', 0)
             ->when($tipo && $tipo !== 'TODO', function ($q) use ($tipo) {
                 $q->where('rec.tipo', $tipo);
             })

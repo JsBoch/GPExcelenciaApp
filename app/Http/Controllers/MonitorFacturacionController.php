@@ -655,7 +655,12 @@ class MonitorFacturacionController extends Controller
 
             $Item->appendChild($doc->createElement('dte:Cantidad', $d->cantidad));
             $Item->appendChild($doc->createElement('dte:UnidadMedida', $d->unidad_medida));
-            $Item->appendChild($doc->createElement('dte:Descripcion', $d->descripcion));
+            // $Item->appendChild($doc->createElement('dte:Descripcion', $d->descripcion));
+            $descripcionNode = $doc->createElement('dte:Descripcion');
+            $descripcionNode->appendChild(
+                $doc->createCDATASection($d->descripcion)
+            );
+            $Item->appendChild($descripcionNode);
             $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($d->precio_unitario, 3, '.', '')));
             $Item->appendChild($doc->createElement('dte:Precio', number_format($d->precio, 3, '.', '')));
             $Item->appendChild($doc->createElement('dte:Descuento', number_format($d->descuento, 3, '.', '')));
