@@ -347,12 +347,7 @@ export default function NotaEnvioModal({
                                                         <input
                                                             type="checkbox"
                                                             className="form-check-input"
-                                                            disabled={
-                                                                it.numero_envio &&
-                                                                Number(
-                                                                    it.numero_envio
-                                                                ) > 0
-                                                            }
+                                                            disabled={Number(it.cantidad_pendiente ?? 0) <= 0}
                                                             checked={isChecked}
                                                             onChange={() =>
                                                                 toggle(
