@@ -409,6 +409,17 @@ class CotizacionController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'subtotal' => 'nullable|numeric',
+            'impuesto_iva' => 'nullable|numeric',
+            'total' => 'nullable|numeric',
+        ]);
+
+        Log::debug('DETALLES COUNT', [
+            'count' => count($request->input('detalles', []))
+        ]);
+
+
         return DB::transaction(function () use ($request, $id) {
             $cotizacion = AdmCotizacion::lockForUpdate()->find($id);
             if (!$cotizacion) {
@@ -435,16 +446,42 @@ class CotizacionController extends Controller
             $datosCabecera['impuesto_iva'] = $request->input('impuesto_iva');
             $datosCabecera['total'] = $request->input('total');
 
+            //Log::debug('DATOS CABECERA UPDATE', $datosCabecera);
+
             $user = auth()->user();
             if ($user->es_comodin) {
                 $datosCabecera['idusuario'] = $request->input('idvendedor_asignado', $user->id);
             }
 
+            $camposNumericos = [
+                'subtotal',
+                'descuento_porcentaje',
+                'descuento_monto',
+                'impuesto_iva',
+                'total',
+            ];
+
+            Log::debug('DETALLES RAW', [
+                'detalles_input' => $request->input('detalles'),
+                'detalles_keys'  => array_keys($request->input('detalles', [])),
+                'files'          => array_keys($request->files->all()),
+            ]);
+
+
+            foreach ($camposNumericos as $campo) {
+                $valor = $request->input($campo);
+
+                $datosCabecera[$campo] = is_numeric($valor)
+                    ? (float)$valor
+                    : 0;
+            }
+
+
             $cotizacion->update($datosCabecera);
 
             AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
 
-            $detalles = $request->input('detalles', []);
+            $detalles = array_values($request->input('detalles', []));
             if (!is_array($detalles)) {
                 return response()->json(['message' => 'Error: Los detalles deben ser un array'], 422);
             }
@@ -466,15 +503,32 @@ class CotizacionController extends Controller
             $nextDetalleId = $rowDet->correlativo + $incDet;
             $lastUsedDetId = null;
 
+            Log::debug('ANTES DE RECALCULAR', [
+                'count' => count($detalles),
+                'ultimo_index' => array_key_last($detalles),
+            ]);
+
             // Recalcular detalles igual que en store
             $porcentajeAplicado = floatval($datosCabecera['descuento_porcentaje'] ?? 0);
             $detalles = $this->recalcularDetallesConAjuste($detalles, $porcentajeAplicado);
 
-            foreach ($detalles as $index => $detalleData) {
+            Log::debug('DESPUES DE RECALCULAR', [
+                'count' => count($detalles),
+                'ultimo_index' => array_key_last($detalles),
+                'ultimo_detalle' => end($detalles),
+            ]);
+            foreach ($detalles as $i => $detalleData) {
+
+                Log::debug('INSERT LOOP', [
+                    'loop_index' => $i,
+                    'iddetallecotizacion' => $nextDetalleId,
+                    'descripcion' => substr($detalleData['descripcion'] ?? '', 0, 50),
+                ]);
+
                 $imagenRuta = null;
 
-                if ($request->hasFile("detalles.{$index}.imagen")) {
-                    $img    = $request->file("detalles.{$index}.imagen");
+                if ($request->hasFile("detalles.{$i}.imagen")) {
+                    $img    = $request->file("detalles.{$i}.imagen");
                     $ext    = $img->getClientOriginalExtension() ?: $img->extension() ?: 'png';
                     $nombre = uniqid('detalle_') . '.' . $ext;
                     $img->move(public_path('images_cotizaciones'), $nombre);
@@ -483,34 +537,46 @@ class CotizacionController extends Controller
                     $imagenRuta = $detalleData['imagen_ruta'];
                 }
 
-                AdmDetalleCotizacion::create([
-                    'iddetallecotizacion' => $nextDetalleId,
-                    'idcotizacion'        => $id,
-                    'idproducto'          => $detalleData['idproducto'] ?? 0,
-                    'producto'            => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'),
-                    'titulo'              => $detalleData['titulo'] ?? '',
-                    'descripcion'         => $detalleData['descripcion'] ?? '',
-                    'cantidad'            => $detalleData['cantidad'] ?? 0,
-                    'ancho'               => $detalleData['ancho'] ?? 0,
-                    'alto'                => $detalleData['alto'] ?? 0,
-                    'profundidad'         => $detalleData['profundidad'] ?? 0,
-                    'total'               => $detalleData['total'] ?? 0,
-                    'fecha_registro'      => now(),
-                    'usuario_registro'    => auth()->user()->name ?? 'system',
-                    'costeado'            => $detalleData['costeado'] ?? 'N',
-                    'incluye_foto'        => $imagenRuta ? 'S' : 'N',
-                    'estado'              => $detalleData['estado'] ?? 1,
-                    'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
-                    'm2'                  => $detalleData['m2'] ?? 0,
-                    'imagen'              => $imagenRuta,
-                    'precio_unitario'     => $detalleData['precio_unitario'] ?? 0,
-                    'descuento'           => $detalleData['descuento'] ?? 0,
-                    'impuesto_iva'        => $detalleData['impuesto_iva'] ?? 0,
-                    'precio'              => $detalleData['precio'] ?? 0,
-                    'subtotal'            => $detalleData['subtotal'] ?? 0,
-                    'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
-                ]);
+                try {
+                    AdmDetalleCotizacion::create([
+                        'iddetallecotizacion' => $nextDetalleId,
+                        'idcotizacion'        => $id,
+                        'idproducto'          => $detalleData['idproducto'] ?? 0,
+                        'producto'            => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'),
+                        'titulo'              => $detalleData['titulo'] ?? '',
+                        'descripcion'         => $detalleData['descripcion'] ?? '',
+                        'cantidad'            => $detalleData['cantidad'] ?? 0,
+                        'ancho'               => $detalleData['ancho'] ?? 0,
+                        'alto'                => $detalleData['alto'] ?? 0,
+                        'profundidad'         => $detalleData['profundidad'] ?? 0,
+                        'total'               => $detalleData['total'] ?? 0,
+                        'fecha_registro'      => now(),
+                        'usuario_registro'    => auth()->user()->name ?? 'system',
+                        'costeado'            => $detalleData['costeado'] ?? 'N',
+                        'incluye_foto'        => $imagenRuta ? 'S' : 'N',
+                        'estado'              => $detalleData['estado'] ?? 1,
+                        'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
+                        'm2'                  => $detalleData['m2'] ?? 0,
+                        'imagen'              => $imagenRuta,
+                        'precio_unitario'     => $detalleData['precio_unitario'] ?? 0,
+                        'descuento'           => $detalleData['descuento'] ?? 0,
+                        'impuesto_iva'        => $detalleData['impuesto_iva'] ?? 0,
+                        'precio'              => $detalleData['precio'] ?? 0,
+                        'subtotal'            => $detalleData['subtotal'] ?? 0,
+                        'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('ERROR INSERTANDO DETALLE', [
+                        'loop_index' => $i,
+                        'data' => $detalleData,
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e; // fuerza rollback
+                }
 
+                Log::debug('INSERT OK', [
+                    'iddetallecotizacion' => $nextDetalleId
+                ]);
                 $lastUsedDetId = $nextDetalleId;
                 $nextDetalleId += $incDet;
             }
@@ -1016,7 +1082,7 @@ class CotizacionController extends Controller
             ->join('adm_detalle_cotizacion as d', 'd.iddetallecotizacion', '=', 'ei.iddetallecotizacion')
             ->where('ei.idcotizacion', $id)
             ->where('ei.no_envio', $noEnvio)
-            ->get(['ei.iddetallecotizacion','ei.cantidad', 'd.descripcion']);
+            ->get(['ei.iddetallecotizacion', 'ei.cantidad', 'd.descripcion']);
 
 
         // Fallback legacy (si tuvieras envíos viejos sin pivote)
