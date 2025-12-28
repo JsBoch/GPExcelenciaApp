@@ -128,8 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lista_tipospago', [CotizacionController::class, 'listarTiposPago']);
     Route::get('/lista_unidadesmedida', [CotizacionController::class, 'listarUnidadesMedida']);
     Route::get('/cotizaciones/{id}/historial-envios', [CotizacionController::class, 'historialEnvios']);
-    
 
+    Route::post('/cotizaciones/{id}', [CotizacionController::class, 'update']);
 });
 
 //COSTEO COTIZACIONES
