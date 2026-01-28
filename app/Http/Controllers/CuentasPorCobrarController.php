@@ -239,6 +239,7 @@ class CuentasPorCobrarController extends Controller
         ->where('idcliente', $request->idcliente)
         // si quieres incluir pagos a facturas de cualquier fecha, comenta la siguiente línea
         ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+        ->where('saldo_pendiente', '>', 0)
         ->orderBy('fecha_emision')
         ->get();
 
@@ -272,6 +273,7 @@ class CuentasPorCobrarController extends Controller
         ])
             ->where('idcliente', $request->idcliente)
             ->whereBetween('fecha_emision', [$request->fecha_inicio, $request->fecha_final])
+            ->where('saldo_pendiente', '>', 0)
             ->orderBy('fecha_emision')
             ->get();
 

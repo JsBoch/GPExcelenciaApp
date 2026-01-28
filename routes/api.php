@@ -22,6 +22,7 @@ use App\Http\Controllers\AdmRecibosController;
 use App\Http\Controllers\ReportesContabilidadController;
 use App\Http\Controllers\ClienteContactoController;
 use App\Http\Controllers\ReportesCXCController;
+use App\Http\Controllers\Api\InfileController;
 use Illuminate\Support\Facades\DB;
 
 //
@@ -252,6 +253,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ▶️ Resumen de Facturas Pagadas
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/data', [ReportesContabilidadController::class, 'resumenFacturasPagadasData']);
     Route::get('/reportes-contabilidad/resumen-facturas-pagadas/pdf', [ReportesContabilidadController::class, 'resumenFacturasPagadasPdf']);
+    Route::get('/reportes-contabilidad/resumen-facturas-pagadas-por-recibo/pdf', [ReportesContabilidadController::class, 'resumenFacturasPagadasPorReciboPdf']);
+
 
     Route::get('/reportes-contabilidad/cotizacionesventas', [ReportesContabilidadController::class, 'VentasPorVendedor']);
     Route::get('/reportes-contabilidad/export/excelventas', [ReportesContabilidadController::class, 'exportVentasVendedorExcel']);
@@ -270,4 +273,10 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reporte/cxc', [ReportesCXCController::class, 'index']);              // JSON o PDF
     Route::get('/reporte/cxc/{idcuentaporcobrar}/detalles', [ReportesCXCController::class, 'detalles']); // detalles de una CxC    
+});
+
+//INFLE
+Route::middleware('auth:sanctum')->group(function () {
+    // 🔹 NUEVA RUTA INFILE
+    Route::get('/infile/consulta-nit/{nit}', [InfileController::class, 'consultaNit']);
 });

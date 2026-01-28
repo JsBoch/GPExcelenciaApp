@@ -17,6 +17,7 @@ import NotaEnvioModal from "./NotaEnvioModal";
 // PDF
 import CotizacionPDF from "./CotizacionPDF";
 import NotaEnvioPDF from "./NotaEnvioPDF";
+import NotaEnvioPDFHalf from "./NotaEnvioPDFHalf";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 
 // Bootstrap y CSS
@@ -122,13 +123,20 @@ function ListaCotizaciones() {
     const [comentariosPage, setComentariosPage] = useState(1);
     const [fechasSincronizadas, setFechasSincronizadas] = useState(false);
 
+    //regla para decidir si se imprime en carga o media carta
+    const itemsNotaEnvio = notaEnvioPayload?.items ?? [];
+    const useHalfLetter = itemsNotaEnvio.length <= 8;
+
+    //selección del componente
+    const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+
     // ===========================================================
     //   Sync selección cuando cambian las cotizaciones
     // ===========================================================
     useEffect(() => {
         if (!selectedId) return;
         const r = cotizaciones.find(
-            (c) => Number(c.idcotizacion) === Number(selectedId)
+            (c) => Number(c.idcotizacion) === Number(selectedId),
         );
         if (r) setRegistroSeleccionado(r);
     }, [cotizaciones, selectedId]);
@@ -141,7 +149,7 @@ function ListaCotizaciones() {
             fetchComentarios(
                 registroSeleccionado.idcotizacion,
                 1,
-                comentariosSearch
+                comentariosSearch,
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,7 +248,7 @@ function ListaCotizaciones() {
 
     const rowsToShow = cotizacionesFiltradas.slice(
         page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage
+        page * rowsPerPage + rowsPerPage,
     );
 
     useEffect(() => {
@@ -284,7 +292,7 @@ function ListaCotizaciones() {
                 {
                     headers: { Authorization: `Bearer ${token}` },
                     params: { page: pageParam, search: searchParam },
-                }
+                },
             );
             setComentariosPag(data);
             setComentariosPage(pageParam);
@@ -308,7 +316,7 @@ function ListaCotizaciones() {
                 `/api/cotizaciones/detalle/${id}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
-                }
+                },
             );
             const detalle = response.data;
             setDetalleCotizacion({
@@ -332,7 +340,7 @@ function ListaCotizaciones() {
                 `/api/cotizaciones/${id}/historial-envios`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
-                }
+                },
             );
             const data = await res.json();
             setHistorialEnvios(data);
@@ -357,7 +365,7 @@ function ListaCotizaciones() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ fecha_cotizacion: fechaPdf }),
-            }
+            },
         );
 
         let data;
@@ -391,7 +399,7 @@ function ListaCotizaciones() {
             .put(
                 `/api/cotizaciones/desactivar/${registroSeleccionado.idcotizacion}`,
                 {},
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             )
             .then(() => {
                 alertify.success("Cotización desactivada.");
@@ -399,7 +407,7 @@ function ListaCotizaciones() {
                     fechaInicio,
                     fechaFin,
                     estadoFiltro,
-                    filtro.trim()
+                    filtro.trim(),
                 );
             })
             .catch(() => {
@@ -412,7 +420,7 @@ function ListaCotizaciones() {
         if (!cotizacion?.idcotizacion) {
             alertify.alert(
                 "Error",
-                "No se encontró la cotización seleccionada."
+                "No se encontró la cotización seleccionada.",
             );
             return;
         }
@@ -424,21 +432,21 @@ function ListaCotizaciones() {
         ) {
             alertify.alert(
                 "TOTAL EN CERO",
-                "No se puede enviar a pre-facturación una cotización con total igual a 0.00."
+                "No se puede enviar a pre-facturación una cotización con total igual a 0.00.",
             );
             return;
         }
         if (Number(cotizacion.estado) === 5) {
             alertify.alert(
                 "PRE-FACTURACIÓN",
-                "El registro ya está en FACTURACIÓN, no se puede volver a enviar."
+                "El registro ya está en FACTURACIÓN, no se puede volver a enviar.",
             );
             return;
         }
         if (Number(cotizacion.estado) > 5) {
             alertify.alert(
                 "FACTURACIÓN",
-                "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar."
+                "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar.",
             );
             return;
         }
@@ -450,7 +458,7 @@ function ListaCotizaciones() {
             .put(
                 `/api/cotizaciones/activarfacturacion/${cid}`,
                 { estado: estadoDestino },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             )
             .then((response) => {
                 alertify.success(response.data.message);
@@ -458,7 +466,7 @@ function ListaCotizaciones() {
                     fechaInicio,
                     fechaFin,
                     estadoFiltro,
-                    filtro.trim()
+                    filtro.trim(),
                 );
             })
             .catch(() => {
@@ -490,7 +498,7 @@ function ListaCotizaciones() {
             await axios.put(
                 `/api/cotizaciones/rechazar/${registroSeleccionado.idcotizacion}`,
                 { idmotivorechazo: motivoSeleccionado },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             alertify.success("Cotización rechazada.");
             setMostrarModalRechazo(false);
@@ -498,11 +506,11 @@ function ListaCotizaciones() {
                 fechaInicio,
                 fechaFin,
                 estadoFiltro,
-                filtro.trim()
+                filtro.trim(),
             );
         } catch (error) {
             alertify.error(
-                error.response?.data?.message || "Error al rechazar."
+                error.response?.data?.message || "Error al rechazar.",
             );
         }
     };
@@ -604,6 +612,12 @@ function ListaCotizaciones() {
                             }
                         </PDFDownloadLink>
 
+                        <PDFDownloadLink
+                            document={<PdfComponent data={notaEnvioPayload} />}
+                            fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
+                            className="btn btn-primary"
+                        />
+
                         <button
                             className="btn btn-danger"
                             onClick={() => setPdfData(null)}
@@ -613,6 +627,12 @@ function ListaCotizaciones() {
                     </div>
                 </div>
             )}
+
+            {/* {notaEnvioPayload && (
+                <PDFViewer width="100%" height="100%">
+                    <PdfComponent data={notaEnvioPayload} />
+                </PDFViewer>
+            )} */}
 
             {/* Modal detalle */}
             {modalVisible && detalleCotizacion && (
@@ -713,7 +733,7 @@ function ListaCotizaciones() {
                                             value={vendedorSeleccionado}
                                             onChange={(e) =>
                                                 setVendedorSeleccionado(
-                                                    e.target.value
+                                                    e.target.value,
                                                 )
                                             }
                                         >
@@ -845,7 +865,7 @@ function ListaCotizaciones() {
                                 closeActions();
                                 if (!registroSeleccionado) return;
                                 obtenerDetalleCotizacion(
-                                    registroSeleccionado.idcotizacion
+                                    registroSeleccionado.idcotizacion,
                                 );
                             }}
                             disabled={!registroSeleccionado}
@@ -886,7 +906,7 @@ function ListaCotizaciones() {
                                 fetchComentarios(
                                     registroSeleccionado.idcotizacion,
                                     1,
-                                    ""
+                                    "",
                                 );
                             }}
                             disabled={!registroSeleccionado}
@@ -951,7 +971,7 @@ function ListaCotizaciones() {
                             onClick={() => {
                                 closeActions();
                                 navigate(
-                                    `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`
+                                    `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`,
                                 );
                             }}
                             disabled={!registroSeleccionado || !puedeEditar}
@@ -1063,7 +1083,7 @@ function ListaCotizaciones() {
                                                 Number(
                                                     row?.comentarios_count ??
                                                         row?.has_comentarios ??
-                                                        0
+                                                        0,
                                                 ) > 0 ||
                                                 Number(row?.has_comentarios) ===
                                                     1 ||
@@ -1076,10 +1096,10 @@ function ListaCotizaciones() {
                                             const tooltipTitle = !isPre
                                                 ? "Comentarios visibles en Pre-Facturación (estado 4)"
                                                 : hasCom
-                                                ? row.last_comentario_snippet
-                                                    ? `Último: ${row.last_comentario_snippet}`
-                                                    : "Ver comentarios"
-                                                : "Sin comentarios";
+                                                  ? row.last_comentario_snippet
+                                                      ? `Último: ${row.last_comentario_snippet}`
+                                                      : "Ver comentarios"
+                                                  : "Sin comentarios";
 
                                             return (
                                                 <TableRow
@@ -1087,10 +1107,10 @@ function ListaCotizaciones() {
                                                     key={row.idcotizacion}
                                                     onClick={() => {
                                                         setSelectedId(
-                                                            row.idcotizacion
+                                                            row.idcotizacion,
                                                         );
                                                         setRegistroSeleccionado(
-                                                            row
+                                                            row,
                                                         );
                                                     }}
                                                     selected={selected}
@@ -1111,7 +1131,7 @@ function ListaCotizaciones() {
                                                     </TableCell>
                                                     <TableCell>
                                                         {fmtFecha(
-                                                            row.fecha_cotizacion
+                                                            row.fecha_cotizacion,
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
@@ -1119,12 +1139,12 @@ function ListaCotizaciones() {
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         {fmtMoney(
-                                                            row.total_general
+                                                            row.total_general,
                                                         )}
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         {fmtMoney(
-                                                            row.descuento_monto
+                                                            row.descuento_monto,
                                                         )}
                                                     </TableCell>
                                                     <TableCell align="right">
@@ -1166,7 +1186,7 @@ function ListaCotizaciones() {
                                                                         hasCom && (
                                                                             <small>
                                                                                 {new Date(
-                                                                                    row.last_comentario_at
+                                                                                    row.last_comentario_at,
                                                                                 ).toLocaleString()}
                                                                             </small>
                                                                         )}
@@ -1180,7 +1200,7 @@ function ListaCotizaciones() {
                                                                         disabled
                                                                     }
                                                                     onClick={(
-                                                                        e
+                                                                        e,
                                                                     ) => {
                                                                         if (
                                                                             disabled
@@ -1188,22 +1208,22 @@ function ListaCotizaciones() {
                                                                             return;
                                                                         e.stopPropagation();
                                                                         setSelectedId(
-                                                                            row.idcotizacion
+                                                                            row.idcotizacion,
                                                                         );
                                                                         setRegistroSeleccionado(
-                                                                            row
+                                                                            row,
                                                                         );
                                                                         fetchComentarios(
                                                                             row.idcotizacion,
                                                                             1,
-                                                                            ""
+                                                                            "",
                                                                         );
                                                                     }}
                                                                 >
                                                                     <Badge
                                                                         badgeContent={
                                                                             Number(
-                                                                                row?.comentarios_count
+                                                                                row?.comentarios_count,
                                                                             ) ||
                                                                             0
                                                                         }
@@ -1223,7 +1243,7 @@ function ListaCotizaciones() {
                                                     </TableCell>
                                                     <TableCell>
                                                         {fmtFecha(
-                                                            row.fecha_prefacturacion
+                                                            row.fecha_prefacturacion,
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
@@ -1371,7 +1391,7 @@ function ListaCotizaciones() {
                                                     <span>
                                                         🕒 Enviado:{" "}
                                                         {new Date(
-                                                            item.fecha_envio
+                                                            item.fecha_envio,
                                                         )
                                                             .toISOString()
                                                             .slice(0, 10)}
@@ -1391,7 +1411,7 @@ function ListaCotizaciones() {
                                                 !registroSeleccionado?.idcotizacion
                                             ) {
                                                 alertify.error(
-                                                    "Cotización no seleccionada."
+                                                    "Cotización no seleccionada.",
                                                 );
                                                 return;
                                             }
@@ -1400,7 +1420,7 @@ function ListaCotizaciones() {
                                         } catch (err) {
                                             alertify.error(
                                                 err?.message ||
-                                                    "Error generando PDF"
+                                                    "Error generando PDF",
                                             );
                                         }
                                     }}
@@ -1454,13 +1474,15 @@ function ListaCotizaciones() {
                 >
                     <div style={{ width: "80%", height: "80%" }}>
                         <PDFViewer width="100%" height="100%">
-                            <NotaEnvioPDF data={notaEnvioPayload} />
+                            {/* <NotaEnvioPDF data={notaEnvioPayload} /> */}
+                            <PdfComponent data={notaEnvioPayload} />
                         </PDFViewer>
                     </div>
 
                     <div className="mt-3 d-flex gap-2">
                         <PDFDownloadLink
-                            document={<NotaEnvioPDF data={notaEnvioPayload} />}
+                            // document={<NotaEnvioPDF data={notaEnvioPayload} />}
+                            document={<PdfComponent data={notaEnvioPayload} />}
                             fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
                             className="btn btn-primary"
                         >
@@ -1533,7 +1555,7 @@ function ListaCotizaciones() {
                                                         c.idusuario}{" "}
                                                     ·{" "}
                                                     {new Date(
-                                                        c.fecha_registro
+                                                        c.fecha_registro,
                                                     ).toLocaleString()}{" "}
                                                     · Estado: {c.estado}
                                                 </div>
@@ -1550,7 +1572,7 @@ function ListaCotizaciones() {
                                                     fetchComentarios(
                                                         registroSeleccionado.idcotizacion,
                                                         comentariosPage - 1,
-                                                        comentariosSearch
+                                                        comentariosSearch,
                                                     )
                                                 }
                                             >
@@ -1565,7 +1587,7 @@ function ListaCotizaciones() {
                                                     fetchComentarios(
                                                         registroSeleccionado.idcotizacion,
                                                         comentariosPage + 1,
-                                                        comentariosSearch
+                                                        comentariosSearch,
                                                     )
                                                 }
                                             >

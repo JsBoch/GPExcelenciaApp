@@ -90,12 +90,13 @@ class ReportesContabilidadController extends Controller
             ->select(
                 'idcotizacion',
                 DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'),
-                DB::raw('MAX(nofactura) AS nofactura') // 👈 nuevo
+                DB::raw('MAX(nofactura) AS nofactura'),
+                DB::raw('MAX(fecha_anulacion) AS fecha_anulacion')
             )
-            ->when(
-                Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
-                fn($q) => $q->whereNull('fecha_anulacion')
-            )
+            // ->when(
+            //     Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
+            //     fn($q) => $q->whereNull('fecha_anulacion')
+            // )
             ->groupBy('idcotizacion');
 
 
@@ -116,15 +117,31 @@ class ReportesContabilidadController extends Controller
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
-                    WHEN ac.estado = 6 THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
+                    WHEN ac.estado IN (6,0) THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
-            "),
+                "),
                 'fac.nofactura AS nofactura',
                 'ae.nombre AS vendedor',
-                'c.nombre AS cliente',
-                'ac.total as total_general',
+                DB::raw("
+                    CASE
+                        WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
+                        ELSE c.nombre
+                    END AS cliente
+                "),
+                DB::raw("
+                    CASE
+                        WHEN fac.fecha_anulacion IS NOT NULL THEN 0
+                        ELSE ac.total
+                    END AS total_general
+                "),
                 'ac.estado',
+                DB::raw("
+                    CASE
+                        WHEN fac.fecha_anulacion IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS factura_anulada
+                "),
                 DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
@@ -132,12 +149,23 @@ class ReportesContabilidadController extends Controller
                 ) AS dias_desde_prefacturacion
             ")
             )
-            ->where('ac.estado', '>', 0)
+            // ->where('ac.estado', '>', 0)
+
             // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
             ->when(
                 Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
                 fn($q) => $q->whereNull('ac.fecha_anulacion')
             );
+
+        // Estados visibles
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            // Facturadas = cotizaciones que TIENEN factura
+            $query->whereNotNull('fac.nofactura');
+        } else {
+            $query->where('ac.estado', '>', 0);
+        }
+
+
 
         // Filtros
         $desde = $filtros['desde'] ?? null;
@@ -148,7 +176,7 @@ class ReportesContabilidadController extends Controller
                 $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
             } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
                 // Filtra por la fecha coalescida (fac válida o histórica en ac)
-                $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
+                $query->whereBetween(DB::raw('DATE(fac.fecha_certificacion)'), [$desde, $hasta]);
             } else {
                 $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
             }
@@ -158,9 +186,13 @@ class ReportesContabilidadController extends Controller
             $query->where('ae.id_empleado', $filtros['vendedor_id']);
         }
 
-        if (!empty($filtros['estado'])) {
+        // if (!empty($filtros['estado'])) {
+        //     $query->where('ac.estado', (int)$filtros['estado']);
+        // }
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] !== 6) {
             $query->where('ac.estado', (int)$filtros['estado']);
         }
+
 
         if (!empty($filtros['search'])) {
             $query->where(function ($q) use ($filtros) {
@@ -169,14 +201,22 @@ class ReportesContabilidadController extends Controller
             });
         }
 
-        $query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
+        //$query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
+
+        // 🔽 ORDENAMIENTO
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            // FACTURADAS → ordenar por número interno
+            $query
+                ->orderByRaw('fac.nofactura IS NULL') // NULLs al final
+                ->orderBy('fac.nofactura', 'asc');
+        } else {
+            // Cualquier otro estado → ordenar por fecha
+            $query->orderBy('fecha_cotizacion', 'asc');
+        }
+
 
         return $query;
     }
-
-
-
-
     /**
      * Construye el query base con buckets de antigüedad.
      * - Días transcurridos = max(DATEDIFF(fecha_reporte, fecha_vencimiento), 0)
@@ -598,7 +638,7 @@ class ReportesContabilidadController extends Controller
             ->join('adm_cuentas_porcobrar as cxc', 'cxc.idcuentaporcobrar', '=', 'det.idcuentaporcobrar')
             ->leftJoin('adm_facturacion as fac', 'fac.idfactura', '=', 'cxc.idfactura')
             ->whereBetween('rec.fecha_recibo', [$start, $end])
-             ->where('rec.estado', '<>', 0)
+            ->where('rec.estado', '<>', 0)
             ->when($tipo && $tipo !== 'TODO', function ($q) use ($tipo) {
                 $q->where('rec.tipo', $tipo);
             })
@@ -899,5 +939,76 @@ class ReportesContabilidadController extends Controller
 
         $filename = 'ventas_por_cliente_' . now()->format('Ymd_His') . '.pdf';
         return $pdf->download($filename);
+    }
+
+    public function resumenFacturasPagadasPorReciboPdf(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+        ]);
+
+        $start = $request->input('fecha_inicio');
+        $end   = $request->input('fecha_fin');
+        $tipo  = $request->input('tipo', 'TODO');
+
+        // reutilizamos el mismo query base (perfecto como está)
+        $rows = $this->buildResumenQuery($start, $end, $tipo)->get();
+
+        $grouped = $this->groupRowsByRecibo($rows);
+
+        $impreso_en = Carbon::now('America/Guatemala')->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('pdf.resumen_facturas_pagadas_por_recibo', [
+            'rango' => ['inicio' => $start, 'fin' => $end],
+            'recibos' => array_values($grouped['recibos']),
+            'total_general' => $grouped['total_general'],
+            'impreso_en' => $impreso_en,
+            'titulo' => 'RESUMEN DE FACTURAS PAGADAS POR RECIBO',
+        ])->setPaper('letter', 'portrait');
+
+        return $pdf->download(
+            'resumen_facturas_pagadas_por_recibo_' . now('America/Guatemala')->format('Ymd_His') . '.pdf'
+        );
+    }
+
+    private function groupRowsByRecibo($rows): array
+    {
+        $recibos = [];
+        $totalGeneral = 0.0;
+
+        foreach ($rows as $r) {
+            $rid = $r->idrecibo;
+
+            if (!isset($recibos[$rid])) {
+                $recibos[$rid] = [
+                    'idrecibo' => $rid,
+                    'fecha_recibo' => $r->fecha_recibo,
+                    'serie' => $r->serie,
+                    'numero' => $r->numero,
+                    'cliente_codigo' => $r->cliente_codigo,
+                    'cliente_nombre' => $r->cliente_nombre,
+                    'detalles' => [],
+                    'total_recibo' => 0.0,
+                ];
+            }
+
+            $recibos[$rid]['detalles'][] = [
+                'fecha_emision' => $r->fecha_emision,
+                'nointerno' => $r->nointerno,
+                'monto_pagado' => (float)$r->monto_pagado,
+            ];
+
+            $recibos[$rid]['total_recibo'] += (float)$r->monto_pagado;
+            $totalGeneral += (float)$r->monto_pagado;
+        }
+
+        // 🔥 ORDENAR POR NÚMERO DE RECIBO
+        usort($recibos, fn($a, $b) => strcmp($a['numero'], $b['numero']));
+
+        return [
+            'recibos' => $recibos,
+            'total_general' => $totalGeneral,
+        ];
     }
 }

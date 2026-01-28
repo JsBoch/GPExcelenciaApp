@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'infile' => [
+    'codigo' => env('INFILE_EMISOR_CODIGO'),
+    'clave'  => env('INFILE_EMISOR_CLAVE'),
+    'url'    => env('INFILE_URL'),
+    ],
 ];
