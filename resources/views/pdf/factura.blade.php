@@ -1,3 +1,5 @@
+FACTURA GP
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -338,10 +340,5 @@ $mm = 2.83465;
   ');
 }
 </script>
-
-
-
-
 </body>
-
 </html>

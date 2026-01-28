@@ -54,7 +54,10 @@ export default function ResumenFacturasPagadas() {
         try {
             const resp = await axios.get(
                 `/api/reportes-contabilidad/resumen-facturas-pagadas/data`,
-                { headers, params: { fecha_inicio: inicio, fecha_fin: fin,tipo } }
+                {
+                    headers,
+                    params: { fecha_inicio: inicio, fecha_fin: fin, tipo },
+                },
             );
             setData(resp.data);
         } catch (err) {
@@ -80,9 +83,9 @@ export default function ResumenFacturasPagadas() {
                 `/api/reportes-contabilidad/resumen-facturas-pagadas/pdf`,
                 {
                     headers,
-                    params: { fecha_inicio: inicio, fecha_fin: fin,tipo },
+                    params: { fecha_inicio: inicio, fecha_fin: fin, tipo },
                     responseType: "blob",
-                }
+                },
             );
             const blob = new Blob([resp.data], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
@@ -90,6 +93,34 @@ export default function ResumenFacturasPagadas() {
         } catch (err) {
             console.error(err);
             alert("No se pudo generar el PDF");
+        }
+    };
+
+    const verPdfPorRecibo = async () => {
+        if (!inicio || !fin) return alert("Selecciona ambas fechas");
+
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) {
+            alert("Sesión expirada. Vuelve a iniciar sesión.");
+            return;
+        }
+
+        try {
+            const resp = await axios.get(
+                `/api/reportes-contabilidad/resumen-facturas-pagadas-por-recibo/pdf`,
+                {
+                    headers,
+                    params: { fecha_inicio: inicio, fecha_fin: fin, tipo },
+                    responseType: "blob",
+                },
+            );
+
+            const blob = new Blob([resp.data], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank", "noopener,noreferrer");
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo generar el PDF por recibo");
         }
     };
 
@@ -152,6 +183,12 @@ export default function ResumenFacturasPagadas() {
                             >
                                 PDF
                             </button>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={verPdfPorRecibo}
+                            >
+                                PDF por Recibo
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -179,7 +216,7 @@ export default function ResumenFacturasPagadas() {
                                         {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
-                                        }
+                                        },
                                     )}
                                 </div>
                             </div>
@@ -203,7 +240,7 @@ export default function ResumenFacturasPagadas() {
                                             {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
-                                            }
+                                            },
                                         )}
                                     </span>
                                 </div>
@@ -249,17 +286,17 @@ export default function ResumenFacturasPagadas() {
                                                         </td>
                                                         <td className="text-end">
                                                             {Number(
-                                                                d.monto_pagado
+                                                                d.monto_pagado,
                                                             ).toLocaleString(
                                                                 undefined,
                                                                 {
                                                                     minimumFractionDigits: 2,
                                                                     maximumFractionDigits: 2,
-                                                                }
+                                                                },
                                                             )}
                                                         </td>
                                                     </tr>
-                                                ))
+                                                )),
                                             )}
                                         </tbody>
                                     </table>

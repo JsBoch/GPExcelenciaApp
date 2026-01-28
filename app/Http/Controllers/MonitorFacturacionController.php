@@ -152,8 +152,12 @@ class MonitorFacturacionController extends Controller
         // ==============================
         if (in_array($estado, ['4', '5'])) {
             $query = $cotizacionesQuery->where('c.estado', (int)$estado);
-        } elseif (in_array($estado, ['6', '7', '0'])) {
-            $query = $facturacionQuery->where('c.estado', 6);
+        } elseif ($estado === '6') {
+            // FACTURADAS
+            $query = $facturacionQuery->where('f.estado', 1);
+        } elseif ($estado === '7' || $estado === '0') {
+            // ANULADAS
+            $query = $facturacionQuery->where('f.estado', 0);
         } else {
             // Todos → unir las dos
             $query = $cotizacionesQuery->unionAll($facturacionQuery);
@@ -275,7 +279,7 @@ class MonitorFacturacionController extends Controller
         // 🔹 Número interno con el mismo formato de siempre
         $facturaStr    = $this->pad((int) ($f->nofactura ?? 0), 6);
         $cotizacionStr = $this->pad((int) $c->nocotizacion, 6);
-        $obj->numero_interno = "GP-{$facturaStr}-{$cotizacionStr}";
+        $obj->numero_interno = "GP-{$cotizacionStr}-{$facturaStr}";
 
         return $obj;
     }
@@ -807,14 +811,18 @@ class MonitorFacturacionController extends Controller
 
                     if ($cxcoriginal && $cxcoriginal->estado == 0) {
                         // 🟢 Reactivar (ya estaba anulada)
+                        $montoOriginal = (float) $cotizacion->total_general;
+                        $descuento     = (float) ($cotizacion->descuento_monto ?? 0);
+                        $saldo         = max($montoOriginal - $descuento, 0);
+
                         $cxcoriginal->update([
                             'idfactura'          => $factura->idfactura,
                             'fecha_emision'      => now(),
                             'fecha_vencimiento'  => now()->addDays(30),
-                            'monto_original'     => $cotizacion->total_general,
-                            'saldo_pendiente'    => $cotizacion->total_general,
+                            'monto_original'     => $montoOriginal,
+                            'saldo_pendiente'    => $saldo,
                             'monto_pagado'       => 0,
-                            'descuento_aplicado' => 0,
+                            'descuento_aplicado' => $descuento,
                             'estado'             => 1, // reactivada
                             'fecha_creacion'     => now(),
                         ]);
@@ -824,9 +832,14 @@ class MonitorFacturacionController extends Controller
                         if (!$correlativoCXC) {
                             throw new \RuntimeException('No se encontró correlativo para cuentas por cobrar');
                         }
+
                         $nuevoIdCXC = $correlativoCXC->correlativo + $correlativoCXC->incremento;
                         $correlativoCXC->correlativo = $nuevoIdCXC;
                         $correlativoCXC->save();
+
+                        $montoOriginal = (float) $cotizacion->total;
+                        $descuento     = (float) ($cotizacion->descuento_monto ?? 0);
+                        $saldo         = max($montoOriginal - $descuento, 0);
 
                         AdmCuentasPorCobrar::create([
                             'idcuentaporcobrar'  => $nuevoIdCXC,
@@ -837,10 +850,10 @@ class MonitorFacturacionController extends Controller
                             'fecha_vencimiento'  => now()->addDays(30),
                             'moneda'             => 'GTQ',
                             'tasa_cambio'        => 1,
-                            'monto_original'     => $cotizacion->total,
-                            'saldo_pendiente'    => $cotizacion->total,
+                            'monto_original'     => $montoOriginal,
+                            'saldo_pendiente'    => $saldo,
                             'monto_pagado'       => 0,
-                            'descuento_aplicado' => $cotizacion->descuento_monto,
+                            'descuento_aplicado' => $descuento,
                             'idusuario_creacion' => auth()->id(),
                             'usuario_creacion'   => auth()->user()->name ?? 'sistema',
                             'fecha_creacion'     => now(),

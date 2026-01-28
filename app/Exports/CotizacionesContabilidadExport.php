@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Support\Facades\Schema;
+
 class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 {
     protected $filtros;
@@ -24,13 +25,14 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
         // Subquery: 1 fila por idcotizacion con la fecha de certificación (NO anuladas)
         $facAgg = DB::table('adm_facturacion')
-            ->select('idcotizacion', DB::raw('MAX(nofactura) AS nofactura'), DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'))
-            // ⬇️ ignora facturas anuladas
-            ->when(
-                Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
-                fn($q) => $q->whereNull('fecha_anulacion')
+            ->select(
+                'idcotizacion',
+                DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'),
+                DB::raw('MAX(nofactura) AS nofactura'),
+                DB::raw('MAX(fecha_anulacion) AS fecha_anulacion')
             )
-            ->groupBy('idcotizacion', 'nofactura');
+            ->groupBy('idcotizacion');
+
 
         // Expresión reutilizable (coalesce entre nueva y histórica)
         $fechaCertExpr = DB::raw('DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))');
@@ -47,11 +49,15 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
                 // Fecha mostrada
                 DB::raw("
                 CASE
-                    WHEN ac.estado = 4 THEN COALESCE(ac.fecha_prefacturacion, ac.fecha_cotizacion)
-                    WHEN ac.estado = 6 THEN COALESCE(fac.fecha_certificacion, ac.fecha_certificacion, ac.fecha_cotizacion)
-                    ELSE ac.fecha_cotizacion
-                END as fecha_cotizacion
-            "),
+                    WHEN fac.nofactura IS NOT NULL
+                        THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
+                    WHEN ac.estado = 4
+                        THEN DATE(ac.fecha_prefacturacion)
+                    ELSE
+                        DATE(ac.fecha_cotizacion)
+                END AS fecha_cotizacion
+                "),
+
                 // Días desde prefacturación (NULL si no tiene)
                 DB::raw("
                 CASE
@@ -60,8 +66,20 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
                 END AS dias_desde_prefacturacion
             "),
                 'ae.nombre as vendedor',
-                'c.nombre as cliente',
-                'ac.total as total_general',
+                DB::raw("
+                    CASE
+                        WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
+                        ELSE c.nombre
+                    END AS cliente
+                "),
+
+                DB::raw("
+                    CASE
+                        WHEN fac.fecha_anulacion IS NOT NULL THEN 0
+                        ELSE ac.total
+                    END AS total_general
+                "),
+
             )
             ->where('ac.estado', '>', 0)
             // ⬇️ opcional: ignora cotizaciones anuladas si tu tabla tiene este campo
@@ -75,15 +93,31 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
         $hasta = $filtros['hasta'] ?? null;
 
         if ($desde && $hasta) {
+
             if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+
+                // Prefacturación
+                $query->whereBetween(
+                    DB::raw('DATE(ac.fecha_prefacturacion)'),
+                    [$desde, $hasta]
+                );
             } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-                // Filtra por la fecha coalescida (solo no anuladas en fac)
-                $query->whereBetween($fechaCertExpr, [$desde, $hasta]);
+
+                // Facturadas (incluye ANULADAS)
+                $query->whereBetween(
+                    DB::raw('DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))'),
+                    [$desde, $hasta]
+                );
             } else {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+
+                $query->whereBetween(
+                    DB::raw('DATE(ac.fecha_cotizacion)'),
+                    [$desde, $hasta]
+                );
             }
         }
+
+
 
         // Vendedor
         if (!empty($filtros['vendedor_id'])) {
@@ -91,9 +125,16 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
         }
 
         // Estado
+        // Estado
         if (!empty($filtros['estado'])) {
-            $query->where('ac.estado', (int)$filtros['estado']);
+            if ((int)$filtros['estado'] === 6) {
+                // Facturadas = todas las que tienen factura (incluso anuladas)
+                $query->whereNotNull('fac.nofactura');
+            } else {
+                $query->where('ac.estado', (int)$filtros['estado']);
+            }
         }
+
 
         // Búsqueda
         if (!empty($filtros['search'])) {
@@ -105,7 +146,17 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
         }
 
         // Orden por la fecha expuesta
-        $query->orderBy('fecha_cotizacion', 'asc');
+        // 🔽 ORDENAMIENTO
+        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+            // Facturadas → ordenar por No. Interno
+            $query
+                ->orderByRaw('fac.nofactura IS NULL') // NULLs al final
+                ->orderBy('fac.nofactura', 'asc');
+        } else {
+            // Otros estados → ordenar por fecha
+            $query->orderBy('fecha_cotizacion', 'asc');
+        }
+
 
         return $query->get();
     }
@@ -115,6 +166,6 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
     public function headings(): array
     {
-        return ['No. Cotización','No.Interno', 'Fecha', 'Dias Vencidos', 'Vendedor', 'Cliente', 'Total'];
+        return ['No. Cotización', 'No.Interno', 'Fecha', 'Dias Vencidos', 'Vendedor', 'Cliente', 'Total'];
     }
 }

@@ -412,6 +412,34 @@ function ClienteRegistro() {
             : "Código postal debe tener 5 dígitos";
     };
 
+    const consultarNitInfile = async (nit) => {
+    if (!nit || modoEdicion) return;
+
+    try {
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get(`/api/infile/consulta-nit/${nit}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data.ok) {
+            setCliente(prev => ({
+                ...prev,
+                nombre: prev.nombre || res.data.razon_social,
+                razonsocial: prev.razonsocial || res.data.razon_social,
+                direccion: prev.direccion || res.data.direccion || ""
+            }));
+
+            alertify.success("Datos obtenidos desde INFILE");
+        }
+    } catch (err) {
+        alertify.warning(
+            err.response?.data?.message || "No se pudo consultar el NIT"
+        );
+    }
+};
+
+
     return (
         <div className="mt-4">
             <Header
@@ -437,6 +465,7 @@ function ClienteRegistro() {
                                         name="nit"
                                         value={cliente.nit}
                                         onChange={handleChange}
+                                        onBlur={(e) => consultarNitInfile(e.target.value)}
                                         placeholder="NIT"
                                         //className="form-control form-control-sm campo-obligatorio-fondo"
                                         className={`form-control form-control-sm campo-obligatorio-fondo ${

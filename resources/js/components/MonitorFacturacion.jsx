@@ -1134,7 +1134,7 @@ function MonitorFacturacion() {
 
     const estado = Number(registroSeleccionado?.estado);
     const puedeRegresarVenta = estado === 4;
-    const puedeRegresarPreFacturacion = estado === 5;
+    const puedeRegresarPreFacturacion = estado === 5 || estado === 6;;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 5;

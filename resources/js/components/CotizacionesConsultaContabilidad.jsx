@@ -24,6 +24,7 @@ import {
 
 const estados = [
     { value: "", label: "Todos" },
+    { value: 0, label: "Anulada" },
     { value: 1, label: "Registro" },
     { value: 2, label: "Para costeo" },
     { value: 3, label: "Costeada" },
@@ -66,7 +67,7 @@ const CotizacionesConsultaContabilidad = () => {
                 `${
                     import.meta.env.VITE_API_URL
                 }/reportes-contabilidad/vendedores`,
-                { headers }
+                { headers },
             )
             .then((res) => setVendedores(res.data));
     }, []);
@@ -88,7 +89,7 @@ const CotizacionesConsultaContabilidad = () => {
                         page,
                         per_page: data.per_page,
                     },
-                }
+                },
             )
             .then((res) => setData(res.data));
     };
@@ -111,7 +112,7 @@ const CotizacionesConsultaContabilidad = () => {
                         search,
                     },
                     responseType: "blob",
-                }
+                },
             )
             .then((res) => {
                 const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -139,10 +140,10 @@ const CotizacionesConsultaContabilidad = () => {
                         search,
                     },
                     responseType: "blob",
-                }
+                },
             );
             const url = URL.createObjectURL(
-                new Blob([res.data], { type: "application/pdf" })
+                new Blob([res.data], { type: "application/pdf" }),
             );
             const link = document.createElement("a");
             link.href = url;
@@ -153,7 +154,8 @@ const CotizacionesConsultaContabilidad = () => {
             const blob = err?.response?.data;
             if (blob && blob.type?.includes("application/json")) {
                 const text = await blob.text();
-                try {s
+                try {
+                    s;
                     const json = JSON.parse(text);
                     console.error(json);
                     alert(json.message || "Error generando PDF");
@@ -251,29 +253,39 @@ const CotizacionesConsultaContabilidad = () => {
                     </TableHead>
                     <TableBody>
                         {data.data.map((row) => (
-                            <TableRow key={row.idcotizacion}>
+                            <TableRow
+                                key={row.idcotizacion}
+                                sx={{
+                                    backgroundColor:
+                                        row.factura_anulada === 1
+                                            ? "#FFD6CC"
+                                            : "inherit",
+                                }}
+                            >
                                 {/* <TableCell>{row.idcotizacion}</TableCell> */}
                                 <TableCell>{row.nocotizacion}</TableCell>
-                                 <TableCell>{row.nofactura || ""}</TableCell>
+                                <TableCell>{row.nofactura || ""}</TableCell>
                                 <TableCell>
                                     {new Date(
-                                        row.fecha_cotizacion
+                                        row.fecha_cotizacion,
                                     ).toLocaleDateString()}
                                 </TableCell>
-                                <TableCell>{row.dias_desde_prefacturacion ?? 0}</TableCell>
+                                <TableCell>
+                                    {row.dias_desde_prefacturacion ?? 0}
+                                </TableCell>
                                 <TableCell>{row.vendedor}</TableCell>
                                 <TableCell>{row.cliente}</TableCell>
                                 <TableCell>
-                                    {
-                                        estados.find(
-                                            (e) => e.value === row.estado
-                                        )?.label
-                                    }
+                                    {row.factura_anulada === 1
+                                        ? "FACTURADA (ANULADA)"
+                                        : estados.find(
+                                              (e) => e.value === row.estado,
+                                          )?.label}
                                 </TableCell>
                                 <TableCell align="right">
                                     {Number(row.total_general).toLocaleString(
                                         "es-GT",
-                                        { style: "currency", currency: "GTQ" }
+                                        { style: "currency", currency: "GTQ" },
                                     )}
                                 </TableCell>
                             </TableRow>
