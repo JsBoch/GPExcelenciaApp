@@ -612,11 +612,11 @@ function ListaCotizaciones() {
                             }
                         </PDFDownloadLink>
 
-                        <PDFDownloadLink
+                        {/* <PDFDownloadLink
                             document={<PdfComponent data={notaEnvioPayload} />}
                             fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
                             className="btn btn-primary"
-                        />
+                        /> */}
 
                         <button
                             className="btn btn-danger"
