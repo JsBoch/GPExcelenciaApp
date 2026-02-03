@@ -382,6 +382,11 @@ class ReportesContabilidadController extends Controller
 
         if (!empty($filtros['estado'])) {
             $query->where('ac.estado', (int)$filtros['estado']);
+
+            // 🔴 CLAVE: estado 4 SOLO si tiene fecha de pre-facturación
+            if ((int)$filtros['estado'] === 4) {
+                $query->whereNotNull('ac.fecha_prefacturacion');
+            }
         }
 
         if (!empty($filtros['desde']) && !empty($filtros['hasta'])) {
