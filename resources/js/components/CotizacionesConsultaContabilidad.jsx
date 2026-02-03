@@ -276,7 +276,7 @@ const CotizacionesConsultaContabilidad = () => {
                                 <TableCell>{row.vendedor}</TableCell>
                                 <TableCell>{row.cliente}</TableCell>
                                 <TableCell>
-                                    {row.factura_anulada === 1
+                                    {row.factura_anulada === 1 && estado === 6
                                         ? "FACTURADA (ANULADA)"
                                         : estados.find(
                                               (e) => e.value === row.estado,

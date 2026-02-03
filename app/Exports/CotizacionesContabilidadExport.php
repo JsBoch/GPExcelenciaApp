@@ -36,6 +36,27 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
 
         // Expresión reutilizable (coalesce entre nueva y histórica)
         $fechaCertExpr = DB::raw('DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))');
+        $esFacturada = !empty($filtros['estado']) && (int)$filtros['estado'] === 6;
+
+$selectCliente = $esFacturada
+    ? DB::raw("
+        CASE
+            WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
+            ELSE c.nombre
+        END AS cliente
+    ")
+    : DB::raw("c.nombre AS cliente");
+
+$selectTotal = $esFacturada
+    ? DB::raw("
+        CASE
+            WHEN fac.fecha_anulacion IS NOT NULL THEN 0
+            ELSE ac.total
+        END AS total_general
+    ")
+    : DB::raw("ac.total AS total_general");
+
+
 
         $query = DB::table('adm_cotizacion as ac')
             ->leftJoinSub($facAgg, 'fac', function ($join) {
@@ -66,20 +87,9 @@ class CotizacionesContabilidadExport implements FromCollection, WithHeadings
                 END AS dias_desde_prefacturacion
             "),
                 'ae.nombre as vendedor',
-                DB::raw("
-                    CASE
-                        WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
-                        ELSE c.nombre
-                    END AS cliente
-                "),
-
-                DB::raw("
-                    CASE
-                        WHEN fac.fecha_anulacion IS NOT NULL THEN 0
-                        ELSE ac.total
-                    END AS total_general
-                "),
-
+                $selectCliente,
+                $selectTotal,
+            
             )
             ->where('ac.estado', '>', 0)
             // ⬇️ opcional: ignora cotizaciones anuladas si tu tabla tiene este campo

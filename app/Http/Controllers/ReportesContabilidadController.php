@@ -83,116 +83,317 @@ class ReportesContabilidadController extends Controller
         return response()->json(['fecha' => now()->toDateString()]);
     }
 
+    // private function construirConsultaCotizaciones(array $filtros)
+    // {
+    //     // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
+    //     $facAgg = DB::table('adm_facturacion as f')
+    //         ->joinSub(
+    //             DB::table('adm_facturacion')
+    //                 ->select(
+    //                     'idcotizacion',
+    //                     DB::raw("
+    //                 MAX(CASE WHEN estado = 1 THEN nofactura END) AS nofactura_activa
+    //             "),
+    //                     DB::raw("MAX(nofactura) AS nofactura_ultima")
+    //                 )
+    //                 ->groupBy('idcotizacion'),
+    //             'x',
+    //             fn($join) => $join->on('x.idcotizacion', '=', 'f.idcotizacion')
+    //         )
+    //         ->where(function ($q) {
+    //             $q->where(function ($q2) {
+    //                 $q2->whereNotNull('x.nofactura_activa')
+    //                     ->whereColumn('f.nofactura', 'x.nofactura_activa');
+    //             })->orWhere(function ($q2) {
+    //                 $q2->whereNull('x.nofactura_activa')
+    //                     ->whereColumn('f.nofactura', 'x.nofactura_ultima');
+    //             });
+    //         })
+    //         ->select(
+    //             'f.idcotizacion',
+    //             'f.nofactura',
+    //             'f.fecha_certificacion',
+    //             'f.estado',
+    //             'f.fecha_anulacion'
+    //         );
+
+
+
+
+    //     // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
+    //     $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
+
+    //     $esFacturada = !empty($filtros['estado']) && (int)$filtros['estado'] === 6;
+
+    //     $selectCliente = $esFacturada
+    //         ? DB::raw("
+    //     CASE
+    //         WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
+    //         ELSE c.nombre
+    //     END AS cliente
+    // ")
+    //         : DB::raw("c.nombre AS cliente");
+
+    //     $selectTotal = $esFacturada
+    //         ? DB::raw("
+    //     CASE
+    //         WHEN fac.fecha_anulacion IS NOT NULL THEN 0
+    //         ELSE ac.total
+    //     END AS total_general
+    // ")
+    //         : DB::raw("ac.total AS total_general");
+
+    //     $selectFacturaAnulada = $esFacturada
+    //         ? DB::raw("
+    //     CASE
+    //         WHEN fac.fecha_anulacion IS NOT NULL THEN 1
+    //         ELSE 0
+    //     END AS factura_anulada
+    // ")
+    //         : DB::raw("0 AS factura_anulada");
+
+
+    //     $query = DB::table('adm_cotizacion as ac')
+    //         // Evita duplicados: join contra el agregado
+    //         ->leftJoinSub($facAgg, 'fac', function ($join) {
+    //             $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
+    //         })
+    //         ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+    //         ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+    //         ->select(
+    //             'ac.idcotizacion',
+    //             DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+    //             'fac.nofactura as nointerno',
+    //             DB::raw("
+    //             CASE
+    //                 WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
+    //                 WHEN ac.estado IN (6,0) THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
+    //                 ELSE DATE(ac.fecha_cotizacion)
+    //             END AS fecha_cotizacion
+    //             "),
+    //             'fac.nofactura AS nofactura',
+    //             'ae.nombre AS vendedor',
+    //             $selectCliente,
+    //             $selectTotal,
+    //             'ac.estado',
+    //             $selectFacturaAnulada,
+    //             DB::raw("
+    //             COALESCE(
+    //                 GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
+    //                 0
+    //             ) AS dias_desde_prefacturacion
+    //         ")
+    //         )
+    //         // ->where('ac.estado', '>', 0)
+
+    //         // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
+    //         ->when(
+    //             Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
+    //             fn($q) => $q->whereNull('ac.fecha_anulacion')
+    //         );
+
+    //     // Estados visibles
+    //     if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+    //         // Facturadas = cotizaciones que TIENEN factura
+    //         $query->whereNotNull('fac.nofactura');
+    //     } else {
+    //         $query->where('ac.estado', '>', 0);
+    //     }
+
+
+
+    //     // Filtros
+    //     $desde = $filtros['desde'] ?? null;
+    //     $hasta = $filtros['hasta'] ?? null;
+
+    //     if ($desde && $hasta) {
+    //         if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
+    //             $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
+    //         } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+    //             // Filtra por la fecha coalescida (fac válida o histórica en ac)
+    //             $query->whereBetween(DB::raw('DATE(fac.fecha_certificacion)'), [$desde, $hasta]);
+    //         } else {
+    //             $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
+    //         }
+    //     }
+
+    //     if (!empty($filtros['vendedor_id'])) {
+    //         $query->where('ae.id_empleado', $filtros['vendedor_id']);
+    //     }
+
+    //     // if (!empty($filtros['estado'])) {
+    //     //     $query->where('ac.estado', (int)$filtros['estado']);
+    //     // }
+    //     if (!empty($filtros['estado']) && (int)$filtros['estado'] !== 6) {
+    //         $query->where('ac.estado', (int)$filtros['estado']);
+    //     }
+
+
+    //     if (!empty($filtros['search'])) {
+    //         $query->where(function ($q) use ($filtros) {
+    //             $q->where('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%')
+    //                 ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%');
+    //         });
+    //     }
+
+    //     //$query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
+
+    //     // 🔽 ORDENAMIENTO
+    //     if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
+    //         // FACTURADAS → ordenar por número interno
+    //         $query
+    //             ->orderByRaw('fac.nofactura IS NULL') // NULLs al final
+    //             ->orderBy('fac.nofactura', 'asc');
+    //     } else {
+    //         // Cualquier otro estado → ordenar por fecha
+    //         $query->orderBy('fecha_cotizacion', 'asc');
+    //     }
+
+
+    //     return $query;
+    // }
+
     private function construirConsultaCotizaciones(array $filtros)
     {
-        // Subquery: una fila por idcotizacion con la fecha de certificación (NO anuladas)
+        $esFacturada = !empty($filtros['estado']) && (int)$filtros['estado'] === 6;
+
+        /* =====================================================
+     * CASO 1: ESTADO = 6 (FACTURADAS)
+     * → Reporte POR FACTURA (no por cotización)
+     * ===================================================== */
+        if ($esFacturada) {
+
+            $query = DB::table('adm_cotizacion as ac')
+                ->join('adm_facturacion as fac', 'fac.idcotizacion', '=', 'ac.idcotizacion')
+                ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
+                ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
+                ->select(
+                    'ac.idcotizacion',
+                    DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
+                    'fac.nofactura AS nointerno',
+                    DB::raw("DATE(fac.fecha_certificacion) AS fecha_cotizacion"),
+                    'fac.nofactura',
+                    'ae.nombre AS vendedor',
+                    DB::raw("
+                    CASE
+                        WHEN fac.estado = 0 THEN 'ANULADA'
+                        ELSE c.nombre
+                    END AS cliente
+                "),
+                    DB::raw("
+                    CASE
+                        WHEN fac.estado = 0 THEN 0
+                        ELSE ac.total
+                    END AS total_general
+                "),
+                    DB::raw("6 AS estado"),
+                    DB::raw("
+                    CASE
+                        WHEN fac.estado = 0 THEN 1
+                        ELSE 0
+                    END AS factura_anulada
+                "),
+                    DB::raw("
+                    COALESCE(
+                        GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
+                        0
+                    ) AS dias_desde_prefacturacion
+                ")
+                )
+                ->whereIn('fac.estado', [0, 1]);
+
+            // Excluir cotizaciones anuladas (si existe el campo)
+            if (Schema::hasColumn('adm_cotizacion', 'fecha_anulacion')) {
+                $query->whereNull('ac.fecha_anulacion');
+            }
+
+            // Filtro de fechas (por factura)
+            if (!empty($filtros['desde']) && !empty($filtros['hasta'])) {
+                $query->whereBetween(
+                    DB::raw('DATE(fac.fecha_certificacion)'),
+                    [$filtros['desde'], $filtros['hasta']]
+                );
+            }
+
+            // Filtro vendedor
+            if (!empty($filtros['vendedor_id'])) {
+                $query->where('ae.id_empleado', $filtros['vendedor_id']);
+            }
+
+            // Búsqueda
+            if (!empty($filtros['search'])) {
+                $query->where(function ($q) use ($filtros) {
+                    $q->where('fac.nofactura', 'like', '%' . $filtros['search'] . '%')
+                        ->orWhere('c.nombre', 'like', '%' . $filtros['search'] . '%')
+                        ->orWhere('ac.nocotizacion', 'like', '%' . $filtros['search'] . '%');
+                });
+            }
+
+            // Orden por correlativo
+            $query->orderBy('fac.nofactura', 'asc');
+
+            return $query;
+        }
+
+        /* =====================================================
+     * CASO 2: CUALQUIER OTRO ESTADO
+     * → Reporte POR COTIZACIÓN (lógica original)
+     * ===================================================== */
+
         $facAgg = DB::table('adm_facturacion')
             ->select(
                 'idcotizacion',
                 DB::raw('MIN(fecha_certificacion) AS fecha_certificacion'),
-                DB::raw('MAX(nofactura) AS nofactura'),
-                DB::raw('MAX(fecha_anulacion) AS fecha_anulacion')
+                DB::raw('MAX(nofactura) AS nofactura')
             )
-            // ->when(
-            //     Schema::hasColumn('adm_facturacion', 'fecha_anulacion'),
-            //     fn($q) => $q->whereNull('fecha_anulacion')
-            // )
             ->groupBy('idcotizacion');
 
-
-        // Expresión reutilizable para certificación (nueva en fac o histórica en ac)
-        $fechaCertExpr = DB::raw("DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))");
-
         $query = DB::table('adm_cotizacion as ac')
-            // Evita duplicados: join contra el agregado
-            ->leftJoinSub($facAgg, 'fac', function ($join) {
-                $join->on('fac.idcotizacion', '=', 'ac.idcotizacion');
-            })
+            ->leftJoinSub($facAgg, 'fac', fn($j) => $j->on('fac.idcotizacion', '=', 'ac.idcotizacion'))
             ->join('adm_empleados as ae', 'ac.idusuario', '=', 'ae.iduser')
             ->join('clientes as c', 'ac.idcliente', '=', 'c.idcliente')
             ->select(
                 'ac.idcotizacion',
                 DB::raw("CONCAT('CT', CAST(ac.nocotizacion AS CHAR)) AS nocotizacion"),
-                'fac.nofactura as nointerno',
+                'fac.nofactura AS nointerno',
                 DB::raw("
                 CASE
                     WHEN ac.estado = 4 THEN DATE(ac.fecha_prefacturacion)
-                    WHEN ac.estado IN (6,0) THEN DATE(COALESCE(fac.fecha_certificacion, ac.fecha_certificacion))
                     ELSE DATE(ac.fecha_cotizacion)
                 END AS fecha_cotizacion
-                "),
-                'fac.nofactura AS nofactura',
+            "),
+                'fac.nofactura',
                 'ae.nombre AS vendedor',
-                DB::raw("
-                    CASE
-                        WHEN fac.fecha_anulacion IS NOT NULL THEN 'ANULADA'
-                        ELSE c.nombre
-                    END AS cliente
-                "),
-                DB::raw("
-                    CASE
-                        WHEN fac.fecha_anulacion IS NOT NULL THEN 0
-                        ELSE ac.total
-                    END AS total_general
-                "),
+                'c.nombre AS cliente',
+                'ac.total AS total_general',
                 'ac.estado',
-                DB::raw("
-                    CASE
-                        WHEN fac.fecha_anulacion IS NOT NULL THEN 1
-                        ELSE 0
-                    END AS factura_anulada
-                "),
+                DB::raw("0 AS factura_anulada"),
                 DB::raw("
                 COALESCE(
                     GREATEST(DATEDIFF(CURDATE(), DATE(ac.fecha_prefacturacion)), 0),
                     0
                 ) AS dias_desde_prefacturacion
             ")
-            )
-            // ->where('ac.estado', '>', 0)
-
-            // Opcional: si la tabla tiene fecha_anulacion en cotizaciones, exclúyelas
-            ->when(
-                Schema::hasColumn('adm_cotizacion', 'fecha_anulacion'),
-                fn($q) => $q->whereNull('ac.fecha_anulacion')
             );
 
-        // Estados visibles
-        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-            // Facturadas = cotizaciones que TIENEN factura
-            $query->whereNotNull('fac.nofactura');
-        } else {
-            $query->where('ac.estado', '>', 0);
+        if (Schema::hasColumn('adm_cotizacion', 'fecha_anulacion')) {
+            $query->whereNull('ac.fecha_anulacion');
         }
 
+        if (!empty($filtros['estado'])) {
+            $query->where('ac.estado', (int)$filtros['estado']);
+        }
 
-
-        // Filtros
-        $desde = $filtros['desde'] ?? null;
-        $hasta = $filtros['hasta'] ?? null;
-
-        if ($desde && $hasta) {
-            if (!empty($filtros['estado']) && (int)$filtros['estado'] === 4) {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_prefacturacion)'), [$desde, $hasta]);
-            } elseif (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-                // Filtra por la fecha coalescida (fac válida o histórica en ac)
-                $query->whereBetween(DB::raw('DATE(fac.fecha_certificacion)'), [$desde, $hasta]);
-            } else {
-                $query->whereBetween(DB::raw('DATE(ac.fecha_cotizacion)'), [$desde, $hasta]);
-            }
+        if (!empty($filtros['desde']) && !empty($filtros['hasta'])) {
+            $query->whereBetween(
+                DB::raw('DATE(ac.fecha_cotizacion)'),
+                [$filtros['desde'], $filtros['hasta']]
+            );
         }
 
         if (!empty($filtros['vendedor_id'])) {
             $query->where('ae.id_empleado', $filtros['vendedor_id']);
         }
-
-        // if (!empty($filtros['estado'])) {
-        //     $query->where('ac.estado', (int)$filtros['estado']);
-        // }
-        if (!empty($filtros['estado']) && (int)$filtros['estado'] !== 6) {
-            $query->where('ac.estado', (int)$filtros['estado']);
-        }
-
 
         if (!empty($filtros['search'])) {
             $query->where(function ($q) use ($filtros) {
@@ -201,22 +402,11 @@ class ReportesContabilidadController extends Controller
             });
         }
 
-        //$query->orderBy('fecha_cotizacion', 'asc'); // alias del SELECT
-
-        // 🔽 ORDENAMIENTO
-        if (!empty($filtros['estado']) && (int)$filtros['estado'] === 6) {
-            // FACTURADAS → ordenar por número interno
-            $query
-                ->orderByRaw('fac.nofactura IS NULL') // NULLs al final
-                ->orderBy('fac.nofactura', 'asc');
-        } else {
-            // Cualquier otro estado → ordenar por fecha
-            $query->orderBy('fecha_cotizacion', 'asc');
-        }
-
+        $query->orderBy('fecha_cotizacion', 'asc');
 
         return $query;
     }
+
     /**
      * Construye el query base con buckets de antigüedad.
      * - Días transcurridos = max(DATEDIFF(fecha_reporte, fecha_vencimiento), 0)
