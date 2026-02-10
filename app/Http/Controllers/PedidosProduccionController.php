@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Auth; // <-- Importar Log si quieres registrar er
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
+use App\Exports\PedidosProduccionExcel;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class PedidosProduccionController extends Controller
 {
@@ -27,7 +30,8 @@ class PedidosProduccionController extends Controller
         $query = AdmPedidosProduccion::query()
             ->select(
                 'c.idpedidoproduccion',
-                DB::raw('CONCAT(\'P-\',CAST(c.nocotizacion AS CHAR),\'-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+                DB::raw('CONCAT(\'P-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+                'c.nopedido as nopedido_num',
                 'c.fecha_pedido',
                 //'\'NA\' as tipo_pago',
                 'c.fecha_entrega',
@@ -81,7 +85,8 @@ class PedidosProduccionController extends Controller
             $query->where('c.idusuario', $user->id); // Filtra por el usuario logueado
         }
 
-        $pedidos = $query->orderBy('c.nocotizacion', 'desc')->get();
+        $pedidos = $query->orderBy('c.nopedido', 'desc')->get();
+
         //Log::info('Consulta ', ['Illuminate\Database\Eloquent\Builder' => $query->getQuery()->toSql()]);
         //$cotizaciones = $query->get();
         return response()->json($pedidos);
@@ -242,7 +247,7 @@ class PedidosProduccionController extends Controller
 
     public function show($id)
     {
-        $pedidoProduccion = AdmPedidosProduccion::where('c.idpedidoproduccion', $id)
+        $pedidoProduccion = DB::table('adm_pedidos_produccion as c')
             ->select(
                 'c.idpedidoproduccionoriginal',
                 'c.idpedidoproduccion',
@@ -261,16 +266,15 @@ class PedidosProduccionController extends Controller
                 'c.nocotizacion',
                 'c.version',
                 'c.idtipopago',
-                //'t.tipo as tipo_pago',
                 'c.direccion_entrega',
-                'c.costear',
-                'c.total_general',
+                'c.costear'
             )
-            ->from('adm_pedidos_produccion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-            // ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            ->where('c.idpedidoproduccion', $id)
             ->first();
+
+
         if (!$pedidoProduccion) {
             return response()->json(['message' => 'No se encontró el registro del pedido'], 404);
         }
@@ -278,33 +282,22 @@ class PedidosProduccionController extends Controller
         $detalles = AdmDetallePedidosProduccion::where('d.idpedidoproduccion', $id)
             ->select(
                 'd.iddetallepedidoproduccion',
-                'idpedidoproduccion',
-                'idproducto',
-                'producto',
-                'titulo',
-                'descripcion',
-                'cantidad',
-                'ancho',
-                'alto',
-                'profundidad',
-                'precio',
-                'total',
-                'fecha_registro',
-                'usuario_registro',
-                'costeado',
-                'fecha_costeo',
-                'usuario_costeo',
-                'estado',
-                'incluye_foto',
-                'unidad_medida',
-                'm2',
-                //'imagen',
-                'imagen as imagen_ruta',
-                'material',
-                'caras',
-                'maquina',
-                'acabados',
-                'version',
+                'd.idpedidoproduccion',
+                'd.cantidad',
+                'd.ancho',
+                'd.alto',
+                'd.unidad_medida',
+                'd.material',
+                'd.caras',
+                'd.acabados',
+                'd.version',
+                'd.medida_real',
+                'd.galaxy_plus',
+                'd.uv',
+                'd.cnc',
+                'd.laser',
+                'd.summa',
+                'd.imagen as imagen_ruta'
             )
             ->from('adm_detalle_pedidosproduccion as d')
             ->get();
@@ -414,34 +407,33 @@ class PedidosProduccionController extends Controller
                     // si es nuevo y no envía nada, queda null
                 }
 
+                if (!$imagenRuta && $detalle) {
+                    $imagenRuta = $detalle->imagen;
+                }
+
+
                 $payload = [
                     'idpedidoproduccion' => $id,
-                    'idproducto' => 0,
-                    'producto' => $d['descripcion'] ?? '',
-                    'titulo' => $d['titulo'] ?? '',
-                    'descripcion' => $d['descripcion'] ?? '',
-                    'cantidad' => $d['cantidad'] ?? 0,
-                    'ancho' => $d['ancho'] ?? 0,
-                    'alto' => $d['alto'] ?? 0,
-                    'm2' => $d['m2'] ?? 0,
-                    'profundidad' => $d['profundidad'] ?? 0,
-                    'precio' => 0,
-                    'total' => 0,
-                    'unidad_medida' => $d['unidad_medida'] ?? null,
+                    'cantidad' => $d['cantidad'],
                     'material' => $d['material'] ?? null,
                     'caras' => $d['caras'] ?? null,
-                    'maquina' => $d['maquina'] ?? null,
-                    'acabados' => $d['acabados'] ?? null,
-                    'version' => $d['version'] ?? null,
-                    'imagen' => $imagenRuta,
-                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
-                    'estado' => 1,
+                    'ancho' => $d['ancho'] ?? null,
+                    'alto' => $d['alto'] ?? null,
+                    'unidad_medida' => $d['unidad_medida'] ?? null,
+
                     'galaxy_plus' => !empty($d['galaxy_plus']) ? 1 : 0,
                     'uv'          => !empty($d['uv']) ? 1 : 0,
                     'cnc'         => !empty($d['cnc']) ? 1 : 0,
                     'laser'       => !empty($d['laser']) ? 1 : 0,
                     'summa'       => !empty($d['summa']) ? 1 : 0,
 
+                    'version' => $d['version'] ?? null,
+                    'acabados' => $d['acabados'] ?? null,
+                    'medida_real' => $d['medida_real'] ?? null,
+
+                    'imagen' => $imagenRuta,
+                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
+                    'estado' => 1,
                 ];
 
                 if ($detalle) {
@@ -531,6 +523,12 @@ class PedidosProduccionController extends Controller
                 'd.maquina',
                 'd.acabados',
                 'd.version',
+                'd.galaxy_plus',
+                'd.uv',
+                'd.cnc',
+                'd.laser',
+                'd.summa',
+                'd.medida_real',
             )
             ->from('adm_detalle_pedidosproduccion as d')
             ->get();
@@ -738,36 +736,6 @@ class PedidosProduccionController extends Controller
         return response()->json($nota);
     }
 
-    // public function motivosRechazo()
-    // {
-    //     return AdmMotivosRechazo::where('estado', 1)->get(['idmotivorechazo', 'motivo']);
-    // }
-
-    // public function rechazar(Request $request, $id)
-    // {
-    //     $request->validate([
-    //         'idmotivorechazo' => 'required|exists:adm_motivos_rechazo,idmotivorechazo',
-    //     ]);
-
-    //     $cotizacion = AdmPedidosProduccion::find($id);
-
-    //     if (!$cotizacion) {
-    //         return response()->json(['message' => 'Cotización no encontrada'], 404);
-    //     }
-
-    //     if (!in_array($cotizacion->estado, [1, 3])) {
-    //         return response()->json(['message' => 'Solo se pueden rechazar cotizaciones en estado 1 o 3'], 422);
-    //     }
-
-    //     $cotizacion->estado = 8; // Estado rechazado
-    //     $cotizacion->idmotivorechazo = $request->idmotivorechazo;
-    //     $cotizacion->fecha_rechazo = now();
-    //     $cotizacion->usuario_rechazo = auth()->user()->name;
-    //     $cotizacion->save();
-
-    //     return response()->json(['message' => 'Cotización rechazada correctamente.']);
-    // }
-
     public function cotizacionesPedidoProduccion(Request $request)
     {
         $user = Auth::user();              // Obtiene el usuario autenticado
@@ -817,5 +785,20 @@ class PedidosProduccionController extends Controller
         //Log::info('Consulta ', ['Illuminate\Database\Eloquent\Builder' => $query->getQuery()->toSql()]);
         //$cotizaciones = $query->get();
         return response()->json($cotizaciones);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $request->validate([
+            'idpedidoproduccion' => 'required|integer'
+        ]);
+
+        return Excel::download(
+            new PedidosProduccionExcel(
+                $request->idpedidoproduccion,
+                Auth::user()
+            ),
+            'PEDIDO_' . $request->idpedidoproduccion . '.xlsx'
+        );
     }
 }

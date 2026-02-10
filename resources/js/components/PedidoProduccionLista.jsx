@@ -43,28 +43,14 @@ function PedidosProduccionLista() {
     const [filtro, setFiltro] = useState("");
     const [detallePedido, setDetallePedido] = useState(null);
     const [fechaActual, setFechaActual] = useState("");
-    // const [motivosRechazo, setMotivosRechazo] = useState([]);
-    // const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
-    // const [motivoSeleccionado, setMotivoSeleccionado] = useState("");
 
     useEffect(() => {
         fetch("/i18n/Spanish.json")
             .then((response) => response.json())
             .then((data) => setSpanishTranslation(data))
             .catch((error) =>
-                console.error("Error al cargar la traducción:", error)
+                console.error("Error al cargar la traducción:", error),
             );
-
-        // // Establecer la fecha de hoy en el formato YYYY-MM-DD
-        // const hoy = new Date();
-        // const año = hoy.getFullYear();
-        // const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-        // const dia = String(hoy.getDate()).padStart(2, "0");
-        // const fechaActual = `${año}-${mes}-${dia}`;
-        // setFechaInicio(fechaActual);
-        // setFechaFin(fechaActual);
-        //setFechaHoy(fechaActual); // Guarda la fecha de hoy para la lógica inicial
-        //fetchPedidosProduccion(fechaActual, fechaActual); // Realizar la consulta inicial con la fecha de hoy
     }, []);
 
     useEffect(() => {
@@ -147,13 +133,13 @@ function PedidosProduccionLista() {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
-                    }
+                    },
                 );
                 const detalle = response.data;
 
                 // 🔍 Obtener el estado desde cotizacionesRef
                 const pedidoSeleccionado = pedidosRef.current.find(
-                    (c) => Number(c.idpedidoproduccion) === Number(id)
+                    (c) => Number(c.idpedidoproduccion) === Number(id),
                 );
 
                 if (!pedidoSeleccionado) {
@@ -191,7 +177,8 @@ function PedidosProduccionLista() {
 
     const columns = [
         { data: "idpedidoproduccion", title: "ID", visible: false },
-        { data: "nopedido", title: "No.Pedido" },
+        { data: "nopedido_num", visible: false },
+        { data: "nopedido", title: "No.Pedido", with: "140px" },
         {
             data: "fecha_pedido",
             title: "Fecha Pedido",
@@ -200,9 +187,6 @@ function PedidosProduccionLista() {
                     try {
                         const date = new Date(data);
                         return format(date, "dd-MM-yyyy"); // Formatea la fecha al formato AAAA-MM-DD
-                        // Otros formatos que podrías usar:
-                        // return format(date, 'dd/MM/yyyy'); // Día/Mes/Año
-                        // return format(date, 'MM/dd/yyyy'); // Mes/Día/Año
                     } catch (error) {
                         console.error("Error al formatear la fecha:", error);
                         return ""; // Devuelve una cadena vacía o algún otro valor en caso de error
@@ -250,13 +234,13 @@ function PedidosProduccionLista() {
                 handleDesactivar(id);
             } else if (button.classList.contains("facturar-btn")) {
                 const pedidoSeleccionado = pedidosRef.current.find(
-                    (c) => Number(c.idpedidoproduccion) === Number(id)
+                    (c) => Number(c.idpedidoproduccion) === Number(id),
                 );
 
                 handleFacturar(id, pedidoSeleccionado, 4);
             } else if (button.classList.contains("facturacion-btn")) {
                 const pedidoSeleccionado = pedidosRef.current.find(
-                    (c) => Number(c.idpedidoproduccion) === Number(id)
+                    (c) => Number(c.idpedidoproduccion) === Number(id),
                 );
 
                 handleFacturar(id, pedidoSeleccionado, 5);
@@ -269,7 +253,7 @@ function PedidosProduccionLista() {
                                 headers: {
                                     Authorization: `Bearer ${token}`,
                                 },
-                            }
+                            },
                         );
                         const data = await response.json();
                         setPdfData(data);
@@ -290,7 +274,7 @@ function PedidosProduccionLista() {
                             headers: {
                                 Authorization: `Bearer ${token}`,
                             },
-                        }
+                        },
                     );
 
                     const data = await response.json();
@@ -299,7 +283,7 @@ function PedidosProduccionLista() {
                     } else {
                         alertify.error(
                             data.message ||
-                                "No se pudo generar la nota de envío."
+                                "No se pudo generar la nota de envío.",
                         );
                     }
                 } catch (err) {
@@ -315,11 +299,12 @@ function PedidosProduccionLista() {
     const options = {
         autoWidth: false, // Desactiva el autoajuste
         searching: false,
+        order: [[1, "desc"]],
         //scrollX:true,
         columnDefs: [
-  { targets: 0, width: "100px" },
-  { targets: 2, width: "120px" }
-],
+            { targets: 0, width: "100px" },
+            { targets: 2, width: "120px" },
+        ],
         language: spanishTranslation, // Agrega la traducción aquí
         order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
         rowCallback: (row, data) => {
@@ -331,7 +316,7 @@ function PedidosProduccionLista() {
                 "estado-5",
                 "estado-6",
                 "estado-7",
-                "estado-8"
+                "estado-8",
             );
 
             if (data.estado) {
@@ -348,10 +333,6 @@ function PedidosProduccionLista() {
         },
     };
 
-    // const handleEditar = (id) => {
-    //     navigate(`/cotizaciones/editar/${id}`);
-    // };
-
     useEffect(() => {
         // Este useEffect se ejecutará después de que el estado cotizacion cambie.
         //console.log('Estado cotización actualizado:', cotizaciones);
@@ -359,7 +340,7 @@ function PedidosProduccionLista() {
 
     useEffect(() => {
         const tooltipTriggerList = [].slice.call(
-            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+            document.querySelectorAll('[data-bs-toggle="tooltip"]'),
         );
         tooltipTriggerList.forEach((el) => {
             new bootstrap.Tooltip(el);
@@ -386,7 +367,7 @@ function PedidosProduccionLista() {
                                 headers: {
                                     Authorization: `Bearer ${token}`,
                                 },
-                            }
+                            },
                         )
                         .then(() => {
                             setPedidoProduccion((prevPedidos) => {
@@ -394,7 +375,7 @@ function PedidosProduccionLista() {
                                 return prevPedidos.filter(
                                     (pedido) =>
                                         Number(pedido.idpedidoproduccion) !==
-                                        Number(id)
+                                        Number(id),
                                 );
                             });
                             alertify.success("Pedido eliminado correctamente.");
@@ -407,70 +388,9 @@ function PedidosProduccionLista() {
             function () {
                 // Cancelado
                 alertify.message("Acción cancelada");
-            }
+            },
         );
     };
-
-    // const handleFacturar = (id, pedidoProduccion, estado) => {
-    //     if (!pedidoProduccion) {
-    //         alertify.alert("Error", "No se encontró el pedido.");
-    //         return;
-    //     }
-
-    //     if (
-    //         Number(pedidoProduccion.total_general) === 0 &&
-    //         Number(pedidoProduccion.estado) > 3
-    //     ) {
-    //         alertify.alert(
-    //             "TOTAL EN CERO",
-    //             "No se puede enviar a pre-facturación un pedido con total igual a 0.00."
-    //         );
-    //         return;
-    //     }
-
-    //     if (Number(pedidoProduccion.estado) === 5) {
-    //         alertify.alert(
-    //             "PRE-FACTURACIÓN",
-    //             "El registro ya está en FACTURACIÓN, No se puede volver a enviar"
-    //         );
-    //         return;
-    //     }
-
-    //     if (Number(pedidoProduccion.estado) > 5) {
-    //         alertify.alert(
-    //             "FACTURACIÓN",
-    //             "El registro ya paso la etapa de FACTURACIÓN, No se puede volver a enviar"
-    //         );
-    //         return;
-    //     }
-
-    //     const token = localStorage.getItem("token");
-    //     if (token) {
-    //         axios
-    //             .put(
-    //                 `/api/pedidosproduccion/activarfacturacion/${id}`,
-    //                 {
-    //                     estado: estado,
-    //                 },
-    //                 {
-    //                     headers: {
-    //                         Authorization: `Bearer ${token}`,
-    //                     },
-    //                 }
-    //             )
-    //             .then((response) => {
-    //                 alertify.success(response.data.message);
-    //                 fetchPedidosProduccion(
-    //                     fechaInicioRef.current,
-    //                     fechaFinRef.current
-    //                 );
-    //             })
-    //             .catch((error) => {
-    //                 error.response?.data?.message ||
-    //                     "Ocurrió un error al actualizar el pedido.";
-    //             });
-    //     }
-    // };
 
     const generarPDF = async (id) => {
         const token = localStorage.getItem("token");
@@ -487,59 +407,6 @@ function PedidosProduccionLista() {
         }
     };
 
-    // const generarNotaEnvio = async (id) => {
-    //     const token = localStorage.getItem("token");
-    //     try {
-    //         const response = await fetch(
-    //             `/api/pedidosproduccion/${id}/nota-envio`,
-    //             {
-    //                 headers: { Authorization: `Bearer ${token}` },
-    //             }
-    //         );
-    //         const data = await response.json();
-    //         if (response.ok) setNotaEnvioData(data);
-    //         else alertify.error(data.message || "Error en nota de envío.");
-    //     } catch {
-    //         alertify.error("Error al consultar nota de envío.");
-    //     }
-    // };
-
-    // const abrirModalRechazo = async () => {
-    //     const token = localStorage.getItem("token");
-    //     try {
-    //         const { data } = await axios.get("/api/motivos-rechazo", {
-    //             headers: { Authorization: `Bearer ${token}` },
-    //         });
-    //         setMotivosRechazo(data);
-    //         setMostrarModalRechazo(true);
-    //     } catch (error) {
-    //         alertify.error("No se pudieron obtener los motivos de rechazo.");
-    //     }
-    // };
-
-    // const confirmarRechazo = async () => {
-    //     const token = localStorage.getItem("token");
-    //     if (!motivoSeleccionado || !registroSeleccionado) {
-    //         alertify.warning("Selecciona un motivo de rechazo.");
-    //         return;
-    //     }
-
-    //     try {
-    //         await axios.put(
-    //             `/api/cotizaciones/rechazar/${registroSeleccionado.idcotizacion}`,
-    //             { idmotivorechazo: motivoSeleccionado },
-    //             { headers: { Authorization: `Bearer ${token}` } }
-    //         );
-    //         alertify.success("Cotización rechazada.");
-    //         setMostrarModalRechazo(false);
-    //         fetchCotizaciones(fechaInicioRef.current, fechaFinRef.current);
-    //     } catch (error) {
-    //         alertify.error(
-    //             error.response?.data?.message || "Error al rechazar."
-    //         );
-    //     }
-    // };
-
     const obtenerDetalleCotizacion = async (id) => {
         setLoading(true);
         const token = localStorage.getItem("token");
@@ -552,13 +419,13 @@ function PedidosProduccionLista() {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
-                    }
+                    },
                 );
                 const detalle = response.data;
 
                 // 🔍 Obtener el estado desde pedidosRef
                 const pedidoSeleccionado = pedidosRef.current.find(
-                    (c) => Number(c.idpedidoproduccion) === Number(id)
+                    (c) => Number(c.idpedidoproduccion) === Number(id),
                 );
 
                 if (!pedidoSeleccionado) {
@@ -584,6 +451,55 @@ function PedidosProduccionLista() {
         }
     };
 
+    const exportarExcel = async () => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            alertify.error("Sesión no válida");
+            return;
+        }
+
+        if (!registroSeleccionado) {
+            alertify.warning("Debe seleccionar un pedido");
+            return;
+        }
+
+        try {
+            const response = await axios.get(
+                "/api/pedidosproduccion/export/excel",
+                {
+                    params: {
+                        idpedidoproduccion:
+                            registroSeleccionado.idpedidoproduccion,
+                    },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json",
+                    },
+                    responseType: "blob",
+                },
+            );
+
+            const blob = new Blob([response.data], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = `PEDIDO_${registroSeleccionado.nopedido}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(error);
+            alertify.error("Error al exportar Excel");
+        }
+    };
+
     const estado = Number(registroSeleccionado?.estado);
 
     const puedeEditar = estado === 1 || estado === 3;
@@ -595,7 +511,9 @@ function PedidosProduccionLista() {
     const pedidosFiltrados = pedidoProduccion.filter((cot) => {
         const texto = filtro.toLowerCase();
         return (
-            cot.nopedido?.toLowerCase().includes(texto) ||
+            String(cot.nopedido ?? "")
+                .toLowerCase()
+                .includes(texto) ||
             cot.cliente?.toLowerCase().includes(texto) ||
             cot.asesor?.toString().includes(texto) ||
             cot.fecha_entrega?.toLowerCase().includes(texto)
@@ -656,50 +574,7 @@ function PedidosProduccionLista() {
                     </div>
                 </div>
             )}
-            {/* {notaEnvioData && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div style={{ width: "80%", height: "80%" }}>
-                        <PDFViewer width="100%" height="100%">
-                            <NotaEnvioPDF data={notaEnvioData} />
-                        </PDFViewer>
-                    </div>
 
-                    <div className="mt-3 d-flex gap-2">
-                        <PDFDownloadLink
-                            document={<NotaEnvioPDF data={notaEnvioData} />}
-                            fileName={`nota-envio-${notaEnvioData[0]?.noenvio}.pdf`}
-                            className="btn btn-primary"
-                        >
-                            {({ loading }) =>
-                                loading
-                                    ? "Generando PDF..."
-                                    : "Descargar Nota de Envío"
-                            }
-                        </PDFDownloadLink>
-
-                        <button
-                            className="btn btn-danger"
-                            onClick={() => setNotaEnvioData(null)}
-                        >
-                            Cerrar PDF
-                        </button>
-                    </div>
-                </div>
-            )} */}
             {modalVisible && detallePedido && (
                 <DetallePedidoModal
                     detalle={detallePedido.detalle}
@@ -767,6 +642,12 @@ function PedidosProduccionLista() {
                                 >
                                     Consultar
                                 </button>
+                                <button
+                                    className="btn btn-success btn-sm"
+                                    onClick={exportarExcel}
+                                >
+                                    📊 Exportar Excel
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -778,7 +659,7 @@ function PedidosProduccionLista() {
                                 disabled={!registroSeleccionado}
                                 onClick={() =>
                                     obtenerDetalleCotizacion(
-                                        registroSeleccionado?.idpedidoproduccion
+                                        registroSeleccionado?.idpedidoproduccion,
                                     )
                                 }
                                 // data-bs-toggle="tooltip"
@@ -792,7 +673,7 @@ function PedidosProduccionLista() {
                                 disabled={!registroSeleccionado || !puedeEditar}
                                 onClick={() =>
                                     navigate(
-                                        `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`
+                                        `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`,
                                     )
                                 }
                                 // data-bs-toggle="tooltip"
@@ -808,7 +689,7 @@ function PedidosProduccionLista() {
                                 }
                                 onClick={() =>
                                     handleDesactivar(
-                                        registroSeleccionado?.idpedidoproduccion
+                                        registroSeleccionado?.idpedidoproduccion,
                                     )
                                 }
                                 // data-bs-toggle="tooltip"
@@ -822,7 +703,7 @@ function PedidosProduccionLista() {
                                 disabled={!registroSeleccionado}
                                 onClick={() =>
                                     generarPDF(
-                                        registroSeleccionado?.idpedidoproduccion
+                                        registroSeleccionado?.idpedidoproduccion,
                                     )
                                 }
                                 // data-bs-toggle="tooltip"
@@ -831,87 +712,6 @@ function PedidosProduccionLista() {
                             >
                                 <i className="fas fa-file-pdf"></i> PDF
                             </button>
-                            {/* <button
-                                className="btn btn-secondary btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado || !puedeEnviarACosteo
-                                }
-                                onClick={() =>
-                                    handleFacturar(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                        registroSeleccionado,
-                                        2
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Envía el registro seleccionado a pre-facturación"
-                            >
-                                <i className="fas fa-paper-plane"></i> Enviar a
-                                costeo
-                            </button>
-                            <button
-                                className="btn btn-warning btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado || !puedePreFacturar
-                                }
-                                onClick={() =>
-                                    handleFacturar(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                        registroSeleccionado,
-                                        4
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Envía el registro seleccionado a pre-facturación"
-                            >
-                                <i className="fas fa-paper-plane"></i>{" "}
-                                Pre-Facturar
-                            </button>
-                            <button
-                                className="btn btn-info btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado || !puedeFacturar
-                                }
-                                onClick={() =>
-                                    handleFacturar(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                        registroSeleccionado,
-                                        5
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Indica a contabilidad que el registro ya se puede facturar"
-                            >
-                                <i className="fas fa-file-signature"></i>{" "}
-                                Facturar
-                            </button>
-                            <button
-                                className="btn btn-secondary btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado}
-                                onClick={() =>
-                                    generarNotaEnvio(
-                                        registroSeleccionado?.idpedidoproduccion
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Generar la nota de envío"
-                            >
-                                <i className="fas fa-file-alt"></i> Nota Envío
-                            </button> */}
-                            {/* <button
-                                className="btn btn-dark btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    !(estado === 1 || estado === 3)
-                                }
-                                onClick={abrirModalRechazo}
-                            >
-                                <i className="fas fa-ban"></i> Rechazar
-                            </button> */}
                         </div>
 
                         {/* Visible solo en pantallas pequeñas */}
@@ -935,7 +735,7 @@ function PedidosProduccionLista() {
                                         className="dropdown-item"
                                         onClick={() =>
                                             obtenerDetallePedido(
-                                                registroSeleccionado?.idpedidoproduccion
+                                                registroSeleccionado?.idpedidoproduccion,
                                             )
                                         }
                                     >
@@ -947,7 +747,7 @@ function PedidosProduccionLista() {
                                         className="dropdown-item"
                                         onClick={() =>
                                             navigate(
-                                                `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`
+                                                `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`,
                                             )
                                         }
                                     >
@@ -959,7 +759,7 @@ function PedidosProduccionLista() {
                                         className="dropdown-item"
                                         onClick={() =>
                                             handleDesactivar(
-                                                registroSeleccionado?.idpedidoproduccion
+                                                registroSeleccionado?.idpedidoproduccion,
                                             )
                                         }
                                     >
@@ -971,7 +771,7 @@ function PedidosProduccionLista() {
                                         className="dropdown-item"
                                         onClick={() =>
                                             generarPDF(
-                                                registroSeleccionado?.idpedidoproduccion
+                                                registroSeleccionado?.idpedidoproduccion,
                                             )
                                         }
                                     >
@@ -984,7 +784,7 @@ function PedidosProduccionLista() {
                                         onClick={() =>
                                             handleFacturar(
                                                 registroSeleccionado?.idpedidoproduccion,
-                                                registroSeleccionado
+                                                registroSeleccionado,
                                             )
                                         }
                                     >
@@ -997,7 +797,7 @@ function PedidosProduccionLista() {
                                         onClick={() =>
                                             handleFacturacion(
                                                 registroSeleccionado?.idpedidoproduccion,
-                                                registroSeleccionado
+                                                registroSeleccionado,
                                             )
                                         }
                                     >
@@ -1009,25 +809,13 @@ function PedidosProduccionLista() {
                                         className="dropdown-item"
                                         onClick={() =>
                                             generarNotaEnvio(
-                                                registroSeleccionado?.idpedidoproduccion
+                                                registroSeleccionado?.idpedidoproduccion,
                                             )
                                         }
                                     >
                                         Nota Envío
                                     </button>
                                 </li>
-                                {/* <li>
-                                    <button
-                                        className="btn btn-dark btn-sm toolbar-btn"
-                                        disabled={
-                                            !registroSeleccionado ||
-                                            !(estado === 1 || estado === 3)
-                                        }
-                                        onClick={() => abrirModalRechazo()}
-                                    >
-                                        <i className="fas fa-ban"></i> Rechazar
-                                    </button>
-                                </li> */}
                             </ul>
                         </div>
                     </div>
@@ -1104,67 +892,6 @@ function PedidosProduccionLista() {
                     </div>
                 </div>
             </div>
-
-            {/* {mostrarModalRechazo && (
-                <div
-                    className="modal d-block"
-                    tabIndex="-1"
-                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-                >
-                    <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    Motivo de Rechazo
-                                </h5>
-                                <button
-                                    className="btn-close"
-                                    onClick={() =>
-                                        setMostrarModalRechazo(false)
-                                    }
-                                ></button>
-                            </div>
-                            <div className="modal-body">
-                                <select
-                                    className="form-select"
-                                    value={motivoSeleccionado}
-                                    onChange={(e) =>
-                                        setMotivoSeleccionado(e.target.value)
-                                    }
-                                >
-                                    <option value="">
-                                        Selecciona un motivo
-                                    </option>
-                                    {motivosRechazo.map((m) => (
-                                        <option
-                                            key={m.idmotivorechazo}
-                                            value={m.idmotivorechazo}
-                                        >
-                                            {m.motivo}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={() =>
-                                        setMostrarModalRechazo(false)
-                                    }
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={confirmarRechazo}
-                                >
-                                    Rechazar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )} */}
         </div>
     );
 }

@@ -58,7 +58,7 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
             const precioOriginal =
                 item.precio / (1 + (item.porcentaje_aplicado || 0) / 100);
             item.precio = parseFloat(
-                (precioOriginal * (1 + porcentajeDecimal)).toFixed(2)
+                (precioOriginal * (1 + porcentajeDecimal)).toFixed(2),
             );
             item.porcentaje_aplicado = nuevoPorcentaje;
             item.total = parseFloat((item.precio * item.cantidad).toFixed(2));
@@ -96,13 +96,13 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
                 { detalle: detalleItems },
                 {
                     headers: { Authorization: `Bearer ${token}` },
-                }
+                },
             );
             alertify.success(response.data.message || "Guardado exitosamente.");
             onClose();
         } catch (error) {
             alertify.error(
-                error.response?.data?.message || "Error al guardar."
+                error.response?.data?.message || "Error al guardar.",
             );
         }
     };
@@ -115,7 +115,7 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
                 const precioOriginal =
                     item.precio / (1 + (item.porcentaje_aplicado || 0) / 100);
                 const nuevoPrecio = parseFloat(
-                    (precioOriginal * (1 + nuevoPorcentaje / 100)).toFixed(2)
+                    (precioOriginal * (1 + nuevoPorcentaje / 100)).toFixed(2),
                 );
                 return {
                     ...item,
@@ -129,92 +129,109 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
         }
     };
 
+    // const columns = useMemo(
+    //     () => [
+    //         {
+    //             accessorKey: "cantidad",
+    //             header: "Cantidad",
+    //         },
+    //         {
+    //             accessorKey: "material",
+    //             header: "Material",
+    //         },
+    //         {
+    //             accessorKey: "caras",
+    //             header: "Caras",
+    //         },
+    //         {
+    //             accessorKey: "ancho",
+    //             header: "Ancho",
+    //         },
+    //         {
+    //             accessorKey: "alto",
+    //             header: "Alto",
+    //         },
+    //         {
+    //             accessorKey: "unidad_medida",
+    //             header: "Unidad de Medida",
+    //         },
+    //         {
+    //             accessorKey: "maquina",
+    //             header: "Maquina",
+    //         },
+    //         {
+    //             accessorKey: "version",
+    //             header: "Versión",
+    //         },
+    //         {
+    //             accessorKey: "acabados",
+    //             header: "Acabados",
+    //         },
+    //         {
+    //             id: "imagen_ruta", // <- obligatorio si header no es string
+    //             header: "Imagen",
+    //             accessorKey: "imagen_ruta",
+    //             Cell: ({ row }) => (
+    //                 <button
+    //                     className="btn btn-outline-info btn-sm"
+    //                     onClick={() =>
+    //                         handleViewImage(row.original.imagen_ruta)
+    //                     }
+    //                     disabled={!row.original.imagen_ruta}
+    //                     title={
+    //                         row.original.imagen_ruta
+    //                             ? "Ver imagen"
+    //                             : "Sin imagen"
+    //                     }
+    //                 >
+    //                     <i className="fas fa-image"></i>
+    //                 </button>
+    //             ),
+    //         },
+    //     ],
+    //     [detalleItems]
+    // );
     const columns = useMemo(
         () => [
+            { accessorKey: "cantidad", header: "Cantidad" },
+            { accessorKey: "material", header: "Material" },
+            { accessorKey: "caras", header: "Caras" },
+            { accessorKey: "ancho", header: "Ancho" },
+            { accessorKey: "alto", header: "Alto" },
+            { accessorKey: "unidad_medida", header: "Unidad" },
+            { accessorKey: "version", header: "Versión" },
+            { accessorKey: "acabados", header: "Acabados" },
+            { accessorKey: "medida_real", header: "Medida Real" },
+
             {
-                accessorKey: "cantidad",
-                header: "Cantidad",
+                accessorKey: "galaxy_plus",
+                header: "Galaxy+",
+                Cell: ({ cell }) => (cell.getValue() ? "✔" : ""),
             },
             {
-                accessorKey: "material",
-                header: "Material",
-            },
-            // {
-            //   accessorKey: 'titulo',
-            //   header: 'Título',
-            // },
-            // {
-            //   accessorKey: 'descripcion',
-            //   header: 'Descripción',
-            // },
-            {
-                accessorKey: "caras",
-                header: "Caras",
+                accessorKey: "uv",
+                header: "UV",
+                Cell: ({ cell }) => (cell.getValue() ? "✔" : ""),
             },
             {
-                accessorKey: "ancho",
-                header: "Ancho",
+                accessorKey: "cnc",
+                header: "CNC",
+                Cell: ({ cell }) => (cell.getValue() ? "✔" : ""),
             },
             {
-                accessorKey: "alto",
-                header: "Alto",
+                accessorKey: "laser",
+                header: "Láser",
+                Cell: ({ cell }) => (cell.getValue() ? "✔" : ""),
             },
             {
-                accessorKey: "unidad_medida",
-                header: "Unidad de Medida",
+                accessorKey: "summa",
+                header: "Summa",
+                Cell: ({ cell }) => (cell.getValue() ? "✔" : ""),
             },
+
             {
-                accessorKey: "maquina",
-                header: "Maquina",
-            },
-            {
-                accessorKey: "version",
-                header: "Versión",
-            },
-            {
-                accessorKey: "acabados",
-                header: "Acabados",
-            },
-            // {
-            //     accessorKey: "precio",
-            //     header: "Precio Unitario",
-            //     Cell: ({ cell }) =>
-            //         Number(cell.getValue()).toLocaleString("es-GT", {
-            //             style: "currency",
-            //             currency: "GTQ",
-            //         }),
-            // },
-            // {
-            //     accessorKey: "porcentaje_aplicado",
-            //     header: "Porcentaje (%)",
-            //     Cell: ({ row }) => (
-            //         <TextField
-            //             type="number"
-            //             size="small"
-            //             inputProps={{ min: 0, max: 10 }}
-            //             value={row.original.porcentaje_aplicado || 0}
-            //             onChange={(e) =>
-            //                 handlePorcentajeChange(
-            //                     row.index,
-            //                     parseFloat(e.target.value)
-            //                 )
-            //             }
-            //         />
-            //     ),
-            // },
-            // {
-            //     accessorKey: "total",
-            //     header: "Subtotal",
-            //     Cell: ({ cell }) =>
-            //         Number(cell.getValue()).toLocaleString("es-GT", {
-            //             style: "currency",
-            //             currency: "GTQ",
-            //         }),
-            // },
-            {
-                id: "imagen_ruta", // <- obligatorio si header no es string
-                header: "Imagen",
                 accessorKey: "imagen_ruta",
+                header: "Imagen",
                 Cell: ({ row }) => (
                     <button
                         className="btn btn-outline-info btn-sm"
@@ -222,18 +239,13 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
                             handleViewImage(row.original.imagen_ruta)
                         }
                         disabled={!row.original.imagen_ruta}
-                        title={
-                            row.original.imagen_ruta
-                                ? "Ver imagen"
-                                : "Sin imagen"
-                        }
                     >
                         <i className="fas fa-image"></i>
                     </button>
                 ),
             },
         ],
-        [detalleItems]
+        [],
     );
 
     return (

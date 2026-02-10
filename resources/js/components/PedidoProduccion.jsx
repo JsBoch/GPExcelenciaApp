@@ -68,6 +68,8 @@ function PedidoProduccion() {
     const [fechaFin, setFechaFin] = useState("");
     const [cotizaciones, setCotizaciones] = useState([]);
     const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState(null);
+    const [modoEdicion, setModoEdicion] = useState(false);
+
     /***************************** */
 
     // Cargar la fecha desde el servidor
@@ -130,7 +132,13 @@ function PedidoProduccion() {
         caras: "",
         maquina: "",
         acabados: "",
+        medida_real: "",
         version: "",
+        galaxy_plus: false,
+        uv: false,
+        cnc: false,
+        laser: false,
+        summa: false,
     });
 
     useEffect(() => {
@@ -175,7 +183,8 @@ function PedidoProduccion() {
                 ];
 
                 if (id) {
-                    console.log("ID encontrado:", id);
+                    setModoEdicion(true);
+                    //console.log("ID encontrado:", id);
                     requests.push(
                         axios
                             .get(`/api/pedidosproduccion/${id}`, { headers })
@@ -233,7 +242,16 @@ function PedidoProduccion() {
                                 }
 
                                 if (data.detalles) {
-                                    setDetalles(data.detalles);
+                                    const detallesNormalizados =
+                                        data.detalles.map((d) => ({
+                                            ...d,
+                                            galaxy_plus: d.galaxy_plus == 1,
+                                            uv: d.uv == 1,
+                                            cnc: d.cnc == 1,
+                                            laser: d.laser == 1,
+                                            summa: d.summa == 1,
+                                        }));
+                                    setDetalles(detallesNormalizados);
                                 }
                             }),
                     );
@@ -460,7 +478,7 @@ function PedidoProduccion() {
 
         const detallesValidos = (detalles || []).filter((d) => !d._deleted);
 
-        detalles.forEach((detalle, index) => {
+        detallesValidos.forEach((detalle, index) => {
             formData.append(
                 `detalles[${index}][iddetallepedidoproduccion]`,
                 detalle.iddetallepedidoproduccion || "",
@@ -478,6 +496,14 @@ function PedidoProduccion() {
                 detalle.material || "",
             );
             formData.append(`detalles[${index}][caras]`, detalle.caras || "");
+            formData.append(
+                `detalles[${index}][acabados]`,
+                detalle.acabados ?? "",
+            );
+            formData.append(
+                `detalles[${index}][medida_real]`,
+                detalle.medida_real ?? "",
+            );
 
             // CHECKS
             formData.append(
@@ -522,133 +548,21 @@ function PedidoProduccion() {
                         headers,
                     },
                 );
+                setModoEdicion(false);
                 alertify.success("Pedido actualizado correctamente");
+                navigate("/pedidosproduccion/crear");
             } else {
                 res = await axios.post("/api/pedidosproduccion", formData, {
                     headers,
                 });
                 alertify.success("Pedido creado correctamente");
             }
+
             limpiarCampos();
         } catch (error) {
             console.error("Error al guardar el pedido:", error);
             alertify.error("Error al guardar el pedido", error);
         }
-    };
-
-    //Para cargar el detalle de la cotización
-    const handleDetalleChange = (e) => {
-        setDetalle({ ...detalle, [e.target.name]: e.target.value });
-    };
-
-    //Para gestionar la imagen del detalle
-    const handleImagenChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setDetalle({
-                ...detalle,
-                imagen: e.target.files[0],
-                imagen_preview: URL.createObjectURL(e.target.files[0]),
-            });
-        } else {
-            setDetalle({ ...detalle, imagen: null, imagen_preview: null });
-        }
-    };
-
-    //Agregar los datos del detalle al DataTable
-    const handleAddDetalle = () => {
-        const nuevoDetalle = { ...detalle };
-        const formState = detalle; // El estado actual de los inputs del formulario de detalle
-        if (detalleSeleccionado) {
-            const index = detalles.findIndex((d) => d === detalleSeleccionado);
-            if (index !== -1) {
-                const originalItem = detalleSeleccionado; // El objeto original del array (viene de backend o agregado antes)
-
-                const updatedItem = {
-                    ...originalItem, // Mantener todas las propiedades originales (incluyendo iddetallecotizacion si existe, y la original imagen_ruta)
-
-                    // Sobrescribir/Actualizar campos con los valores del formulario
-                    unidad_medida: formState.unidad_medida,
-                    descripcion: formState.descripcion,
-                    cantidad: formState.cantidad,
-                    ancho: formState.ancho,
-                    alto: formState.alto,
-                    m2: formState.m2, // Asegúrate que m2 se calcula y está en formState si no es readOnly
-                    profundidad: formState.profundidad,
-                    material: formState.material,
-                    caras: formState.caras,
-                    maquina: formState.maquina,
-                    acabados: formState.acabados,
-                    version: formState.version || "", // Mantener la versión existente si no hay nueva
-                    precio: 0,
-                    total: 0, // Asegúrate que total se calcula y está en formState si no es readOnly
-                    // MANEJO EXPLÍCITO DE IMAGEN:
-                    imagen:
-                        formState.imagen instanceof File
-                            ? formState.imagen
-                            : null, // Si hay un File nuevo, úsalo, sino, explícitamente null.
-                    imagen_preview: formState.imagen_preview, // La preview del formulario (puede ser blob de nueva imagen o URL de la vieja)
-
-                    imagen_ruta:
-                        formState.imagen instanceof File
-                            ? null // Si hay un archivo nuevo, la ruta vieja se anula (backend generará una nueva)
-                            : formState.imagen_ruta ||
-                              originalItem.imagen_ruta ||
-                              null, // Mantener la ruta existente si no hay archivo nuevo
-                };
-
-                //console.log('[handleAddDetalle - Editando] updatedItem FINAL:', JSON.parse(JSON.stringify(updatedItem)));
-
-                const nuevosDetalles = [...detalles];
-                nuevosDetalles[index] = updatedItem; // Reemplazar el objeto original en el array
-                setDetalles(nuevosDetalles); // Actualizar el estado principal de detalles
-            }
-            setDetalleSeleccionado(null);
-        } else {
-            const newItem = {
-                unidad_medida: formState.unidad_medida,
-                descripcion: formState.descripcion,
-                cantidad: formState.cantidad,
-                ancho: formState.ancho,
-                alto: formState.alto,
-                m2: formState.m2,
-                profundidad: formState.profundidad,
-                material: formState.material,
-                caras: formState.caras,
-                maquina: formState.maquina,
-                acabados: formState.acabados,
-                version: formState.version || "",
-                precio: 0,
-                total: 0,
-                imagen:
-                    formState.imagen instanceof File ? formState.imagen : null,
-                imagen_preview: formState.imagen_preview,
-                imagen_ruta: null, // Un nuevo ítem no tiene ruta de BD aún
-                // otros campos que necesites para un nuevo detalle, como incluye_foto, etc.
-                incluye_foto: formState.imagen instanceof File ? "S" : "N",
-            };
-            //console.log('[handleAddDetalle - Agregando Nuevo] newItem FINAL:', JSON.parse(JSON.stringify(newItem)));
-            setDetalles([...detalles, newItem]);
-        }
-
-        setDetalle({
-            unidad_medida: "",
-            descripcion: "",
-            cantidad: 0,
-            ancho: 0,
-            alto: 0,
-            m2: 0,
-            profundidad: 0,
-            precio: 0,
-            total: 0,
-            imagen: null,
-            imagen_preview: null,
-            imagen_ruta: null,
-            material: "",
-            caras: "",
-            maquina: "",
-            acabados: "",
-            version: "",
-        });
     };
 
     const handleAgregarContacto = () => {
@@ -661,215 +575,12 @@ function PedidoProduccion() {
         toggleModal();
     };
 
-    //Quitar el detalle seleccionado del DataTable
-    const handleQuitarDetalle = () => {
-        if (!detalleSeleccionado) {
-            alertify.error("Por favor, selecciona un detalle para quitar.");
-            return;
-        }
-
-        alertify.confirm(
-            "¿Estás seguro de que deseas quitar este detalle?",
-            () => {
-                setDetalles(
-                    detalles.filter(
-                        (detalle) => detalle !== detalleSeleccionado,
-                    ),
-                );
-                setDetalleSeleccionado(null);
-                setDetalle({
-                    unidad_medida: "",
-                    descripcion: "",
-                    cantidad: 0,
-                    ancho: 0,
-                    alto: 0,
-                    m2: 0,
-                    profundidad: 0,
-                    precio: 0,
-                    total: 0,
-                    imagen: null,
-                    imagen_preview: null,
-                    material: "",
-                    caras: "",
-                    maquina: "",
-                    acabados: "",
-                    version: "",
-                });
-                alertify.success("Detalle eliminado.");
-            },
-            () => {
-                alertify.error("Cancelado");
-            },
-        );
-    };
-
-    //Ejecutan la función handleRowClick cuando se hace clic en una fila del DataTable
-    const slots = {
-        0: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        1: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        2: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        3: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        4: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        5: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        6: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        7: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-        8: (data, row) => (
-            <div
-                onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
-            >
-                {data}
-            </div>
-        ),
-    };
-
-    //Carga los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
-    const handleRowClick = (rowData) => {
-        //console.log('rowData:', rowData);
-        setDetalleSeleccionado(rowData);
-
-        const previewUrl = rowData.imagen_ruta
-            ? `/images_pedidosproduccion/${rowData.imagen_ruta}`
-            : rowData.imagen_preview || null;
-
-        setDetalle({
-            unidad_medida: rowData.unidad_medida,
-            descripcion: rowData.descripcion,
-            cantidad: rowData.cantidad,
-            ancho: rowData.ancho,
-            alto: rowData.alto,
-            m2: rowData.m2,
-            profundidad: rowData.profundidad,
-            precio: 0,
-            total: 0,
-            imagen: null, // Cuando se edita, la imagen ya está guardada, no se "carga" aquí
-            imagen_preview: previewUrl,
-            imagen_ruta: rowData.imagen_ruta || null, // ¡CRUCIAL! Conservar la ruta de la imagen existente en el estado del formulario.
-            material: rowData.material || "",
-            caras: rowData.caras || "",
-            maquina: rowData.maquina || "",
-            acabados: rowData.acabados || "",
-            version: rowData.version || "",
-        });
-
-        // Lógica del modal de imagen (parece estar bien, pero asegúrate que usa la previewUrl correcta)
-        if (previewUrl) {
-            // Usa la previewUrl que acabamos de definir
-            setSelectedImageUrl(previewUrl);
-            //console.log('Detalle Form State After Click:', detalle);
-            setIsImageModalOpen(true);
-        } else {
-            // alertify.error("Este detalle no tiene una imagen asociada."); // Comentado si quieres evitar alerta si no hay imagen
-            setSelectedImageUrl(null);
-            //console.log('Detalle else Form State After Click:', detalle);
-            setIsImageModalOpen(false);
-        }
-    };
-
-    //Se establecen las columnas que se mostrarán en el DataTable
-    const columns = [
-        { title: "Unidad Medida", data: "unidad_medida" },
-        { title: "Descripción", data: "descripcion" },
-        { title: "Cantidad", data: "cantidad" },
-        { title: "Ancho", data: "ancho" },
-        { title: "Alto", data: "alto" },
-        { title: "M2", data: "m2" },
-        { title: "Profundidad", data: "profundidad" },
-        { title: "Material", data: "material" },
-        { title: "Caras", data: "caras" },
-        { title: "Máquina", data: "maquina" },
-        { title: "Acabados", data: "acabados" },
-        { title: "Versión", data: "version" },
-        {
-            title: "Imagen",
-            data: "imagen_ruta", // Mantenemos 'imagen_ruta' como data key principal si viene del backend
-            render: (data, type, row) => {
-                // 'data' es imagen_ruta, 'row' es el objeto completo del detalle
-                // Verifica si hay imagen_ruta (desde backend) O si hay imagen (File object) O si hay imagen_preview (URL temporal)
-                const hasImage =
-                    row.imagen_ruta ||
-                    (row.imagen && row.imagen instanceof File) ||
-                    row.imagen_preview;
-
-                if (hasImage) {
-                    // Muestra un texto o ícono indicando que hay una imagen
-                    return "Con imagen"; // O podrías usar '<i class="fas fa-image"></i>' si tienes Font Awesome
-                } else {
-                    return "Sin imagen";
-                }
-            },
-        },
-    ];
-
-    const handleCantidadDetalleChange = (e) => {
-        const value = parseInt(e.target.value, 10) || 0;
-
-        setDetalle((prevDetalle) => ({
-            ...prevDetalle,
-            cantidad: value,
-        }));
-    };
-
     const limpiarCampos = () => {
+        setModoEdicion(false);
+
         setPedidoProduccion({
-            idproductopredefinido: 0,
-            idproductopredefinidooriginal: 0,
+            idpedidoproduccion: 0,
+            idpedidoproduccionoriginal: 0,
             idcliente: "",
             cliente: "",
             idcontacto: 0,
@@ -885,24 +596,12 @@ function PedidoProduccion() {
             version: 1,
             idtipopago: "",
             direccion_entrega: "",
+            costear: "N",
         });
+
+        setClienteId("");
+        setContactos([]);
         setDetalles([]);
-        setDetalle({
-            unidad_medida: "",
-            descripcion: "",
-            cantidad: 0,
-            ancho: 0,
-            alto: 0,
-            m2: 0,
-            profundidad: 0,
-            precio: 0,
-            total: 0,
-            material: "",
-            caras: "",
-            maquina: "",
-            acabados: "",
-            version: "",
-        });
     };
 
     useEffect(() => {

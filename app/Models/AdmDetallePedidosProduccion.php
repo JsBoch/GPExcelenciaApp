@@ -45,6 +45,7 @@ class AdmDetallePedidosProduccion extends Model
         'cnc',
         'laser',
         'summa',
+        'medida_real',
     ];
 
     public function pedidos_produccion()
