@@ -207,6 +207,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
     Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
     Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
+    Route::get('/pedidosproduccion/export/excel', [PedidosProduccionController::class, 'exportExcel']);
 });
 
 // CUENTAS POR COBRAR
