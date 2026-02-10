@@ -24,6 +24,7 @@ import FormSection from "./FormSection";
 import $ from "jquery";
 import "../../css/pedido_produccion.css";
 import { version } from "jszip";
+import DetalleGrid from "./pedidosproduccion/DetalleGrid";
 
 DataTable.use(DT);
 
@@ -133,14 +134,14 @@ function PedidoProduccion() {
     });
 
     useEffect(() => {
-    if (!id && fechaActual) {
-        setPedidoProduccion((prev) => ({
-            ...prev,
-            fecha_pedido: fechaActual,
-            fecha_entrega: fechaActual,
-        }));
-    }
-}, [fechaActual]);
+        if (!id && fechaActual) {
+            setPedidoProduccion((prev) => ({
+                ...prev,
+                fecha_pedido: fechaActual,
+                fecha_entrega: fechaActual,
+            }));
+        }
+    }, [fechaActual]);
     const loadContactos = () => {
         if (clienteId) {
             const token = localStorage.getItem("token");
@@ -224,7 +225,7 @@ function PedidoProduccion() {
                                     axios
                                         .get(
                                             `/api/lista_contactos?idcliente=${data.idcliente}`,
-                                            { headers }
+                                            { headers },
                                         )
                                         .then((res) => setContactos(res.data));
                                 } else {
@@ -234,7 +235,7 @@ function PedidoProduccion() {
                                 if (data.detalles) {
                                     setDetalles(data.detalles);
                                 }
-                            })
+                            }),
                     );
                 }
 
@@ -361,7 +362,7 @@ function PedidoProduccion() {
                         fecha_inicio: fechaInicio,
                         fecha_fin: fechaFin,
                     },
-                }
+                },
             );
             setCotizaciones(response.data);
         } catch (error) {
@@ -380,13 +381,6 @@ function PedidoProduccion() {
         const formData = new FormData();
 
         // Validaciones
-        if (
-            !pedidoProduccion.nocotizacion ||
-            pedidoProduccion.nocotizacion === ""
-        ) {
-            alertify.alert("CAMPO OBLIGATORIO", "Debe asociar una cotización.");
-            return;
-        }
 
         if (!pedidoProduccion.idcliente || pedidoProduccion.idcliente === "") {
             alertify.alert("CAMPO OBLIGATORIO", "Debe seleccionar un cliente.");
@@ -403,7 +397,7 @@ function PedidoProduccion() {
         if (!detalles || detalles.length === 0) {
             alertify.alert(
                 "CAMPO OBLIGATORIO",
-                "Debe asignar registros en el detalle de la cotización."
+                "Debe asignar registros en el detalle de la cotización.",
             );
             return;
         }
@@ -414,14 +408,14 @@ function PedidoProduccion() {
         ) {
             alertify.alert(
                 "CAMPO OBLIGATORIO",
-                "Debe ingresar la dirección de entrega."
+                "Debe ingresar la dirección de entrega.",
             );
             return;
         }
 
         // --- VALIDACIÓN DEL DETALLE PARA COSTEAR ---
         const tieneTotalCero = detalles.some(
-            (detalle) => parseFloat(detalle.total) === 0
+            (detalle) => parseFloat(detalle.total) === 0,
         );
         const costearValue = tieneTotalCero ? "S" : "N"; // Guardamos el valor en una constante
         setPedidoProduccion((prevState) => ({
@@ -435,75 +429,84 @@ function PedidoProduccion() {
 
         formData.append("idcliente", pedidoProduccion.idcliente);
         formData.append("idcontacto", pedidoProduccion.idcontacto);
-        formData.append("nocotizacion", pedidoProduccion.nocotizacion);
+        //formData.append("nocotizacion", pedidoProduccion.nocotizacion);
         //formData.append("idcotizacion",cotizacionSeleccionada?.idcotizacion || "");
-        formData.append("idcotizacion", idcotizacionFinal || "");
+        //formData.append("idcotizacion", idcotizacionFinal || "");
         formData.append("idtipopago", pedidoProduccion.idtipopago);
         formData.append("fecha_pedido", pedidoProduccion.fecha_pedido);
         formData.append("fecha_entrega", pedidoProduccion.fecha_entrega);
         formData.append("trabajo", pedidoProduccion.trabajo);
         formData.append(
             "observaciones_costeo",
-            pedidoProduccion.observaciones_costeo
+            pedidoProduccion.observaciones_costeo,
         );
         formData.append(
             "observaciones_cliente",
-            pedidoProduccion.observaciones_cliente
+            pedidoProduccion.observaciones_cliente,
         );
         formData.append(
             "direccion_entrega",
-            pedidoProduccion.direccion_entrega
+            pedidoProduccion.direccion_entrega,
         );
         formData.append("costear", "N");
 
         formData.append("estado", "1");
         formData.append(
             "idpedidoproduccionoriginal",
-            pedidoProduccion.idpedidoproduccionoriginal
+            pedidoProduccion.idpedidoproduccionoriginal,
         );
         formData.append("version", pedidoProduccion.version);
         formData.append("total_general", pedidoProduccion.total_general);
 
+        const detallesValidos = (detalles || []).filter((d) => !d._deleted);
+
         detalles.forEach((detalle, index) => {
             formData.append(
+                `detalles[${index}][iddetallepedidoproduccion]`,
+                detalle.iddetallepedidoproduccion || "",
+            );
+            formData.append(
                 `detalles[${index}][unidad_medida]`,
-                detalle.unidad_medida
+                detalle.unidad_medida || "",
             );
             formData.append(
-                `detalles[${index}][descripcion]`,
-                detalle.descripcion
+                `detalles[${index}][cantidad]`,
+                detalle.cantidad || 0,
             );
-            formData.append(`detalles[${index}][cantidad]`, detalle.cantidad);
-            formData.append(`detalles[${index}][ancho]`, detalle.ancho);
-            formData.append(`detalles[${index}][alto]`, detalle.alto);
-            formData.append(`detalles[${index}][m2]`, detalle.m2);
             formData.append(
-                `detalles[${index}][profundidad]`,
-                detalle.profundidad
+                `detalles[${index}][material]`,
+                detalle.material || "",
             );
-            formData.append(`detalles[${index}][precio]`, detalle.precio);
-            formData.append(`detalles[${index}][total]`, detalle.total);
-            formData.append(`detalles[${index}][material]`, detalle.material);
-            formData.append(`detalles[${index}][caras]`, detalle.caras);
-            formData.append(`detalles[${index}][maquina]`, detalle.maquina);
-            formData.append(`detalles[${index}][acabados]`, detalle.acabados);
+            formData.append(`detalles[${index}][caras]`, detalle.caras || "");
+
+            // CHECKS
+            formData.append(
+                `detalles[${index}][galaxy_plus]`,
+                detalle.galaxy_plus ? 1 : 0,
+            );
+            formData.append(`detalles[${index}][uv]`, detalle.uv ? 1 : 0);
+            formData.append(`detalles[${index}][cnc]`, detalle.cnc ? 1 : 0);
+            formData.append(`detalles[${index}][laser]`, detalle.laser ? 1 : 0);
+            formData.append(`detalles[${index}][summa]`, detalle.summa ? 1 : 0);
+            formData.append(`detalles[${index}][ancho]`, detalle.ancho ?? "");
+            formData.append(`detalles[${index}][alto]`, detalle.alto ?? "");
             formData.append(
                 `detalles[${index}][version]`,
-                detalle.version || ""
+                detalle.version ?? "",
             );
-            // --- Manejo de IMAGEN al enviar FormData ---
-            if (detalle.imagen) {
-                // Caso 1: Se seleccionó un NUEVO archivo
+            formData.append(
+                `detalles[${index}][medida_real]`,
+                detalle.medida_real ?? "",
+            );
+
+            // imagen
+            if (detalle.imagen instanceof File) {
                 formData.append(`detalles[${index}][imagen]`, detalle.imagen);
-                //console.log(`Frontend: Adjuntando nuevo archivo para índice ${index}`); // Log para verificar
             } else if (detalle.imagen_ruta) {
-                // Caso 2: NO se seleccionó un archivo nuevo, pero existe una ruta vieja
-                // Enviamos la ruta vieja para que el backend sepa que debe mantenerla
                 formData.append(
                     `detalles[${index}][imagen_ruta]`,
-                    detalle.imagen_ruta
+                    detalle.imagen_ruta,
                 );
-                //console.log(`Frontend: Adjuntando ruta existente para índice ${index}: ${detalle.imagen_ruta}`); // Log para verificar
             }
         });
 
@@ -517,7 +520,7 @@ function PedidoProduccion() {
                     formData,
                     {
                         headers,
-                    }
+                    },
                 );
                 alertify.success("Pedido actualizado correctamente");
             } else {
@@ -651,7 +654,7 @@ function PedidoProduccion() {
     const handleAgregarContacto = () => {
         if (!pedidoProduccion.idcliente || pedidoProduccion.idcliente === "") {
             alertify.error(
-                "Debe seleccionar un cliente antes de agregar un contacto."
+                "Debe seleccionar un cliente antes de agregar un contacto.",
             );
             return;
         }
@@ -670,8 +673,8 @@ function PedidoProduccion() {
             () => {
                 setDetalles(
                     detalles.filter(
-                        (detalle) => detalle !== detalleSeleccionado
-                    )
+                        (detalle) => detalle !== detalleSeleccionado,
+                    ),
                 );
                 setDetalleSeleccionado(null);
                 setDetalle({
@@ -696,7 +699,7 @@ function PedidoProduccion() {
             },
             () => {
                 alertify.error("Cancelado");
-            }
+            },
         );
     };
 
@@ -935,41 +938,6 @@ function PedidoProduccion() {
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         {/* --- Sección Cliente/Contacto/Pago --- */}
                         <FormSection title="Datos generales">
-                            {/**
-                             * Se abre el modal de selección de cotización
-                             * para seleccionar una cotización existente y asociarla al registro
-                             * del pedido.
-                             */}
-                            <div className="row g-1 mb-3">
-                                <div className="col-md-3">
-                                    <label className="form-label">
-                                        Cotización
-                                    </label>
-                                    <div className="input-group input-group-sm">
-                                        <input
-                                            type="text"
-                                            value={
-                                                pedidoProduccion.nocotizacion
-                                            }
-                                            className="form-control form-control-sm campo-obligatorio-fondo"
-                                            placeholder="Sin cotización"
-                                            readOnly
-                                        />
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-outline-primary"
-                                            style={{
-                                                color: "#0d6efd",
-                                                borderColor: "#0d6efd",
-                                                backgroundColor: "#fff",
-                                            }}
-                                            onClick={toggleCotizacionModal}
-                                        >
-                                            Seleccionar Cotización
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                             {/*-------------------------------------- */}
                             <div className="row g-2 mb-3">
                                 <div className="col-md-6">
@@ -980,7 +948,7 @@ function PedidoProduccion() {
                                         value={clienteOptions.find(
                                             (option) =>
                                                 option.value ===
-                                                pedidoProduccion.idcliente
+                                                pedidoProduccion.idcliente,
                                         )}
                                         onChange={handleClienteChange}
                                         options={clienteOptions}
@@ -1092,260 +1060,13 @@ function PedidoProduccion() {
                             </div>
                         </FormSection>
                         <FormSection title="Detalle de Cotización">
-                            <div className="row g-3 mb-2">
-                                {/* Este bloque va aquí, después del botón */}
-                                <div className="col-md-2">
-                                    <label className="form-label">
-                                        Unidad Medida
-                                    </label>
-                                    <select
-                                        name="unidad_medida"
-                                        value={detalle.unidad_medida}
-                                        onChange={handleDetalleChange}
-                                        className="form-select form-select-sm"
-                                    >
-                                        <option value="">Seleccionar</option>
-                                        {unidadesMedida.map((um) => (
-                                            <option
-                                                key={um.idunidadmedida}
-                                                value={um.unidad}
-                                            >
-                                                {um.unidad}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="col-md-1">
-                                    <label className="form-label">
-                                        Cantidad
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="cantidad"
-                                        value={detalle.cantidad}
-                                        onChange={handleCantidadDetalleChange} // <-- Use this!!!
-                                        className="form-control form-control-sm"
-                                        step="1"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-9">
-                                    <label className="form-label">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        rows="1"
-                                        name="descripcion"
-                                        value={detalle.descripcion}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                    ></textarea>
-                                </div>
-                            </div>
-                            <div className="row g-4 mb-2">
-                                <div className="col-md-3">
-                                    <label className="form-label">Ancho</label>
-                                    <input
-                                        type="number"
-                                        name="ancho"
-                                        value={detalle.ancho}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-3">
-                                    <label className="form-label">Alto</label>
-                                    <input
-                                        type="number"
-                                        name="alto"
-                                        value={detalle.alto}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-3">
-                                    <label className="form-label">M2</label>
-                                    <input
-                                        type="number"
-                                        name="m2"
-                                        value={detalle.m2}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-3">
-                                    <label className="form-label">Prof.</label>
-                                    <input
-                                        type="number"
-                                        name="profundidad"
-                                        value={detalle.profundidad}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                            </div>
-                            <div className="row g-3 mb-2">
-                                <div className="col-md-6">
-                                    <label className="form-label">
-                                        Material
-                                    </label>
-                                    <textarea
-                                        rows="1"
-                                        name="material"
-                                        value={detalle.material}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                    ></textarea>
-                                </div>
-                                <div className="col-md-2">
-                                    <label className="form-label">Caras</label>
-                                    <input
-                                        type="number"
-                                        name="caras"
-                                        value={detalle.caras}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                        step="any"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label">
-                                        Máquina
-                                    </label>
-                                    <textarea
-                                        rows="1"
-                                        name="maquina"
-                                        value={detalle.maquina}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                    ></textarea>
-                                </div>
-                            </div>
-                            <div className="row g-3 mb-2">
-                                <div className="col-md-8">
-                                    <label className="form-label">
-                                        Acabados
-                                    </label>
-                                    <textarea
-                                        rows="1"
-                                        name="acabados"
-                                        value={detalle.acabados}
-                                        onChange={handleDetalleChange}
-                                        className="form-control form-control-sm"
-                                    ></textarea>
-                                </div>
-                            </div>
-                            {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
-                            <div className="row g-2 align-items-end mb-3">
-                                <div className="row g-2 mb-3">
-                                    <div className="col-md-8">
-                                        <label className="form-label">
-                                            Versión
-                                        </label>
-                                        <textarea
-                                            rows="1"
-                                            name="version"
-                                            value={detalle.version}
-                                            onChange={handleDetalleChange}
-                                            className="form-control form-control-sm"
-                                        ></textarea>
-                                    </div>
-                                </div>
-                                <div className="col-md-3">
-                                    <label className="form-label fw-bold">
-                                        Imagen (Opcional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        name="imagen"
-                                        className="form-control form-control-sm"
-                                        onChange={handleImagenChange}
-                                    />
-                                    {detalle.imagen_preview && (
-                                        <img
-                                            src={detalle.imagen_preview}
-                                            alt="Vista previa"
-                                            style={{
-                                                maxWidth: "50px",
-                                                marginTop: "5px",
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                                <div className="col-auto">
-                                    <button
-                                        type="button"
-                                        onClick={handleAddDetalle}
-                                        className={
-                                            detalleSeleccionado
-                                                ? "btn btn-sm btn-agregar"
-                                                : "btn btn-sm btn-agregar"
-                                        }
-                                    >
-                                        <FaCheckSquare />
-                                        {detalleSeleccionado
-                                            ? " Actualizar"
-                                            : " Agregar"}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleQuitarDetalle}
-                                        className="btn btn-danger btn-sm ms-2"
-                                    >
-                                        <FaWindowClose /> Quitar
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* --- Tabla de Detalles Agregados --- */}
-                            <h5 className="mt-4 mb-3 border-bottom pb-2">
-                                Detalles Agregados
-                            </h5>
-                            <div className="table-responsive mb-4">
-                                <DataTable
-                                    data={detalles}
-                                    columns={columns}
-                                    options={{
-                                        paging: false,
-                                        searching: false,
-                                        info: false,
-                                        ordering: true,
-                                    }}
-                                    slots={slots}
-                                    className="table table-striped table-bordered table-hover table-sm"
-                                    //style={{fontWeight: "#ddd" }}
-                                    id="tabla-detalles"
-                                >
-                                    <thead>
-                                        <tr>
-                                            <th>Unidad Medida</th>
-                                            <th>Descripción</th>
-                                            <th>Cantidad</th>
-                                            <th>Ancho</th>
-                                            <th>Alto</th>
-                                            <th>M2</th>
-                                            <th>Profundidad</th>
-                                            <th>Material</th>
-                                            <th>Caras</th>
-                                            <th>Máquina</th>
-                                            <th>Acabados</th>
-                                            <th>Versión</th>
-                                            {/* <th>Precio</th>
-                                            <th>Total</th> */}
-                                        </tr>
-                                    </thead>
-                                </DataTable>
-                            </div>
+                            <FormSection title="Tareas del Pedido (tipo Excel)">
+                                <DetalleGrid
+                                    detalles={detalles}
+                                    setDetalles={setDetalles}
+                                    unidadesMedida={unidadesMedida}
+                                />
+                            </FormSection>
                         </FormSection>
 
                         <div
@@ -1521,7 +1242,7 @@ function PedidoProduccion() {
                                                         <td>
                                                             {
                                                                 cot.fecha_cotizacion.split(
-                                                                    " "
+                                                                    " ",
                                                                 )[0]
                                                             }
                                                         </td>
@@ -1539,19 +1260,19 @@ function PedidoProduccion() {
                                                                 onClick={() => {
                                                                     setPedidoProduccion(
                                                                         (
-                                                                            prev
+                                                                            prev,
                                                                         ) => ({
                                                                             ...prev,
                                                                             nocotizacion:
                                                                                 cot.numero_cotizacion,
-                                                                        })
+                                                                        }),
                                                                     );
                                                                     setCotizacionSeleccionada(
-                                                                        cot
+                                                                        cot,
                                                                     );
                                                                     toggleCotizacionModal();
                                                                     alertify.success(
-                                                                        "Cotización seleccionada correctamente"
+                                                                        "Cotización seleccionada correctamente",
                                                                     );
                                                                 }}
                                                             >
