@@ -89,6 +89,28 @@ class PedidosProduccionController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate([
+            'detalles' => 'required|array|min:1',
+
+            'detalles.*.cantidad' => 'required|numeric|min:1',
+            'detalles.*.material' => 'nullable|string',
+            'detalles.*.caras' => 'nullable|numeric',
+            'detalles.*.ancho' => 'nullable|numeric',
+            'detalles.*.alto' => 'nullable|numeric',
+            'detalles.*.unidad_medida' => 'nullable|string',
+
+            'detalles.*.galaxy_plus' => 'boolean',
+            'detalles.*.uv' => 'boolean',
+            'detalles.*.cnc' => 'boolean',
+            'detalles.*.laser' => 'boolean',
+            'detalles.*.summa' => 'boolean',
+
+            'detalles.*.version' => 'nullable|string',
+            'detalles.*.acabados' => 'nullable|string',
+            'detalles.*.medida_real' => 'nullable|string',
+        ]);
+
+
         try {
             DB::beginTransaction();
 
@@ -102,22 +124,43 @@ class PedidosProduccionController extends Controller
             $correlativo->correlativo = $idPedidoProduccion;
             $correlativo->save();
 
-           // $nocotizacion = $request->input('nocotizacion', $idPedidoProduccion); // Si no se envía nocotizacion, se usa el ID generado
+            // $nocotizacion = $request->input('nocotizacion', $idPedidoProduccion); // Si no se envía nocotizacion, se usa el ID generado
 
-            $datosPedido = $request->all();
-            $datosPedido['idpedidoproduccion'] = $idPedidoProduccion;
-            //$datosPedido['nocotizacion'] = $nocotizacion;
-            $datosPedido['usuario_registro'] = auth()->user()->name;
-            $datosPedido['fecha_registro'] = date('Y-m-d H:i:s');
+            //$datosPedido = $request->all(); // $datosPedido['idpedidoproduccion'] = $idPedidoProduccion;
+            // //$datosPedido['nocotizacion'] = $nocotizacion;
+            // $datosPedido['usuario_registro'] = auth()->user()->name;
+            // $datosPedido['fecha_registro'] = date('Y-m-d H:i:s');
 
-            $nocotizacion = $request->input('nocotizacion');
+            //$nocotizacion = $request->input('nocotizacion');
             // Obtener el nopedido máximo para la cotización actual
             $maxNoPedido = DB::table('adm_pedidos_produccion')
-                ->where('nocotizacion', $nocotizacion)
+                // ->where('nocotizacion', $nocotizacion)
                 ->max('nopedido') ?? 0;
 
             // Incrementar el número de pedido
             $nopedido = $maxNoPedido + 1;
+
+
+            $datosPedido = [
+                'idpedidoproduccion' => $idPedidoProduccion,
+                'idcliente' => $request->idcliente,
+                'idcontacto' => $request->idcontacto ?? 0,
+
+                'fecha_pedido' => $request->fecha_pedido,
+                'fecha_entrega' => $request->fecha_entrega,
+                'trabajo' => $request->trabajo,
+                'direccion_entrega' => $request->direccion_entrega,
+
+                'version' => $request->version ?? 1,
+                'costear' => 'N',
+                'estado' => 1,
+
+                'nopedido' => $nopedido,
+                'idusuario' => auth()->user()->id,
+                'usuario_registro' => auth()->user()->name,
+                'fecha_registro' => now(),
+            ];
+
 
             $datosPedido['nopedido'] = $nopedido;
             $datosPedido['idusuario'] = auth()->user()->id;
@@ -155,30 +198,32 @@ class PedidosProduccionController extends Controller
                 AdmDetallePedidosProduccion::create([
                     'iddetallepedidoproduccion' => $idDetallePedidoProduccion,
                     'idpedidoproduccion' => $idPedidoProduccion,
-                    'idproducto' => 0,
-                    'producto' => $detalleData['descripcion'], // Asegúrate de que el nombre del campo coincida
-                    'titulo' => '',
-                    'descripcion' => $detalleData['descripcion'],
+
                     'cantidad' => $detalleData['cantidad'],
-                    'ancho' => $detalleData['ancho'],
-                    'alto' => $detalleData['alto'],
-                    'profundidad' => $detalleData['profundidad'],
-                    'precio' => $detalleData['precio'],
-                    'total' => $detalleData['total'],
-                    'fecha_registro' => date('Y-m-d H:i:s'),
-                    'usuario_registro' => auth()->user()->name,
-                    'costeado' => 'N',
-                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
-                    'estado' => 1,
-                    'unidad_medida' => $detalleData['unidad_medida'],
-                    'm2' => $detalleData['m2'],
+                    'material' => $detalleData['material'] ?? null,
+                    'caras' => $detalleData['caras'] ?? null,
+                    'ancho' => $detalleData['ancho'] ?? null,
+                    'alto' => $detalleData['alto'] ?? null,
+                    'unidad_medida' => $detalleData['unidad_medida'] ?? null,
+
+                    'galaxy_plus' => !empty($detalleData['galaxy_plus']) ? 1 : 0,
+                    'uv'          => !empty($detalleData['uv']) ? 1 : 0,
+                    'cnc'         => !empty($detalleData['cnc']) ? 1 : 0,
+                    'laser'       => !empty($detalleData['laser']) ? 1 : 0,
+                    'summa'       => !empty($detalleData['summa']) ? 1 : 0,
+
+                    'version' => $detalleData['version'] ?? null,
+                    'acabados' => $detalleData['acabados'] ?? null,
+                    'medida_real' => $detalleData['medida_real'] ?? null,
+
                     'imagen' => $imagenRuta,
-                    'material' => $detalleData['material'],
-                    'caras' => $detalleData['caras'],
-                    'maquina' => $detalleData['maquina'],
-                    'acabados' => $detalleData['acabados'],
-                    'version' => $detalleData['version'],
+                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
+
+                    'estado' => 1,
+                    'fecha_registro' => now(),
+                    'usuario_registro' => auth()->user()->name,
                 ]);
+
 
                 $idDetallePedidoProduccion += 1;
             }
@@ -272,119 +317,163 @@ class PedidosProduccionController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Iniciar transacción para asegurar atomicidad
         DB::beginTransaction();
         try {
-            // 1. Encontrar y actualizar la cotización principal
-            $pedidoProduccion = AdmPedidosProduccion::find($id);
-            if (!$pedidoProduccion) {
-                DB::rollback(); // Revertir si no se encuentra
-                return response()->json(['message' => 'Pedido no encontrado'], 404);
+            $pedido = AdmPedidosProduccion::findOrFail($id);
+
+            $request->validate([
+                'detalles' => 'required|array|min:1',
+
+                'detalles.*.cantidad' => 'required|numeric|min:1',
+                'detalles.*.material' => 'nullable|string',
+                'detalles.*.caras' => 'nullable|numeric',
+                'detalles.*.ancho' => 'nullable|numeric',
+                'detalles.*.alto' => 'nullable|numeric',
+                'detalles.*.unidad_medida' => 'nullable|string',
+
+                'detalles.*.galaxy_plus' => 'boolean',
+                'detalles.*.uv' => 'boolean',
+                'detalles.*.cnc' => 'boolean',
+                'detalles.*.laser' => 'boolean',
+                'detalles.*.summa' => 'boolean',
+
+                'detalles.*.version' => 'nullable|string',
+                'detalles.*.acabados' => 'nullable|string',
+                'detalles.*.medida_real' => 'nullable|string',
+            ]);
+
+
+            // 1) cabecera
+            $datosCabecera = $request->except(['detalles', 'deleted']);
+            $datosCabecera['usuario_modificacion'] = auth()->user()->name;
+            $datosCabecera['fecha_modificacion'] = now();
+            $pedido->update($datosCabecera);
+
+            // 2) borrar detalles eliminados
+            $deletedIds = $request->input('deleted', []);
+            if (!empty($deletedIds)) {
+                $toDelete = AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)
+                    ->whereIn('iddetallepedidoproduccion', $deletedIds)
+                    ->get();
+
+                // opcional: borrar archivo físico
+                foreach ($toDelete as $row) {
+                    if ($row->imagen) {
+                        $path = public_path('images_pedidosproduccion/' . $row->imagen);
+                        if (file_exists($path)) @unlink($path);
+                    }
+                }
+
+                AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)
+                    ->whereIn('iddetallepedidoproduccion', $deletedIds)
+                    ->delete();
             }
 
-            // Obtener todos los datos, incluyendo los detalles
-            $datosPedido = $request->all();
+            // 3) upsert detalles
+            $detalles = $request->input('detalles', []);
 
-            // Excluir 'detalles' del array para la actualización de la cabecera
-            $datosCabecera = $request->except('detalles');
+            // correlativo para NUEVOS
+            $correlativoDetalle = Correlativo::find('adm_detalle_pedidosproduccion');
+            if (!$correlativoDetalle) {
+                DB::rollback();
+                return response()->json(['message' => 'No se encontró el correlativo para el detalle del pedido'], 500);
+            }
+            $nextId = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
+            $ultimoUsado = $correlativoDetalle->correlativo;
 
-            // Añadir campos de auditoría para la cabecera
-            $datosCabecera['usuario_modificacion'] = auth()->user()->name;
-            $datosCabecera['fecha_modificacion'] = now(); // Usar now() es más conveniente
-            // Quitar la línea de estado si no la envías o quieres mantener la existente
-            // $datosCabecera['estado'] = $datosCotizacion['estado'] ?? $cotizacion->estado; // Mantiene estado si no viene, o usa el de la BD
+            foreach ($detalles as $index => $d) {
+                $detalleId = $d['iddetallepedidoproduccion'] ?? null;
 
-            $pedidoProduccion->update($datosCabecera);
-
-            // 2. Eliminar los detalles existentes para esta cotización
-            // Es importante hacer esto DENTRO de la transacción
-            AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)->delete();
-
-            // 3. Obtener y procesar los nuevos detalles (como en store)
-            $detalles = $request->input('detalles', []); // Asegúrate de que el frontend envíe los detalles como 'detalles'
-
-            if (!empty($detalles)) { // Solo procesar si hay detalles
-                // Obtener el correlativo para los detalles (igual que en store)
-                $correlativoDetalle = Correlativo::find('adm_detalle_pedidosproduccion');
-                if (!$correlativoDetalle) {
-                    DB::rollback();
-                    // Log::error('No se encontró el correlativo para adm_detalle_cotizacion'); // Opcional: Loguear el error
-                    return response()->json(['message' => 'No se encontró el correlativo para el detalle del pedido'], 500); // Error 500 porque es un problema de configuración/BD
+                // buscar existente si viene ID
+                $detalle = null;
+                if ($detalleId) {
+                    $detalle = AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)
+                        ->where('iddetallepedidoproduccion', $detalleId)
+                        ->first();
                 }
 
-                // Determinar el siguiente ID disponible basado en el correlativo actual
-                // Asumimos que 'correlativo' guarda el ÚLTIMO ID usado. El siguiente es + incremento.
-                $idDetallePedido = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
-                $ultimoIdUsado = $correlativoDetalle->correlativo; // Guardamos el último ID antes de empezar
+                // imagen: nueva / conservar ruta / null
+                $imagenRuta = $detalle ? $detalle->imagen : null;
 
-                foreach ($detalles as $index => $detalleData) {
-                    $imagenRuta = null;
-                    if ($request->hasFile("detalles.{$index}.imagen")) {
-                        $imagen = $request->file("detalles.{$index}.imagen");
-                        $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
-                        //$imagen->move(public_path('images_cotizaciones'), $nombreImagen);
-                        //$imagenRuta = $nombreImagen;
-                        if ($imagen->move(public_path('images_pedidosproduccion'), $nombreImagen)) {
-                            $imagenRuta = $nombreImagen;
-                            // Log::info("UPDATE: Nuevo archivo movido. Ruta: {$imagenRuta}"); // Puedes descomentar para depurar
-                        } else {
-                            // Log::error("UPDATE: FALLÓ al mover el nuevo archivo para índice: {$index}"); // Puedes descomentar para depurar
-                            // Si falla al mover el nuevo archivo, $imagenRuta sigue siendo null
-                            // Considera qué hacer aquí: ¿abortar la operación? ¿guardar el detalle sin imagen?
-                        }
-                    } elseif (isset($detalleData['imagen_ruta']) && $detalleData['imagen_ruta']) {
-                        // Si ya existe una ruta de imagen y no se subió una nueva, la mantenemos
-                        $imagenRuta = $detalleData['imagen_ruta'];
+                if ($request->hasFile("detalles.$index.imagen")) {
+                    // si había imagen anterior, eliminarla
+                    if ($imagenRuta) {
+                        $old = public_path('images_pedidosproduccion/' . $imagenRuta);
+                        if (file_exists($old)) @unlink($old);
                     }
-                    // Validar que los campos necesarios existan en $detalle, si no, usar null o valor por defecto
-                    AdmDetallePedidosProduccion::create([
-                        'iddetallepedidoproduccion' => $idDetallePedido,
-                        'idpedidoproduccion' => $id,                                                            // Usar el $id de la cotización que estamos actualizando
-                        'idproducto' => $detalleData['idproducto'] ?? 0,                                // Usar ?? para valores por defecto si no vienen
-                        'producto' => $detalleData['producto'] ?? ($detalle['descripcion'] ?? 'N/A'), // Asigna producto o descripción
-                        'titulo' => $detalleData['titulo'] ?? '',
-                        'descripcion' => $detalleData['descripcion'] ?? '',
-                        'cantidad' => $detalleData['cantidad'] ?? 0,
-                        'ancho' => $detalleData['ancho'] ?? 0,
-                        'alto' => $detalleData['alto'] ?? 0,
-                        'profundidad' => $detalleData['profundidad'] ?? 0,
-                        'precio' => $detalleData['precio'] ?? 0,
-                        'total' => $detalleData['total'] ?? 0,
-                        'fecha_registro' => now(), // Usar now() para la fecha actual
-                        'usuario_registro' => auth()->user()->name,
-                        'costeado' => $detalleData['costeado'] ?? 'N',
-                        'incluye_foto' => $imagenRuta ? 'S' : 'N',
-                        'estado' => $detalleData['estado'] ?? 1,
-                        'unidad_medida' => $detalleData['unidad_medida'] ?? null,
-                        'm2' => $detalleData['m2'] ?? 0,
-                        'imagen' => $imagenRuta, // Guardar o mantener la ruta de la imagen
-                        'material' => $detalleData['material'] ?? null,
-                        'caras' => $detalleData['caras'] ?? null,
-                        'maquina' => $detalleData['maquina'] ?? null,
-                        'acabados' => $detalleData['acabados'] ?? null,
-                        'version' => $detalleData['version'] ?? null,
-                    ]);
 
-                    $ultimoIdUsado = $idDetallePedido;                   // Actualizar el último ID que acabamos de usar
-                    $idDetallePedido += $correlativoDetalle->incremento; // Incrementar para el siguiente ciclo
+                    $imagen = $request->file("detalles.$index.imagen");
+                    $nombreImagen = uniqid('detalle_') . '.' . $imagen->getClientOriginalExtension();
+                    $imagen->move(public_path('images_pedidosproduccion'), $nombreImagen);
+                    $imagenRuta = $nombreImagen;
+                } elseif (!empty($d['imagen_ruta'])) {
+                    // conservar imagen existente por ruta enviada
+                    $imagenRuta = $d['imagen_ruta'];
+                } else {
+                    // si no envía nada, se conserva lo que ya tenga $detalle (si existe)
+                    // si es nuevo y no envía nada, queda null
                 }
 
-                // Actualizar el correlativo con el ÚLTIMO ID que se usó
-                $correlativoDetalle->correlativo = $ultimoIdUsado;
+                $payload = [
+                    'idpedidoproduccion' => $id,
+                    'idproducto' => 0,
+                    'producto' => $d['descripcion'] ?? '',
+                    'titulo' => $d['titulo'] ?? '',
+                    'descripcion' => $d['descripcion'] ?? '',
+                    'cantidad' => $d['cantidad'] ?? 0,
+                    'ancho' => $d['ancho'] ?? 0,
+                    'alto' => $d['alto'] ?? 0,
+                    'm2' => $d['m2'] ?? 0,
+                    'profundidad' => $d['profundidad'] ?? 0,
+                    'precio' => 0,
+                    'total' => 0,
+                    'unidad_medida' => $d['unidad_medida'] ?? null,
+                    'material' => $d['material'] ?? null,
+                    'caras' => $d['caras'] ?? null,
+                    'maquina' => $d['maquina'] ?? null,
+                    'acabados' => $d['acabados'] ?? null,
+                    'version' => $d['version'] ?? null,
+                    'imagen' => $imagenRuta,
+                    'incluye_foto' => $imagenRuta ? 'S' : 'N',
+                    'estado' => 1,
+                    'galaxy_plus' => !empty($d['galaxy_plus']) ? 1 : 0,
+                    'uv'          => !empty($d['uv']) ? 1 : 0,
+                    'cnc'         => !empty($d['cnc']) ? 1 : 0,
+                    'laser'       => !empty($d['laser']) ? 1 : 0,
+                    'summa'       => !empty($d['summa']) ? 1 : 0,
+
+                ];
+
+                if ($detalle) {
+                    // update existente
+                    $payload['usuario_modificacion'] = auth()->user()->name;
+                    $payload['fecha_modificacion'] = now();
+                    $detalle->update($payload);
+                } else {
+                    // create nuevo
+                    $payload['iddetallepedidoproduccion'] = $nextId;
+                    $payload['fecha_registro'] = now();
+                    $payload['usuario_registro'] = auth()->user()->name;
+                    $payload['costeado'] = 'N';
+
+                    AdmDetallePedidosProduccion::create($payload);
+
+                    $ultimoUsado = $nextId;
+                    $nextId += $correlativoDetalle->incremento;
+                }
+            }
+
+            // actualizar correlativo solo si se usaron nuevos
+            if ($ultimoUsado > $correlativoDetalle->correlativo) {
+                $correlativoDetalle->correlativo = $ultimoUsado;
                 $correlativoDetalle->save();
             }
 
-            // Devolver la cotización actualizada (quizás con los detalles recién guardados?)
-            // Para devolverla con detalles, necesitas volver a cargar la relación
-            $pedidoProduccion->load('detalles'); // Asume que tienes definida la relación 'detalles' en el modelo AdmPedidosProduccion
-            // Si todo fue bien, confirmar la transacción
             DB::commit();
-
-            return response()->json($pedidoProduccion);
+            return response()->json(['message' => 'Pedido actualizado correctamente']);
         } catch (\Exception $e) {
-            // Si algo falla, revertir la transacción
             DB::rollback();
-            Log::error('Error al actualizar el pedido ID ' . $id . ': ' . $e->getMessage()); // Loguear el error para depuración
+            Log::error("update pedido $id: " . $e->getMessage());
             return response()->json(['message' => 'Error al actualizar el pedido: ' . $e->getMessage()], 500);
         }
     }
@@ -443,7 +532,7 @@ class PedidosProduccionController extends Controller
                 'd.acabados',
                 'd.version',
             )
-            ->from('adm_detalle_pedidosproduccion as d')            
+            ->from('adm_detalle_pedidosproduccion as d')
             ->get();
 
         return response()->json($detalles);
@@ -535,7 +624,7 @@ class PedidosProduccionController extends Controller
                 'c.observaciones_cliente',
                 'c.costeo_observaciones',
                 'c.trabajo',
-                'c.version',                
+                'c.version',
             )
             ->from('adm_pedidos_produccion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -689,8 +778,8 @@ class PedidosProduccionController extends Controller
                 'ctz.idcotizacion',
                 DB::raw('CONCAT(\'CT\',CAST(ctz.nocotizacion AS CHAR)) as nocotizacion'),
                 'ctz.nocotizacion as numero_cotizacion',
-                'ctz.fecha_cotizacion',                                                
-                'clt.nombre as cliente',            
+                'ctz.fecha_cotizacion',
+                'clt.nombre as cliente',
                 'ctz.estado',
                 DB::raw("CASE
                     WHEN ctz.estado = 1 THEN 'REGISTRO'
@@ -706,7 +795,7 @@ class PedidosProduccionController extends Controller
             )
             ->from('adm_cotizacion as ctz')
             ->join('clientes as clt', 'ctz.idcliente', '=', 'clt.idcliente');
-           
+
         $query->where('ctz.estado', '!=', 0); // Estado diferente de 0 por defecto
         //}
 

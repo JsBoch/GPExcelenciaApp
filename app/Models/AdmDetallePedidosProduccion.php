@@ -31,15 +31,20 @@ class AdmDetallePedidosProduccion extends Model
         'fecha_costeo',
         'usuario_costeo',
         'estado',
-        'incluye_foto',        
+        'incluye_foto',
         'unidad_medida',
-        'm2',    
-        'imagen',    
+        'm2',
+        'imagen',
         'material',
         'caras',
         'maquina',
         'acabados',
         'version',
+        'galaxy_plus',
+        'uv',
+        'cnc',
+        'laser',
+        'summa',
     ];
 
     public function pedidos_produccion()
