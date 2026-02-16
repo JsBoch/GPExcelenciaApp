@@ -739,7 +739,8 @@ class MonitorFacturacionController extends Controller
             'UsuarioApi' => '109126599PRO',
             'LlaveApi' => 'EC7E300DF9F5EDD673FE02342E9C4293',
             'UsuarioFirma' => '109126599PRO',
-            'LlaveFirma' => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            // 'LlaveFirma' => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            'llavefirma' => 'fd5ff1bd52eeb988de3ddd63abcf9324',
             'Identificador' => $identificador,
         ];
 
@@ -1092,7 +1093,7 @@ class MonitorFacturacionController extends Controller
             'UsuarioApi'    => '109126599PRO',
             'LlaveApi'      => 'EC7E300DF9F5EDD673FE02342E9C4293',
             'UsuarioFirma'  => '109126599PRO',
-            'LlaveFirma'    => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            'LlaveFirma'    => 'fd5ff1bd52eeb988de3ddd63abcf9324',
             'Identificador' => (string) Str::uuid(),
         ];
         $url = 'https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml';
@@ -1408,7 +1409,7 @@ class MonitorFacturacionController extends Controller
             'UsuarioApi'     => '109126599PRO',
             'LlaveApi'       => 'EC7E300DF9F5EDD673FE02342E9C4293',
             'UsuarioFirma'   => '109126599PRO',
-            'LlaveFirma'     => '9bbfaf68b130aaa6b69535ac6f1ca5db',
+            'LlaveFirma'     => 'fd5ff1bd52eeb988de3ddd63abcf9324',
             'Identificador'  => $identificador,
         ];
 
