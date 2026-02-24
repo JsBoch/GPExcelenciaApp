@@ -24,6 +24,8 @@ use App\Http\Controllers\ClienteContactoController;
 use App\Http\Controllers\ReportesCXCController;
 use App\Http\Controllers\Api\InfileController;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\AreaTrabajoController;
+use App\Http\Controllers\PlanificacionDetalleProduccionController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -280,4 +282,32 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // 🔹 NUEVA RUTA INFILE
     Route::get('/infile/consulta-nit/{nit}', [InfileController::class, 'consultaNit']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::apiResource('/area_trabajo', AreaTrabajoController::class);
+    Route::put('/area_trabajo/desactivar/{id}', [AreaTrabajoController::class, 'desactivar']);
+    // Opcional para combos:
+    Route::get('/lista_area_trabajo', [AreaTrabajoController::class, 'lista']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+
+
+    Route::post('/planificacion', [PlanificacionDetalleProduccionController::class, 'store']);
+    Route::put('/planificacion/mover/{id}', [PlanificacionDetalleProduccionController::class, 'mover']);
+
+    Route::get('/planificacion/tablero/{fecha}', [PlanificacionDetalleProduccionController::class, 'tableroPorFecha']);
+
+    Route::post('/planificacion/asignar', [PlanificacionDetalleProduccionController::class, 'asignar']);
+    Route::put('/planificacion/mover', [PlanificacionDetalleProduccionController::class, 'mover']);          // 🔥 industrial
+    Route::put('/planificacion/reordenar', [PlanificacionDetalleProduccionController::class, 'reordenar']);  // 🔥 industrial
+
+    Route::put('/planificacion/cambiar-estado', [PlanificacionDetalleProduccionController::class, 'cambiarEstado']);
+    Route::get('/planificacion/pendientes/{fecha}', [PlanificacionDetalleProduccionController::class, 'detallesPendientes']);
+    Route::get('/areas', [PlanificacionDetalleProduccionController::class, 'areas']);
+
+    Route::get('/planificacion/pedidos/{fecha}', [PlanificacionDetalleProduccionController::class, 'pedidosPendientes']);
+    Route::get('/planificacion/pedidos/{fecha}/{idpedido}', [PlanificacionDetalleProduccionController::class, 'detallesPendientesPorPedido']);
 });

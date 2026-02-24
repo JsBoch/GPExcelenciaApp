@@ -205,6 +205,18 @@ function Home() {
                     to = `/reportes/contabilidad/cuentas-por-cobrar`;
                     text = 'Cuentas por Cobrar';
                     icon = <FiFileText />;
+                }else  if (opcion.nombre === 'Registro areas' && opcion.accion === 'registro') {
+                    to = `/area_trabajo/nuevo`;
+                    text = 'Crear Area';
+                    icon = <FiFileText />;
+                } else if (opcion.nombre === 'Consulta areas' && opcion.accion === 'consulta') {
+                    to = `/area_trabajo/lista`;
+                    text = 'Consultar Areas';
+                    icon = <FiSearch />;
+                }else if (opcion.nombre === 'Registro monitor_produccion' && opcion.accion === 'registro') {
+                    to = `/monitor_produccion`;
+                    text = 'Monitor de producción';
+                    icon = <FiSearch />;
                 }
 
                 if (to && text) {
@@ -216,7 +228,7 @@ function Home() {
                 let groupIcon = null;
 
                 if (tipo === 'empleados') groupIcon = <FiUsers />;
-                else if (tipo === 'clientes') groupIcon = <FiUsers />;
+                else if (tipo === 'clientes') groupIcon = <FiUsers />;                
                 else if (tipo === 'cotizaciones') groupIcon = <FiFileText />;
                 else if (tipo === 'productos_predefinidos') groupIcon = <FiBox />;
                 else if (tipo === 'contacto_cliente') groupIcon = <FiUsers />;
@@ -227,6 +239,8 @@ function Home() {
                 else if (tipo === 'pedidos-producción') groupIcon = <FiFileText />;
                 else if (tipo === 'reportes-contabilidad') groupIcon = <FiFileText />;
                 else if (tipo === 'recibos') groupIcon = <FiFileText />;
+                else if (tipo === 'areas') groupIcon = <FiBox />;
+                else if (tipo === 'monitor_produccion') groupIcon = <FiBox />;
                 else groupIcon = <FiBox />; // Icono por defecto si no se encuentra el tipo
 
                 menuStructure.push({

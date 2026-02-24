@@ -56,74 +56,7 @@ function ContactoClienteForm({
     // Estado para saber si estamos en modo edición de un CONTACTO
     const [isEditModeContacto, setIsEditModeContacto] = useState(false);
 
-    // useEffect(() => {
-    //     const token = localStorage.getItem("token");
-    //     const headers = { Authorization: `Bearer ${token}` };
-
-    //     // Cargar lista de clientes para el dropdown (siempre, o condicionalmente)
-    //     // Si clienteId está fijado, y no quieres que el usuario cambie, podrías no necesitarla
-    //     // o solo para obtener el nombre del cliente.
-    //     axios
-    //         .get("/api/lista_clientes", { headers })
-    //         .then((res) => {
-    //             setClientes(res.data);
-    //             if (clienteId) {
-    //                 // Si tenemos un clienteId fijo (desde el modal)
-    //                 const clienteEncontrado = res.data.find(
-    //                     (c) => c.idcliente === parseInt(clienteId, 10)
-    //                 );
-    //                 if (clienteEncontrado) {
-    //                     setNombreClienteFijado(clienteEncontrado.nombre);
-    //                 }
-    //             }
-    //         })
-    //         .catch((error) =>
-    //             console.error("Error al cargar lista de clientes:", error)
-    //         );
-
-    //     // Lógica para cargar un contacto existente para edición (si se pasa contactoAEditarId)
-    //     // Esto es si el modal también puede EDITAR contactos, no solo crear.
-    //     // Por ahora, nos enfocaremos en la creación desde ClienteRegistro.
-    //     // Si quieres que el modal también edite, esta lógica se activaría.
-    //     if (idParaEditar) {
-    //         setIsEditModeContacto(true);
-    //         axios
-    //             .get(`/api/contacto_cliente/${idParaEditar}`, { headers })
-    //             .then((res) => {
-    //                 const data = res.data;
-    //                 setContactoCliente({
-    //                     idcliente: data.idcliente || clienteId || 0, // Asegura que idcliente se mantenga si se edita
-    //                     nombre: data.nombre || "",
-    //                     telefono: data.telefono || "",
-    //                     correo: data.correo || "",
-    //                     puesto: data.puesto || "",
-    //                     observaciones: data.observaciones || "",
-    //                 });
-    //             })
-    //             .catch((error) =>
-    //                 console.error(
-    //                     "Error al cargar el contacto para editar:",
-    //                     error
-    //                 )
-    //             );
-    //     } else if (clienteId) {
-    //         // Creación para un clienteId específico
-    //         setIsEditModeContacto(false);
-    //         setContactoCliente({
-    //             // Resetear para asegurar un formulario limpio
-    //             idcliente: clienteId,
-    //             nombre: "",
-    //             telefono: "",
-    //             correo: "",
-    //             puesto: "",
-    //             observaciones: "",
-    //         });
-    //     } else {
-    //         // Creación genérica (si el form se usa fuera del modal sin clienteId)
-    //         setIsEditModeContacto(false);
-    //         // limpiarCampos(); // Se maneja por el estado inicial
-    //     }
-    // }, [clienteId, contactoAEditarId]); // Depender de clienteId y contactoAEditarId
+    
     useEffect(() => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
