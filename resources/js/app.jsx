@@ -39,6 +39,9 @@ import ResumenVentasPorVendedor from './components/reportes/contabilidad/Reporte
 import FacturasAnuladas from './components/reportes/contabilidad/ReporteFacturasAnuladas.jsx';
 import ReporteNotasAjuste from './components/reportes/contabilidad/ReporteNotasAjuste.jsx';
 import ReporteCuentasPorCobrar from './components/reportes/contabilidad/ReporteCuentasPorCobrar.jsx';
+import AreaTrabajoForm from './components/AreaTrabajoForm.jsx';
+import ListaAreaTrabajo from './components/ListaAreaTrabajo.jsx';
+import MonitorProduccion from './components/MonitorProduccion.jsx';
 // Si necesitas un layout común, puedes importar un componente de layout aquí
 import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
@@ -102,6 +105,12 @@ function App() {
                     <Route path="/reportes/contabilidad/facturas-anuladas" element={<ProtectedRoute><FacturasAnuladas /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/notas-ajuste" element={<ProtectedRoute><ReporteNotasAjuste /></ProtectedRoute>} />
                     <Route path="/reportes/contabilidad/cuentas-por-cobrar" element={<ProtectedRoute><ReporteCuentasPorCobrar /></ProtectedRoute>} />
+
+                    <Route path="/area_trabajo/nuevo" element={<ProtectedRoute><AreaTrabajoForm /></ProtectedRoute>} />
+                    <Route path="/area_trabajo/editar/:id" element={<ProtectedRoute><AreaTrabajoForm /></ProtectedRoute>} />
+                    <Route path="/area_trabajo/lista" element={<ProtectedRoute><ListaAreaTrabajo /></ProtectedRoute>} />
+
+                    <Route path="/monitor_produccion" element={<ProtectedRoute><MonitorProduccion /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>

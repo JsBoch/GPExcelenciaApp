@@ -52,4 +52,12 @@ class AdmDetallePedidosProduccion extends Model
     {
         return $this->belongsTo(AdmPedidosProduccion::class, 'idpedidoproduccion', 'idpedidoproduccion');
     }
+
+    public function pedido()
+    {
+        return $this->belongsTo(
+            AdmPedidosProduccion::class,
+            'idpedidoproduccion'
+        );
+    }
 }
