@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import {
-    Box,
-    Button,
-    TextField,
-    Autocomplete,
-} from "@mui/material";
+import { Box, Button, TextField, Autocomplete } from "@mui/material";
 import { MaterialReactTable } from "material-react-table";
 import { Link, useNavigate } from "react-router-dom";
 import { FaRegFileAlt } from "react-icons/fa";
@@ -67,8 +62,8 @@ function ListaClientes() {
                         c.telefono_uno?.toLowerCase().includes(term) ||
                         c.telefono_dos?.toLowerCase().includes(term) ||
                         c.telefono_tres?.toLowerCase().includes(term) ||
-                        c.email?.toLowerCase().includes(term)
-                )
+                        c.email?.toLowerCase().includes(term),
+                ),
             );
         }
     }, [searchInput, clientes]);
@@ -87,23 +82,23 @@ function ListaClientes() {
                         .put(
                             `/api/clientes/desactivar/${id}`,
                             {},
-                            { headers: { Authorization: `Bearer ${token}` } }
+                            { headers: { Authorization: `Bearer ${token}` } },
                         )
                         .then(() => {
                             setClientes((prev) =>
                                 prev.filter(
-                                    (c) => Number(c.idcliente) !== Number(id)
-                                )
+                                    (c) => Number(c.idcliente) !== Number(id),
+                                ),
                             );
                             alertify.success("Cliente eliminado correctamente");
                         })
                         .catch((err) =>
-                            console.error("Error al eliminar cliente:", err)
+                            console.error("Error al eliminar cliente:", err),
                         );
                 },
                 function () {
                     alertify.error("Acción cancelada");
-                }
+                },
             )
             .set("labels", { ok: "Sí", cancel: "No" });
     };
@@ -131,7 +126,7 @@ function ListaClientes() {
                             color="primary"
                             onClick={() =>
                                 navigate(
-                                    `/clientes/editar/${row.original.idcliente}`
+                                    `/clientes/editar/${row.original.idcliente}`,
                                 )
                             }
                         >
@@ -151,7 +146,7 @@ function ListaClientes() {
                 ),
             },
         ],
-        [navigate]
+        [navigate],
     );
 
     // 💾 Exportar a Excel
@@ -173,7 +168,7 @@ function ListaClientes() {
         XLSX.utils.book_append_sheet(wb, ws, "Clientes");
         XLSX.writeFile(
             wb,
-            `Clientes_${new Date().toISOString().slice(0, 10)}.xlsx`
+            `Clientes_${new Date().toISOString().slice(0, 10)}.xlsx`,
         );
     };
 
@@ -292,26 +287,24 @@ function ListaClientes() {
                 initialState={{
                     pagination: { pageSize: 15 },
                 }}
-                renderTopToolbarCustomActions={() =>
-                    isAdmin ? (
-                        <Box sx={{ display: "flex", gap: 2 }}>
-                            <Button
-                                variant="outlined"
-                                color="success"
-                                onClick={exportToExcel}
-                            >
-                                Exportar Excel
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                color="error"
-                                onClick={exportToPDF}
-                            >
-                                Exportar PDF
-                            </Button>
-                        </Box>
-                    ) : null
-                }
+                renderTopToolbarCustomActions={() => (
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                        <Button
+                            variant="outlined"
+                            color="success"
+                            onClick={exportToExcel}
+                        >
+                            Exportar Excel
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={exportToPDF}
+                        >
+                            Exportar PDF
+                        </Button>
+                    </Box>
+                )}
             />
 
             {/* 🟢 Botón nuevo cliente */}
