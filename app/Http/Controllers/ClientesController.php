@@ -16,42 +16,100 @@ class ClientesController extends Controller
     {
         //$empleados = Empleado::all();        
         //$empleados = Empleado::where('estado',1)->get();
-        $clientes = Clientes::where('clientes.estado', 1)
-            ->select(
-                'clientes.idcliente',
-                'clientes.codigo',
-                'clientes.nit',
-                'clientes.cui',
-                'clientes.nombre',
-                'clientes.razonsocial',
-                'clientes.direccion',
-                'clientes.codigo_postal',
-                'adm_departamentopais.nombre as departamento',
-                'clientes.telefono_uno',
-                'clientes.telefono_dos',
-                'clientes.telefono_tres',
-                'clientes.email',
-                'clientes.monto_credito',
-                'clientes.dias_credito',
-                'clientes.comentario',
-                 DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
-                'clientes.id_empleado',
-                'clientes.id_municipio',
-                'clientes.idtipocliente',
-                'clientes.iddepartamento',
-                'clientes.fecharegistro',
-                'clientes.usuario_registro',
-                'clientes.usuario_modifica',
-                'clientes.fecha_modificacion',
-                'clientes.estado',
-                'clientes.pasaporte',
-                'clientes.excento_iva',
-                'clientes.extranjero',
-            )
-            ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-            ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
-            ->orderBy('clientes.nombre')
-            ->get();
+        // $clientes = Clientes::where('clientes.estado', 1)
+        //     ->select(
+        //         'clientes.idcliente',
+        //         'clientes.codigo',
+        //         'clientes.nit',
+        //         'clientes.cui',
+        //         'clientes.nombre',
+        //         'clientes.razonsocial',
+        //         'clientes.direccion',
+        //         'clientes.codigo_postal',
+        //         'adm_departamentopais.nombre as departamento',
+        //         'clientes.telefono_uno',
+        //         'clientes.telefono_dos',
+        //         'clientes.telefono_tres',
+        //         'clientes.email',
+        //         'clientes.monto_credito',
+        //         'clientes.dias_credito',
+        //         'clientes.comentario',
+        //          DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
+        //         'clientes.id_empleado',
+        //         'clientes.id_municipio',
+        //         'clientes.idtipocliente',
+        //         'clientes.iddepartamento',
+        //         'clientes.fecharegistro',
+        //         'clientes.usuario_registro',
+        //         'clientes.usuario_modifica',
+        //         'clientes.fecha_modificacion',
+        //         'clientes.estado',
+        //         'clientes.pasaporte',
+        //         'clientes.excento_iva',
+        //         'clientes.extranjero',
+        //     )
+        //     ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+        //     ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+        //     ->orderBy('clientes.nombre')
+        //     ->get();
+       $subUltimaCompra = DB::table('adm_cotizacion as c')
+    ->select(
+        'c.idcliente',
+        DB::raw('MAX(f.fecha_certificacion) as fecha_ultima_compra')
+    )
+    ->join('adm_facturacion as f', function ($join) {
+        $join->on('f.idcotizacion', '=', 'c.idcotizacion')
+             ->where('f.estado', 1)
+             ->where('f.resultado', 'S');
+    })
+    ->groupBy('c.idcliente');
+
+
+$clientes = Clientes::where('clientes.estado', 1)
+    ->select(
+        'clientes.idcliente',
+        'clientes.codigo',
+        'clientes.nit',
+        'clientes.cui',
+        'clientes.nombre',
+        'clientes.razonsocial',
+        'clientes.direccion',
+        'clientes.codigo_postal',
+        'adm_departamentopais.nombre as departamento',
+        'clientes.telefono_uno',
+        'clientes.telefono_dos',
+        'clientes.telefono_tres',
+        'clientes.email',
+        'clientes.monto_credito',
+        'clientes.dias_credito',
+        'clientes.comentario',
+        DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
+        'clientes.id_empleado',
+        'clientes.id_municipio',
+        'clientes.idtipocliente',
+        'clientes.iddepartamento',
+        'clientes.fecharegistro',
+        'clientes.usuario_registro',
+        'clientes.usuario_modifica',
+        'clientes.fecha_modificacion',
+        'clientes.estado',
+        'clientes.pasaporte',
+        'clientes.excento_iva',
+        'clientes.extranjero',
+
+        // 👇 CAMPO FINAL LIMPIO
+        'uc.fecha_ultima_compra'
+    )
+    ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+    ->leftJoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+
+    // 🔥 JOIN OPTIMIZADO (SIN DUPLICADOS)
+    ->leftJoinSub($subUltimaCompra, 'uc', function ($join) {
+        $join->on('uc.idcliente', '=', 'clientes.idcliente');
+    })
+
+    ->orderBy('clientes.nombre')
+    ->get();
         return response()->json($clientes);
     }
 
@@ -127,7 +185,7 @@ class ClientesController extends Controller
                 'clientes.monto_credito',
                 'clientes.dias_credito',
                 'clientes.comentario',
-                 DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
+                DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
                 'clientes.id_empleado',
                 'clientes.id_municipio',
                 'clientes.idtipocliente',
@@ -218,7 +276,7 @@ class ClientesController extends Controller
     }
     public function getDepartamentosPais()
     {
-        $departamentosPais = DepartamentoPais::where('estado', 1)->get(['iddepartamentopais', 'nombre','codigo_postal']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
+        $departamentosPais = DepartamentoPais::where('estado', 1)->get(['iddepartamentopais', 'nombre', 'codigo_postal']); // Selecciona solo los campos necesarios); // Reemplaza DepartamentoPais con tu modelo real
         return response()->json($departamentosPais);
     }
     public function getVendedores()
