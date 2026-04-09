@@ -114,9 +114,11 @@
 
         @foreach ($grupos as $g)
         <div class="group-title">
-            Cliente: {{ $g['cliente'] }} (NIT: {{ $g['nit'] ?? '—' }})
-            @if(!empty($g['departamento'])) &nbsp; | &nbsp; Dpto: {{ $g['departamento'] }} @endif
-            @if(!empty($g['vendedor'])) &nbsp; | &nbsp; Vendedor: {{ $g['vendedor'] }} @endif
+            <div class="group-title">
+                Cliente: {{ $g['cliente'] }} (NIT: {{ $g['nit'] }})
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                Vendedor: {{ $g['vendedor'] }}
+            </div>
         </div>
 
         <table>
@@ -141,8 +143,8 @@
                     <td>{{ $it->nofactura }}</td>
                     <td>{{ $it->numero }}</td>
                     <td>{{ $it->tipo }}</td>
-                    <td>{{ \Illuminate\Support\Str::of($it->fecha_emision)->limit(10, '') }}</td>
-                    <td>{{ \Illuminate\Support\Str::of($it->fecha_vencimiento)->limit(10, '') }}</td>
+                    <td>{{ $it->fecha_emision ? \Carbon\Carbon::parse($it->fecha_emision)->format('d/m/Y') : '' }}</td>
+                    <td>{{ $it->fecha_vencimiento ? \Carbon\Carbon::parse($it->fecha_vencimiento)->format('d/m/Y') : '' }}</td>
                     <td class="right">{{ number_format($it->saldo_pendiente, 2) }}</td>
                     <td class="right">{{ number_format($it->bucket_0_30, 2) }}</td>
                     <td class="right">{{ number_format($it->bucket_31_60, 2) }}</td>

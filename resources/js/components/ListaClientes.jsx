@@ -116,6 +116,20 @@ function ListaClientes() {
             { accessorKey: "telefono_tres", header: "Teléfono 3" },
             { accessorKey: "email", header: "Correo" },
             {
+                accessorKey: "fecha_ultima_compra",
+                header: "Última Compra",
+                Cell: ({ cell }) => {
+                    const value = cell.getValue();
+                    if (!value) return "";
+
+                    return new Date(value).toLocaleDateString("es-GT", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                    });
+                },
+            },
+            {
                 header: "Acciones",
                 accessorKey: "acciones",
                 Cell: ({ row }) => (
@@ -161,6 +175,9 @@ function ListaClientes() {
             "Teléfono 2": c.telefono_dos,
             "Teléfono 3": c.telefono_tres,
             Correo: c.email,
+            "Última Compra": c.fecha_ultima_compra
+                ? new Date(c.fecha_ultima_compra).toLocaleDateString("es-GT")
+                : "",
         }));
 
         const wb = XLSX.utils.book_new();
@@ -188,6 +205,13 @@ function ListaClientes() {
             c.razonsocial,
             c.telefono_uno,
             c.email,
+            c.fecha_ultima_compra
+                ? new Date(c.fecha_ultima_compra).toLocaleDateString("es-GT", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                  })
+                : "",
         ]);
 
         autoTable(doc, {
@@ -199,11 +223,15 @@ function ListaClientes() {
                     "Razón Social",
                     "Teléfono",
                     "Correo",
+                    "Última Compra",
                 ],
             ],
             body: tableData,
             startY: 28,
-            styles: { fontSize: 9 },
+            styles: { fontSize: 8 },
+            columnStyles: {
+                6: { cellWidth: 25 }, // 👈 columna fecha
+            },
         });
 
         doc.save(`Clientes_${new Date().toISOString().slice(0, 10)}.pdf`);
