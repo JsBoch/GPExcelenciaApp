@@ -525,7 +525,7 @@ class ReportesContabilidadController extends Controller
         $encabezado = [
             'empresa'       => 'GP Excelencia',
             'titulo'        => 'CARTERA GENERAL DE CLIENTES',
-            'fecha_reporte' => $fechaReporte->format('Y-m-d'),
+            'fecha_reporte' => $fechaReporte->format('d-m-Y'),
             'departamento'  => $request->filled('departamento_id')
                 ? optional($rows->first())->departamento ?? 'Filtrado'
                 : 'Todos',

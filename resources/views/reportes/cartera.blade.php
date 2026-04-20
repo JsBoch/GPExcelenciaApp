@@ -107,7 +107,7 @@
             <h1>{{ $encabezado['titulo'] }}</h1>
             <h2>
                 Vendedor: <strong>{{ $encabezado['vendedor'] }}</strong> &nbsp; | &nbsp;
-                Departamento: <strong>{{ $encabezado['departamento'] }}</strong> &nbsp; | &nbsp;
+                <!-- Departamento: <strong>{{ $encabezado['departamento'] }}</strong> &nbsp; | &nbsp; -->
                 Fecha de reporte: <strong>{{ $encabezado['fecha_reporte'] }}</strong>
             </h2>
         </div>
