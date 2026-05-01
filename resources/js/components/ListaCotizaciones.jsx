@@ -415,8 +415,68 @@ function ListaCotizaciones() {
             });
     };
 
-    const handleFacturar = (estadoDestino) => {
+    // const handleFacturar = (estadoDestino) => {
+    //     const cotizacion = registroSeleccionado;
+    //     if (!cotizacion?.idcotizacion) {
+    //         alertify.alert(
+    //             "Error",
+    //             "No se encontró la cotización seleccionada.",
+    //         );
+    //         return;
+    //     }
+    //     const cid = cotizacion.idcotizacion;
+
+    //     if (
+    //         Number(cotizacion.total_general) === 0 &&
+    //         Number(cotizacion.estado) > 3
+    //     ) {
+    //         alertify.alert(
+    //             "TOTAL EN CERO",
+    //             "No se puede enviar a pre-facturación una cotización con total igual a 0.00.",
+    //         );
+    //         return;
+    //     }
+    //     if (Number(cotizacion.estado) === 5) {
+    //         alertify.alert(
+    //             "PRE-FACTURACIÓN",
+    //             "El registro ya está en FACTURACIÓN, no se puede volver a enviar.",
+    //         );
+    //         return;
+    //     }
+    //     if (Number(cotizacion.estado) > 5) {
+    //         alertify.alert(
+    //             "FACTURACIÓN",
+    //             "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar.",
+    //         );
+    //         return;
+    //     }
+
+    //     const token = localStorage.getItem("token");
+    //     if (!token) return;
+
+    //     axios
+    //         .put(
+    //             `/api/cotizaciones/activarfacturacion/${cid}`,
+    //             { estado: estadoDestino },
+    //             { headers: { Authorization: `Bearer ${token}` } },
+    //         )
+    //         .then((response) => {
+    //             alertify.success(response.data.message);
+    //             fetchCotizaciones(
+    //                 fechaInicio,
+    //                 fechaFin,
+    //                 estadoFiltro,
+    //                 filtro.trim(),
+    //             );
+    //         })
+    //         .catch(() => {
+    //             alertify.error("Ocurrió un error al actualizar la cotización.");
+    //         });
+    // };
+
+    const handleFacturar = async (estadoDestino) => {
         const cotizacion = registroSeleccionado;
+
         if (!cotizacion?.idcotizacion) {
             alertify.alert(
                 "Error",
@@ -424,54 +484,70 @@ function ListaCotizaciones() {
             );
             return;
         }
+
         const cid = cotizacion.idcotizacion;
-
-        if (
-            Number(cotizacion.total_general) === 0 &&
-            Number(cotizacion.estado) > 3
-        ) {
-            alertify.alert(
-                "TOTAL EN CERO",
-                "No se puede enviar a pre-facturación una cotización con total igual a 0.00.",
-            );
-            return;
-        }
-        if (Number(cotizacion.estado) === 5) {
-            alertify.alert(
-                "PRE-FACTURACIÓN",
-                "El registro ya está en FACTURACIÓN, no se puede volver a enviar.",
-            );
-            return;
-        }
-        if (Number(cotizacion.estado) > 5) {
-            alertify.alert(
-                "FACTURACIÓN",
-                "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar.",
-            );
-            return;
-        }
-
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        axios
-            .put(
+        try {
+            // 1. Obtener detalle
+            const response = await axios.get(
+                `/api/cotizaciones/detalle/${cid}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                },
+            );
+
+            const detalle = response.data;
+
+            // 2. VALIDACIÓN CLAVE
+            const existeItemEnCero = detalle.some(
+                (item) => Number(item.total) === 0,
+            );
+
+            if (estadoDestino === 4 && existeItemEnCero) {
+                alertify.alert(
+                    "ERROR DE VALIDACIÓN",
+                    "No se puede enviar a pre-facturación porque existen ítems con total en 0.",
+                );
+                return;
+            }
+
+            // 3. VALIDACIONES EXISTENTES (déjalas)
+            if (Number(cotizacion.estado) === 5) {
+                alertify.alert(
+                    "PRE-FACTURACIÓN",
+                    "El registro ya está en FACTURACIÓN, no se puede volver a enviar.",
+                );
+                return;
+            }
+
+            if (Number(cotizacion.estado) > 5) {
+                alertify.alert(
+                    "FACTURACIÓN",
+                    "El registro ya pasó la etapa de FACTURACIÓN.",
+                );
+                return;
+            }
+
+            // 🔴 4. CONTINUAR
+            await axios.put(
                 `/api/cotizaciones/activarfacturacion/${cid}`,
                 { estado: estadoDestino },
                 { headers: { Authorization: `Bearer ${token}` } },
-            )
-            .then((response) => {
-                alertify.success(response.data.message);
-                fetchCotizaciones(
-                    fechaInicio,
-                    fechaFin,
-                    estadoFiltro,
-                    filtro.trim(),
-                );
-            })
-            .catch(() => {
-                alertify.error("Ocurrió un error al actualizar la cotización.");
-            });
+            );
+
+            alertify.success("Estado actualizado correctamente");
+
+            fetchCotizaciones(
+                fechaInicio,
+                fechaFin,
+                estadoFiltro,
+                filtro.trim(),
+            );
+        } catch (error) {
+            alertify.error("Error al validar o actualizar la cotización.");
+        }
     };
 
     const abrirModalRechazo = async () => {

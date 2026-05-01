@@ -2,26 +2,41 @@
 
 export const IVA_FACTOR = 1.12;
 
-export function calcularDetalleConIVA({ cantidad, precio_unitario, descuento }) {
-  const cantidadNum = parseFloat(cantidad) || 0;
-  const precioUnitario = parseFloat(precio_unitario) || 0;
-  const descuentoNum = parseFloat(descuento) || 0;
+// export function calcularDetalleConIVA({ cantidad, precio_unitario, descuento }) {
+//   const cantidadNum = parseFloat(cantidad) || 0;
+//   const precioUnitario = parseFloat(precio_unitario) || 0;
+//   const descuentoNum = parseFloat(descuento) || 0;
 
-  const brutoConIva = cantidadNum * precioUnitario;
-  const totalConDescuento = brutoConIva - descuentoNum;
+//   const brutoConIva = cantidadNum * precioUnitario;
+//   const totalConDescuento = brutoConIva - descuentoNum;
 
-  const subtotalSinIva = totalConDescuento / IVA_FACTOR;
-  const impuestoIva = subtotalSinIva * 0.12;
-  const porcentajeAplicado = descuentoNum > 0 ? (descuentoNum / brutoConIva) * 100 : 0;
+//   const subtotalSinIva = totalConDescuento / IVA_FACTOR;
+//   const impuestoIva = subtotalSinIva * 0.12;
+//   const porcentajeAplicado = descuentoNum > 0 ? (descuentoNum / brutoConIva) * 100 : 0;
 
-  return {
-    precio: brutoConIva.toFixed(2),
-    total: totalConDescuento.toFixed(2),
-    impuesto_iva: impuestoIva.toFixed(2),
-    subtotal: subtotalSinIva.toFixed(2),
-    porcentaje_aplicado: porcentajeAplicado.toFixed(2),
-  };
-}
+//   return {
+//     precio: brutoConIva.toFixed(2),
+//     total: totalConDescuento.toFixed(2),
+//     impuesto_iva: impuestoIva.toFixed(2),
+//     subtotal: subtotalSinIva.toFixed(2),
+//     porcentaje_aplicado: porcentajeAplicado.toFixed(2),
+//   };
+// }
+export const calcularDetalleConIVA = ({ cantidad, precio_unitario, descuento }) => {
+    const precio = cantidad * precio_unitario;
+
+    const base = precio - (descuento || 0);
+
+    const subtotal = base / 1.12;
+    const impuesto_iva = base - subtotal;
+
+    return {
+        precio,
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        impuesto_iva: parseFloat(impuesto_iva.toFixed(2)),
+        total: parseFloat(base.toFixed(2)),
+    };
+};
 
 export function calcularCabeceraDesdeTotalConIva(totalConIva, descuentoPorcentaje = 0, descuentoMonto = 0) {
   let descuento_monto = 0;
