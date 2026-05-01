@@ -803,18 +803,18 @@ class MonitorFacturacionController extends Controller
                         'nofactura'            => $noFactura,
                     ]);
 
-                    // ⭐ mover la cotización de 5 → 6 (pero sin “ensuciar” con campos FEL)
+                    //mover la cotización de 5 → 6 (pero sin “ensuciar” con campos FEL)
                     $cotizacion->update(['estado' => 6]);
 
-                    // ⭐ CxC por factura (NO por cotización genérica)
-                    // ⭐ CxC por factura (NO por cotización genérica)
+                    //CxC por factura (NO por cotización genérica)
+                    //CxC por factura (NO por cotización genérica)
                     $cxcoriginal = AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->first();
 
                     if ($cxcoriginal && $cxcoriginal->estado == 0) {
-                        // 🟢 Reactivar (ya estaba anulada)
+                        //Reactivar (ya estaba anulada)
                         $montoOriginal = (float) $cotizacion->total_general;
                         $descuento     = (float) ($cotizacion->descuento_monto ?? 0);
-                        $saldo         = max($montoOriginal - $descuento, 0);
+                        $saldo         = (float) $cotizacion->total;
 
                         $cxcoriginal->update([
                             'idfactura'          => $factura->idfactura,
@@ -838,9 +838,9 @@ class MonitorFacturacionController extends Controller
                         $correlativoCXC->correlativo = $nuevoIdCXC;
                         $correlativoCXC->save();
 
-                        $montoOriginal = (float) $cotizacion->total;
+                        $montoOriginal = (float) $cotizacion->total_general;
                         $descuento     = (float) ($cotizacion->descuento_monto ?? 0);
-                        $saldo         = max($montoOriginal - $descuento, 0);
+                        $saldo         = (float) $cotizacion->total;
 
                         AdmCuentasPorCobrar::create([
                             'idcuentaporcobrar'  => $nuevoIdCXC,

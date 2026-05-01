@@ -44,7 +44,7 @@ axios.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             alertify.error(
-                "Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+                "Su sesión ha expirado. Por favor, inicie sesión nuevamente.",
             );
             // Aquí puedes limpiar token y redirigir si lo deseas
             localStorage.removeItem("token");
@@ -52,12 +52,10 @@ axios.interceptors.response.use(
             window.location.href = "/login"; // o usa navigate("/login") si estás dentro del componente
         }
         return Promise.reject(error);
-    }
+    },
 );
 
 function CotizacionForm() {
-    // const fechaActual = new Date().toISOString().split("T")[0];
-    //const fechaActual = new Date().toLocaleDateString("en-CA");
     const [fechaActual, setFechaActual] = useState("");
     const { id } = useParams();
     const navigate = useNavigate();
@@ -133,11 +131,11 @@ function CotizacionForm() {
                     axios
                         .get(
                             `${import.meta.env.VITE_API_URL}/lista_vendedores`,
-                            { headers }
+                            { headers },
                         )
                         .then((r) => setVendedores(r.data))
                         .catch(() =>
-                            alertify.error("Error cargando vendedores")
+                            alertify.error("Error cargando vendedores"),
                         );
                 }
             })
@@ -223,7 +221,7 @@ function CotizacionForm() {
         ) {
             const nuevosDetalles = aplicarDescuentoAGrilla(
                 detalles,
-                cotizacion.descuento_porcentaje
+                cotizacion.descuento_porcentaje,
             );
             setDetalles(nuevosDetalles);
         }
@@ -324,7 +322,7 @@ function CotizacionForm() {
                                     axios
                                         .get(
                                             `/api/lista_contactos?idcliente=${data.idcliente}`,
-                                            { headers }
+                                            { headers },
                                         )
                                         .then((res) => setContactos(res.data));
                                 } else {
@@ -336,13 +334,13 @@ function CotizacionForm() {
                                 }
 
                                 setModoDescuento(
-                                    data.modo_descuento || "NO APLICA"
+                                    data.modo_descuento || "NO APLICA",
                                 ); // NUEVO
                                 setInputDescuentoPorcentaje(
-                                    data.descuento_porcentaje
+                                    data.descuento_porcentaje,
                                 );
                                 setInputDescuentoMonto(data.descuento_monto);
-                            })
+                            }),
                     );
                 }
 
@@ -414,7 +412,7 @@ function CotizacionForm() {
         ) {
             const nuevosDetalles = aplicarDescuentoAGrilla(
                 detalles,
-                cotizacion.descuento_porcentaje
+                cotizacion.descuento_porcentaje,
             );
             setDetalles(nuevosDetalles);
         }
@@ -427,7 +425,7 @@ function CotizacionForm() {
                 acc +
                 parseFloat(item.precio_unitario || 0) *
                     parseFloat(item.cantidad || 0),
-            0
+            0,
         );
         setCotizacion((prev) => ({
             ...prev,
@@ -463,28 +461,32 @@ function CotizacionForm() {
     useEffect(() => {
         if (!detalles.length) return;
 
-        const totalBruto = detalles.reduce(
-            (acc, item) => acc + item.precio_unitario * item.cantidad,
-            0
+        const subtotal = detalles.reduce(
+            (acc, d) => acc + (parseFloat(d.subtotal) || 0),
+            0,
         );
-
+        const iva = detalles.reduce(
+            (acc, d) => acc + (parseFloat(d.impuesto_iva) || 0),
+            0,
+        );
+        const total = detalles.reduce(
+            (acc, d) => acc + (parseFloat(d.total) || 0),
+            0,
+        );
         const descuento = detalles.reduce(
-            (acc, item) => acc + (parseFloat(item.descuento) || 0),
-            0
+            (acc, d) => acc + (parseFloat(d.descuento) || 0),
+            0,
         );
-
-        const totalConDescuento = totalBruto - descuento;
-        const subtotal = totalConDescuento / IVA_FACTOR;
-        const impuestoIva = totalConDescuento - subtotal;
-        const porcentaje = totalBruto > 0 ? (descuento / totalBruto) * 100 : 0;
 
         setCotizacion((prev) => ({
             ...prev,
-            descuento_monto: parseFloat(descuento.toFixed(2)),
-            descuento_porcentaje: parseFloat(porcentaje.toFixed(2)),
             subtotal: parseFloat(subtotal.toFixed(2)),
-            impuesto_iva: parseFloat(impuestoIva.toFixed(2)),
-            total: parseFloat(totalConDescuento.toFixed(2)),
+            impuesto_iva: parseFloat(iva.toFixed(2)),
+            total:
+                modoDescuento === "NO APLICA"
+                    ? parseFloat(total.toFixed(2))
+                    : prev.total,
+            descuento_monto: parseFloat(descuento.toFixed(2)),
         }));
     }, [detalles]);
 
@@ -594,7 +596,7 @@ function CotizacionForm() {
 
         if (descPorcentaje > 0) {
             descuentoMontoCalc = Math.round(
-                totalConIva * (descPorcentaje / 100)
+                totalConIva * (descPorcentaje / 100),
             );
         } else if (descMonto > 0) {
             descuentoPorcentajeCalc = (descMonto / totalConIva) * 100;
@@ -602,16 +604,16 @@ function CotizacionForm() {
 
         const totalConDescuento = totalConIva - descuentoMontoCalc;
         const subtotalSinIva = parseFloat(
-            (totalConDescuento / IVA_FACTOR).toFixed(2)
+            (totalConDescuento / IVA_FACTOR).toFixed(2),
         );
         const impuestoIva = parseFloat(
-            (totalConDescuento - subtotalSinIva).toFixed(2)
+            (totalConDescuento - subtotalSinIva).toFixed(2),
         );
         const totalFinal = totalConDescuento;
 
         return {
             descuento_porcentaje: parseFloat(
-                descuentoPorcentajeCalc.toFixed(2)
+                descuentoPorcentajeCalc.toFixed(2),
             ),
             descuento_monto: parseFloat(descuentoMontoCalc.toFixed(2)),
             subtotal: subtotalSinIva,
@@ -629,6 +631,14 @@ function CotizacionForm() {
         const calc = calcularCabecera(totalBruto, porcentaje, 0);
         const nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
 
+        const recalculados = nuevosDetalles.map((d) => {
+            return calcularDetalleConIVA({
+                cantidad: d.cantidad,
+                precio_unitario: d.precio_unitario,
+                descuento: d.descuento,
+            });
+        });
+
         setDetalles(nuevosDetalles);
         setCotizacion((prev) => ({
             ...prev,
@@ -642,50 +652,101 @@ function CotizacionForm() {
 
     const handleDescuentoMontoChange = (event) => {
         const monto = parseFloat(event.target.value || 0);
+
         setModoDescuento("MONTO");
+        setInputDescuentoMonto(monto);
 
         const totalBruto = detalles.reduce(
-            (acc, item) => acc + item.precio_unitario * item.cantidad,
-            0
+            (acc, item) =>
+                acc +
+                (parseFloat(item.precio_unitario) || 0) *
+                    (parseFloat(item.cantidad) || 0),
+            0,
         );
+
+        if (totalBruto <= 0) {
+            alertify.error("No hay total válido para aplicar descuento.");
+            return;
+        }
+
+        if (monto > totalBruto) {
+            alertify.error("El descuento no puede ser mayor al total general.");
+            return;
+        }
+
         const porcentaje = (monto / totalBruto) * 100;
 
         let nuevosDetalles = aplicarDescuentoAGrilla(detalles, porcentaje);
 
+        // Ajustar diferencia por redondeo
         const descuentoAplicado = nuevosDetalles.reduce(
-            (acc, item) => acc + item.descuento,
-            0
+            (acc, item) => acc + (parseFloat(item.descuento) || 0),
+            0,
         );
-        const diferencia = monto - descuentoAplicado;
 
-        if (Math.abs(diferencia) > 0.01 && nuevosDetalles.length > 0) {
+        const diferencia = parseFloat((monto - descuentoAplicado).toFixed(2));
+
+        if (Math.abs(diferencia) > 0 && nuevosDetalles.length > 0) {
             const idx = nuevosDetalles.length - 1;
-            nuevosDetalles[idx].descuento += diferencia;
-            const totalConDescuento =
-                nuevosDetalles[idx].precio - nuevosDetalles[idx].descuento;
-            const subtotal = totalConDescuento / IVA_FACTOR;
-            const iva = totalConDescuento - subtotal;
-
-            nuevosDetalles[idx].subtotal = parseFloat(subtotal.toFixed(2));
-            nuevosDetalles[idx].impuesto_iva = parseFloat(iva.toFixed(2));
+            nuevosDetalles[idx].descuento =
+                (parseFloat(nuevosDetalles[idx].descuento) || 0) + diferencia;
         }
 
-        const totalConDescuento = nuevosDetalles.reduce(
-            (acc, item) => acc + (item.precio - item.descuento),
-            0
+        // 🔥 AQUÍ ESTABA EL PROBLEMA:
+        // recalcular precio, subtotal, IVA y total EN TODOS LOS DETALLES
+        nuevosDetalles = nuevosDetalles.map((item) => {
+            const cantidad = parseFloat(item.cantidad) || 0;
+            const precioUnitario = parseFloat(item.precio_unitario) || 0;
+            const precio = cantidad * precioUnitario;
+            const descuento = parseFloat(item.descuento) || 0;
+
+            const totalLinea = precio - descuento;
+            const subtotal = totalLinea / IVA_FACTOR;
+            const impuestoIva = totalLinea - subtotal;
+
+            return {
+                ...item,
+                precio: parseFloat(precio.toFixed(2)),
+                descuento: parseFloat(descuento.toFixed(2)),
+                subtotal: parseFloat(subtotal.toFixed(2)),
+                impuesto_iva: parseFloat(impuestoIva.toFixed(2)),
+                total: parseFloat(totalLinea.toFixed(2)),
+                porcentaje_aplicado: parseFloat(porcentaje.toFixed(2)),
+            };
+        });
+
+        const subtotal = nuevosDetalles.reduce(
+            (acc, item) => acc + (parseFloat(item.subtotal) || 0),
+            0,
         );
-        const subtotalSinIva = totalConDescuento / IVA_FACTOR;
-        const impuestoIva = totalConDescuento - subtotalSinIva;
+
+        const iva = nuevosDetalles.reduce(
+            (acc, item) => acc + (parseFloat(item.impuesto_iva) || 0),
+            0,
+        );
+
+        const totalConDescuento = nuevosDetalles.reduce(
+            (acc, item) => acc + (parseFloat(item.total) || 0),
+            0,
+        );
+
+        const descuentoFinal = nuevosDetalles.reduce(
+            (acc, item) => acc + (parseFloat(item.descuento) || 0),
+            0,
+        );
 
         setDetalles(nuevosDetalles);
-        setCotizacion({
-            ...cotizacion,
-            descuento_monto: parseFloat(monto.toFixed(2)),
+
+        setCotizacion((prev) => ({
+            ...prev,
+            total_general: parseFloat(totalBruto.toFixed(2)),
+            descuento_monto: parseFloat(descuentoFinal.toFixed(2)),
             descuento_porcentaje: parseFloat(porcentaje.toFixed(2)),
+            subtotal: parseFloat(subtotal.toFixed(2)),
+            impuesto_iva: parseFloat(iva.toFixed(2)),
             total: parseFloat(totalConDescuento.toFixed(2)),
-            subtotal: parseFloat(subtotalSinIva.toFixed(2)),
-            impuesto_iva: parseFloat(impuestoIva.toFixed(2)),
-        });
+            modo_descuento: "MONTO",
+        }));
     };
 
     const handleEliminarDetalle = (index) => {
@@ -755,7 +816,7 @@ function CotizacionForm() {
         // ✔️ VALIDAR ANTES DE HACER FORM DATA
         const errorValidacion = validarCotizacion(
             cotizacionActualizada,
-            detalles
+            detalles,
         );
 
         if (errorValidacion) {
@@ -771,20 +832,20 @@ function CotizacionForm() {
         formData.append("idtipopago", cotizacionActualizada.idtipopago);
         formData.append(
             "fecha_cotizacion",
-            cotizacionActualizada.fecha_cotizacion
+            cotizacionActualizada.fecha_cotizacion,
         );
         formData.append("trabajo", cotizacionActualizada.trabajo);
         formData.append(
             "observaciones_costeo",
-            cotizacionActualizada.observaciones_costeo
+            cotizacionActualizada.observaciones_costeo,
         );
         formData.append(
             "observaciones_cliente",
-            cotizacionActualizada.observaciones_cliente
+            cotizacionActualizada.observaciones_cliente,
         );
         formData.append(
             "direccion_entrega",
-            cotizacionActualizada.direccion_entrega
+            cotizacionActualizada.direccion_entrega,
         );
 
         // COSTEAR
@@ -794,13 +855,13 @@ function CotizacionForm() {
         formData.append("estado", "1");
         formData.append(
             "idcotizacionoriginal",
-            cotizacionActualizada.idcotizacionoriginal
+            cotizacionActualizada.idcotizacionoriginal,
         );
         formData.append("version", cotizacionActualizada.version);
         formData.append("total_general", cotizacionActualizada.total_general);
         formData.append(
             "tipo_facturacion",
-            cotizacionActualizada.tipo_facturacion
+            cotizacionActualizada.tipo_facturacion,
         );
 
         if (esComodin && vendedorAsignado) {
@@ -810,11 +871,11 @@ function CotizacionForm() {
         formData.append("subtotal", cotizacionActualizada.subtotal);
         formData.append(
             "descuento_porcentaje",
-            cotizacionActualizada.descuento_porcentaje
+            cotizacionActualizada.descuento_porcentaje,
         );
         formData.append(
             "descuento_monto",
-            cotizacionActualizada.descuento_monto
+            cotizacionActualizada.descuento_monto,
         );
         formData.append("impuesto_iva", cotizacionActualizada.impuesto_iva);
         formData.append("total", cotizacionActualizada.total);
@@ -824,43 +885,43 @@ function CotizacionForm() {
         detalles.forEach((detalle, index) => {
             formData.append(
                 `detalles[${index}][unidad_medida]`,
-                detalle.unidad_medida
+                detalle.unidad_medida,
             );
             formData.append(
                 `detalles[${index}][descripcion]`,
-                detalle.descripcion
+                detalle.descripcion,
             );
             formData.append(
                 `detalles[${index}][cantidad]`,
-                detalle.cantidad || 0
+                detalle.cantidad || 0,
             );
             formData.append(`detalles[${index}][ancho]`, detalle.ancho || 0);
             formData.append(`detalles[${index}][alto]`, detalle.alto || 0);
             formData.append(`detalles[${index}][m2]`, detalle.m2 || 0);
             formData.append(
                 `detalles[${index}][profundidad]`,
-                detalle.profundidad || 0
+                detalle.profundidad || 0,
             );
             formData.append(
                 `detalles[${index}][precio_unitario]`,
-                detalle.precio_unitario || 0
+                detalle.precio_unitario || 0,
             );
             formData.append(`detalles[${index}][precio]`, detalle.precio || 0);
             formData.append(
                 `detalles[${index}][descuento]`,
-                parseFloat(detalle.descuento) || 0
+                parseFloat(detalle.descuento) || 0,
             );
             formData.append(
                 `detalles[${index}][porcentaje_aplicado]`,
-                detalle.porcentaje_aplicado || 0
+                detalle.porcentaje_aplicado || 0,
             );
             formData.append(
                 `detalles[${index}][impuesto_iva]`,
-                detalle.impuesto_iva
+                detalle.impuesto_iva,
             );
             formData.append(
                 `detalles[${index}][subtotal]`,
-                detalle.subtotal || 0
+                detalle.subtotal || 0,
             );
             formData.append(`detalles[${index}][total]`, detalle.total || 0);
 
@@ -869,12 +930,12 @@ function CotizacionForm() {
                 formData.append(
                     `detalles[${index}][imagen]`,
                     detalle.imagen,
-                    detalle.imagen.name || "imagen.png"
+                    detalle.imagen.name || "imagen.png",
                 );
             } else if (detalle.imagen_ruta) {
                 formData.append(
                     `detalles[${index}][imagen_ruta]`,
-                    detalle.imagen_ruta
+                    detalle.imagen_ruta,
                 );
             }
         });
@@ -890,7 +951,7 @@ function CotizacionForm() {
                 idemKeyRef.current = null;
                 await generarPDFPorId(
                     id,
-                    cotizacionActualizada.fecha_cotizacion
+                    cotizacionActualizada.fecha_cotizacion,
                 );
             } else {
                 res = await axios.post("/api/cotizaciones", formData, {
@@ -900,7 +961,7 @@ function CotizacionForm() {
                 idemKeyRef.current = null;
                 await generarPDFPorId(
                     nuevoId,
-                    cotizacionActualizada.fecha_cotizacion
+                    cotizacionActualizada.fecha_cotizacion,
                 );
             }
 
@@ -973,7 +1034,7 @@ function CotizacionForm() {
                 }
             }
         },
-        [setImagenFromFile]
+        [setImagenFromFile],
     );
 
     const handleDragOverImage = (e) => {
@@ -987,7 +1048,7 @@ function CotizacionForm() {
             const file = e.dataTransfer?.files?.[0];
             if (file) setImagenFromFile(file);
         },
-        [setImagenFromFile]
+        [setImagenFromFile],
     );
 
     //Agregar los datos del detalle al DataTable
@@ -1102,7 +1163,7 @@ function CotizacionForm() {
     const handleAgregarContacto = () => {
         if (!cotizacion.idcliente || cotizacion.idcliente === "") {
             alertify.error(
-                "Debe seleccionar un cliente antes de agregar un contacto."
+                "Debe seleccionar un cliente antes de agregar un contacto.",
             );
             return;
         }
@@ -1121,8 +1182,8 @@ function CotizacionForm() {
             () => {
                 setDetalles(
                     detalles.filter(
-                        (detalle) => detalle !== detalleSeleccionado
-                    )
+                        (detalle) => detalle !== detalleSeleccionado,
+                    ),
                 );
                 setDetalleSeleccionado(null);
                 setDetalle({
@@ -1143,7 +1204,7 @@ function CotizacionForm() {
             },
             () => {
                 alertify.error("Cancelado");
-            }
+            },
         );
     };
 
@@ -1201,26 +1262,6 @@ function CotizacionForm() {
             header: "Cant",
             size: 50,
         },
-        // {
-        //     accessorKey: "ancho",
-        //     header: "Ancho",
-        //     size: 50,
-        // },
-        // {
-        //     accessorKey: "alto",
-        //     header: "Alto",
-        //     size: 50,
-        // },
-        // {
-        //     accessorKey: "m2",
-        //     header: "M2",
-        //     size: 60,
-        // },
-        // {
-        //     accessorKey: "profundidad",
-        //     header: "Prof.",
-        //     size: 60,
-        // },
         {
             accessorKey: "precio_unitario",
             header: "Precio",
@@ -1245,7 +1286,7 @@ function CotizacionForm() {
                     {detalles
                         .reduce(
                             (acc, item) => acc + (parseFloat(item.precio) || 0),
-                            0
+                            0,
                         )
                         .toLocaleString("es-GT", {
                             style: "currency",
@@ -1551,7 +1592,7 @@ function CotizacionForm() {
                         const key = c.accessorKey;
                         return key ? (d[key] != null ? d[key] : "") : "";
                     })
-                    .join(",")
+                    .join(","),
             )
             .join("\n");
 
@@ -1611,7 +1652,7 @@ function CotizacionForm() {
                                             value={vendedorAsignado || ""}
                                             onChange={(e) =>
                                                 setVendedorAsignado(
-                                                    e.target.value
+                                                    e.target.value,
                                                 )
                                             }
                                         >
@@ -1641,7 +1682,7 @@ function CotizacionForm() {
                                         value={clienteOptions.find(
                                             (option) =>
                                                 option.value ===
-                                                cotizacion.idcliente
+                                                cotizacion.idcliente,
                                         )}
                                         onChange={handleClienteChange}
                                         options={clienteOptions}
@@ -2134,7 +2175,7 @@ function CotizacionForm() {
                                                     name="total_general"
                                                     value={parseFloat(
                                                         cotizacion.total_general ||
-                                                            0
+                                                            0,
                                                     ).toLocaleString("es-GT", {
                                                         style: "currency",
                                                         currency: "GTQ",
@@ -2154,7 +2195,7 @@ function CotizacionForm() {
                                                     value={modoDescuento}
                                                     onChange={(e) =>
                                                         setModoDescuento(
-                                                            e.target.value
+                                                            e.target.value,
                                                         )
                                                     }
                                                 >
@@ -2183,7 +2224,7 @@ function CotizacionForm() {
                                                             onChange={(e) =>
                                                                 setInputDescuentoPorcentaje(
                                                                     e.target
-                                                                        .value
+                                                                        .value,
                                                                 )
                                                             }
                                                             onBlur={
@@ -2208,7 +2249,7 @@ function CotizacionForm() {
                                                             onChange={(e) =>
                                                                 setInputDescuentoMonto(
                                                                     e.target
-                                                                        .value
+                                                                        .value,
                                                                 )
                                                             }
                                                             onBlur={
@@ -2240,7 +2281,8 @@ function CotizacionForm() {
                                                     type="text"
                                                     name="subtotal"
                                                     value={parseFloat(
-                                                        cotizacion.subtotal || 0
+                                                        cotizacion.subtotal ||
+                                                            0,
                                                     ).toFixed(2)}
                                                     readOnly
                                                     className="form-control form-control-sm"
@@ -2255,7 +2297,7 @@ function CotizacionForm() {
                                                     name="impuesto_iva"
                                                     value={parseFloat(
                                                         cotizacion.impuesto_iva ||
-                                                            0
+                                                            0,
                                                     ).toFixed(2)}
                                                     readOnly
                                                     className="form-control form-control-sm"
@@ -2269,13 +2311,13 @@ function CotizacionForm() {
                                                         name="total"
                                                         value={parseFloat(
                                                             cotizacion.total ||
-                                                                0
+                                                                0,
                                                         ).toLocaleString(
                                                             "es-GT",
                                                             {
                                                                 style: "currency",
                                                                 currency: "GTQ",
-                                                            }
+                                                            },
                                                         )}
                                                         readOnly
                                                     />
@@ -2333,8 +2375,8 @@ function CotizacionForm() {
                                     {saving
                                         ? "GUARDANDO…"
                                         : id
-                                        ? "ACTUALIZAR"
-                                        : "GUARDAR"}
+                                          ? "ACTUALIZAR"
+                                          : "GUARDAR"}
                                 </button>
 
                                 <button
@@ -2433,7 +2475,7 @@ function CotizacionForm() {
                                 nuevaLista.sort((a, b) =>
                                     a.tipo.localeCompare(b.tipo, "es", {
                                         sensitivity: "base",
-                                    })
+                                    }),
                                 );
                                 return nuevaLista;
                             });
