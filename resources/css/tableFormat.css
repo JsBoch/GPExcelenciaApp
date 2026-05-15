@@ -136,3 +136,14 @@ tr.selected {
   transform: scale(1.2);
   transition: transform 0.2s ease, color 0.2s ease;
 }
+
+table.dataTable tbody tr.selected {
+    background-color: #dbeafe !important;
+    border-left: 4px solid #2563eb !important;
+}
+
+table.dataTable tbody tr.selected td {
+    background-color: #dbeafe !important;
+    color: #111827 !important;
+    font-weight: 600;
+}

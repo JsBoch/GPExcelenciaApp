@@ -18,6 +18,8 @@ import Header from "./Header";
 import NotaEnvioPDF from "./NotaEnvioPDF";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
+import DetallePedidoVistaModal from "./DetallePedidoVistaModal";
+import PedidoProduccionPDF from "./PedidoProduccionPDF";
 
 DataTable.use(DT);
 
@@ -42,6 +44,8 @@ function PedidosProduccionLista() {
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [detallePedido, setDetallePedido] = useState(null);
+    const [areasPedido, setAreasPedido] = useState([]);
+    const [modalAreasVisible, setModalAreasVisible] = useState(false);
     const [fechaActual, setFechaActual] = useState("");
 
     useEffect(() => {
@@ -323,13 +327,31 @@ function PedidosProduccionLista() {
                 row.classList.add(`estado-${data.estado}`);
             }
 
+            if (
+                registroSeleccionado &&
+                Number(registroSeleccionado.idpedidoproduccion) ===
+                    Number(data.idpedidoproduccion)
+            ) {
+                row.classList.add("selected");
+            }
+
             // Manejo de selección de fila
-            row.onclick = () => {
-                const filas = row.parentNode.querySelectorAll("tr");
-                filas.forEach((r) => r.classList.remove("selected"));
+            row.style.cursor = "pointer";
+
+            row.onclick = null;
+
+            row.addEventListener("click", () => {
+                const tbody = row.closest("tbody");
+
+                if (!tbody) return;
+
+                tbody.querySelectorAll("tr").forEach((r) => {
+                    r.classList.remove("selected");
+                });
+
                 row.classList.add("selected");
                 setRegistroSeleccionado(data);
-            };
+            });
         },
     };
 
@@ -407,6 +429,32 @@ function PedidosProduccionLista() {
         }
     };
 
+    const obtenerAreasPedido = async (id) => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            alertify.error("Token no encontrado");
+            return;
+        }
+
+        try {
+            const response = await axios.get(
+                `/api/pedidosproduccion/${id}/areas`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            setAreasPedido(response.data);
+            setModalAreasVisible(true);
+        } catch (error) {
+            console.error(error);
+            alertify.error("Error al obtener áreas del pedido");
+        }
+    };
+
     const obtenerDetalleCotizacion = async (id) => {
         setLoading(true);
         const token = localStorage.getItem("token");
@@ -435,8 +483,7 @@ function PedidosProduccionLista() {
 
                 setDetallePedido({
                     detalle,
-                    estado: pedidoSeleccionado.estado,
-                    nopedido: pedidoSeleccionado.nopedido,
+                    pedido: pedidoSeleccionado,
                 });
                 setModalVisible(true);
             } catch (error) {
@@ -540,9 +587,9 @@ function PedidosProduccionLista() {
                 >
                     <div style={{ width: "80%", height: "80%" }}>
                         <PDFViewer width="100%" height="100%">
-                            <PedidoPDF
+                            <PedidoProduccionPDF
                                 pedido={pdfData.pedido}
-                                totalEnLetras={pdfData.totalEnLetras}
+                                //totalEnLetras={pdfData.totalEnLetras}
                                 logoSrc="/images/LogoGP.png"
                             />
                         </PDFViewer>
@@ -551,9 +598,9 @@ function PedidosProduccionLista() {
                     <div className="mt-3 d-flex gap-2">
                         <PDFDownloadLink
                             document={
-                                <PedidoPDF
+                                <PedidoProduccionPDF
                                     pedido={pdfData.pedido}
-                                    totalEnLetras={pdfData.totalEnLetras}
+                                    //totalEnLetras={pdfData.totalEnLetras}
                                     logoSrc="/images/LogoGP.png"
                                 />
                             }
@@ -576,19 +623,85 @@ function PedidosProduccionLista() {
             )}
 
             {modalVisible && detallePedido && (
-                <DetallePedidoModal
+                <DetallePedidoVistaModal
                     detalle={detallePedido.detalle}
-                    estadoPedido={detallePedido.estado}
-                    nopedido={detallePedido.nopedido}
+                    pedido={detallePedido.pedido}
                     onClose={() => {
                         setModalVisible(false);
                         setDetallePedido(null);
                     }}
-                    idpedidoproduccion={
-                        detallePedido.detalle[0]?.idpedidoproduccion
-                    } // Pasa el ID del pedido al modal
                 />
             )}
+
+            {modalAreasVisible && (
+                <>
+                    <div className="modal fade show d-block" tabIndex="-1">
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        Áreas asignadas
+                                    </h5>
+
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() =>
+                                            setModalAreasVisible(false)
+                                        }
+                                    />
+                                </div>
+
+                                <div className="modal-body">
+                                    {areasPedido.length === 0 ? (
+                                        <div className="alert alert-warning">
+                                            No hay áreas asignadas.
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="mb-3">
+                                                <strong>
+                                                    Fecha programada:
+                                                </strong>{" "}
+                                                {
+                                                    areasPedido[0]
+                                                        ?.fecha_programada
+                                                }
+                                            </div>
+
+                                            <ul className="list-group">
+                                                {areasPedido.map((area) => (
+                                                    <li
+                                                        key={area.id}
+                                                        className="list-group-item"
+                                                    >
+                                                        {area.orden}.{" "}
+                                                        {area.nombre}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() =>
+                                            setModalAreasVisible(false)
+                                        }
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="modal-backdrop fade show"></div>
+                </>
+            )}
+
             <div className="card">
                 {/* <div className="card-header bg-primary text-white">
                     <Header title="Lista de Cotizaciones" />
@@ -712,6 +825,23 @@ function PedidosProduccionLista() {
                             >
                                 <i className="fas fa-file-pdf"></i> PDF
                             </button>
+
+                            <button
+                                className="btn btn-warning btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
+                                    Number(
+                                        registroSeleccionado?.total_areas,
+                                    ) === 0
+                                }
+                                onClick={() =>
+                                    obtenerAreasPedido(
+                                        registroSeleccionado?.idpedidoproduccion,
+                                    )
+                                }
+                            >
+                                <i className="fas fa-project-diagram"></i> Áreas
+                            </button>
                         </div>
 
                         {/* Visible solo en pantallas pequeñas */}
@@ -776,6 +906,18 @@ function PedidosProduccionLista() {
                                         }
                                     >
                                         PDF
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() =>
+                                            obtenerAreasPedido(
+                                                registroSeleccionado?.idpedidoproduccion,
+                                            )
+                                        }
+                                    >
+                                        Áreas
                                     </button>
                                 </li>
                                 <li>

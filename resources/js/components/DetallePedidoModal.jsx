@@ -129,68 +129,7 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
         }
     };
 
-    // const columns = useMemo(
-    //     () => [
-    //         {
-    //             accessorKey: "cantidad",
-    //             header: "Cantidad",
-    //         },
-    //         {
-    //             accessorKey: "material",
-    //             header: "Material",
-    //         },
-    //         {
-    //             accessorKey: "caras",
-    //             header: "Caras",
-    //         },
-    //         {
-    //             accessorKey: "ancho",
-    //             header: "Ancho",
-    //         },
-    //         {
-    //             accessorKey: "alto",
-    //             header: "Alto",
-    //         },
-    //         {
-    //             accessorKey: "unidad_medida",
-    //             header: "Unidad de Medida",
-    //         },
-    //         {
-    //             accessorKey: "maquina",
-    //             header: "Maquina",
-    //         },
-    //         {
-    //             accessorKey: "version",
-    //             header: "Versión",
-    //         },
-    //         {
-    //             accessorKey: "acabados",
-    //             header: "Acabados",
-    //         },
-    //         {
-    //             id: "imagen_ruta", // <- obligatorio si header no es string
-    //             header: "Imagen",
-    //             accessorKey: "imagen_ruta",
-    //             Cell: ({ row }) => (
-    //                 <button
-    //                     className="btn btn-outline-info btn-sm"
-    //                     onClick={() =>
-    //                         handleViewImage(row.original.imagen_ruta)
-    //                     }
-    //                     disabled={!row.original.imagen_ruta}
-    //                     title={
-    //                         row.original.imagen_ruta
-    //                             ? "Ver imagen"
-    //                             : "Sin imagen"
-    //                     }
-    //                 >
-    //                     <i className="fas fa-image"></i>
-    //                 </button>
-    //             ),
-    //         },
-    //     ],
-    //     [detalleItems]
-    // );
+    
     const columns = useMemo(
         () => [
             { accessorKey: "cantidad", header: "Cantidad" },

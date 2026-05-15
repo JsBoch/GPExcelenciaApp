@@ -217,6 +217,10 @@ function Home() {
                     to = `/monitor_produccion`;
                     text = 'Monitor de producción';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Registro maquinas_produccion' && opcion.accion === 'registro') {
+                    to = `/maquinas_produccion`;
+                    text = 'Máquinas de producción';
+                    icon = <FiSearch />;
                 }
 
                 if (to && text) {
@@ -241,6 +245,7 @@ function Home() {
                 else if (tipo === 'recibos') groupIcon = <FiFileText />;
                 else if (tipo === 'areas') groupIcon = <FiBox />;
                 else if (tipo === 'monitor_produccion') groupIcon = <FiBox />;
+                else if (tipo === 'maquinas_produccion') groupIcon = <FiBox />;
                 else groupIcon = <FiBox />; // Icono por defecto si no se encuentra el tipo
 
                 menuStructure.push({

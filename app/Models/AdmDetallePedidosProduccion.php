@@ -11,6 +11,8 @@ class AdmDetallePedidosProduccion extends Model
 
     protected $table = 'adm_detalle_pedidosproduccion';
     protected $primaryKey = 'iddetallepedidoproduccion';
+    public $incrementing = false;
+    protected $keyType = 'int';
     public $timestamps = false;
     protected $fillable = [
         'iddetallepedidoproduccion',

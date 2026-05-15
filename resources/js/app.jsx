@@ -47,6 +47,7 @@ import Layout from './components/Layout'; // Nuevo layout
 //import Header from './components/Header'; // Por si acaso
 import '../css/generalesForm.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import MaquinasProduccion from "./components/pedidosproduccion/maquinas/MaquinasProduccion";
 
 function App() {
     // Función para verificar si el usuario está autenticado
@@ -111,6 +112,7 @@ function App() {
                     <Route path="/area_trabajo/lista" element={<ProtectedRoute><ListaAreaTrabajo /></ProtectedRoute>} />
 
                     <Route path="/monitor_produccion" element={<ProtectedRoute><MonitorProduccion /></ProtectedRoute>} />
+                    <Route path="/maquinas_produccion" element={<ProtectedRoute><MaquinasProduccion /></ProtectedRoute>} />
                 {/* </Route> */}
             </Routes>
         </BrowserRouter>
