@@ -23,6 +23,7 @@ use App\Http\Controllers\ReportesContabilidadController;
 use App\Http\Controllers\ClienteContactoController;
 use App\Http\Controllers\ReportesCXCController;
 use App\Http\Controllers\Api\InfileController;
+use App\Http\Controllers\MaquinasProduccionController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AreaTrabajoController;
 use App\Http\Controllers\PlanificacionDetalleProduccionController;
@@ -201,6 +202,7 @@ Route::middleware('auth:sanctum')->group(function () {
 //PEDIDOS A PRODUCCIÓN
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);
+    Route::get('/pedidosproduccion/cotizacion/{numero}', [PedidosProduccionController::class, 'buscarCotizacionPorNumero']);
     Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
     Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
     Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
@@ -210,6 +212,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
     Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
     Route::get('/pedidosproduccion/export/excel', [PedidosProduccionController::class, 'exportExcel']);
+    Route::get('/pedidosproduccion/detalle-cotizacion/{idcotizacion}', [PedidosProduccionController::class, 'detalleCotizacion']);
+    Route::get('/pedidosproduccion/{id}/areas',[PedidosProduccionController::class, 'obtenerAreasPedido']);    
 });
 
 // CUENTAS POR COBRAR
@@ -310,4 +314,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/planificacion/pedidos/{fecha}', [PlanificacionDetalleProduccionController::class, 'pedidosPendientes']);
     Route::get('/planificacion/pedidos/{fecha}/{idpedido}', [PlanificacionDetalleProduccionController::class, 'detallesPendientesPorPedido']);
+});
+
+//MAQUINAS DE PEDIDO A PRODUCCIÓN
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/maquinasproduccion', [MaquinasProduccionController::class, 'index']);
+    Route::post('/maquinasproduccion', [MaquinasProduccionController::class, 'store']);
+    Route::put('/maquinasproduccion/{id}', [MaquinasProduccionController::class, 'update']);
+    Route::delete('/maquinasproduccion/{id}', [MaquinasProduccionController::class, 'destroy']);
 });

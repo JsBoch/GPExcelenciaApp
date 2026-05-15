@@ -1,0 +1,317 @@
+.pp-container {
+    padding: 18px;
+}
+
+.pp-card {
+    border: none !important;
+    border-radius: 18px !important;
+    background: #ffffff;
+    box-shadow:
+        0 4px 12px rgba(0,0,0,0.04),
+        0 12px 32px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+
+.pp-card-body {
+    padding: 28px !important;
+}
+
+/* =========================================
+   TITULOS
+========================================= */
+
+.pp-section-title {
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pp-section-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+/* =========================================
+   INPUTS
+========================================= */
+
+.pp-input,
+.pp-select,
+.pp-textarea,
+.react-select__control {
+    border-radius: 12px !important;
+    border: 1px solid #d1d5db !important;
+    min-height: 44px !important;
+    transition: all 0.2s ease;
+    font-size: 0.92rem;
+}
+
+.pp-input:focus,
+.pp-select:focus,
+.pp-textarea:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10) !important;
+}
+
+/* =========================================
+   BOTON COTIZACIONES
+========================================= */
+
+.pp-btn-cotizacion {
+    height: 44px;
+    border-radius: 12px !important;
+    border: none !important;
+
+    background: linear-gradient(
+        135deg,
+        #2563eb,
+        #1d4ed8
+    );
+
+    color: white !important;
+    font-weight: 600;
+    transition: all 0.25s ease;
+
+    box-shadow:
+        0 6px 18px rgba(37,99,235,0.25);
+}
+
+.pp-btn-cotizacion:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 24px rgba(37,99,235,0.35);
+
+    background: linear-gradient(
+        135deg,
+        #1d4ed8,
+        #1e40af
+    );
+    color:white !important;
+}
+
+/* =========================================
+   BOTONES ACCIONES
+========================================= */
+
+.pp-actions-container {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid #e5e7eb;
+}
+
+.pp-btn {
+    height: 48px;
+    border-radius: 14px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    transition: all 0.25s ease;
+    letter-spacing: 0.2px;
+}
+
+.pp-btn-save {
+    background: linear-gradient(
+        135deg,
+        #558CED,
+        #6A83AD
+    ) !important;
+
+    color: white !important;
+
+    box-shadow:
+        0 8px 18px rgba(16,185,129,0.25);
+}
+
+.pp-btn-save:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 28px rgba(16,185,129,0.35);
+}
+
+.pp-btn-clean {
+    background: linear-gradient(
+        135deg,
+        #93EAED,
+        #97ADAD
+    ) !important;
+
+    color: white !important;
+
+    box-shadow:
+        0 8px 18px rgba(245,158,11,0.25);
+}
+
+.pp-btn-clean:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 28px rgba(245,158,11,0.35);
+}
+
+.pp-btn-search {
+    background: linear-gradient(
+        135deg,
+       #10b981,
+        #059669
+    ) !important;
+
+    color: white !important;
+
+    box-shadow:
+        0 8px 18px rgba(99,102,241,0.25);
+}
+
+.pp-btn-search:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 28px rgba(99,102,241,0.35);
+}
+
+/* =========================================
+   TABLA
+========================================= */
+
+.pp-table-wrapper {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.pp-table-wrapper table {
+    margin-bottom: 0 !important;
+}
+
+.pp-table-wrapper thead th {
+    background: #1f2937 !important;
+    color: white !important;
+    border: none !important;
+    font-size: 0.82rem;
+    letter-spacing: 0.3px;
+    padding: 14px 10px !important;
+}
+
+.pp-table-wrapper tbody td {
+    vertical-align: middle;
+    padding: 10px !important;
+}
+
+.pp-table-wrapper tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* =========================================
+   LABELS
+========================================= */
+
+.pp-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+/* =========================================
+   LINKS
+========================================= */
+
+.pp-link {
+    color: #2563eb;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pp-link:hover {
+    color: #1d4ed8;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 768px) {
+
+    .pp-card-body {
+        padding: 18px !important;
+    }
+
+    .pp-btn {
+        width: 100%;
+    }
+
+    .pp-actions-container .d-flex {
+        flex-direction: column;
+    }
+}
+
+.pp-btn-add-contact {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: linear-gradient(
+        135deg,
+        #10b981,
+        #059669
+    );
+
+    color: white;
+
+    font-size: 1.4rem;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    transition: all 0.25s ease;
+
+    box-shadow:
+        0 6px 18px rgba(16,185,129,0.25);
+}
+
+.pp-btn-add-contact:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 22px rgba(16,185,129,0.35);
+
+    background: linear-gradient(
+        135deg,
+        #059669,
+        #047857
+    );
+}
+
+.pp-btn-cotizacion,
+.pp-btn-cotizacion:hover,
+.pp-btn-cotizacion:focus,
+.pp-btn-cotizacion:active {
+    color: white !important;
+}
+
+.react-select__control {
+    min-height: 32px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+}
+
+.react-select__multi-value {
+    font-size: 11px !important;
+}
+
+.react-select__menu {
+    z-index: 9999 !important;
+}

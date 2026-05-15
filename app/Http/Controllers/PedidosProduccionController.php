@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Log;
 use NumberToWords\NumberToWords;
 use App\Exports\PedidosProduccionExcel;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\AdmPedidoProduccionArea;
+use App\Exports\PedidoProduccionFormatoExcel;
 
 
 class PedidosProduccionController extends Controller
@@ -31,6 +33,7 @@ class PedidosProduccionController extends Controller
             ->select(
                 'c.idpedidoproduccion',
                 DB::raw('CONCAT(\'P-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+                'c.nocotizacion',
                 'c.nopedido as nopedido_num',
                 'c.fecha_pedido',
                 //'\'NA\' as tipo_pago',
@@ -61,7 +64,15 @@ class PedidosProduccionController extends Controller
                     WHEN c.estado = 8 THEN 'RECHAZADA'
                     ELSE 'DESCONOCIDO'
                 END as estado_texto"),
-                'e.nombre as asesor'
+                'e.nombre as asesor',
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_areas pa
+                    WHERE pa.idpedidoproduccion = c.idpedidoproduccion
+                    AND pa.estado = 1
+                ) as total_areas
+                "),
             )
             ->from('adm_pedidos_produccion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
@@ -94,6 +105,10 @@ class PedidosProduccionController extends Controller
 
     public function store(Request $request)
     {
+        // Log::info('DETALLES RECIBIDOS', [
+        //     'detalles' => $request->input('detalles')
+        // ]);
+
         $request->validate([
             'detalles' => 'required|array|min:1',
 
@@ -104,19 +119,20 @@ class PedidosProduccionController extends Controller
             'detalles.*.alto' => 'nullable|numeric',
             'detalles.*.unidad_medida' => 'nullable|string',
 
-            'detalles.*.galaxy_plus' => 'boolean',
-            'detalles.*.uv' => 'boolean',
-            'detalles.*.cnc' => 'boolean',
-            'detalles.*.laser' => 'boolean',
-            'detalles.*.summa' => 'boolean',
+            'detalles.*.maquinas' => 'nullable|array',
+            'detalles.*.maquinas.*' => 'integer',
 
             'detalles.*.version' => 'nullable|string',
             'detalles.*.acabados' => 'nullable|string',
             'detalles.*.medida_real' => 'nullable|string',
+            'areas' => 'nullable|array',
+            'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
+            'fecha_programada' => 'nullable|date',
         ]);
 
 
         try {
+
             DB::beginTransaction();
 
             $correlativo = Correlativo::find('adm_pedidos_produccion');
@@ -128,13 +144,6 @@ class PedidosProduccionController extends Controller
             $idPedidoProduccion = $correlativo->correlativo + $correlativo->incremento;
             $correlativo->correlativo = $idPedidoProduccion;
             $correlativo->save();
-
-            // $nocotizacion = $request->input('nocotizacion', $idPedidoProduccion); // Si no se envía nocotizacion, se usa el ID generado
-
-            //$datosPedido = $request->all(); // $datosPedido['idpedidoproduccion'] = $idPedidoProduccion;
-            // //$datosPedido['nocotizacion'] = $nocotizacion;
-            // $datosPedido['usuario_registro'] = auth()->user()->name;
-            // $datosPedido['fecha_registro'] = date('Y-m-d H:i:s');
 
             //$nocotizacion = $request->input('nocotizacion');
             // Obtener el nopedido máximo para la cotización actual
@@ -148,6 +157,8 @@ class PedidosProduccionController extends Controller
 
             $datosPedido = [
                 'idpedidoproduccion' => $idPedidoProduccion,
+                'idcotizacion' => $request->idcotizacion ?? 0,
+                'nocotizacion' => $request->nocotizacion ?? null,
                 'idcliente' => $request->idcliente,
                 'idcontacto' => $request->idcontacto ?? 0,
 
@@ -164,13 +175,37 @@ class PedidosProduccionController extends Controller
                 'idusuario' => auth()->user()->id,
                 'usuario_registro' => auth()->user()->name,
                 'fecha_registro' => now(),
+
             ];
 
+            // Log::info('Datos pedido producción a guardar', [
+            //     'datosPedido' => $datosPedido
+            // ]);
 
             $datosPedido['nopedido'] = $nopedido;
             $datosPedido['idusuario'] = auth()->user()->id;
 
             $pedidoProduccion = AdmPedidosProduccion::create($datosPedido);
+
+            $areas = $request->input('areas', []);
+
+            if (!empty($areas)) {
+                foreach ($areas as $index => $idArea) {
+                    AdmPedidoProduccionArea::create([
+                        'idpedidoproduccion' => $idPedidoProduccion,
+                        'id_areatrabajo' => $idArea,
+                        'fecha_programada' => $request->fecha_programada ?? $request->fecha_entrega,
+                        'orden' => $index + 1,
+                        'estado' => 1,
+                        'fecha_registro' => now(),
+                        'usuario_registro' => auth()->user()->name,
+                    ]);
+                }
+            }
+
+            // Log::info('Pedido producción creado correctamente', [
+            //     'idpedidoproduccion' => $pedidoProduccion->idpedidoproduccion ?? null,
+            // ]);
 
             // Guardar detalles del pedido de producción
 
@@ -181,6 +216,12 @@ class PedidosProduccionController extends Controller
             }
 
             $detalles = $request->input('detalles', []); //Carga del detalle enviado desde el front end
+
+            // Log::info('Detalles recibidos', [
+            //     'cantidad_detalles' => count($detalles),
+            //     'detalles' => $detalles
+            // ]);
+
             if (!is_array($detalles)) {
                 Log::error('Los detalles no son un array: ' . print_r($detalles, true));
                 DB::rollback();
@@ -190,8 +231,11 @@ class PedidosProduccionController extends Controller
             $idDetallePedidoProduccion = $correlativoDetalle->correlativo + $correlativoDetalle->incremento;
 
             foreach ($detalles as $index => $detalleData) {
-                //Log::info("Procesando detalle en índice: {$index}");
-                //Log::info("¿Request tiene archivo detalles[{$index}][imagen]?: " . ($request->hasFile("detalles.{$index}.imagen") ? 'Sí' : 'No'));
+                // Log::info("Procesando detalle", [
+                //     'index' => $index,
+                //     'detalle' => $detalleData,
+                // ]);
+
                 $imagenRuta = null;
                 if ($request->hasFile("detalles.{$index}.imagen")) {
                     //Log::info("Archivo detectado para índice: {$index}");
@@ -200,7 +244,14 @@ class PedidosProduccionController extends Controller
                     $imagen->move(public_path('images_pedidosproduccion'), $nombreImagen);
                     $imagenRuta = $nombreImagen;
                 }
-                AdmDetallePedidosProduccion::create([
+
+                // Log::info("Imagen detectada", [
+                //     'index' => $index,
+                //     'archivo' => $request->file("detalles.{$index}.imagen")->getClientOriginalName(),
+                // ]);
+
+                $detalle = AdmDetallePedidosProduccion::create([
+
                     'iddetallepedidoproduccion' => $idDetallePedidoProduccion,
                     'idpedidoproduccion' => $idPedidoProduccion,
 
@@ -211,15 +262,11 @@ class PedidosProduccionController extends Controller
                     'alto' => $detalleData['alto'] ?? null,
                     'unidad_medida' => $detalleData['unidad_medida'] ?? null,
 
-                    'galaxy_plus' => !empty($detalleData['galaxy_plus']) ? 1 : 0,
-                    'uv'          => !empty($detalleData['uv']) ? 1 : 0,
-                    'cnc'         => !empty($detalleData['cnc']) ? 1 : 0,
-                    'laser'       => !empty($detalleData['laser']) ? 1 : 0,
-                    'summa'       => !empty($detalleData['summa']) ? 1 : 0,
-
                     'version' => $detalleData['version'] ?? null,
                     'acabados' => $detalleData['acabados'] ?? null,
-                    'medida_real' => $detalleData['medida_real'] ?? null,
+                    'medida_real' => !empty($detalleData['medida_real'])
+                        ? $detalleData['medida_real']
+                        : '',
 
                     'imagen' => $imagenRuta,
                     'incluye_foto' => $imagenRuta ? 'S' : 'N',
@@ -229,11 +276,27 @@ class PedidosProduccionController extends Controller
                     'usuario_registro' => auth()->user()->name,
                 ]);
 
+                if (!empty($detalleData['maquinas'])) {
+
+                    foreach ($detalleData['maquinas'] as $idmaquina) {
+
+                        DB::table('adm_detalle_pedidosproduccion_maquinas')
+                            ->insert([
+
+                                'iddetallepedidoproduccion' =>
+                                $idDetallePedidoProduccion,
+
+                                'idmaquina' => $idmaquina,
+
+                                'fecha_registro' => now(),
+                            ]);
+                    }
+                }
 
                 $idDetallePedidoProduccion += 1;
             }
 
-            $correlativoDetalle->correlativo = $idDetallePedidoProduccion;
+            $correlativoDetalle->correlativo = $idDetallePedidoProduccion - $correlativoDetalle->incremento;
             $correlativoDetalle->save();
 
             DB::commit();
@@ -241,7 +304,28 @@ class PedidosProduccionController extends Controller
             return response()->json($pedidoProduccion, 201);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['message' => 'Error al crear el pedido a producción: ' . $e->getMessage()], 500);
+            Log::error('ERROR AL CREAR PEDIDO PRODUCCION', [
+
+                'message' => $e->getMessage(),
+
+                'line' => $e->getLine(),
+
+                'file' => $e->getFile(),
+
+                'trace' => $e->getTraceAsString(),
+
+                'request' => $request->all(),
+
+                'usuario' => auth()->user()->name ?? null,
+
+                'idusuario' => auth()->user()->id ?? null,
+            ]);
+
+            return response()->json([
+                'message' =>
+                'Error al crear el pedido a producción: '
+                    . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -270,7 +354,7 @@ class PedidosProduccionController extends Controller
                 'c.costear'
             )
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->leftJoin('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
             ->where('c.idpedidoproduccion', $id)
             ->first();
 
@@ -292,18 +376,48 @@ class PedidosProduccionController extends Controller
                 'd.acabados',
                 'd.version',
                 'd.medida_real',
-                'd.galaxy_plus',
-                'd.uv',
-                'd.cnc',
-                'd.laser',
-                'd.summa',
                 'd.imagen as imagen_ruta'
             )
             ->from('adm_detalle_pedidosproduccion as d')
             ->get();
 
+        foreach ($detalles as $detalle) {
+
+            $detalle->maquinas = DB::table(
+                'adm_detalle_pedidosproduccion_maquinas as dm'
+            )
+                ->where(
+                    'dm.iddetallepedidoproduccion',
+                    $detalle->iddetallepedidoproduccion
+                )
+                ->pluck('dm.idmaquina')
+                ->map(fn($id) => (int)$id)
+                ->values();
+        }
+
+        $areas = DB::table('adm_pedido_produccion_areas as pa')
+            ->join(
+                'area_trabajo as a',
+                'pa.id_areatrabajo',
+                '=',
+                'a.id_areatrabajo'
+            )
+            ->where('pa.idpedidoproduccion', $id)
+            ->where('pa.estado', 1)
+            ->orderBy('pa.orden')
+            ->select(
+                'pa.id',
+                'pa.idpedidoproduccion',
+                'pa.id_areatrabajo',
+                'pa.fecha_programada',
+                'pa.orden',
+                'a.nombre'
+            )
+            ->get();
+
         // Agregar los detalles a la respuesta
         $pedidoProduccion->detalles = $detalles;
+        $pedidoProduccion->areas = $areas;
 
         return response()->json($pedidoProduccion);
     }
@@ -324,23 +438,49 @@ class PedidosProduccionController extends Controller
                 'detalles.*.alto' => 'nullable|numeric',
                 'detalles.*.unidad_medida' => 'nullable|string',
 
-                'detalles.*.galaxy_plus' => 'boolean',
-                'detalles.*.uv' => 'boolean',
-                'detalles.*.cnc' => 'boolean',
-                'detalles.*.laser' => 'boolean',
-                'detalles.*.summa' => 'boolean',
+                'detalles.*.maquinas' => 'nullable|array',
+                'detalles.*.maquinas.*' => 'integer',
 
                 'detalles.*.version' => 'nullable|string',
                 'detalles.*.acabados' => 'nullable|string',
                 'detalles.*.medida_real' => 'nullable|string',
+                'areas' => 'nullable|array',
+                'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
+                'fecha_programada' => 'nullable|date',
             ]);
 
 
             // 1) cabecera
-            $datosCabecera = $request->except(['detalles', 'deleted']);
+            $datosCabecera = $request->except(['detalles', 'deleted', 'areas', 'fecha_programada']);
             $datosCabecera['usuario_modificacion'] = auth()->user()->name;
             $datosCabecera['fecha_modificacion'] = now();
             $pedido->update($datosCabecera);
+
+            DB::table('adm_pedido_produccion_areas')
+                ->where('idpedidoproduccion', $id)
+                ->delete();
+
+            $areas = $request->input('areas', []);
+
+            if (!empty($areas)) {
+
+                foreach ($areas as $index => $idArea) {
+
+                    AdmPedidoProduccionArea::create([
+                        'idpedidoproduccion' => $id,
+                        'id_areatrabajo' => $idArea,
+                        'fecha_programada' =>
+                        $request->fecha_programada
+                            ?? $request->fecha_entrega,
+
+                        'orden' => $index + 1,
+                        'estado' => 1,
+                        'fecha_registro' => now(),
+                        'usuario_registro' => auth()->user()->name,
+                    ]);
+                }
+            }
+
 
             // 2) borrar detalles eliminados
             $deletedIds = $request->input('deleted', []);
@@ -356,6 +496,10 @@ class PedidosProduccionController extends Controller
                         if (file_exists($path)) @unlink($path);
                     }
                 }
+
+                DB::table('adm_detalle_pedidosproduccion_maquinas')
+                    ->whereIn('iddetallepedidoproduccion', $deletedIds)
+                    ->delete();
 
                 AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)
                     ->whereIn('iddetallepedidoproduccion', $deletedIds)
@@ -421,15 +565,13 @@ class PedidosProduccionController extends Controller
                     'alto' => $d['alto'] ?? null,
                     'unidad_medida' => $d['unidad_medida'] ?? null,
 
-                    'galaxy_plus' => !empty($d['galaxy_plus']) ? 1 : 0,
-                    'uv'          => !empty($d['uv']) ? 1 : 0,
-                    'cnc'         => !empty($d['cnc']) ? 1 : 0,
-                    'laser'       => !empty($d['laser']) ? 1 : 0,
-                    'summa'       => !empty($d['summa']) ? 1 : 0,
+
 
                     'version' => $d['version'] ?? null,
                     'acabados' => $d['acabados'] ?? null,
-                    'medida_real' => $d['medida_real'] ?? null,
+                    'medida_real' => !empty($d['medida_real'])
+                        ? $d['medida_real']
+                        : '',
 
                     'imagen' => $imagenRuta,
                     'incluye_foto' => $imagenRuta ? 'S' : 'N',
@@ -441,14 +583,46 @@ class PedidosProduccionController extends Controller
                     $payload['usuario_modificacion'] = auth()->user()->name;
                     $payload['fecha_modificacion'] = now();
                     $detalle->update($payload);
+                    DB::table('adm_detalle_pedidosproduccion_maquinas')
+                        ->where(
+                            'iddetallepedidoproduccion',
+                            $detalleId
+                        )
+                        ->delete();
+
+                    if (!empty($d['maquinas'])) {
+
+                        foreach ($d['maquinas'] as $idmaquina) {
+
+                            DB::table('adm_detalle_pedidosproduccion_maquinas')
+                                ->insert([
+                                    'iddetallepedidoproduccion' => $detalleId,
+                                    'idmaquina' => $idmaquina,
+                                    'fecha_registro' => now(),
+                                ]);
+                        }
+                    }
                 } else {
                     // create nuevo
                     $payload['iddetallepedidoproduccion'] = $nextId;
                     $payload['fecha_registro'] = now();
-                    $payload['usuario_registro'] = auth()->user()->name;
                     $payload['costeado'] = 'N';
+                    $payload['usuario_registro'] = auth()->user()->name;
 
                     AdmDetallePedidosProduccion::create($payload);
+
+                    if (!empty($d['maquinas'])) {
+
+                        foreach ($d['maquinas'] as $idmaquina) {
+
+                            DB::table('adm_detalle_pedidosproduccion_maquinas')
+                                ->insert([
+                                    'iddetallepedidoproduccion' => $nextId,
+                                    'idmaquina' => $idmaquina,
+                                    'fecha_registro' => now(),
+                                ]);
+                        }
+                    }
 
                     $ultimoUsado = $nextId;
                     $nextId += $correlativoDetalle->incremento;
@@ -472,15 +646,68 @@ class PedidosProduccionController extends Controller
 
     public function destroy($id)
     {
-        $pedidoProduccion = AdmPedidosProduccion::find($id);
-        if (!$pedidoProduccion) {
-            return response()->json(['message' => 'Pedido no encontrado'], 404);
+        DB::beginTransaction();
+
+        try {
+
+            $pedidoProduccion = AdmPedidosProduccion::find($id);
+
+            if (!$pedidoProduccion) {
+                return response()->json([
+                    'message' => 'Pedido no encontrado'
+                ], 404);
+            }
+
+            $detalles = AdmDetallePedidosProduccion::where(
+                'idpedidoproduccion',
+                $id
+            )->get();
+
+            foreach ($detalles as $detalle) {
+
+                DB::table('adm_detalle_pedidosproduccion_maquinas')
+                    ->where(
+                        'iddetallepedidoproduccion',
+                        $detalle->iddetallepedidoproduccion
+                    )
+                    ->delete();
+
+                if ($detalle->imagen) {
+
+                    $path = public_path(
+                        'images_pedidosproduccion/' . $detalle->imagen
+                    );
+
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                }
+            }
+
+            AdmDetallePedidosProduccion::where(
+                'idpedidoproduccion',
+                $id
+            )->delete();
+
+            $pedidoProduccion->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Pedido eliminado correctamente'
+            ]);
+        } catch (\Exception $e) {
+
+            DB::rollback();
+
+            Log::error('ERROR AL ELIMINAR PEDIDO', [
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al eliminar pedido'
+            ], 500);
         }
-
-        $pedidoProduccion->delete();
-        AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)->delete();
-
-        return response()->json(['message' => 'Pedido eliminada']);
     }
 
     /**
@@ -600,56 +827,148 @@ class PedidosProduccionController extends Controller
         return response()->json($unidadesMedida);
     }
 
+    // public function generarPdf($id)
+    // {
+    //     $pedidoProduccion = AdmPedidosProduccion::where('c.idpedidoproduccion', $id)
+    //         ->select(
+    //             'c.idpedidoproduccion',
+    //             DB::raw('CONCAT(\'P-\',CAST(c.nocotizacion AS CHAR),\'-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+    //             'c.fecha_pedido',
+    //             'c.fecha_entrega',
+    //             //'t.tipo as tipo_pago',
+    //             'c.total_general',
+    //             'c.costear',
+    //             'cl.nombre as cliente',
+    //             'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+    //             'ct.nombre as contacto',
+    //             'e.nombre as asesor',                 // Asegúrate de tener este campo en tu tabla (o relación)
+    //             'e.movil as telefono_vendedor',         // Ajusta según tu estructura
+    //             'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
+    //             'c.direccion_entrega',
+    //             'c.observaciones_costeo',
+    //             'c.observaciones_cliente',
+    //             'c.costeo_observaciones',
+    //             'c.trabajo',
+    //             'c.version',
+    //         )
+    //         ->from('adm_pedidos_produccion as c')
+    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+    //         ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+    //         //->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+    //         ->first();
+
+    //     if (!$pedidoProduccion) {
+    //         return response()->json(['message' => 'Pedido no encontrado'], 404);
+    //     }
+
+    //     $detalles = AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)->get();
+    //     $pedidoProduccion->detalles = $detalles;
+    //     $pedidoProduccion->fecha_pedido = date('Y-m-d', strtotime($pedidoProduccion->fecha_pedido)); // Formatea la fecha
+
+    //     // Convertir total a letras (usando kwn/number-to-words)
+    //     $numberToWords = new NumberToWords();
+    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
+    //     // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
+    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($pedidoProduccion->total_general);
+
+    //     // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
+    //     // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
+    //     return response()->json([
+    //         'pedido' => $pedidoProduccion,
+    //         'totalEnLetras' => $totalEnLetras,
+    //     ]);
+    // }
+
     public function generarPdf($id)
     {
-        $pedidoProduccion = AdmPedidosProduccion::where('c.idpedidoproduccion', $id)
+        $pedidoProduccion = AdmPedidosProduccion::where(
+            'c.idpedidoproduccion',
+            $id
+        )
             ->select(
                 'c.idpedidoproduccion',
-                DB::raw('CONCAT(\'P-\',CAST(c.nocotizacion AS CHAR),\'-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+
+                DB::raw(
+                    'CONCAT(\'P-\',CAST(c.nocotizacion AS CHAR),\'-\',CAST(c.nopedido AS CHAR)) as nopedido'
+                ),
+
+                'c.nocotizacion',
                 'c.fecha_pedido',
                 'c.fecha_entrega',
-                //'t.tipo as tipo_pago',
                 'c.total_general',
                 'c.costear',
+
                 'cl.nombre as cliente',
-                'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
+                'cl.nit as nit',
+
                 'ct.nombre as contacto',
-                'e.nombre as asesor',                 // Asegúrate de tener este campo en tu tabla (o relación)
-                'e.movil as telefono_vendedor',         // Ajusta según tu estructura
-                'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
+
+                'e.nombre as asesor',
+                'e.movil as telefono_vendedor',
+                'e.correo_personal as correo_vendedor',
+
                 'c.direccion_entrega',
-                'c.observaciones_costeo',
-                'c.observaciones_cliente',
-                'c.costeo_observaciones',
                 'c.trabajo',
-                'c.version',
+                'c.version'
             )
             ->from('adm_pedidos_produccion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join(
+                'contacto_cliente as ct',
+                'c.idcontacto',
+                '=',
+                'ct.id_contactocliente'
+            )
             ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-            //->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
             ->first();
 
         if (!$pedidoProduccion) {
-            return response()->json(['message' => 'Pedido no encontrado'], 404);
+            return response()->json([
+                'message' => 'Pedido no encontrado'
+            ], 404);
         }
 
-        $detalles = AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)->get();
+        $detalles = AdmDetallePedidosProduccion::where(
+            'idpedidoproduccion',
+            $id
+        )
+            ->select(
+                'iddetallepedidoproduccion',
+                'cantidad',
+                'material',
+                'caras',
+                'ancho',
+                'alto',
+                'unidad_medida',
+                'version',
+                'acabados',
+                'medida_real',
+                'imagen'
+            )
+            ->get();
+
+        $areas = DB::table('adm_pedido_produccion_areas as pa')
+            ->join(
+                'area_trabajo as a',
+                'pa.id_areatrabajo',
+                '=',
+                'a.id_areatrabajo'
+            )
+            ->where('pa.idpedidoproduccion', $id)
+            ->where('pa.estado', 1)
+            ->orderBy('pa.orden')
+            ->select(
+                'a.nombre',
+                'pa.fecha_programada'
+            )
+            ->get();
+
         $pedidoProduccion->detalles = $detalles;
-        $pedidoProduccion->fecha_pedido = date('Y-m-d', strtotime($pedidoProduccion->fecha_pedido)); // Formatea la fecha
+        $pedidoProduccion->areas = $areas;
 
-        // Convertir total a letras (usando kwn/number-to-words)
-        $numberToWords = new NumberToWords();
-        $numberTransformer = $numberToWords->getNumberTransformer('es');
-        // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
-        $totalEnLetras = $this->convertirNumeroALetrasConCentavos($pedidoProduccion->total_general);
-
-        // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-        // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
         return response()->json([
-            'pedido' => $pedidoProduccion,
-            'totalEnLetras' => $totalEnLetras,
+            'pedido' => $pedidoProduccion
         ]);
     }
 
@@ -738,18 +1057,37 @@ class PedidosProduccionController extends Controller
 
     public function cotizacionesPedidoProduccion(Request $request)
     {
-        $user = Auth::user();              // Obtiene el usuario autenticado
-        $cotizacionesTodas = $user->cotizaciones_todas; // Obtiene el valor de cotizaciones_todas que se utilizará también para mostrar todos le pedidos a producción
+        $user = Auth::user();
+        $cotizacionesTodas = $user->cotizaciones_todas ?? 'N';
 
-        $query = AdmCotizacion::query()
+        $validated = $request->validate([
+            'fecha_inicio' => 'required|date_format:Y-m-d',
+            'fecha_fin'    => 'required|date_format:Y-m-d',
+            'estado'       => 'nullable|integer',
+        ]);
+
+        $user = auth()->user();
+
+        $query = DB::table('adm_cotizacion as ctz')
+            ->join('clientes as clt', 'ctz.idcliente', '=', 'clt.idcliente')
+            ->leftJoin('contacto_cliente as cc', 'ctz.idcontacto', '=', 'cc.id_contactocliente')
             ->select(
                 'ctz.idcotizacion',
-                DB::raw('CONCAT(\'CT\',CAST(ctz.nocotizacion AS CHAR)) as nocotizacion'),
+                DB::raw("CONCAT('CT', CAST(ctz.nocotizacion AS CHAR)) as nocotizacion"),
                 'ctz.nocotizacion as numero_cotizacion',
+                'ctz.fecha_registro',
                 'ctz.fecha_cotizacion',
+                'ctz.idcliente',
+                'ctz.idcontacto',
                 'clt.nombre as cliente',
+                DB::raw("COALESCE(cc.nombre, '') as contacto"),
+                'ctz.trabajo',
+                'ctz.direccion_entrega',
+                'ctz.observaciones_cliente',
+                'ctz.total',
                 'ctz.estado',
-                DB::raw("CASE
+                DB::raw("
+                CASE
                     WHEN ctz.estado = 1 THEN 'REGISTRO'
                     WHEN ctz.estado = 2 THEN 'COSTEO'
                     WHEN ctz.estado = 3 THEN 'COSTEADA'
@@ -759,32 +1097,51 @@ class PedidosProduccionController extends Controller
                     WHEN ctz.estado = 7 THEN 'ANULADA'
                     WHEN ctz.estado = 8 THEN 'RECHAZADA'
                     ELSE 'DESCONOCIDO'
-                END as estado_texto")
+                END as estado_texto
+            ")
             )
-            ->from('adm_cotizacion as ctz')
-            ->join('clientes as clt', 'ctz.idcliente', '=', 'clt.idcliente');
+            ->where('ctz.estado', '!=', 0)
+            ->where('ctz.fecha_registro', '>=', $validated['fecha_inicio'])
+            ->where(
+                'ctz.fecha_registro',
+                '<',
+                DB::raw("DATE_ADD('{$validated['fecha_fin']}', INTERVAL 1 DAY)")
+            );
 
-        $query->where('ctz.estado', '!=', 0); // Estado diferente de 0 por defecto
-        //}
-
-        // Filtro por rango de fechas
-        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-            $query->whereBetween('ctz.fecha_cotizacion', [$request->fecha_inicio, $request->fecha_fin]);
-        } elseif ($request->has('fecha_inicio')) {
-            $query->where('ctz.fecha_cotizacion', '>=', $request->fecha_inicio);
-        } elseif ($request->has('fecha_fin')) {
-            $query->where('ctz.fecha_cotizacion', '<=', $request->fecha_fin);
+        if (!empty($validated['estado'])) {
+            $query->where('ctz.estado', $validated['estado']);
         }
 
-        // Aplica el filtro condicional basado en cotizaciones_todas
-        if ($cotizacionesTodas == 'N') {
-            $query->where('ctz.idusuario', $user->id); // Filtra por el usuario logueado
-        }
+        $query->where('ctz.idusuario', $user->id);
 
-        $cotizaciones = $query->orderBy('ctz.nocotizacion', 'asc')->get();
-        //Log::info('Consulta ', ['Illuminate\Database\Eloquent\Builder' => $query->getQuery()->toSql()]);
-        //$cotizaciones = $query->get();
+        $cotizaciones = $query
+            ->orderByDesc('ctz.fecha_registro')
+            ->orderByDesc('ctz.nocotizacion')
+            ->get();
+
         return response()->json($cotizaciones);
+    }
+
+    public function detalleCotizacion($idcotizacion)
+    {
+        $detalle = DB::table('adm_detalle_cotizacion')
+            ->select(
+                'iddetallecotizacion',
+                'descripcion',
+                'unidad_medida',
+                'cantidad',
+                'ancho',
+                'alto',
+                'profundidad',
+                'm2',
+                'incluye_foto',
+                'imagen'
+            )
+            ->where('idcotizacion', $idcotizacion)
+            ->orderBy('iddetallecotizacion')
+            ->get();
+
+        return response()->json($detalle);
     }
 
     public function exportExcel(Request $request)
@@ -793,12 +1150,81 @@ class PedidosProduccionController extends Controller
             'idpedidoproduccion' => 'required|integer'
         ]);
 
+        $pedido = DB::table('adm_pedidos_produccion')
+            ->where('idpedidoproduccion', $request->idpedidoproduccion)
+            ->select('nopedido')
+            ->first();
+
+        $nombreArchivo = 'PEDIDO_' .
+            ($pedido ? 'P-' . $pedido->nopedido : $request->idpedidoproduccion)
+            . '.xlsx';
+
         return Excel::download(
-            new PedidosProduccionExcel(
-                $request->idpedidoproduccion,
-                Auth::user()
+            new PedidoProduccionFormatoExcel(
+                (int) $request->idpedidoproduccion
             ),
-            'PEDIDO_' . $request->idpedidoproduccion . '.xlsx'
+            $nombreArchivo
         );
+    }
+
+    public function buscarCotizacionPorNumero($numero)
+    {
+        $user = Auth::user();
+
+        $query = DB::table('adm_cotizacion as ctz')
+            ->join('clientes as clt', 'ctz.idcliente', '=', 'clt.idcliente')
+            ->leftJoin('contacto_cliente as cc', 'ctz.idcontacto', '=', 'cc.id_contactocliente')
+            ->select(
+                'ctz.idcotizacion',
+                DB::raw("CONCAT('CT', CAST(ctz.nocotizacion AS CHAR)) as nocotizacion"),
+                'ctz.nocotizacion as numero_cotizacion',
+                'ctz.idcliente',
+                'ctz.idcontacto',
+                'clt.nombre as cliente',
+                DB::raw("COALESCE(cc.nombre, '') as contacto"),
+                'ctz.trabajo',
+                'ctz.direccion_entrega',
+                'ctz.observaciones_cliente',
+                'ctz.total'
+            )
+            ->where('ctz.estado', '!=', 0)
+            ->where('ctz.nocotizacion', $numero);
+
+        if (($user->cotizaciones_todas ?? 'N') !== 'S') {
+            $query->where('ctz.idusuario', $user->id);
+        }
+
+        $cotizacion = $query->first();
+
+        if (!$cotizacion) {
+            return response()->json([
+                'message' => 'Cotización no encontrada'
+            ], 404);
+        }
+
+        return response()->json($cotizacion);
+    }
+
+    public function obtenerAreasPedido($id)
+    {
+        $areas = DB::table('adm_pedido_produccion_areas as pa')
+            ->join(
+                'area_trabajo as a',
+                'pa.id_areatrabajo',
+                '=',
+                'a.id_areatrabajo'
+            )
+            ->where('pa.idpedidoproduccion', $id)
+            ->where('pa.estado', 1)
+            ->orderBy('pa.orden')
+            ->select(
+                'pa.id',
+                'pa.fecha_programada',
+                'pa.orden',
+                'a.nombre'
+            )
+            ->get();
+
+        return response()->json($areas);
     }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
+import Select from "react-select";
 
 /**
  * DetalleGrid: grilla editable tipo Excel
@@ -11,6 +12,7 @@ export default function DetalleGrid({
     detalles,
     setDetalles,
     unidadesMedida = [],
+    maquinasProduccion = [],
 }) {
     const tableRef = useRef(null);
 
@@ -23,11 +25,7 @@ export default function DetalleGrid({
             { key: "alto", label: "ALTO", type: "number" },
             { key: "unidad_medida", label: "UNIDAD MEDIDA", type: "select" },
 
-            { key: "galaxy_plus", label: "GALAXY PLUS", type: "check" },
-            { key: "uv", label: "UV", type: "check" },
-            { key: "cnc", label: "CNC", type: "check" },
-            { key: "laser", label: "LASER", type: "check" },
-            { key: "summa", label: "SUMMA", type: "check" },
+            { key: "maquinas", label: "MÁQUINAS", type: "multiselect" },
 
             { key: "version", label: "VERSIÓN", type: "text" },
             { key: "acabados", label: "ACABADOS", type: "text" },
@@ -48,11 +46,7 @@ export default function DetalleGrid({
         alto: "",
         unidad_medida: "",
 
-        galaxy_plus: false,
-        uv: false,
-        cnc: false,
-        laser: false,
-        summa: false,
+        maquinas: [],
 
         version: "",
         acabados: "",
@@ -181,7 +175,12 @@ export default function DetalleGrid({
                 const rowObj = { ...copy[r] };
 
                 cells.forEach((cell) => {
-                    while (cols[c] && cols[c].type === "image") c++; // no pegar en imagen
+                    while (
+                        cols[c] &&
+                        (cols[c].type === "image" ||
+                            cols[c].type === "multiselect")
+                    )
+                        c++;
                     if (!cols[c]) return;
 
                     const key = cols[c].key;
@@ -236,7 +235,7 @@ export default function DetalleGrid({
                 </small>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive pp-table-wrapper">
                 <table className="table table-bordered table-sm" ref={tableRef}>
                     <thead className="table-light">
                         <tr>
@@ -387,34 +386,75 @@ export default function DetalleGrid({
                                             );
                                         }
 
-                                        if (c.type === "check") {
+                                        if (c.type === "multiselect") {
                                             return (
                                                 <td
                                                     key={c.key}
-                                                    className="text-center"
+                                                    style={{
+                                                        minWidth: 250,
+                                                    }}
                                                 >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            row[c.key] === true
+                                                    <Select
+                                                        isMulti
+                                                        classNamePrefix="react-select"
+                                                        placeholder="Seleccionar máquinas"
+                                                        menuPortalTarget={
+                                                            document.body
                                                         }
-                                                        onChange={(e) =>
+                                                        menuPosition="fixed"
+                                                        closeMenuOnSelect={
+                                                            false
+                                                        }
+                                                        options={maquinasProduccion.map(
+                                                            (m) => ({
+                                                                value: m.idmaquina,
+                                                                label: m.nombre,
+                                                            }),
+                                                        )}
+                                                        value={maquinasProduccion
+                                                            .filter((m) =>
+                                                                (
+                                                                    row.maquinas ||
+                                                                    []
+                                                                ).includes(
+                                                                    m.idmaquina,
+                                                                ),
+                                                            )
+                                                            .map((m) => ({
+                                                                value: m.idmaquina,
+                                                                label: m.nombre,
+                                                            }))}
+                                                        onChange={(
+                                                            selected,
+                                                        ) => {
+                                                            const maquinasSeleccionadas =
+                                                                (
+                                                                    selected ||
+                                                                    []
+                                                                ).map((s) =>
+                                                                    Number(
+                                                                        s.value,
+                                                                    ),
+                                                                );
+
                                                             updateCell(
                                                                 realIndex,
-                                                                c.key,
-                                                                e.target
-                                                                    .checked,
-                                                            )
-                                                        }
-                                                        data-r={realIndex}
-                                                        data-c={colIndex}
-                                                        onKeyDown={(e) =>
-                                                            onKeyDown(
-                                                                e,
-                                                                realIndex,
-                                                                colIndex,
-                                                            )
-                                                        }
+                                                                "maquinas",
+                                                                maquinasSeleccionadas,
+                                                            );
+                                                        }}
+                                                        styles={{
+                                                            menuPortal: (
+                                                                base,
+                                                            ) => ({
+                                                                ...base,
+                                                                zIndex: 99999,
+                                                            }),
+                                                            menu: (base) => ({
+                                                                ...base,
+                                                                zIndex: 99999,
+                                                            }),
+                                                        }}
                                                     />
                                                 </td>
                                             );
