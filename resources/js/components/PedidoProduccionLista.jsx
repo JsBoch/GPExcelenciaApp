@@ -16,6 +16,7 @@ import "../../css/tableFormat.css";
 import { FaRegFileAlt } from "react-icons/fa";
 import Header from "./Header";
 import NotaEnvioPDF from "./NotaEnvioPDF";
+import NotaEnvioPDFHalf from "./NotaEnvioPDFHalf";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
 import DetallePedidoVistaModal from "./DetallePedidoVistaModal";
@@ -46,6 +47,11 @@ function PedidosProduccionLista() {
     const [detallePedido, setDetallePedido] = useState(null);
     const [areasPedido, setAreasPedido] = useState([]);
     const [modalAreasVisible, setModalAreasVisible] = useState(false);
+    const [documentosPedido, setDocumentosPedido] = useState([]);
+    const [tituloDocumentos, setTituloDocumentos] = useState("");
+    const [modalDocumentosVisible, setModalDocumentosVisible] = useState(false);
+    const [justificacionDocumento, setJustificacionDocumento] = useState("");
+    const [notaEnvioPayload, setNotaEnvioPayload] = useState(null);
     const [fechaActual, setFechaActual] = useState("");
 
     useEffect(() => {
@@ -98,7 +104,7 @@ function PedidosProduccionLista() {
                         Authorization: `Bearer ${token}`,
                     },
                 })
-                .then((response) => {
+                .then((response) => {                   
                     setPedidoProduccion(response.data);
                     setTableKey((prev) => prev + 1);
                     setLoading(false);
@@ -182,46 +188,163 @@ function PedidosProduccionLista() {
     const columns = [
         { data: "idpedidoproduccion", title: "ID", visible: false },
         { data: "nopedido_num", visible: false },
-        { data: "nopedido", title: "No.Pedido", with: "140px" },
+
+        { data: "nopedido", title: "No.Pedido", width: "140px" },
+
         {
             data: "fecha_pedido",
             title: "Fecha Pedido",
             render: (data) => {
-                if (data) {
-                    try {
-                        const date = new Date(data);
-                        return format(date, "dd-MM-yyyy"); // Formatea la fecha al formato AAAA-MM-DD
-                    } catch (error) {
-                        console.error("Error al formatear la fecha:", error);
-                        return ""; // Devuelve una cadena vacía o algún otro valor en caso de error
-                    }
+                if (!data) return "";
+
+                try {
+                    return format(new Date(data), "dd-MM-yyyy");
+                } catch {
+                    return "";
                 }
-                return ""; // O algún otro valor por defecto si la fecha es nula
             },
         },
+
         {
             data: "fecha_entrega",
             title: "Fecha Entrega",
             render: (data) => {
-                if (data) {
-                    try {
-                        const date = new Date(data);
-                        return format(date, "dd-MM-yyyy");
-                    } catch (error) {
-                        console.error("Error al formatear la fecha:", error);
-                        return "";
-                    }
+                if (!data) return "";
+
+                try {
+                    return format(new Date(data), "dd-MM-yyyy");
+                } catch {
+                    return "";
                 }
-                return "";
             },
         },
+        {
+            data: "no_envio_asociado",
+            title: "No. Envío",
+            width: "90px",
+            render: (data) => {
+                return data
+                    ? `<span class="badge bg-primary">${data}</span>`
+                    : `<span class="badge bg-secondary">N/A</span>`;
+            },
+        },
+
         { data: "cliente", title: "Cliente" },
         { data: "asesor", title: "Asesor" },
-        { data: "direccion_entrega", title: "Dirección Entrega" },
+        {
+            data: "direccion_entrega",
+            title: "Dirección Entrega",
+            visible: false,
+        },
+
+        {
+            data: "permisos_estado",
+            title: "📄 Permisos",
+            render: (data) => {
+                if (data === "ADJUNTADO") {
+                    return `
+                    <span class="badge bg-success">
+                        ADJUNTADO
+                    </span>
+                `;
+                }
+
+                if (data === "PENDIENTE") {
+                    return `
+                    <span class="badge bg-warning text-dark">
+                        PENDIENTE
+                    </span>
+                `;
+                }
+
+                return `
+                <span class="badge bg-secondary">
+                    SIN DEFINIR
+                </span>
+            `;
+            },
+        },
+
+        {
+            data: "requiere_instalacion",
+            title: "🛠 Instalación",
+            render: (data) => {
+                return data === "S"
+                    ? `
+                    <span class="badge bg-primary">
+                        SI
+                    </span>
+                `
+                    : `
+                    <span class="badge bg-secondary">
+                        NO
+                    </span>
+                `;
+            },
+        },
+
+        {
+            data: null,
+            title: "🖼 Montajes",
+            render: (_, __, row) => {
+                if (row.requiere_instalacion !== "S") {
+                    return `
+                    <span class="badge bg-dark">
+                        N/A
+                    </span>
+                `;
+                }
+
+                if (row.montajes_estado === "ADJUNTADO") {
+                    return `
+                    <span class="badge bg-success">
+                        ADJUNTADO
+                    </span>
+                `;
+                }
+
+                if (row.montajes_estado === "PENDIENTE") {
+                    return `
+                    <span class="badge bg-warning text-dark">
+                        PENDIENTE
+                    </span>
+                `;
+                }
+
+                return `
+                <span class="badge bg-secondary">
+                    SIN DEFINIR
+                </span>
+            `;
+            },
+        },
+
+        {
+            data: "requiere_entrega",
+            title: "🚚 Entrega",
+            render: (data) => {
+                return data === "S"
+                    ? `
+                    <span class="badge bg-info text-dark">
+                        SI
+                    </span>
+                `
+                    : `
+                    <span class="badge bg-secondary">
+                        NO
+                    </span>
+                `;
+            },
+        },
+
         { data: "trabajo", title: "Trabajo", visible: false },
         { data: "version", title: "Version", visible: false },
         { data: "estado", title: "Estado", visible: false },
-        { data: "estado_texto", title: "Estado" },
+
+        {
+            data: "estado_texto",
+            title: "Estado Pedido",
+        },
     ];
 
     useEffect(() => {
@@ -304,7 +427,7 @@ function PedidosProduccionLista() {
         autoWidth: false, // Desactiva el autoajuste
         searching: false,
         order: [[1, "desc"]],
-        //scrollX:true,
+        scrollX: false,
         columnDefs: [
             { targets: 0, width: "100px" },
             { targets: 2, width: "120px" },
@@ -455,6 +578,84 @@ function PedidosProduccionLista() {
         }
     };
 
+    const verPermisos = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await axios.get(
+                `/api/pedidosproduccion/${registroSeleccionado.idpedidoproduccion}/permisos`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            setTituloDocumentos("Permisos");
+            setDocumentosPedido(response.data);
+            setJustificacionDocumento(
+                registroSeleccionado?.permisos_estado === "PENDIENTE"
+                    ? registroSeleccionado?.permisos_justificacion || ""
+                    : "",
+            );
+            setModalDocumentosVisible(true);
+        } catch (error) {
+            console.error(error);
+            alertify.error("Error al obtener permisos.");
+        }
+    };
+
+    const verMontajes = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await axios.get(
+                `/api/pedidosproduccion/${registroSeleccionado.idpedidoproduccion}/montajes`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            setTituloDocumentos("Montajes");
+            setDocumentosPedido(response.data);
+            setJustificacionDocumento(
+                registroSeleccionado?.montajes_estado === "PENDIENTE"
+                    ? registroSeleccionado?.montajes_justificacion || ""
+                    : "",
+            );
+            setModalDocumentosVisible(true);
+        } catch (error) {
+            console.error(error);
+            alertify.error("Error al obtener montajes.");
+        }
+    };
+
+    const verNotaEnvio = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await axios.post(
+                `/api/cotizaciones/${registroSeleccionado.idcotizacion}/nota-envio/reimprimir`,
+                {
+                    no_envio: Number(registroSeleccionado.no_envio_asociado),
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            setNotaEnvioPayload(response.data);
+        } catch (error) {
+            console.error(error);
+
+            alertify.error("No se pudo generar la nota de envío.");
+        }
+    };
+
     const obtenerDetalleCotizacion = async (id) => {
         setLoading(true);
         const token = localStorage.getItem("token");
@@ -567,6 +768,12 @@ function PedidosProduccionLista() {
         );
     });
 
+    const itemsNotaEnvio = notaEnvioPayload?.items ?? [];
+
+    const useHalfLetter = itemsNotaEnvio.length <= 8;
+
+    const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+
     return (
         <div className="mt-4 px-3 px-md-4">
             {pdfData && (
@@ -615,6 +822,54 @@ function PedidosProduccionLista() {
                         <button
                             className="btn btn-danger"
                             onClick={() => setPdfData(null)}
+                        >
+                            Cerrar PDF
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {notaEnvioPayload && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: "80%",
+                            height: "80%",
+                        }}
+                    >
+                        <PDFViewer width="100%" height="100%">
+                            <PdfComponent data={notaEnvioPayload} />
+                        </PDFViewer>
+                    </div>
+
+                    <div className="mt-3 d-flex gap-2">
+                        <PDFDownloadLink
+                            document={<PdfComponent data={notaEnvioPayload} />}
+                            fileName={`nota-envio-${notaEnvioPayload.no_envio}.pdf`}
+                            className="btn btn-primary"
+                        >
+                            {({ loading }) =>
+                                loading ? "Generando PDF..." : "Descargar Nota"
+                            }
+                        </PDFDownloadLink>
+
+                        <button
+                            className="btn btn-danger"
+                            onClick={() => setNotaEnvioPayload(null)}
                         >
                             Cerrar PDF
                         </button>
@@ -689,6 +944,102 @@ function PedidosProduccionLista() {
                                         className="btn btn-secondary"
                                         onClick={() =>
                                             setModalAreasVisible(false)
+                                        }
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="modal-backdrop fade show"></div>
+                </>
+            )}
+
+            {modalDocumentosVisible && (
+                <>
+                    <div className="modal fade show d-block">
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {tituloDocumentos}
+                                    </h5>
+
+                                    <button
+                                        className="btn-close"
+                                        onClick={() =>
+                                            setModalDocumentosVisible(false)
+                                        }
+                                    />
+                                </div>
+
+                                <div className="modal-body">
+                                    {documentosPedido.length === 0 ? (
+                                        <>
+                                            <div className="alert alert-warning">
+                                                No existen archivos adjuntos.
+                                            </div>
+
+                                            {justificacionDocumento && (
+                                                <div className="alert alert-info">
+                                                    <strong>
+                                                        Justificación:
+                                                    </strong>
+                                                    <br />
+                                                    {justificacionDocumento}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <table className="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Archivo</th>
+                                                    <th width="120">Acción</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                {documentosPedido.map(
+                                                    (archivo) => (
+                                                        <tr
+                                                            key={
+                                                                archivo.idarchivo
+                                                            }
+                                                        >
+                                                            <td>
+                                                                {
+                                                                    archivo.nombre_archivo
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                <a
+                                                                    href={
+                                                                        archivo.url
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="btn btn-primary btn-sm"
+                                                                >
+                                                                    Ver
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() =>
+                                            setModalDocumentosVisible(false)
                                         }
                                     >
                                         Cerrar
@@ -841,6 +1192,51 @@ function PedidosProduccionLista() {
                                 }
                             >
                                 <i className="fas fa-project-diagram"></i> Áreas
+                            </button>
+
+                            <button
+                                className="btn btn-secondary btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
+                                    Number(
+                                        registroSeleccionado?.no_envio_asociado,
+                                    ) === 0
+                                }
+                                onClick={verNotaEnvio}
+                            >
+                                📄 Nota Envío
+                            </button>
+
+                            <button
+                                className="btn btn-info btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
+                                    (Number(
+                                        registroSeleccionado?.total_permisos,
+                                    ) === 0 &&
+                                        registroSeleccionado?.permisos_estado !==
+                                            "PENDIENTE")
+                                }
+                                onClick={verPermisos}
+                            >
+                                📎 Permisos (
+                                {registroSeleccionado?.total_permisos || 0})
+                            </button>
+
+                            <button
+                                className="btn btn-dark btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
+                                    (Number(
+                                        registroSeleccionado?.total_montajes,
+                                    ) === 0 &&
+                                        registroSeleccionado?.montajes_estado !==
+                                            "PENDIENTE")
+                                }
+                                onClick={verMontajes}
+                            >
+                                🖼 Montajes (
+                                {registroSeleccionado?.total_montajes || 0})
                             </button>
                         </div>
 
@@ -1014,8 +1410,8 @@ function PedidosProduccionLista() {
                                     language: spanishTranslation,
                                 }}
                                 className="table table-bordered table-hover table-sm"
-                                ref={dtRef} // Asigna la referencia al componente DataTable
-                            ></DataTable>
+                                ref={dtRef}
+                            />
                         </div>
                     )}
                 </div>

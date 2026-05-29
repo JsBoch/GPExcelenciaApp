@@ -103,6 +103,47 @@ export default function DetalleGrid({
         });
     };
 
+    const duplicateRow = (rowIndex) => {
+        setDetalles((prev) => {
+            const copy = [...prev];
+            const rowToDuplicate = copy[rowIndex];
+
+            if (!rowToDuplicate) return prev;
+
+            const duplicatedRow = {
+                ...rowToDuplicate,
+
+                // debe ser nueva fila, no registro existente
+                iddetallepedidoproduccion: null,
+
+                // si estaba marcada eliminada, no heredar eso
+                _deleted: false,
+
+                // si había imagen tipo File, mantenerla
+                imagen: rowToDuplicate.imagen || null,
+
+                // mantener preview si existe
+                imagen_preview: rowToDuplicate.imagen_preview || null,
+
+                // mantener ruta si era imagen existente
+                imagen_ruta: rowToDuplicate.imagen_ruta || null,
+
+                // copiar array limpio
+                maquinas: [...(rowToDuplicate.maquinas || [])],
+            };
+
+            // insertar debajo de la fila original
+            copy.splice(rowIndex + 1, 0, duplicatedRow);
+
+            return copy;
+        });
+
+        // enfocar primera celda de la nueva fila
+        setTimeout(() => {
+            focusCell(rowIndex + 1, 0);
+        }, 0);
+    };
+
     const focusCell = (rowIndex, colIndex) => {
         const el = tableRef.current?.querySelector(
             `[data-r="${rowIndex}"][data-c="${colIndex}"]`,
@@ -213,6 +254,26 @@ export default function DetalleGrid({
             // si sube nueva imagen, la ruta vieja se “reemplaza”
             row.imagen_ruta = null;
             copy[rowIndex] = row;
+            return copy;
+        });
+    };
+
+    const removeImage = (rowIndex) => {
+        setDetalles((prev) => {
+            const copy = [...prev];
+            const row = { ...copy[rowIndex] };
+
+            // liberar memoria del preview si era blob local
+            if (row.imagen_preview && row.imagen_preview.startsWith("blob:")) {
+                URL.revokeObjectURL(row.imagen_preview);
+            }
+
+            row.imagen = null;
+            row.imagen_preview = null;
+            row.imagen_ruta = null;
+
+            copy[rowIndex] = row;
+
             return copy;
         });
     };
@@ -364,22 +425,39 @@ export default function DetalleGrid({
                                                             data-r={realIndex}
                                                             data-c={colIndex}
                                                         />
+
                                                         {(row.imagen_preview ||
                                                             row.imagen_ruta) && (
-                                                            <img
-                                                                src={
-                                                                    row.imagen_preview ||
-                                                                    `/images_pedidosproduccion/${row.imagen_ruta}`
-                                                                }
-                                                                alt="preview"
-                                                                style={{
-                                                                    width: 32,
-                                                                    height: 32,
-                                                                    objectFit:
-                                                                        "cover",
-                                                                    borderRadius: 4,
-                                                                }}
-                                                            />
+                                                            <>
+                                                                <img
+                                                                    src={
+                                                                        row.imagen_preview ||
+                                                                        `/images_pedidosproduccion/${row.imagen_ruta}`
+                                                                    }
+                                                                    alt="preview"
+                                                                    style={{
+                                                                        width: 32,
+                                                                        height: 32,
+                                                                        objectFit:
+                                                                            "cover",
+                                                                        borderRadius: 4,
+                                                                        border: "1px solid #ddd",
+                                                                    }}
+                                                                />
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() =>
+                                                                        removeImage(
+                                                                            realIndex,
+                                                                        )
+                                                                    }
+                                                                    title="Quitar imagen"
+                                                                >
+                                                                    ❌
+                                                                </button>
+                                                            </>
                                                         )}
                                                     </div>
                                                 </td>
@@ -505,14 +583,29 @@ export default function DetalleGrid({
                                     })}
 
                                     <td className="text-center">
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-outline-danger"
-                                            onClick={() => removeRow(realIndex)}
-                                            title="Eliminar fila"
-                                        >
-                                            🗑
-                                        </button>
+                                        <div className="d-flex gap-1 justify-content-center">
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-primary"
+                                                onClick={() =>
+                                                    duplicateRow(realIndex)
+                                                }
+                                                title="Duplicar fila"
+                                            >
+                                                📄
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-danger"
+                                                onClick={() =>
+                                                    removeRow(realIndex)
+                                                }
+                                                title="Eliminar fila"
+                                            >
+                                                🗑
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             );

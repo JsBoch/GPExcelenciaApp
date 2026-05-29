@@ -9,15 +9,7 @@ export default function PedidoProduccionActions({
 }) {
     return (
         <div className="mt-4 pp-actions-container">
-            <div className="d-flex flex-wrap gap-2 justify-content-between">
-                <button
-                    type="button"
-                    className="btn btn-info"
-                    onClick={toggleAreasModal}
-                >
-                    Asignar Áreas
-                </button>
-                
+            <div className="d-flex flex-wrap gap-2 justify-content-between">                
                 <button
                     type="submit"
                     className="btn pp-btn pp-btn-save d-flex align-items-center justify-content-center gap-2 flex-fill"
