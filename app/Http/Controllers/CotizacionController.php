@@ -428,195 +428,6 @@ class CotizacionController extends Controller
         return response()->json($cot);
     }
 
-    // public function update(Request $request, $id)
-    // {
-    //     $request->validate([
-    //         'subtotal' => 'nullable|numeric',
-    //         'impuesto_iva' => 'nullable|numeric',
-    //         'total' => 'nullable|numeric',
-    //     ]);
-
-    //     Log::debug('DETALLES COUNT', [
-    //         'count' => count($request->input('detalles', []))
-    //     ]);
-
-
-    //     return DB::transaction(function () use ($request, $id) {
-    //         $cotizacion = AdmCotizacion::lockForUpdate()->find($id);
-    //         if (!$cotizacion) {
-    //             return response()->json(['message' => 'Cotización no encontrada'], 404);
-    //         }
-
-    //         $datosCabecera = $request->except([
-    //             'detalles',
-    //             'id',
-    //             'idcotizacion',
-    //             'nocotizacion',
-    //             'idusuario',
-    //             'usuario_registro',
-    //             'fecha_registro',
-    //             'idempotency_key',
-    //         ]);
-
-    //         $datosCabecera['tipo_facturacion'] = $request->input('tipo_facturacion', 'BIEN');
-    //         $datosCabecera['usuario_modificacion'] = auth()->user()->name ?? 'system';
-    //         $datosCabecera['fecha_modificacion']   = now();
-    //         $datosCabecera['subtotal'] = $request->input('subtotal');
-    //         $datosCabecera['descuento_porcentaje'] = $request->input('descuento_porcentaje');
-    //         $datosCabecera['descuento_monto'] = $request->input('descuento_monto');
-    //         $datosCabecera['impuesto_iva'] = $request->input('impuesto_iva');
-    //         $datosCabecera['total'] = $request->input('total');
-
-    //         //Log::debug('DATOS CABECERA UPDATE', $datosCabecera);
-
-    //         $user = auth()->user();
-    //         if ($user->es_comodin) {
-    //             $datosCabecera['idusuario'] = $request->input('idvendedor_asignado', $user->id);
-    //         }
-
-    //         $camposNumericos = [
-    //             'subtotal',
-    //             'descuento_porcentaje',
-    //             'descuento_monto',
-    //             'impuesto_iva',
-    //             'total',
-    //         ];
-
-    //         Log::debug('DETALLES RAW', [
-    //             'detalles_input' => $request->input('detalles'),
-    //             'detalles_keys'  => array_keys($request->input('detalles', [])),
-    //             'files'          => array_keys($request->files->all()),
-    //         ]);
-
-
-    //         foreach ($camposNumericos as $campo) {
-    //             $valor = $request->input($campo);
-
-    //             $datosCabecera[$campo] = is_numeric($valor)
-    //                 ? (float)$valor
-    //                 : 0;
-    //         }
-
-
-    //         $cotizacion->update($datosCabecera);
-
-    //         AdmDetalleCotizacion::where('idcotizacion', $id)->delete();
-
-    //         $detalles = array_values($request->input('detalles', []));
-    //         if (!is_array($detalles)) {
-    //             return response()->json(['message' => 'Error: Los detalles deben ser un array'], 422);
-    //         }
-
-    //         $detalles = $this->recalcularDetallesDesdeFrontend($detalles);
-
-    //         if (count($detalles) === 0) {
-    //             $cotizacion->load('detalles');
-    //             return response()->json($cotizacion);
-    //         }
-
-    //         $rowDet = DB::table('cor_correlativo')
-    //             ->where('tabla', 'adm_detalle_cotizacion')
-    //             ->lockForUpdate()
-    //             ->first();
-
-    //         if (!$rowDet) {
-    //             return response()->json(['message' => 'No se encontró el correlativo para el detalle de cotización'], 500);
-    //         }
-
-    //         $incDet        = $rowDet->incremento ?: 1;
-    //         $nextDetalleId = $rowDet->correlativo + $incDet;
-    //         $lastUsedDetId = null;
-
-    //         Log::debug('ANTES DE RECALCULAR', [
-    //             'count' => count($detalles),
-    //             'ultimo_index' => array_key_last($detalles),
-    //         ]);
-
-    //         // Recalcular detalles igual que en store
-    //         // $porcentajeAplicado = floatval($datosCabecera['descuento_porcentaje'] ?? 0);
-    //         // $detalles = $this->recalcularDetallesConAjuste($detalles, $porcentajeAplicado);
-
-
-    //         Log::debug('DESPUES DE RECALCULAR', [
-    //             'count' => count($detalles),
-    //             'ultimo_index' => array_key_last($detalles),
-    //             'ultimo_detalle' => end($detalles),
-    //         ]);
-    //         foreach ($detalles as $i => $detalleData) {
-
-    //             Log::debug('INSERT LOOP', [
-    //                 'loop_index' => $i,
-    //                 'iddetallecotizacion' => $nextDetalleId,
-    //                 'descripcion' => substr($detalleData['descripcion'] ?? '', 0, 50),
-    //             ]);
-
-    //             $imagenRuta = null;
-
-    //             if ($request->hasFile("detalles.{$i}.imagen")) {
-    //                 $img    = $request->file("detalles.{$i}.imagen");
-    //                 $ext    = $img->getClientOriginalExtension() ?: $img->extension() ?: 'png';
-    //                 $nombre = uniqid('detalle_') . '.' . $ext;
-    //                 $img->move(public_path('images_cotizaciones'), $nombre);
-    //                 $imagenRuta = $nombre;
-    //             } elseif (!empty($detalleData['imagen_ruta'])) {
-    //                 $imagenRuta = $detalleData['imagen_ruta'];
-    //             }
-
-    //             try {
-    //                 AdmDetalleCotizacion::create([
-    //                     'iddetallecotizacion' => $nextDetalleId,
-    //                     'idcotizacion'        => $id,
-    //                     'idproducto'          => $detalleData['idproducto'] ?? 0,
-    //                     'producto'            => $detalleData['producto'] ?? ($detalleData['descripcion'] ?? 'N/A'),
-    //                     'titulo'              => $detalleData['titulo'] ?? '',
-    //                     'descripcion'         => $detalleData['descripcion'] ?? '',
-    //                     'cantidad'            => $detalleData['cantidad'] ?? 0,
-    //                     'ancho'               => $detalleData['ancho'] ?? 0,
-    //                     'alto'                => $detalleData['alto'] ?? 0,
-    //                     'profundidad'         => $detalleData['profundidad'] ?? 0,
-    //                     'total'               => $detalleData['total'] ?? 0,
-    //                     'fecha_registro'      => now(),
-    //                     'usuario_registro'    => auth()->user()->name ?? 'system',
-    //                     'costeado'            => $detalleData['costeado'] ?? 'N',
-    //                     'incluye_foto'        => $imagenRuta ? 'S' : 'N',
-    //                     'estado'              => $detalleData['estado'] ?? 1,
-    //                     'unidad_medida'       => $detalleData['unidad_medida'] ?? null,
-    //                     'm2'                  => $detalleData['m2'] ?? 0,
-    //                     'imagen'              => $imagenRuta,
-    //                     'precio_unitario'     => $detalleData['precio_unitario'] ?? 0,
-    //                     'descuento'           => $detalleData['descuento'] ?? 0,
-    //                     'impuesto_iva'        => $detalleData['impuesto_iva'] ?? 0,
-    //                     'precio'              => $detalleData['precio'] ?? 0,
-    //                     'subtotal'            => $detalleData['subtotal'] ?? 0,
-    //                     'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
-    //                 ]);
-    //             } catch (\Throwable $e) {
-    //                 Log::error('ERROR INSERTANDO DETALLE', [
-    //                     'loop_index' => $i,
-    //                     'data' => $detalleData,
-    //                     'error' => $e->getMessage(),
-    //                 ]);
-    //                 throw $e; // fuerza rollback
-    //             }
-
-    //             Log::debug('INSERT OK', [
-    //                 'iddetallecotizacion' => $nextDetalleId
-    //             ]);
-    //             $lastUsedDetId = $nextDetalleId;
-    //             $nextDetalleId += $incDet;
-    //         }
-
-    //         if ($lastUsedDetId !== null) {
-    //             DB::table('cor_correlativo')
-    //                 ->where('tabla', 'adm_detalle_cotizacion')
-    //                 ->update(['correlativo' => $lastUsedDetId]);
-    //         }
-
-    //         $cotizacion->load('detalles');
-
-    //         return response()->json($cotizacion);
-    //     });
-    // }
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -1422,50 +1233,6 @@ class CotizacionController extends Controller
         ]);
     }
 
-    // private function recalcularDetallesConAjuste(array $detalles, float $porcentajeDescuento): array
-    // {
-    //     $IVA_FACTOR = 1.12;
-    //     $detallesRecalculados = [];
-    //     $totalBruto = 0;
-
-    //     // 1. Calcular todos los datos con porcentaje aplicado
-    //     foreach ($detalles as $detalle) {
-    //         $cantidad = floatval($detalle['cantidad'] ?? 0);
-    //         $precioUnitario = floatval($detalle['precio_unitario'] ?? 0);
-    //         $precio = $cantidad * $precioUnitario;
-    //         $totalBruto += $precio;
-
-    //         $descuento = $precio * ($porcentajeDescuento / 100);
-    //         $totalConDescuento = $precio - $descuento;
-
-    //         $subtotal = $totalConDescuento / $IVA_FACTOR;
-    //         $impuestoIva = $totalConDescuento - $subtotal;
-
-    //         $detallesRecalculados[] = array_merge($detalle, [
-    //             'precio' => round($precio, 2),
-    //             'descuento' => round($descuento, 2),
-    //             'subtotal' => round($subtotal, 2),
-    //             'impuesto_iva' => round($impuestoIva, 2),
-    //             'total' => round($precio, 2),
-    //             'porcentaje_aplicado' => round($porcentajeDescuento, 2),
-    //         ]);
-    //     }
-
-    //     // 2. Ajustar si hay diferencia por redondeo
-    //     $descuentoEsperado = $totalBruto * ($porcentajeDescuento / 100);
-    //     $descuentoAplicado = array_sum(array_column($detallesRecalculados, 'descuento'));
-    //     $diferencia = $descuentoEsperado - $descuentoAplicado;
-
-    //     if (abs($diferencia) > 0.01 && count($detallesRecalculados)) {
-    //         $ultima = &$detallesRecalculados[count($detallesRecalculados) - 1];
-    //         $ultima['descuento'] += $diferencia;
-    //         $nuevoTotalConDescuento = $ultima['precio'] - $ultima['descuento'];
-    //         $ultima['subtotal'] = round($nuevoTotalConDescuento / $IVA_FACTOR, 2);
-    //         $ultima['impuesto_iva'] = round($nuevoTotalConDescuento - $ultima['subtotal'], 2);
-    //     }
-
-    //     return $detallesRecalculados;
-    // }
 
     private function recalcularDetallesDesdeFrontend(array $detalles): array
     {
@@ -1495,5 +1262,24 @@ class CotizacionController extends Controller
         }
 
         return $detalles;
+    }
+
+    public function notaEnvioResumen($id)
+    {
+        $envios = AdmHistorialEnvioCotizacion::where('idcotizacion', $id)
+            ->orderBy('no_envio')
+            ->get([
+                'idcotizacion',
+                'no_envio',
+                'direccion_envio',
+                'id_contactocliente',
+                'fecha_envio',
+            ]);
+
+        return response()->json([
+            'tiene_envios' => $envios->count() > 0,
+            'cantidad_envios' => $envios->count(),
+            'envios' => $envios,
+        ]);
     }
 }

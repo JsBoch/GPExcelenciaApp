@@ -7,7 +7,6 @@ export default function AsignarAreasPedidoModal({
     areasSeleccionadas,
     setAreasSeleccionadas,
     fechaProgramacion,
-    setFechaProgramacion,
 }) {
     if (!isOpen) return null;
 
@@ -15,7 +14,7 @@ export default function AsignarAreasPedidoModal({
         setAreasSeleccionadas((prev) =>
             prev.includes(idArea)
                 ? prev.filter((x) => x !== idArea)
-                : [...prev, idArea]
+                : [...prev, idArea],
         );
     };
 
@@ -45,10 +44,9 @@ export default function AsignarAreasPedidoModal({
                                 <input
                                     type="date"
                                     className="form-control"
-                                    value={fechaProgramacion}
-                                    onChange={(e) =>
-                                        setFechaProgramacion(e.target.value)
-                                    }
+                                    value={fechaProgramacion || ""}
+                                    disabled
+                                    readOnly
                                 />
                             </div>
 
@@ -72,11 +70,11 @@ export default function AsignarAreasPedidoModal({
                                         type="checkbox"
                                         id={`area-${area.id_areatrabajo}`}
                                         checked={areasSeleccionadas.includes(
-                                            area.id_areatrabajo
+                                            area.id_areatrabajo,
                                         )}
                                         onChange={() =>
                                             handleToggleArea(
-                                                area.id_areatrabajo
+                                                area.id_areatrabajo,
                                             )
                                         }
                                     />

@@ -17,10 +17,17 @@ import ImagenDetalleModal from "./pedidosproduccion/ImagenDetalleModal";
 import { pedidoProduccionService } from "./pedidosproduccion/services/pedidoProduccionService";
 import CotizacionDetalleModal from "./pedidosproduccion/CotizacionDetalleModal";
 import AsignarAreasPedidoModal from "./pedidosproduccion/AsignarAreasPedidoModal";
+import NotaEnvioModal from "./NotaEnvioModal";
+import NotaEnvioPDF from "./NotaEnvioPDF";
+import NotaEnvioPDFHalf from "./NotaEnvioPDFHalf";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
+import LogisticaPedidoPanel from "./pedidosproduccion/LogisticaPedidoPanel";
+import AdjuntarArchivosModal from "./pedidosproduccion/AdjuntarArchivosModal";
 
 const pedidoInicial = {
     idpedidoproduccion: 0,
     idcotizacion: 0,
+    no_envio_asociado: "",
     idpedidoproduccionoriginal: 0,
     idcliente: "",
     cliente: "",
@@ -38,6 +45,12 @@ const pedidoInicial = {
     idtipopago: "",
     direccion_entrega: "",
     costear: "N",
+    permisos_estado: "",
+    permisos_justificacion: "",
+    requiere_instalacion: "N",
+    requiere_entrega: "N",
+    montajes_estado: "",
+    montajes_justificacion: "",
 };
 
 export default function PedidoProduccion() {
@@ -72,9 +85,32 @@ export default function PedidoProduccion() {
     const [modalAreasOpen, setModalAreasOpen] = useState(false);
     const [fechaProgramacion, setFechaProgramacion] = useState("");
 
+    const [resumenEnvios, setResumenEnvios] = useState([]);
+    const [tieneNotaEnvio, setTieneNotaEnvio] = useState(false);
+    const [envioSeleccionado, setEnvioSeleccionado] = useState("");
+    const [showNotaEnvioModal, setShowNotaEnvioModal] = useState(false);
+    const [notaEnvioPayload, setNotaEnvioPayload] = useState(null);
+    const itemsNotaEnvio = notaEnvioPayload?.items ?? [];
+    const useHalfLetter = itemsNotaEnvio.length <= 8;
+    const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+
+    const [modalAdjuntosOpen, setModalAdjuntosOpen] = useState(false);
+    const [adjuntosPermisos, setAdjuntosPermisos] = useState([]);
+    const [adjuntosEliminados, setAdjuntosEliminados] = useState([]);
+
+    const [modalMontajesOpen, setModalMontajesOpen] = useState(false);
+    const [adjuntosMontajes, setAdjuntosMontajes] = useState([]);
+    const [montajesEliminados, setMontajesEliminados] = useState([]);
+
     const toggleContactoModal = () => setContactoModalIsOpen((prev) => !prev);
     const toggleImageModal = () => setIsImageModalOpen((prev) => !prev);
-    const toggleAreasModal = () => setModalAreasOpen((prev) => !prev);
+    const toggleAreasModal = () => {
+        if (!modalAreasOpen) {
+            setFechaProgramacion(fechaActual);
+        }
+
+        setModalAreasOpen((prev) => !prev);
+    };
 
     const toggleDetalleCotizacionModal = () =>
         setDetalleCotizacionModal((prev) => !prev);
@@ -107,6 +143,13 @@ export default function PedidoProduccion() {
             }));
         }
     }, [fechaActual, id]);
+
+    useEffect(() => {
+        setPedidoProduccion((prev) => ({
+            ...prev,
+            no_envio_asociado: envioSeleccionado || "",
+        }));
+    }, [envioSeleccionado]);
 
     const cargarInicial = async () => {
         try {
@@ -183,6 +226,13 @@ export default function PedidoProduccion() {
                 idtipopago: data.idtipopago || "",
                 direccion_entrega: data.direccion_entrega || "",
                 costear: data.costear || "N",
+                no_envio_asociado: data.no_envio_asociado || "",
+                permisos_estado: data.permisos_estado || "",
+                permisos_justificacion: data.permisos_justificacion || "",
+                requiere_instalacion: data.requiere_instalacion || "N",
+                requiere_entrega: data.requiere_entrega || "N",
+                montajes_estado: data.montajes_estado || "",
+                montajes_justificacion: data.montajes_justificacion || "",
             });
 
             if (data.idcliente) {
@@ -211,6 +261,18 @@ export default function PedidoProduccion() {
                     setFechaProgramacion(data.areas[0].fecha_programada);
                 }
             }
+
+            if (data.idcotizacion) {
+                await cargarResumenEnvios(
+                    data.idcotizacion,
+                    data.no_envio_asociado || "",
+                );
+            }
+
+            setAdjuntosPermisos(data.adjuntos_permisos || []);
+            setAdjuntosMontajes(data.adjuntos_montajes || []);
+            setAdjuntosEliminados([]);
+            setMontajesEliminados([]);
         } catch (error) {
             console.error("Error al cargar pedido:", error);
             alertify.error("Error al cargar pedido");
@@ -229,6 +291,40 @@ export default function PedidoProduccion() {
         } catch (error) {
             console.error("Error al cargar contactos:", error);
             alertify.error("Error al cargar contactos");
+        }
+    };
+
+    const cargarResumenEnvios = async (idCotizacion, envioPreferido = "") => {
+        if (!idCotizacion) {
+            setResumenEnvios([]);
+            setTieneNotaEnvio(false);
+            setEnvioSeleccionado("");
+            return;
+        }
+
+        try {
+            const res =
+                await pedidoProduccionService.getResumenEnvios(idCotizacion);
+
+            const envios = res.data.envios || [];
+
+            setResumenEnvios(envios);
+            setTieneNotaEnvio(res.data.tiene_envios);
+
+            if (envios.length > 0) {
+                const existePreferido = envios.some(
+                    (e) => Number(e.no_envio) === Number(envioPreferido),
+                );
+
+                setEnvioSeleccionado(
+                    existePreferido ? envioPreferido : envios[0].no_envio,
+                );
+            } else {
+                setEnvioSeleccionado("");
+            }
+        } catch (error) {
+            console.error("Error al consultar resumen de envíos:", error);
+            alertify.error("No se pudo consultar la nota de envío.");
         }
     };
 
@@ -321,6 +417,7 @@ export default function PedidoProduccion() {
                 ...prev,
                 idcotizacion: cot.idcotizacion,
                 nocotizacion: cot.numero_cotizacion,
+                no_envio_asociado: "",
                 idcliente: cot.idcliente,
                 cliente: cot.cliente,
                 idcontacto: cot.idcontacto || 0,
@@ -330,6 +427,8 @@ export default function PedidoProduccion() {
                 observaciones_cliente: cot.observaciones_cliente || "",
                 total_general: cot.total || 0,
             }));
+
+            await cargarResumenEnvios(cot.idcotizacion);
 
             if (manejarModal) {
                 toggleCotizacionModal();
@@ -409,12 +508,32 @@ export default function PedidoProduccion() {
         setCotizacionSeleccionada(null);
         setAreasSeleccionadas([]);
         setFechaProgramacion(fechaActual);
+        setResumenEnvios([]);
+        setTieneNotaEnvio(false);
+        setEnvioSeleccionado("");
+        setNotaEnvioPayload(null);
+        setShowNotaEnvioModal(false);
+        setAdjuntosPermisos([]);
+        setAdjuntosEliminados([]);
+        setModalAdjuntosOpen(false);
+        setAdjuntosMontajes([]);
+        setMontajesEliminados([]);
+        setModalMontajesOpen(false);
     };
 
     const buildFormData = () => {
         const formData = new FormData();
 
         formData.append("idcotizacion", pedidoProduccion.idcotizacion || 0);
+        formData.append("no_envio_asociado", envioSeleccionado || "");
+        formData.append(
+            "permisos_estado",
+            pedidoProduccion.permisos_estado || "",
+        );
+        formData.append(
+            "permisos_justificacion",
+            pedidoProduccion.permisos_justificacion || "",
+        );
         formData.append("nocotizacion", pedidoProduccion.nocotizacion || "");
         formData.append("idcliente", pedidoProduccion.idcliente);
         formData.append("idcontacto", pedidoProduccion.idcontacto || 0);
@@ -519,7 +638,77 @@ export default function PedidoProduccion() {
 
         // console.log("============================");
 
+        adjuntosPermisos.forEach((adjunto, index) => {
+            if (adjunto.file instanceof File) {
+                formData.append(`adjuntos_permisos[${index}]`, adjunto.file);
+            }
+        });
+
+        adjuntosEliminados.forEach((idadjunto, index) => {
+            formData.append(`adjuntos_eliminados[${index}]`, idadjunto);
+        });
+
+        adjuntosMontajes.forEach((adjunto, index) => {
+            if (adjunto.file instanceof File) {
+                formData.append(`adjuntos_montajes[${index}]`, adjunto.file);
+            }
+        });
+
+        montajesEliminados.forEach((idarchivo, index) => {
+            formData.append(`montajes_eliminados[${index}]`, idarchivo);
+        });
+
+        formData.append(
+            "requiere_instalacion",
+            pedidoProduccion.requiere_instalacion || "N",
+        );
+
+        formData.append(
+            "requiere_entrega",
+            pedidoProduccion.requiere_entrega || "N",
+        );
+
+        formData.append(
+            "montajes_estado",
+            pedidoProduccion.montajes_estado || "",
+        );
+
+        formData.append(
+            "montajes_justificacion",
+            pedidoProduccion.montajes_justificacion || "",
+        );
+
         return formData;
+    };
+
+    const handleReimprimirNotaEnvio = async () => {
+        if (!pedidoProduccion.idcotizacion) {
+            alertify.alert(
+                "Cotización requerida",
+                "Debe seleccionar una cotización.",
+            );
+            return;
+        }
+
+        if (!envioSeleccionado) {
+            alertify.alert(
+                "Nota requerida",
+                "Debe seleccionar una nota de envío.",
+            );
+            return;
+        }
+
+        try {
+            const { data } = await pedidoProduccionService.reimprimirNotaEnvio(
+                pedidoProduccion.idcotizacion,
+                envioSeleccionado,
+            );
+
+            setNotaEnvioPayload(data);
+        } catch (error) {
+            console.error("Error al reimprimir nota:", error);
+            alertify.error("No se pudo generar el PDF de la nota de envío.");
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -546,8 +735,126 @@ export default function PedidoProduccion() {
             return;
         }
 
+        if (!pedidoProduccion.idcotizacion) {
+            alertify.alert(
+                "CAMPO OBLIGATORIO",
+                "Debe asociar una cotización al pedido.",
+            );
+            return;
+        }
+
+        if (!areasSeleccionadas || areasSeleccionadas.length === 0) {
+            alertify.alert(
+                "CAMPO OBLIGATORIO",
+                "Debe asignar al menos un área de trabajo.",
+            );
+            return;
+        }
+
+        if (!tieneNotaEnvio) {
+            alertify.alert(
+                "CAMPO OBLIGATORIO",
+                "Debe registrar una nota de envío antes de guardar el pedido.",
+            );
+            return;
+        }
+
+        if (!envioSeleccionado) {
+            alertify.alert(
+                "CAMPO OBLIGATORIO",
+                "Debe seleccionar la nota de envío asociada al pedido.",
+            );
+            return;
+        }
+
+        const permisosEstado = pedidoProduccion.permisos_estado;
+
+        if (!permisosEstado) {
+            alertify.alert(
+                "PERMISOS REQUERIDOS",
+                "Debe adjuntar los permisos o marcarlos como pendientes con justificación.",
+            );
+            return;
+        }
+
+        const adjuntosActivos = adjuntosPermisos.filter((a) => !a._deleted);
+
+        if (permisosEstado === "ADJUNTADO" && adjuntosActivos.length === 0) {
+            alertify.alert(
+                "PERMISOS REQUERIDOS",
+                "Debe adjuntar al menos un permiso en PDF o imagen.",
+            );
+            return;
+        }
+
+        if (
+            ["PENDIENTE", "NO_REQUIERE"].includes(permisosEstado) &&
+            !pedidoProduccion.permisos_justificacion?.trim()
+        ) {
+            alertify.alert(
+                "JUSTIFICACIÓN REQUERIDA",
+                "Debe escribir una justificación para dejar los permisos pendientes.",
+            );
+            return;
+        }
+
+        if (!pedidoProduccion.requiere_instalacion) {
+            alertify.alert(
+                "INSTALACIÓN REQUERIDA",
+                "Debe indicar si el pedido requiere instalación.",
+            );
+            return;
+        }
+
+        if (!pedidoProduccion.requiere_entrega) {
+            alertify.alert(
+                "ENTREGA REQUERIDA",
+                "Debe indicar si el pedido requiere entrega.",
+            );
+            return;
+        }
+
+        if (pedidoProduccion.requiere_instalacion === "S") {
+            if (!pedidoProduccion.montajes_estado) {
+                alertify.alert(
+                    "MONTAJES REQUERIDOS",
+                    "Debe adjuntar los montajes o marcarlos como pendientes con justificación.",
+                );
+                return;
+            }
+
+            const montajesActivos = adjuntosMontajes.filter((a) => !a._deleted);
+
+            if (
+                pedidoProduccion.montajes_estado === "ADJUNTADO" &&
+                montajesActivos.length === 0
+            ) {
+                alertify.alert(
+                    "MONTAJES REQUERIDOS",
+                    "Debe adjuntar al menos un montaje en PDF o imagen.",
+                );
+                return;
+            }
+
+            if (
+                pedidoProduccion.montajes_estado === "PENDIENTE" &&
+                !pedidoProduccion.montajes_justificacion?.trim()
+            ) {
+                alertify.alert(
+                    "JUSTIFICACIÓN REQUERIDA",
+                    "Debe escribir una justificación para dejar los montajes pendientes.",
+                );
+                return;
+            }
+        }
+
         try {
             const formData = buildFormData();
+
+            console.log(
+    "DETALLES ENVIADOS",
+    JSON.stringify(detalles, null, 2)
+);
 
             if (id) {
                 await pedidoProduccionService.actualizarPedido(id, formData);
@@ -570,92 +877,243 @@ export default function PedidoProduccion() {
     };
 
     return (
-        <div className="mt-4 mb-4 pp-container">
-            <Header
-                title={
-                    id
-                        ? "Editar Pedido a Producción"
-                        : "Crear Nuevo Pedido a Producción"
-                }
-            />
+        <>
+            <div className="mt-4 mb-4 pp-container">
+                <Header
+                    title={
+                        id
+                            ? "Editar Pedido a Producción"
+                            : "Crear Nuevo Pedido a Producción"
+                    }
+                />
 
-            <div className="card pp-card">
-                <div className="card-body card-form pp-card-body">
-                    <form onSubmit={handleSubmit} encType="multipart/form-data">
-                        <PedidoProduccionForm
-                            pedidoProduccion={pedidoProduccion}
-                            clienteOptions={clienteOptions}
-                            contactos={contactos}
-                            clienteId={clienteId}
-                            detalles={detalles}
-                            setDetalles={setDetalles}
-                            unidadesMedida={unidadesMedida}
-                            maquinasProduccion={maquinasProduccion}
-                            handleClienteChange={handleClienteChange}
-                            handleChange={handleChange}
-                            handleAgregarContacto={handleAgregarContacto}
-                            toggleCotizacionModal={toggleCotizacionModal}
-                            handleVerDetalleCotizacion={
-                                handleVerDetalleCotizacion
-                            }
-                            handleBuscarCotizacionPorNumero={
-                                handleBuscarCotizacionPorNumero
-                            }
-                            handleCotizacionKeyDown={handleCotizacionKeyDown}
-                        />
+                <div className="card pp-card">
+                    <div className="card-body card-form pp-card-body">
+                        <form
+                            onSubmit={handleSubmit}
+                            encType="multipart/form-data"
+                        >
+                            <PedidoProduccionForm
+                                pedidoProduccion={pedidoProduccion}
+                                clienteOptions={clienteOptions}
+                                contactos={contactos}
+                                clienteId={clienteId}
+                                detalles={detalles}
+                                setDetalles={setDetalles}
+                                unidadesMedida={unidadesMedida}
+                                maquinasProduccion={maquinasProduccion}
+                                handleClienteChange={handleClienteChange}
+                                handleChange={handleChange}
+                                handleAgregarContacto={handleAgregarContacto}
+                                toggleCotizacionModal={toggleCotizacionModal}
+                                handleVerDetalleCotizacion={
+                                    handleVerDetalleCotizacion
+                                }
+                                handleBuscarCotizacionPorNumero={
+                                    handleBuscarCotizacionPorNumero
+                                }
+                                handleCotizacionKeyDown={
+                                    handleCotizacionKeyDown
+                                }
+                            />
 
-                        <PedidoProduccionActions
-                            id={id}
-                            limpiarCampos={limpiarCampos}
-                            toggleAreasModal={toggleAreasModal}
-                        />
+                            <LogisticaPedidoPanel
+                                idCotizacion={pedidoProduccion.idcotizacion}
+                                areasSeleccionadas={areasSeleccionadas}
+                                toggleAreasModal={toggleAreasModal}
+                                resumenEnvios={resumenEnvios}
+                                tieneNotaEnvio={tieneNotaEnvio}
+                                envioSeleccionado={envioSeleccionado}
+                                setEnvioSeleccionado={setEnvioSeleccionado}
+                                onRegistrarNotaEnvio={() => {
+                                    if (!pedidoProduccion.idcotizacion) {
+                                        alertify.alert(
+                                            "Cotización requerida",
+                                            "Debe seleccionar una cotización antes de registrar nota de envío.",
+                                        );
+                                        return;
+                                    }
 
-                        <ContactoClienteModal
-                            isOpen={contactoModalIsOpen}
-                            toggle={toggleContactoModal}
-                            clienteId={clienteId}
-                            onContactCreated={handleContactCreated}
-                        />
+                                    setShowNotaEnvioModal(true);
+                                }}
+                                onReimprimirNotaEnvio={
+                                    handleReimprimirNotaEnvio
+                                }
+                                permisosEstado={
+                                    pedidoProduccion.permisos_estado
+                                }
+                                permisosJustificacion={
+                                    pedidoProduccion.permisos_justificacion
+                                }
+                                setPedidoProduccion={setPedidoProduccion}
+                                adjuntosPermisos={adjuntosPermisos}
+                                onAdjuntarPermisos={() =>
+                                    setModalAdjuntosOpen(true)
+                                }
+                                requiereInstalacion={
+                                    pedidoProduccion.requiere_instalacion
+                                }
+                                requiereEntrega={
+                                    pedidoProduccion.requiere_entrega
+                                }
+                                montajesEstado={
+                                    pedidoProduccion.montajes_estado
+                                }
+                                montajesJustificacion={
+                                    pedidoProduccion.montajes_justificacion
+                                }
+                                adjuntosMontajes={adjuntosMontajes}
+                                onAdjuntarMontajes={() =>
+                                    setModalMontajesOpen(true)
+                                }
+                            />
 
-                        <ImagenDetalleModal
-                            isOpen={isImageModalOpen}
-                            toggle={toggleImageModal}
-                            selectedImageUrl={selectedImageUrl}
-                        />
+                            <PedidoProduccionActions
+                                id={id}
+                                limpiarCampos={limpiarCampos}
+                            />
 
-                        <CotizacionDetalleModal
-                            isOpen={detalleCotizacionModal}
-                            toggle={toggleDetalleCotizacionModal}
-                            detalles={detalleCotizacion}
-                            onVerImagen={handleVerImagenCotizacion}
-                        />
+                            <ContactoClienteModal
+                                isOpen={contactoModalIsOpen}
+                                toggle={toggleContactoModal}
+                                clienteId={clienteId}
+                                onContactCreated={handleContactCreated}
+                            />
 
-                        <CotizacionSelectorModal
-                            isOpen={cotizacionModalIsOpen}
-                            toggle={toggleCotizacionModal}
-                            fechaInicio={fechaInicio}
-                            setFechaInicio={setFechaInicio}
-                            fechaFin={fechaFin}
-                            setFechaFin={setFechaFin}
-                            estadoCotizacion={estadoCotizacion}
-                            setEstadoCotizacion={setEstadoCotizacion}
-                            cotizaciones={cotizaciones}
-                            onBuscar={handleBuscarCotizaciones}
-                            onSeleccionar={handleSeleccionarCotizacion}
-                        />
+                            <ImagenDetalleModal
+                                isOpen={isImageModalOpen}
+                                toggle={toggleImageModal}
+                                selectedImageUrl={selectedImageUrl}
+                            />
 
-                        <AsignarAreasPedidoModal
-                            isOpen={modalAreasOpen}
-                            toggle={toggleAreasModal}
-                            areasTrabajo={areasTrabajo}
-                            areasSeleccionadas={areasSeleccionadas}
-                            setAreasSeleccionadas={setAreasSeleccionadas}
-                            fechaProgramacion={fechaProgramacion}
-                            setFechaProgramacion={setFechaProgramacion}
-                        />
-                    </form>
+                            <CotizacionDetalleModal
+                                isOpen={detalleCotizacionModal}
+                                toggle={toggleDetalleCotizacionModal}
+                                detalles={detalleCotizacion}
+                                onVerImagen={handleVerImagenCotizacion}
+                            />
+
+                            <CotizacionSelectorModal
+                                isOpen={cotizacionModalIsOpen}
+                                toggle={toggleCotizacionModal}
+                                fechaInicio={fechaInicio}
+                                setFechaInicio={setFechaInicio}
+                                fechaFin={fechaFin}
+                                setFechaFin={setFechaFin}
+                                estadoCotizacion={estadoCotizacion}
+                                setEstadoCotizacion={setEstadoCotizacion}
+                                cotizaciones={cotizaciones}
+                                onBuscar={handleBuscarCotizaciones}
+                                onSeleccionar={handleSeleccionarCotizacion}
+                            />
+
+                            <AsignarAreasPedidoModal
+                                isOpen={modalAreasOpen}
+                                toggle={toggleAreasModal}
+                                areasTrabajo={areasTrabajo}
+                                areasSeleccionadas={areasSeleccionadas}
+                                setAreasSeleccionadas={setAreasSeleccionadas}
+                                fechaProgramacion={fechaProgramacion}
+                            />
+
+                            <AdjuntarArchivosModal
+                                isOpen={modalAdjuntosOpen}
+                                toggle={() =>
+                                    setModalAdjuntosOpen((prev) => !prev)
+                                }
+                                titulo="Adjuntar permisos"
+                                descripcion="Adjunte los permisos escritos para realizar instalación o entrega."
+                                adjuntos={adjuntosPermisos}
+                                setAdjuntos={setAdjuntosPermisos}
+                                eliminados={adjuntosEliminados}
+                                setEliminados={setAdjuntosEliminados}
+                            />
+
+                            <AdjuntarArchivosModal
+                                isOpen={modalMontajesOpen}
+                                toggle={() =>
+                                    setModalMontajesOpen((prev) => !prev)
+                                }
+                                titulo="Adjuntar montajes"
+                                descripcion="Adjunte los montajes, artes, referencias o documentos necesarios para instalación."
+                                adjuntos={adjuntosMontajes}
+                                setAdjuntos={setAdjuntosMontajes}
+                                eliminados={montajesEliminados}
+                                setEliminados={setMontajesEliminados}
+                            />
+
+                            {showNotaEnvioModal &&
+                                pedidoProduccion.idcotizacion && (
+                                    <NotaEnvioModal
+                                        idCotizacion={
+                                            pedidoProduccion.idcotizacion
+                                        }
+                                        open={showNotaEnvioModal}
+                                        onClose={() =>
+                                            setShowNotaEnvioModal(false)
+                                        }
+                                        onPdfReady={async (data) => {
+                                            setNotaEnvioPayload(data);
+                                            await cargarResumenEnvios(
+                                                pedidoProduccion.idcotizacion,
+                                                data?.no_envio || "",
+                                            );
+                                        }}
+                                        direccionSugerida={
+                                            pedidoProduccion.direccion_entrega ||
+                                            ""
+                                        }
+                                    />
+                                )}
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
+            {notaEnvioPayload && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div style={{ width: "80%", height: "80%" }}>
+                        <PDFViewer width="100%" height="100%">
+                            <PdfComponent data={notaEnvioPayload} />
+                        </PDFViewer>
+                    </div>
+
+                    <div className="mt-3 d-flex gap-2">
+                        <PDFDownloadLink
+                            document={<PdfComponent data={notaEnvioPayload} />}
+                            fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
+                            className="btn btn-primary"
+                        >
+                            {({ loading }) =>
+                                loading
+                                    ? "Generando PDF..."
+                                    : "Descargar Nota de Envío"
+                            }
+                        </PDFDownloadLink>
+
+                        <button
+                            type="button"
+                            className="btn btn-danger"
+                            onClick={() => setNotaEnvioPayload(null)}
+                        >
+                            Cerrar PDF
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

@@ -62,6 +62,24 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
             )
             ->get();
 
+        foreach ($this->detalles as $detalle) {
+
+            $maquinas = DB::table('adm_detalle_pedidosproduccion_maquinas as dm')
+                ->join(
+                    'adm_maquinas_produccion as m',
+                    'dm.idmaquina',
+                    '=',
+                    'm.idmaquina'
+                )
+                ->where(
+                    'dm.iddetallepedidoproduccion',
+                    $detalle->iddetallepedidoproduccion
+                )
+                ->pluck('m.nombre');
+
+            $detalle->maquinas_texto = $maquinas->implode(', ');
+        }
+
         $this->areas = DB::table('adm_pedido_produccion_areas as pa')
             ->join('area_trabajo as a', 'pa.id_areatrabajo', '=', 'a.id_areatrabajo')
             ->where('pa.idpedidoproduccion', $idPedido)
@@ -85,7 +103,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                 if (file_exists($imagePath)) {
                     $this->imagenes[] = [
                         'path' => $imagePath,
-                        'cell' => 'K' . ($startRow + $index),
+                        'cell' => 'L' . ($startRow + $index),
                     ];
                 }
             }
@@ -110,7 +128,8 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
             'H' => 14,
             'I' => 22,
             'J' => 18,
-            'K' => 18,
+            'K' => 35,
+            'L' => 18,
         ];
     }
 
@@ -154,9 +173,9 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
 
                 $sheet = $event->sheet->getDelegate();
 
-                $sheet->mergeCells('A1:K3');
+                $sheet->mergeCells('A1:L3');
                 $sheet->setCellValue('A4', 'PEDIDO A PRODUCCIÓN');
-                $sheet->mergeCells('A4:K4');
+                $sheet->mergeCells('A4:L4');
 
                 $sheet->getStyle('A4')->applyFromArray([
                     'font' => [
@@ -205,10 +224,10 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                 $row++;
 
                 $sheet->setCellValue("A{$row}", 'Dirección');
-                $sheet->mergeCells("B{$row}:K{$row}");
+                $sheet->mergeCells("B{$row}:L{$row}");
                 $sheet->setCellValue("B{$row}", $this->pedido->direccion_entrega ?? '');
 
-                $sheet->getStyle("A6:K{$row}")->applyFromArray([
+                $sheet->getStyle("A6:L{$row}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -230,7 +249,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                 $row += 2;
 
                 $sheet->setCellValue("A{$row}", 'ÁREAS ASIGNADAS');
-                $sheet->mergeCells("A{$row}:K{$row}");
+                $sheet->mergeCells("A{$row}:L{$row}");
 
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => [
@@ -248,7 +267,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
 
                 if ($this->areas->isEmpty()) {
                     $sheet->setCellValue("A{$row}", 'Sin áreas asignadas');
-                    $sheet->mergeCells("A{$row}:K{$row}");
+                    $sheet->mergeCells("A{$row}:L{$row}");
                     $row++;
                 } else {
                     foreach ($this->areas as $area) {
@@ -256,7 +275,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                             "A{$row}",
                             $area->orden . '. ' . $area->nombre . ' - ' . $this->formatDate($area->fecha_programada)
                         );
-                        $sheet->mergeCells("A{$row}:K{$row}");
+                        $sheet->mergeCells("A{$row}:L{$row}");
                         $row++;
                     }
                 }
@@ -276,14 +295,15 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                     'H' => 'Versión',
                     'I' => 'Acabados',
                     'J' => 'Medida Real',
-                    'K' => 'Imagen',
+                    'K' => 'Máquinas',
+                    'L' => 'Imagen',
                 ];
 
                 foreach ($headers as $col => $title) {
                     $sheet->setCellValue("{$col}{$headerRow}", $title);
                 }
 
-                $sheet->getStyle("A{$headerRow}:K{$headerRow}")->applyFromArray([
+                $sheet->getStyle("A{$headerRow}:L{$headerRow}")->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => [
@@ -320,6 +340,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                     $sheet->setCellValue("H{$row}", $detalle->version);
                     $sheet->setCellValue("I{$row}", $detalle->acabados);
                     $sheet->setCellValue("J{$row}", $detalle->medida_real);
+                    $sheet->setCellValue("K{$row}", $detalle->maquinas_texto);
 
                     $sheet->getRowDimension($row)->setRowHeight(42);
 
@@ -328,7 +349,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
 
                 $lastRow = $row - 1;
 
-                $sheet->getStyle("A{$headerRow}:K{$lastRow}")->applyFromArray([
+                $sheet->getStyle("A{$headerRow}:L{$lastRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -348,7 +369,7 @@ class PedidoProduccionFormatoExcel implements WithEvents, WithDrawings, WithTitl
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                $sheet->getStyle("K{$headerRow}:K{$lastRow}")
+                $sheet->getStyle("L{$headerRow}:L{$lastRow}")
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 

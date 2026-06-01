@@ -1,0 +1,76 @@
+.btn-areas {
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+
+    --bs-btn-bg: #1e3a5f;
+    --bs-btn-border-color: #1e3a5f;
+
+    --bs-btn-hover-bg: #284d7a;
+    --bs-btn-hover-border-color: #284d7a;
+
+    --bs-btn-active-bg: #16314f;
+    --bs-btn-active-border-color: #16314f;
+
+    background: #1e3a5f !important;
+    border: none !important;
+    font-weight: 700 !important;
+    border-radius: 10px;
+    padding: 12px 22px;
+    transition: all .2s ease;
+}
+
+.btn-areas-ok {
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+
+    --bs-btn-bg: #198754;
+    --bs-btn-border-color: #198754;
+
+    --bs-btn-hover-bg: #157347;
+    --bs-btn-hover-border-color: #157347;
+
+    --bs-btn-active-bg: #146c43;
+    --bs-btn-active-border-color: #146c43;
+
+    background: #198754 !important;
+    border: none !important;
+    font-weight: 700 !important;
+    border-radius: 10px;
+    padding: 12px 22px;
+    transition: all .2s ease;
+}
+
+.logistica-container {
+    background: #f5f7fa;
+    border: 1px solid #dce3ea;
+    border-radius: 16px;
+}
+
+.logistica-card {
+    background: linear-gradient(
+        135deg,
+        rgba(20, 77, 141, 0.06) 0%,
+        rgba(20, 77, 141, 0.02) 100%
+    );
+
+    border: 1px solid rgba(20, 77, 141, 0.12);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.logistica-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #144d8d;
+
+    border-bottom: 2px solid rgba(20, 77, 141, 0.12);
+
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}

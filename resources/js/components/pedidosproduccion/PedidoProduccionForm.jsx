@@ -146,7 +146,7 @@ export default function PedidoProduccionForm({
                 <div className="row g-2 mb-4">
                     <div className="col-md-12">
                         <label className="form-label pp-label">
-                            Dirección entrega
+                            Dirección entrega / instalación
                         </label>
                         <input
                             type="text"

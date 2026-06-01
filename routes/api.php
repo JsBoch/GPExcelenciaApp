@@ -122,7 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cotizaciones/activarfacturacion/{id}', [CotizacionController::class, 'activarFacturacion']);
     Route::post('/cotizaciones/{id}/nota-envio/eliminar', [CotizacionController::class, 'notaEnvioEliminar']);   // NUEVA
     Route::post('/cotizaciones/{id}/nota-envio/actualizar', [CotizacionController::class, 'notaEnvioActualizar']); // NUEVA
-
+    Route::get('/cotizaciones/{id}/nota-envio/resumen', [CotizacionController::class, 'notaEnvioResumen']);
 
     Route::get('/motivos-rechazo', [CotizacionController::class, 'motivosRechazo']);
     // Rutas adicionales para las listas desplegables
@@ -213,7 +213,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
     Route::get('/pedidosproduccion/export/excel', [PedidosProduccionController::class, 'exportExcel']);
     Route::get('/pedidosproduccion/detalle-cotizacion/{idcotizacion}', [PedidosProduccionController::class, 'detalleCotizacion']);
-    Route::get('/pedidosproduccion/{id}/areas',[PedidosProduccionController::class, 'obtenerAreasPedido']);    
+    Route::get('/pedidosproduccion/{id}/areas', [PedidosProduccionController::class, 'obtenerAreasPedido']);
+    Route::get('/pedidosproduccion/{id}/permisos', [PedidosProduccionController::class, 'obtenerPermisos']);
+    Route::get('/pedidosproduccion/{id}/montajes', [PedidosProduccionController::class, 'obtenerMontajes']);
 });
 
 // CUENTAS POR COBRAR

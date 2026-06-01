@@ -129,7 +129,6 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
         }
     };
 
-    
     const columns = useMemo(
         () => [
             { accessorKey: "cantidad", header: "Cantidad" },
@@ -141,6 +140,12 @@ const DetallePedidoModal = ({ detalle, estadoPedido, nopedido, onClose }) => {
             { accessorKey: "version", header: "Versión" },
             { accessorKey: "acabados", header: "Acabados" },
             { accessorKey: "medida_real", header: "Medida Real" },
+            {
+                accessorKey: "maquinas_texto",
+                header: "Máquinas",
+                size: 250,
+                Cell: ({ cell }) => cell.getValue() || "-",
+            },
 
             {
                 accessorKey: "galaxy_plus",

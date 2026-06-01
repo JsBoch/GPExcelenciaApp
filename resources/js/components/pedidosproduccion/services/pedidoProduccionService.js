@@ -108,4 +108,24 @@ getAreasTrabajo() {
     return axios.get("/api/areas",{headers: getHeaders()});
 },
 
+getResumenEnvios(idCotizacion) {
+    return axios.get(`/api/cotizaciones/${idCotizacion}/nota-envio/resumen`, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    });
+},
+
+reimprimirNotaEnvio(idCotizacion, noEnvio) {
+    return axios.post(
+        `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
+        { no_envio: Number(noEnvio) },
+        {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        },
+    );
+},
+
 };

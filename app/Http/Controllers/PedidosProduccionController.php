@@ -20,6 +20,7 @@ use App\Exports\PedidosProduccionExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\AdmPedidoProduccionArea;
 use App\Exports\PedidoProduccionFormatoExcel;
+use Illuminate\Validation\Rule;
 
 
 class PedidosProduccionController extends Controller
@@ -34,6 +35,7 @@ class PedidosProduccionController extends Controller
                 'c.idpedidoproduccion',
                 DB::raw('CONCAT(\'P-\',CAST(c.nopedido AS CHAR)) as nopedido'),
                 'c.nocotizacion',
+                'c.idcotizacion',
                 'c.nopedido as nopedido_num',
                 'c.fecha_pedido',
                 //'\'NA\' as tipo_pago',
@@ -53,6 +55,13 @@ class PedidosProduccionController extends Controller
                 'c.version',
                 'c.idtipopago',
                 'c.estado',
+                'c.no_envio_asociado',
+                'c.permisos_estado',
+                'c.requiere_instalacion',
+                'c.montajes_estado',
+                'c.requiere_entrega',
+                'c.permisos_justificacion',
+                'c.montajes_justificacion',
                 DB::raw("CASE
                     WHEN c.estado = 1 THEN 'REGISTRO'
                     WHEN c.estado = 2 THEN 'COSTEO'
@@ -72,6 +81,24 @@ class PedidosProduccionController extends Controller
                     WHERE pa.idpedidoproduccion = c.idpedidoproduccion
                     AND pa.estado = 1
                 ) as total_areas
+                "),
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos pa
+                    WHERE pa.idpedidoproduccion = c.idpedidoproduccion
+                    AND pa.tipo_documento = 'PERMISO'
+                    AND pa.estado = 1
+                ) as total_permisos
+                "),
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos pa
+                    WHERE pa.idpedidoproduccion = c.idpedidoproduccion
+                    AND pa.tipo_documento = 'MONTAJE'
+                    AND pa.estado = 1
+                ) as total_montajes
                 "),
             )
             ->from('adm_pedidos_produccion as c')
@@ -125,11 +152,34 @@ class PedidosProduccionController extends Controller
             'detalles.*.version' => 'nullable|string',
             'detalles.*.acabados' => 'nullable|string',
             'detalles.*.medida_real' => 'nullable|string',
-            'areas' => 'nullable|array',
-            'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
             'fecha_programada' => 'nullable|date',
+            'no_envio_asociado' => [
+                'required',
+                'integer',
+                'min:1',
+                Rule::exists('adm_historial_envioscotizacion', 'no_envio')
+                    ->where(function ($q) use ($request) {
+                        $q->where('idcotizacion', $request->idcotizacion);
+                    }),
+            ],
+            'areas' => 'required|array|min:1',
+            'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
+
+            'permisos_estado' => 'required|in:ADJUNTADO,PENDIENTE,NO_REQUIERE',
+            'permisos_justificacion' => 'nullable|string|required_if:permisos_estado,PENDIENTE,NO_REQUIERE',
+            'adjuntos_permisos' => 'nullable|array',
+            'adjuntos_permisos.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+
+            'requiere_instalacion' => 'required|in:S,N',
+            'requiere_entrega' => 'required|in:S,N',
+            'montajes_estado' => 'nullable|in:ADJUNTADO,PENDIENTE',
+            'montajes_justificacion' => 'nullable|string',
+            'adjuntos_montajes' => 'nullable|array',
+            'adjuntos_montajes.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
         ]);
 
+        $this->validarReglaDocumento($request, 'PERMISO', null);
+        $this->validarReglaMontajes($request, null);
 
         try {
 
@@ -158,6 +208,7 @@ class PedidosProduccionController extends Controller
             $datosPedido = [
                 'idpedidoproduccion' => $idPedidoProduccion,
                 'idcotizacion' => $request->idcotizacion ?? 0,
+                'no_envio_asociado' => $request->no_envio_asociado,
                 'nocotizacion' => $request->nocotizacion ?? null,
                 'idcliente' => $request->idcliente,
                 'idcontacto' => $request->idcontacto ?? 0,
@@ -175,7 +226,16 @@ class PedidosProduccionController extends Controller
                 'idusuario' => auth()->user()->id,
                 'usuario_registro' => auth()->user()->name,
                 'fecha_registro' => now(),
-
+                'permisos_estado' => $request->permisos_estado,
+                'permisos_justificacion' => $request->permisos_justificacion,
+                'requiere_instalacion' => $request->requiere_instalacion,
+                'requiere_entrega' => $request->requiere_entrega,
+                'montajes_estado' => $request->requiere_instalacion === 'S'
+                    ? $request->montajes_estado
+                    : null,
+                'montajes_justificacion' => $request->requiere_instalacion === 'S'
+                    ? $request->montajes_justificacion
+                    : null,
             ];
 
             // Log::info('Datos pedido producción a guardar', [
@@ -223,7 +283,7 @@ class PedidosProduccionController extends Controller
             // ]);
 
             if (!is_array($detalles)) {
-                Log::error('Los detalles no son un array: ' . print_r($detalles, true));
+                //Log::error('Los detalles no son un array: ' . print_r($detalles, true));
                 DB::rollback();
                 return response()->json(['message' => 'Error: Los detalles deben ser un array'], 500);
             }
@@ -299,6 +359,12 @@ class PedidosProduccionController extends Controller
             $correlativoDetalle->correlativo = $idDetallePedidoProduccion - $correlativoDetalle->incremento;
             $correlativoDetalle->save();
 
+            $this->guardarArchivosPedido($request, $idPedidoProduccion, 'PERMISO');
+
+            if ($request->requiere_instalacion === 'S') {
+                $this->guardarArchivosPedido($request, $idPedidoProduccion, 'MONTAJE');
+            }
+
             DB::commit();
 
             return response()->json($pedidoProduccion, 201);
@@ -336,6 +402,7 @@ class PedidosProduccionController extends Controller
                 'c.idpedidoproduccionoriginal',
                 'c.idpedidoproduccion',
                 'c.idcotizacion',
+                'c.no_envio_asociado',
                 'c.idcliente',
                 'cl.nombre as cliente',
                 'c.idcontacto',
@@ -351,7 +418,13 @@ class PedidosProduccionController extends Controller
                 'c.version',
                 'c.idtipopago',
                 'c.direccion_entrega',
-                'c.costear'
+                'c.costear',
+                'c.permisos_estado',
+                'c.permisos_justificacion',
+                'c.requiere_instalacion',
+                'c.requiere_entrega',
+                'c.montajes_estado',
+                'c.montajes_justificacion',
             )
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
             ->leftJoin('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
@@ -383,16 +456,28 @@ class PedidosProduccionController extends Controller
 
         foreach ($detalles as $detalle) {
 
-            $detalle->maquinas = DB::table(
-                'adm_detalle_pedidosproduccion_maquinas as dm'
-            )
+            $detalle->maquinas = DB::table('adm_detalle_pedidosproduccion_maquinas')
+                ->where(
+                    'iddetallepedidoproduccion',
+                    $detalle->iddetallepedidoproduccion
+                )
+                ->pluck('idmaquina')
+                ->map(fn($id) => (int)$id)
+                ->values();
+
+            $detalle->maquinas_texto = DB::table('adm_detalle_pedidosproduccion_maquinas as dm')
+                ->join(
+                    'adm_maquinas_produccion as m',
+                    'dm.idmaquina',
+                    '=',
+                    'm.idmaquina'
+                )
                 ->where(
                     'dm.iddetallepedidoproduccion',
                     $detalle->iddetallepedidoproduccion
                 )
-                ->pluck('dm.idmaquina')
-                ->map(fn($id) => (int)$id)
-                ->values();
+                ->pluck('m.nombre')
+                ->implode(', ');
         }
 
         $areas = DB::table('adm_pedido_produccion_areas as pa')
@@ -419,6 +504,9 @@ class PedidosProduccionController extends Controller
         $pedidoProduccion->detalles = $detalles;
         $pedidoProduccion->areas = $areas;
 
+        $pedidoProduccion->adjuntos_permisos = $this->obtenerArchivosPedido($id, 'PERMISO');
+        $pedidoProduccion->adjuntos_montajes = $this->obtenerArchivosPedido($id, 'MONTAJE');
+
         return response()->json($pedidoProduccion);
     }
 
@@ -444,14 +532,41 @@ class PedidosProduccionController extends Controller
                 'detalles.*.version' => 'nullable|string',
                 'detalles.*.acabados' => 'nullable|string',
                 'detalles.*.medida_real' => 'nullable|string',
-                'areas' => 'nullable|array',
-                'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
                 'fecha_programada' => 'nullable|date',
+                'no_envio_asociado' => [
+                    'required',
+                    'integer',
+                    'min:1',
+                    Rule::exists('adm_historial_envioscotizacion', 'no_envio')
+                        ->where(function ($q) use ($request) {
+                            $q->where('idcotizacion', $request->idcotizacion);
+                        }),
+                ],
+                'areas' => 'required|array|min:1',
+                'areas.*' => 'integer|exists:area_trabajo,id_areatrabajo',
+
+                'permisos_estado' => 'required|in:ADJUNTADO,PENDIENTE,NO_REQUIERE',
+                'permisos_justificacion' => 'nullable|string|required_if:permisos_estado,PENDIENTE,NO_REQUIERE',
+                'adjuntos_permisos' => 'nullable|array',
+                'adjuntos_permisos.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+                'adjuntos_eliminados' => 'nullable|array',
+                'adjuntos_eliminados.*' => 'integer',
+
+                'requiere_instalacion' => 'required|in:S,N',
+                'requiere_entrega' => 'required|in:S,N',
+                'montajes_estado' => 'nullable|in:ADJUNTADO,PENDIENTE',
+                'montajes_justificacion' => 'nullable|string',
+                'adjuntos_montajes' => 'nullable|array',
+                'adjuntos_montajes.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+                'montajes_eliminados' => 'nullable|array',
+                'montajes_eliminados.*' => 'integer',
             ]);
 
+            $this->validarReglaDocumento($request, 'PERMISO', $id);
+            $this->validarReglaMontajes($request, $id);
 
             // 1) cabecera
-            $datosCabecera = $request->except(['detalles', 'deleted', 'areas', 'fecha_programada']);
+            $datosCabecera = $request->except(['detalles', 'deleted', 'areas', 'fecha_programada', 'adjuntos_permisos', 'adjuntos_eliminados', 'adjuntos_montajes', 'montajes_eliminados']);
             $datosCabecera['usuario_modificacion'] = auth()->user()->name;
             $datosCabecera['fecha_modificacion'] = now();
             $pedido->update($datosCabecera);
@@ -635,6 +750,39 @@ class PedidosProduccionController extends Controller
                 $correlativoDetalle->save();
             }
 
+            if ($request->permisos_estado !== 'ADJUNTADO') {
+                DB::table('adm_pedido_produccion_archivos')
+                    ->where('idpedidoproduccion', $id)
+                    ->where('tipo_documento', 'PERMISO')
+                    ->where('estado', 1)
+                    ->update([
+                        'estado' => 0,
+                        'usuario_eliminacion' => auth()->user()->name,
+                        'fecha_eliminacion' => now(),
+                    ]);
+            } else {
+                $this->eliminarArchivosPedido($request, $id, 'PERMISO');
+                $this->guardarArchivosPedido($request, $id, 'PERMISO');
+            }
+
+            $this->eliminarArchivosPedido($request, $id, 'MONTAJE');
+
+            if ($request->requiere_instalacion !== 'S') {
+                DB::table('adm_pedido_produccion_archivos')
+                    ->where('idpedidoproduccion', $id)
+                    ->where('tipo_documento', 'MONTAJE')
+                    ->where('estado', 1)
+                    ->update([
+                        'estado' => 0,
+                        'usuario_eliminacion' => auth()->user()->usuario ?? null,
+                        'fecha_eliminacion' => now(),
+                    ]);
+            }
+
+            if ($request->requiere_instalacion === 'S') {
+                $this->guardarArchivosPedido($request, $id, 'MONTAJE');
+            }
+
             DB::commit();
             return response()->json(['message' => 'Pedido actualizado correctamente']);
         } catch (\Exception $e) {
@@ -760,6 +908,24 @@ class PedidosProduccionController extends Controller
             ->from('adm_detalle_pedidosproduccion as d')
             ->get();
 
+        foreach ($detalles as $detalle) {
+
+            $maquinas = DB::table('adm_detalle_pedidosproduccion_maquinas as dm')
+                ->join(
+                    'adm_maquinas_produccion as m',
+                    'dm.idmaquina',
+                    '=',
+                    'm.idmaquina'
+                )
+                ->where(
+                    'dm.iddetallepedidoproduccion',
+                    $detalle->iddetallepedidoproduccion
+                )
+                ->pluck('m.nombre');
+
+            $detalle->maquinas_texto = $maquinas->implode(', ');
+        }
+
         return response()->json($detalles);
     }
 
@@ -826,59 +992,6 @@ class PedidosProduccionController extends Controller
         $unidadesMedida = AdmUnidadMedida::where('estado', 1)->get(['idunidadmedida', 'unidad']);
         return response()->json($unidadesMedida);
     }
-
-    // public function generarPdf($id)
-    // {
-    //     $pedidoProduccion = AdmPedidosProduccion::where('c.idpedidoproduccion', $id)
-    //         ->select(
-    //             'c.idpedidoproduccion',
-    //             DB::raw('CONCAT(\'P-\',CAST(c.nocotizacion AS CHAR),\'-\',CAST(c.nopedido AS CHAR)) as nopedido'),
-    //             'c.fecha_pedido',
-    //             'c.fecha_entrega',
-    //             //'t.tipo as tipo_pago',
-    //             'c.total_general',
-    //             'c.costear',
-    //             'cl.nombre as cliente',
-    //             'cl.nit as nit', // Asegúrate de tener este campo en tu tabla Clientes
-    //             'ct.nombre as contacto',
-    //             'e.nombre as asesor',                 // Asegúrate de tener este campo en tu tabla (o relación)
-    //             'e.movil as telefono_vendedor',         // Ajusta según tu estructura
-    //             'e.correo_personal as correo_vendedor', // Ajusta según tu estructura
-    //             'c.direccion_entrega',
-    //             'c.observaciones_costeo',
-    //             'c.observaciones_cliente',
-    //             'c.costeo_observaciones',
-    //             'c.trabajo',
-    //             'c.version',
-    //         )
-    //         ->from('adm_pedidos_produccion as c')
-    //         ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-    //         ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-    //         ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-    //         //->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-    //         ->first();
-
-    //     if (!$pedidoProduccion) {
-    //         return response()->json(['message' => 'Pedido no encontrado'], 404);
-    //     }
-
-    //     $detalles = AdmDetallePedidosProduccion::where('idpedidoproduccion', $id)->get();
-    //     $pedidoProduccion->detalles = $detalles;
-    //     $pedidoProduccion->fecha_pedido = date('Y-m-d', strtotime($pedidoProduccion->fecha_pedido)); // Formatea la fecha
-
-    //     // Convertir total a letras (usando kwn/number-to-words)
-    //     $numberToWords = new NumberToWords();
-    //     $numberTransformer = $numberToWords->getNumberTransformer('es');
-    //     // $totalEnLetras     = $numberTransformer->toWords($cotizacion->total_general); // no es necesario multiplicar por 100
-    //     $totalEnLetras = $this->convertirNumeroALetrasConCentavos($pedidoProduccion->total_general);
-
-    //     // $pdf = Pdf::loadView('pdf.cotizacion', compact('cotizacion', 'totalEnLetras'));
-    //     // return $pdf->download('cotizacion-' . $cotizacion->nocotizacion . '.pdf');
-    //     return response()->json([
-    //         'pedido' => $pedidoProduccion,
-    //         'totalEnLetras' => $totalEnLetras,
-    //     ]);
-    // }
 
     public function generarPdf($id)
     {
@@ -947,6 +1060,24 @@ class PedidosProduccionController extends Controller
                 'imagen'
             )
             ->get();
+
+        foreach ($detalles as $detalle) {
+
+            $maquinas = DB::table('adm_detalle_pedidosproduccion_maquinas as dm')
+                ->join(
+                    'adm_maquinas_produccion as m',
+                    'dm.idmaquina',
+                    '=',
+                    'm.idmaquina'
+                )
+                ->where(
+                    'dm.iddetallepedidoproduccion',
+                    $detalle->iddetallepedidoproduccion
+                )
+                ->pluck('m.nombre');
+
+            $detalle->maquinas_texto = $maquinas->implode(', ');
+        }
 
         $areas = DB::table('adm_pedido_produccion_areas as pa')
             ->join(
@@ -1226,5 +1357,178 @@ class PedidosProduccionController extends Controller
             ->get();
 
         return response()->json($areas);
+    }
+
+
+
+    private function guardarArchivosPedido(Request $request, int $idPedidoProduccion, string $tipoDocumento): void
+    {
+        $campo = $tipoDocumento === 'PERMISO'
+            ? 'adjuntos_permisos'
+            : 'adjuntos_montajes';
+
+        if (!$request->hasFile($campo)) {
+            return;
+        }
+
+        $carpetaBase = $tipoDocumento === 'PERMISO'
+            ? 'adjuntos_pedidosproduccion'
+            : 'montajes_pedidosproduccion';
+
+        $destino = public_path("{$carpetaBase}/{$idPedidoProduccion}");
+
+        if (!file_exists($destino)) {
+            mkdir($destino, 0775, true);
+        }
+
+        foreach ($request->file($campo) as $archivo) {
+            $extension = strtolower($archivo->getClientOriginalExtension());
+            $prefijo = strtolower($tipoDocumento);
+
+            $nombreGenerado = uniqid("{$prefijo}_", true) . '.' . $extension;
+
+            $archivo->move($destino, $nombreGenerado);
+
+            DB::table('adm_pedido_produccion_archivos')->insert([
+                'idpedidoproduccion' => $idPedidoProduccion,
+                'tipo_documento' => $tipoDocumento,
+                'nombre_original' => $archivo->getClientOriginalName(),
+                'nombre_archivo' => $nombreGenerado,
+                'ruta_archivo' => "{$carpetaBase}/{$idPedidoProduccion}/{$nombreGenerado}",
+                'extension' => $extension,
+                'mime_type' => $archivo->getClientMimeType(),
+                'tamano' => filesize($destino . DIRECTORY_SEPARATOR . $nombreGenerado),
+                'estado' => 1,
+                'usuario_registro' => auth()->user()->name ?? auth()->user()->usuario ?? null,
+                'fecha_registro' => now(),
+            ]);
+        }
+    }
+
+    private function eliminarArchivosPedido(Request $request, int $idPedidoProduccion, string $tipoDocumento): void
+    {
+        $campo = $tipoDocumento === 'PERMISO'
+            ? 'adjuntos_eliminados'
+            : 'montajes_eliminados';
+
+        $ids = $request->input($campo, []);
+
+        if (empty($ids)) {
+            return;
+        }
+
+        $archivos = DB::table('adm_pedido_produccion_archivos')
+            ->where('idpedidoproduccion', $idPedidoProduccion)
+            ->where('tipo_documento', $tipoDocumento)
+            ->whereIn('idarchivo', $ids)
+            ->where('estado', 1)
+            ->get();
+
+        foreach ($archivos as $archivo) {
+            $path = public_path($archivo->ruta_archivo);
+
+            if (file_exists($path)) {
+                @unlink($path);
+            }
+
+            DB::table('adm_pedido_produccion_archivos')
+                ->where('idarchivo', $archivo->idarchivo)
+                ->update([
+                    'estado' => 0,
+                    'usuario_eliminacion' => auth()->user()->name ?? auth()->user()->usuario ?? null,
+                    'fecha_eliminacion' => now(),
+                ]);
+        }
+    }
+
+    private function validarReglaDocumento(Request $request, string $tipoDocumento, ?int $idPedido = null): void
+    {
+        if ($tipoDocumento === 'PERMISO') {
+            $estadoCampo = 'permisos_estado';
+            $justificacionCampo = 'permisos_justificacion';
+            $archivoCampo = 'adjuntos_permisos';
+            $mensajeBase = 'permisos';
+        } else {
+            return;
+        }
+
+        $estado = $request->input($estadoCampo);
+
+        if (!in_array($estado, ['ADJUNTADO', 'PENDIENTE', 'NO_REQUIERE'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                $estadoCampo => ['Debe adjuntar permisos, dejarlos pendientes o indicar que no requiere permisos.'],
+            ]);
+        }
+
+        if (
+            in_array($estado, ['PENDIENTE', 'NO_REQUIERE']) &&
+            !trim($request->input($justificacionCampo, ''))
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                $justificacionCampo => ['Debe escribir una justificación para los permisos.'],
+            ]);
+        }
+
+        if ($estado === 'ADJUNTADO') {
+            $tieneArchivoNuevo = $request->hasFile($archivoCampo);
+
+            $tieneArchivoExistente = false;
+
+            if ($idPedido) {
+                $tieneArchivoExistente = DB::table('adm_pedido_produccion_archivos')
+                    ->where('idpedidoproduccion', $idPedido)
+                    ->where('tipo_documento', $tipoDocumento)
+                    ->where('estado', 1)
+                    ->exists();
+            }
+
+            if (!$tieneArchivoNuevo && !$tieneArchivoExistente) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    $archivoCampo => ['Debe adjuntar al menos un archivo de permisos.'],
+                ]);
+            }
+        }
+    }
+
+    private function validarReglaMontajes(Request $request, ?int $idPedidoProduccion = null): void
+    {
+        if ($request->input('requiere_instalacion') !== 'S') {
+            return;
+        }
+
+        $this->validarReglaDocumento($request, 'MONTAJE', $idPedidoProduccion);
+    }
+
+    public function obtenerPermisos($id)
+    {
+        return response()->json(
+            $this->obtenerArchivosPedido(
+                $id,
+                'PERMISO'
+            )
+        );
+    }
+
+    public function obtenerMontajes($id)
+    {
+        return response()->json(
+            $this->obtenerArchivosPedido(
+                $id,
+                'MONTAJE'
+            )
+        );
+    }
+    private function obtenerArchivosPedido(int $idPedidoProduccion, string $tipoDocumento)
+    {
+        return DB::table('adm_pedido_produccion_archivos')
+            ->where('idpedidoproduccion', $idPedidoProduccion)
+            ->where('tipo_documento', $tipoDocumento)
+            ->where('estado', 1)
+            ->orderBy('idarchivo')
+            ->get()
+            ->map(function ($archivo) {
+                $archivo->url = asset($archivo->ruta_archivo);
+                return $archivo;
+            });
     }
 }

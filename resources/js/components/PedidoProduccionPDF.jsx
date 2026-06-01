@@ -59,23 +59,32 @@ const styles = StyleSheet.create({
         borderBottom: 1,
         paddingVertical: 4,
         alignItems: "center",
+        minHeight: 70,
     },
 
-    cellSmall: {
+    cellTiny: {
         width: 35,
     },
 
-    cellMedium: {
+    cellSmall: {
         width: 55,
     },
 
+    cellMedium: {
+        width: 75,
+    },
+
     cellLarge: {
+        width: 120,
+    },
+
+    cellXLarge: {
         flex: 1,
     },
 
     image: {
-        width: 45,
-        height: 45,
+        width: 60,
+        height: 60,
         objectFit: "contain",
     },
 });
@@ -96,8 +105,7 @@ const PedidoProduccionPDF = ({ pedido, logoSrc }) => {
 
     return (
         <Document>
-            <Page size="A4" style={styles.page}>
-
+            <Page size="A4" orientation="landscape" style={styles.page}>
                 <View style={styles.header}>
                     {logoSrc && (
                         <Image
@@ -111,9 +119,7 @@ const PedidoProduccionPDF = ({ pedido, logoSrc }) => {
                         />
                     )}
 
-                    <Text style={styles.title}>
-                        PEDIDO A PRODUCCIÓN
-                    </Text>
+                    <Text style={styles.title}>PEDIDO A PRODUCCIÓN</Text>
                 </View>
 
                 <View style={styles.section}>
@@ -200,47 +206,45 @@ const PedidoProduccionPDF = ({ pedido, logoSrc }) => {
 
                     {pedido.areas?.map((area, i) => (
                         <Text key={i}>
-                            {i + 1}. {area.nombre} ({formatDate(area.fecha_programada)})
+                            {i + 1}. {area.nombre} (
+                            {formatDate(area.fecha_programada)})
                         </Text>
                     ))}
                 </View>
 
                 <View style={styles.section}>
                     <View style={styles.tableHeader}>
-                        <Text style={styles.cellSmall}>Cant</Text>
+                        <Text style={styles.cellTiny}>Cant</Text>
                         <Text style={styles.cellLarge}>Material</Text>
-                        <Text style={styles.cellSmall}>Caras</Text>
-                        <Text style={styles.cellMedium}>Ancho</Text>
-                        <Text style={styles.cellMedium}>Alto</Text>
-                        <Text style={styles.cellMedium}>Unidad</Text>
+                        <Text style={styles.cellTiny}>Caras</Text>
+                        <Text style={styles.cellSmall}>Ancho</Text>
+                        <Text style={styles.cellSmall}>Alto</Text>
+                        <Text style={styles.cellSmall}>Unidad</Text>
+                        <Text style={styles.cellXLarge}>Máquinas</Text>
                         <Text style={styles.cellLarge}>Acabados</Text>
                         <Text style={styles.cellMedium}>Img</Text>
                     </View>
 
                     {pedido.detalles?.map((item, i) => (
                         <View key={i} style={styles.tableRow}>
-                            <Text style={styles.cellSmall}>
-                                {item.cantidad}
-                            </Text>
+                            <Text style={styles.cellTiny}>{item.cantidad}</Text>
 
                             <Text style={styles.cellLarge}>
                                 {item.material}
                             </Text>
 
+                            <Text style={styles.cellTiny}>{item.caras}</Text>
+
+                            <Text style={styles.cellSmall}>{item.ancho}</Text>
+
+                            <Text style={styles.cellSmall}>{item.alto}</Text>
+
                             <Text style={styles.cellSmall}>
-                                {item.caras}
-                            </Text>
-
-                            <Text style={styles.cellMedium}>
-                                {item.ancho}
-                            </Text>
-
-                            <Text style={styles.cellMedium}>
-                                {item.alto}
-                            </Text>
-
-                            <Text style={styles.cellMedium}>
                                 {item.unidad_medida}
+                            </Text>
+
+                            <Text style={styles.cellXLarge}>
+                                {item.maquinas_texto || "-"}
                             </Text>
 
                             <Text style={styles.cellLarge}>
@@ -258,7 +262,6 @@ const PedidoProduccionPDF = ({ pedido, logoSrc }) => {
                         </View>
                     ))}
                 </View>
-
             </Page>
         </Document>
     );
