@@ -42,6 +42,7 @@ class Clientes extends Model
         'extranjero',
         'pasaporte',
         'excento_iva',
+        'idpais',
     ];
 
     public function empleados(){

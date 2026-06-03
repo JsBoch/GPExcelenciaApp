@@ -52,6 +52,7 @@ function ClienteRegistro() {
         pasaporte: "",
         extranjero: "",
         excento_iva: "N",
+        idpais: "",
     });
 
     const [departamentosPais, setDepartamentosPais] = useState([]);
@@ -65,6 +66,7 @@ function ClienteRegistro() {
     const [isContactoModalOpen, setIsContactoModalOpen] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(!!id); // true si hay id
     const [errors, setErrors] = useState({});
+    const [paises, setPaises] = useState([]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -75,18 +77,21 @@ function ClienteRegistro() {
                 setModoEdicion(true);
 
                 // 1) Traer todo lo necesario en paralelo
-                const [cliRes, deptRes, vendRes] = await Promise.all([
+                const [cliRes, deptRes, vendRes,paisRes] = await Promise.all([
                     axios.get(`/api/clientes/${id}`, { headers }),
                     axios.get("/api/departamentos-pais", { headers }),
                     axios.get("/api/vendedores", { headers }),
+                    axios.get("/api/paises", { headers }),
                 ]);
 
                 const data = cliRes.data || {};
                 const departamentos = deptRes.data || [];
                 const vendedoresSrv = vendRes.data || [];
+                const paisesSrv = paisRes.data || [];
 
                 setDepartamentosPais(departamentos);
                 setVendedores(vendedoresSrv);
+                setPaises(paisesSrv);
 
                 // 2) Normaliza a string para selects
                 const iddepartamentoStr =
@@ -97,6 +102,9 @@ function ClienteRegistro() {
                     data.id_empleado != null ? String(data.id_empleado) : "";
                 const idMunicipioStr =
                     data.id_municipio != null ? String(data.id_municipio) : "";
+
+                const idPaisStr =
+                    data.idpais != null ? String(data.idpais) : "";
 
                 // 3) Setea el cliente
                 setCliente((prev) => ({
@@ -131,6 +139,7 @@ function ClienteRegistro() {
                     extranjero: data.extranjero || "",
                     pasaporte: data.pasaporte || "",
                     excento_iva: data.excento_iva || "N",
+                    idpais: idPaisStr,
                 }));
 
                 // 4) Municipios (si hay departamento)
@@ -142,7 +151,7 @@ function ClienteRegistro() {
                 if (!data.codigo_postal || data.codigo_postal === "") {
                     const depto = departamentos.find(
                         (d) =>
-                            String(d.iddepartamentopais) === iddepartamentoStr
+                            String(d.iddepartamentopais) === iddepartamentoStr,
                     );
                     if (depto?.codigo_postal) {
                         setCliente((prev) => ({
@@ -159,19 +168,22 @@ function ClienteRegistro() {
         const cargarNuevo = async () => {
             try {
                 setModoEdicion(false);
-                const [deptRes, vendRes] = await Promise.all([
+                const [deptRes, vendRes, paisRes] = await Promise.all([
                     axios.get("/api/departamentos-pais", { headers }),
                     axios.get("/api/vendedores", { headers }),
+                    axios.get("/api/paises", { headers }),
                 ]);
 
                 const departamentos = deptRes.data || [];
                 const vendedoresSrv = vendRes.data || [];
+                const paisesSrv = paisRes.data || [];
 
                 setDepartamentosPais(departamentos);
                 setVendedores(vendedoresSrv);
+                setPaises(paisesSrv);
 
                 const deptoGuatemala = departamentos.find(
-                    (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+                    (d) => d.nombre?.toUpperCase() === "GUATEMALA",
                 );
                 if (deptoGuatemala) {
                     const idDeptStr = String(deptoGuatemala.iddepartamentopais);
@@ -181,6 +193,19 @@ function ClienteRegistro() {
                         codigo_postal: deptoGuatemala.codigo_postal || "",
                     }));
                     await loadMunicipios(idDeptStr);
+                }
+
+                const paisGuatemala = paisesSrv.find(
+                    (p) =>
+                        p.codigo_iso === "GT" ||
+                        p.nombre?.toUpperCase() === "GUATEMALA",
+                );
+
+                if (paisGuatemala) {
+                    setCliente((prev) => ({
+                        ...prev,
+                        idpais: String(paisGuatemala.idpais),
+                    }));
                 }
             } catch (err) {
                 console.error("Error al iniciar nuevo:", err);
@@ -250,7 +275,7 @@ function ClienteRegistro() {
         if (name === "iddepartamento") {
             // 1) actualizar CP según el departamento
             const d = departamentosPais.find(
-                (d) => String(d.iddepartamentopais) === String(value)
+                (d) => String(d.iddepartamentopais) === String(value),
             );
             const cp = d?.codigo_postal || "";
             setCliente((prev) => ({
@@ -286,16 +311,17 @@ function ClienteRegistro() {
             { campo: clienteData.monto_credito, nombre: "Monto crédito" },
             { campo: clienteData.dias_credito, nombre: "Días crédito" },
             { campo: clienteData.id_empleado, nombre: "Vendedor asociado" },
+            { campo: clienteData.idpais, nombre: "País" },
         ];
 
         const camposFaltantes = camposObligatorios.filter(
-            (c) => !c.campo || String(c.campo).trim() === ""
+            (c) => !c.campo || String(c.campo).trim() === "",
         );
         if (camposFaltantes.length > 0) {
             const nombres = camposFaltantes.map((c) => c.nombre).join(", ");
             alertify.alert(
                 "DATOS OBLIGATORIOS",
-                `Por favor, complete los siguientes campos obligatorios: ${nombres}`
+                `Por favor, complete los siguientes campos obligatorios: ${nombres}`,
             );
             return;
         }
@@ -346,7 +372,7 @@ function ClienteRegistro() {
 
     const limpiarCampos = () => {
         const deptoGuatemala = departamentosPais.find(
-            (d) => d.nombre?.toUpperCase() === "GUATEMALA"
+            (d) => d.nombre?.toUpperCase() === "GUATEMALA",
         );
 
         setCliente({
@@ -379,6 +405,7 @@ function ClienteRegistro() {
             extranjero: "",
             pasaporte: "",
             excento_iva: "",
+            idpais: paises.find((p) => p.codigo_iso === "GT")?.idpais || "",
         });
         setModoEdicion(false); // Oculta el botón Agregar Contacto
     };
@@ -388,7 +415,7 @@ function ClienteRegistro() {
         if (!cliente.idcliente && !id) {
             // Si es un cliente nuevo sin ID y no estamos en modo edición de un cliente existente
             alertify.warning(
-                "Por favor, primero guarde el cliente para poder agregarle contactos."
+                "Por favor, primero guarde el cliente para poder agregarle contactos.",
             );
             return;
         }
@@ -413,32 +440,31 @@ function ClienteRegistro() {
     };
 
     const consultarNitInfile = async (nit) => {
-    if (!nit || modoEdicion) return;
+        if (!nit || modoEdicion) return;
 
-    try {
-        const token = localStorage.getItem("token");
+        try {
+            const token = localStorage.getItem("token");
 
-        const res = await axios.get(`/api/infile/consulta-nit/${nit}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+            const res = await axios.get(`/api/infile/consulta-nit/${nit}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-        if (res.data.ok) {
-            setCliente(prev => ({
-                ...prev,
-                nombre: prev.nombre || res.data.razon_social,
-                razonsocial: prev.razonsocial || res.data.razon_social,
-                direccion: prev.direccion || res.data.direccion || ""
-            }));
+            if (res.data.ok) {
+                setCliente((prev) => ({
+                    ...prev,
+                    nombre: prev.nombre || res.data.razon_social,
+                    razonsocial: prev.razonsocial || res.data.razon_social,
+                    direccion: prev.direccion || res.data.direccion || "",
+                }));
 
-            alertify.success("Datos obtenidos desde INFILE");
+                alertify.success("Datos obtenidos desde INFILE");
+            }
+        } catch (err) {
+            alertify.warning(
+                err.response?.data?.message || "No se pudo consultar el NIT",
+            );
         }
-    } catch (err) {
-        alertify.warning(
-            err.response?.data?.message || "No se pudo consultar el NIT"
-        );
-    }
-};
-
+    };
 
     return (
         <div className="mt-4">
@@ -465,7 +491,9 @@ function ClienteRegistro() {
                                         name="nit"
                                         value={cliente.nit}
                                         onChange={handleChange}
-                                        onBlur={(e) => consultarNitInfile(e.target.value)}
+                                        onBlur={(e) =>
+                                            consultarNitInfile(e.target.value)
+                                        }
                                         placeholder="NIT"
                                         //className="form-control form-control-sm campo-obligatorio-fondo"
                                         className={`form-control form-control-sm campo-obligatorio-fondo ${
@@ -583,6 +611,25 @@ function ClienteRegistro() {
                                         />
                                     </div>
                                 )}
+                            </div>
+                            <div className="col-md-4">
+                                <label className="form-label">País</label>
+                                <select
+                                    name="idpais"
+                                    value={cliente.idpais || ""}
+                                    onChange={handleChange}
+                                    className="form-control form-control-sm campo-obligatorio-fondo"
+                                >
+                                    <option value="">Seleccione país</option>
+                                    {paises.map((pais) => (
+                                        <option
+                                            key={pais.idpais}
+                                            value={pais.idpais}
+                                        >
+                                            {pais.nombre}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="row g-2">
                                 <div className="col-md-4 form-check mt-3">
@@ -711,7 +758,7 @@ function ClienteRegistro() {
                                                 >
                                                     {departamentoPais.nombre}
                                                 </option>
-                                            )
+                                            ),
                                         )}
                                     </select>
                                 </div>

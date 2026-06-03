@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/area_trabajo/desactivar/{id}', [AreaTrabajoController::class, 'desactivar']);
     // Opcional para combos:
     Route::get('/lista_area_trabajo', [AreaTrabajoController::class, 'lista']);
+    Route::get('/paises', [ClientesController::class, 'getPaises']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
