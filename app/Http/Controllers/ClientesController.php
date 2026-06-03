@@ -9,107 +9,73 @@ use App\Models\DepartamentoPais;
 use App\Models\Empleado;
 use Illuminate\Support\Facades\DB; // Importa la clase DB para transacciones
 use App\Models\Municipio;
+use App\Models\Pais;
 
 class ClientesController extends Controller
 {
     public function index()
     {
-        //$empleados = Empleado::all();        
-        //$empleados = Empleado::where('estado',1)->get();
-        // $clientes = Clientes::where('clientes.estado', 1)
-        //     ->select(
-        //         'clientes.idcliente',
-        //         'clientes.codigo',
-        //         'clientes.nit',
-        //         'clientes.cui',
-        //         'clientes.nombre',
-        //         'clientes.razonsocial',
-        //         'clientes.direccion',
-        //         'clientes.codigo_postal',
-        //         'adm_departamentopais.nombre as departamento',
-        //         'clientes.telefono_uno',
-        //         'clientes.telefono_dos',
-        //         'clientes.telefono_tres',
-        //         'clientes.email',
-        //         'clientes.monto_credito',
-        //         'clientes.dias_credito',
-        //         'clientes.comentario',
-        //          DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
-        //         'clientes.id_empleado',
-        //         'clientes.id_municipio',
-        //         'clientes.idtipocliente',
-        //         'clientes.iddepartamento',
-        //         'clientes.fecharegistro',
-        //         'clientes.usuario_registro',
-        //         'clientes.usuario_modifica',
-        //         'clientes.fecha_modificacion',
-        //         'clientes.estado',
-        //         'clientes.pasaporte',
-        //         'clientes.excento_iva',
-        //         'clientes.extranjero',
-        //     )
-        //     ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-        //     ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
-        //     ->orderBy('clientes.nombre')
-        //     ->get();
-       $subUltimaCompra = DB::table('adm_cotizacion as c')
-    ->select(
-        'c.idcliente',
-        DB::raw('MAX(f.fecha_certificacion) as fecha_ultima_compra')
-    )
-    ->join('adm_facturacion as f', function ($join) {
-        $join->on('f.idcotizacion', '=', 'c.idcotizacion')
-             ->where('f.estado', 1)
-             ->where('f.resultado', 'S');
-    })
-    ->groupBy('c.idcliente');
+        $subUltimaCompra = DB::table('adm_cotizacion as c')
+            ->select(
+                'c.idcliente',
+                DB::raw('MAX(f.fecha_certificacion) as fecha_ultima_compra')
+            )
+            ->join('adm_facturacion as f', function ($join) {
+                $join->on('f.idcotizacion', '=', 'c.idcotizacion')
+                    ->where('f.estado', 1)
+                    ->where('f.resultado', 'S');
+            })
+            ->groupBy('c.idcliente');
 
 
-$clientes = Clientes::where('clientes.estado', 1)
-    ->select(
-        'clientes.idcliente',
-        'clientes.codigo',
-        'clientes.nit',
-        'clientes.cui',
-        'clientes.nombre',
-        'clientes.razonsocial',
-        'clientes.direccion',
-        'clientes.codigo_postal',
-        'adm_departamentopais.nombre as departamento',
-        'clientes.telefono_uno',
-        'clientes.telefono_dos',
-        'clientes.telefono_tres',
-        'clientes.email',
-        'clientes.monto_credito',
-        'clientes.dias_credito',
-        'clientes.comentario',
-        DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
-        'clientes.id_empleado',
-        'clientes.id_municipio',
-        'clientes.idtipocliente',
-        'clientes.iddepartamento',
-        'clientes.fecharegistro',
-        'clientes.usuario_registro',
-        'clientes.usuario_modifica',
-        'clientes.fecha_modificacion',
-        'clientes.estado',
-        'clientes.pasaporte',
-        'clientes.excento_iva',
-        'clientes.extranjero',
+        $clientes = Clientes::where('clientes.estado', 1)
+            ->select(
+                'clientes.idcliente',
+                'clientes.codigo',
+                'clientes.nit',
+                'clientes.cui',
+                'clientes.nombre',
+                'clientes.razonsocial',
+                'clientes.direccion',
+                'clientes.codigo_postal',
+                'adm_departamentopais.nombre as departamento',
+                'clientes.telefono_uno',
+                'clientes.telefono_dos',
+                'clientes.telefono_tres',
+                'clientes.email',
+                'clientes.monto_credito',
+                'clientes.dias_credito',
+                'clientes.comentario',
+                DB::raw("COALESCE(adm_empleados.nombre, 'NA') AS vendedor"),
+                'clientes.id_empleado',
+                'clientes.id_municipio',
+                'clientes.idtipocliente',
+                'clientes.iddepartamento',
+                'clientes.fecharegistro',
+                'clientes.usuario_registro',
+                'clientes.usuario_modifica',
+                'clientes.fecha_modificacion',
+                'clientes.estado',
+                'clientes.pasaporte',
+                'clientes.excento_iva',
+                'clientes.extranjero',
+                'clientes.idpais',
+                'adm_pais.nombre as pais',
 
-        // 👇 CAMPO FINAL LIMPIO
-        'uc.fecha_ultima_compra'
-    )
-    ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
-    ->leftJoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+                // 👇 CAMPO FINAL LIMPIO
+                'uc.fecha_ultima_compra'
+            )
+            ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
+            ->leftJoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->leftJoin('adm_pais', 'clientes.idpais', '=', 'adm_pais.idpais')
 
-    // 🔥 JOIN OPTIMIZADO (SIN DUPLICADOS)
-    ->leftJoinSub($subUltimaCompra, 'uc', function ($join) {
-        $join->on('uc.idcliente', '=', 'clientes.idcliente');
-    })
+            // 🔥 JOIN OPTIMIZADO (SIN DUPLICADOS)
+            ->leftJoinSub($subUltimaCompra, 'uc', function ($join) {
+                $join->on('uc.idcliente', '=', 'clientes.idcliente');
+            })
 
-    ->orderBy('clientes.nombre')
-    ->get();
+            ->orderBy('clientes.nombre')
+            ->get();
         return response()->json($clientes);
     }
 
@@ -146,6 +112,7 @@ $clientes = Clientes::where('clientes.estado', 1)
             $datosCliente['idtipocliente'] = 1; // Asigna el estado
             $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? '';
             $datosCliente['codigo'] = $codigoC; // Asigna el estado
+            $datosCliente['idpais'] = $datosCliente['idpais'] ?? Pais::where('codigo_iso', 'GT')->value('idpais');
 
             $cliente = Clientes::create($datosCliente);
 
@@ -198,9 +165,12 @@ $clientes = Clientes::where('clientes.estado', 1)
                 'clientes.pasaporte',
                 'clientes.excento_iva',
                 'clientes.extranjero',
+                'clientes.idpais',
+                'adm_pais.nombre as pais',
             )
             ->join('adm_departamentopais', 'clientes.iddepartamento', '=', 'adm_departamentopais.iddepartamentopais')
             ->leftjoin('adm_empleados', 'clientes.id_empleado', '=', 'adm_empleados.id_empleado')
+            ->leftJoin('adm_pais', 'clientes.idpais', '=', 'adm_pais.idpais')
             ->first(); // Usa first() en lugar de get() para obtener un solo resultado
 
         if (!$cliente) {
@@ -228,6 +198,7 @@ $clientes = Clientes::where('clientes.estado', 1)
             $datosCliente['id_municipio'] = $datosCliente['id_municipio'] ?? $cliente->id_municipio ?? 0;
             $datosCliente['idtipocliente'] = $datosCliente['idtipocliente'] ?? $cliente->idtipocliente ?? 1;
             $datosCliente['codigo_postal'] = $datosCliente['codigo_postal'] ?? $cliente->codigo_postal ?? '';
+            $datosCliente['idpais'] = $datosCliente['idpais'] ?? $cliente->idpais;
 
             $cliente->update($datosCliente);
 
@@ -298,45 +269,7 @@ $clientes = Clientes::where('clientes.estado', 1)
      * @param mixed $idcliente
      * @return \Illuminate\Http\JsonResponse
      */
-    // public function facturacionOpciones($idcliente)
-    // {
-    //     $cliente = DB::table('clientes')->where('idcliente', $idcliente)->first();
 
-    //     if (!$cliente) {
-    //         return response()->json(['message' => 'Cliente no encontrado'], 404);
-    //     }
-
-    //     $direcciones = DB::table('cliente_direcciones')
-    //         ->where('idcliente', $idcliente)
-    //         ->pluck('direccion')
-    //         ->toArray();
-
-    //     $emails = DB::table('cliente_emails')
-    //         ->where('idcliente', $idcliente)
-    //         ->pluck('email')
-    //         ->toArray();
-
-    //     // Fallbacks si no hay registros en tablas hijas
-    //     if (empty($direcciones) && !empty($cliente->direccion)) {
-    //         $direcciones = [$cliente->direccion];
-    //     }
-    //     if (empty($emails) && !empty($cliente->email)) {
-    //         $emails = [$cliente->email];
-    //     }
-
-    //     return response()->json([
-    //         'cliente' => [
-    //             'idcliente'  => $cliente->idcliente,
-    //             'nombre'     => $cliente->nombre,
-    //             'nit'        => $cliente->nit,
-    //             'cui'        => $cliente->cui,
-    //             'pasaporte'  => $cliente->pasaporte,
-    //             'extranjero' => $cliente->extranjero, // "S" / "N"
-    //         ],
-    //         'direcciones' => $direcciones,
-    //         'emails'      => $emails,
-    //     ]);
-    // }
     public function facturacionOpciones($idcliente)
     {
         $cliente = DB::table('clientes')->where('idcliente', $idcliente)->first();
@@ -410,5 +343,15 @@ $clientes = Clientes::where('clientes.estado', 1)
             'direcciones' => $direcciones, // unión sin duplicados
             'emails'      => $emails,      // unión sin duplicados (case-insensitive)
         ]);
+    }
+
+    public function getPaises()
+    {
+        $paises = Pais::where('estado', 1)
+            ->orderByRaw("CASE WHEN codigo_iso = 'GT' THEN 0 ELSE 1 END")
+            ->orderBy('nombre')
+            ->get(['idpais', 'codigo_iso', 'nombre']);
+
+        return response()->json($paises);
     }
 }
