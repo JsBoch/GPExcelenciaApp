@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-wJy3AslQ.js",
+    "file": "assets/index.es-B6nxyYM3.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -58,7 +58,7 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-CWvC9VCn.js",
+    "file": "assets/app-BuqETgHF.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
