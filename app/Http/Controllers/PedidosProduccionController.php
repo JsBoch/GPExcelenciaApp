@@ -63,14 +63,9 @@ class PedidosProduccionController extends Controller
                 'c.permisos_justificacion',
                 'c.montajes_justificacion',
                 DB::raw("CASE
+                    WHEN c.estado = 0 THEN 'ANULADO'
                     WHEN c.estado = 1 THEN 'REGISTRO'
-                    WHEN c.estado = 2 THEN 'COSTEO'
-                    WHEN c.estado = 3 THEN 'COSTEADA'
-                    WHEN c.estado = 4 THEN 'PRE-FACTURACION'
-                    WHEN c.estado = 5 THEN 'PARA FACTURAR'
-                    WHEN c.estado = 6 THEN 'FACTURADA'
-                    WHEN c.estado = 7 THEN 'ANULADA'
-                    WHEN c.estado = 8 THEN 'RECHAZADA'
+                    WHEN c.estado = 2 THEN 'AUTORIZACIÓN'                   
                     ELSE 'DESCONOCIDO'
                 END as estado_texto"),
                 'e.nombre as asesor',
@@ -506,6 +501,12 @@ class PedidosProduccionController extends Controller
 
         $pedidoProduccion->adjuntos_permisos = $this->obtenerArchivosPedido($id, 'PERMISO');
         $pedidoProduccion->adjuntos_montajes = $this->obtenerArchivosPedido($id, 'MONTAJE');
+
+        $pedidoProduccion->total_permisos =
+            count($pedidoProduccion->adjuntos_permisos);
+
+        $pedidoProduccion->total_montajes =
+            count($pedidoProduccion->adjuntos_montajes);
 
         return response()->json($pedidoProduccion);
     }
@@ -1530,5 +1531,148 @@ class PedidosProduccionController extends Controller
                 $archivo->url = asset($archivo->ruta_archivo);
                 return $archivo;
             });
+    }
+
+    public function pasarAutorizacion($id)
+    {
+        $pedido = AdmPedidosProduccion::find($id);
+
+        if (!$pedido) {
+            return response()->json([
+                'message' => 'Pedido no encontrado'
+            ], 404);
+        }
+
+        if ($pedido->estado != 1) {
+            return response()->json([
+                'message' => 'Solo los pedidos registrados pueden enviarse a autorización'
+            ], 400);
+        }
+
+        $pedido->estado = 2;
+        $pedido->save();
+
+        return response()->json([
+            'message' => 'Pedido enviado a autorización'
+        ]);
+    }
+
+    //PARA AUTORIZACIÓN DE PEDIDOS A LOGISTICA
+    public function autorizacionALogistica()
+    {
+        $pedidos = AdmPedidosProduccion::query()
+            ->select(
+                'c.idpedidoproduccion',
+                DB::raw('CONCAT(\'P-\',CAST(c.nopedido AS CHAR)) as nopedido'),
+                'c.nocotizacion',
+                'c.idcotizacion',
+                'c.nopedido as nopedido_num',
+                'c.fecha_pedido',
+                'c.fecha_entrega',
+                'c.total_general',
+                'c.costear',
+                'cl.nombre as cliente',
+                'ct.nombre as contacto',
+                'c.direccion_entrega',
+                'c.observaciones_costeo',
+                'c.observaciones_cliente',
+                'c.costeo_observaciones',
+                'c.idpedidoproduccionoriginal',
+                'c.idcliente',
+                'c.idcontacto',
+                'c.trabajo',
+                'c.version',
+                'c.idtipopago',
+                'c.estado',
+                'c.no_envio_asociado',
+                'c.permisos_estado',
+                'c.requiere_instalacion',
+                'c.montajes_estado',
+                'c.requiere_entrega',
+                'c.permisos_justificacion',
+                'c.montajes_justificacion',
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos a
+                    WHERE a.idpedidoproduccion = c.idpedidoproduccion
+                    AND a.tipo_documento = 'PERMISO'
+                ) as total_permisos
+                "),
+
+                                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos a
+                    WHERE a.idpedidoproduccion = c.idpedidoproduccion
+                    AND a.tipo_documento = 'MONTAJE'
+                ) as total_montajes
+                "),
+                DB::raw("CASE
+                WHEN c.estado = 0 THEN 'ANULADO'
+                WHEN c.estado = 1 THEN 'REGISTRO'
+                WHEN c.estado = 2 THEN 'AUTORIZACIÓN'
+                WHEN c.estado = 3 THEN 'LOGÍSTICA'
+                ELSE 'DESCONOCIDO'
+            END as estado_texto"),
+                'e.nombre as asesor'
+            )
+            ->from('adm_pedidos_produccion as c')
+            ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+            ->where('c.estado', 2)
+            ->orderBy('c.nopedido', 'desc')
+            ->get();
+
+        return response()->json($pedidos);
+    }
+
+    public function regresarVentas($id)
+    {
+        $pedido = AdmPedidosProduccion::find($id);
+
+        if (!$pedido) {
+            return response()->json([
+                'message' => 'Pedido no encontrado'
+            ], 404);
+        }
+
+        if ((int) $pedido->estado !== 2) {
+            return response()->json([
+                'message' => 'Solo los pedidos en autorización pueden regresar a ventas'
+            ], 422);
+        }
+
+        $pedido->estado = 1;
+        $pedido->save();
+
+        return response()->json([
+            'message' => 'Pedido regresado a ventas correctamente'
+        ]);
+    }
+
+    public function enviarLogistica($id)
+    {
+        $pedido = AdmPedidosProduccion::find($id);
+
+        if (!$pedido) {
+            return response()->json([
+                'message' => 'Pedido no encontrado'
+            ], 404);
+        }
+
+        if ((int) $pedido->estado !== 2) {
+            return response()->json([
+                'message' => 'Solo los pedidos en autorización pueden enviarse a logística'
+            ], 422);
+        }
+
+        $pedido->estado = 3;
+        $pedido->save();
+
+        return response()->json([
+            'message' => 'Pedido enviado a logística correctamente'
+        ]);
     }
 }

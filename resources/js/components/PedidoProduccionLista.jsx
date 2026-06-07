@@ -104,7 +104,7 @@ function PedidosProduccionLista() {
                         Authorization: `Bearer ${token}`,
                     },
                 })
-                .then((response) => {                   
+                .then((response) => {
                     setPedidoProduccion(response.data);
                     setTableKey((prev) => prev + 1);
                     setLoading(false);
@@ -343,7 +343,20 @@ function PedidosProduccionLista() {
 
         {
             data: "estado_texto",
-            title: "Estado Pedido",
+            title: "Estado",
+            render: (data) => {
+                let color = "secondary";
+
+                if (data === "REGISTRADO") color = "primary";
+
+                if (data === "AUTORIZACION") color = "warning";
+
+                return `
+            <span class="badge bg-${color}">
+                ${data}
+            </span>
+        `;
+            },
         },
     ];
 
@@ -750,7 +763,7 @@ function PedidosProduccionLista() {
 
     const estado = Number(registroSeleccionado?.estado);
 
-    const puedeEditar = estado === 1 || estado === 3;
+    const puedeEditar = estado === 1;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 4;
@@ -773,6 +786,40 @@ function PedidosProduccionLista() {
     const useHalfLetter = itemsNotaEnvio.length <= 8;
 
     const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+
+    const pasarAutorizacion = async () => {
+        alertify.confirm(
+            "Confirmación",
+            "¿Desea enviar este pedido a autorización?",
+            async () => {
+                try {
+                    const token = localStorage.getItem("token");
+
+                    await axios.put(
+                        `/api/pedidosproduccion/pasar-autorizacion/${registroSeleccionado.idpedidoproduccion}`,
+                        {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        },
+                    );
+
+                    alertify.success("Pedido enviado a autorización");
+
+                    fetchPedidosProduccion(fechaInicio, fechaFin);
+                } catch (error) {
+                    console.error(error);
+
+                    alertify.error(
+                        error?.response?.data?.message ||
+                            "Error al actualizar estado",
+                    );
+                }
+            },
+            () => {},
+        );
+    };
 
     return (
         <div className="mt-4 px-3 px-md-4">
@@ -1181,6 +1228,17 @@ function PedidosProduccionLista() {
                                 className="btn btn-warning btn-sm toolbar-btn"
                                 disabled={
                                     !registroSeleccionado ||
+                                    Number(registroSeleccionado?.estado) !== 1
+                                }
+                                onClick={pasarAutorizacion}
+                            >
+                                🔒 Pasar a Autorización
+                            </button>
+
+                            {/* <button
+                                className="btn btn-warning btn-sm toolbar-btn"
+                                disabled={
+                                    !registroSeleccionado ||
                                     Number(
                                         registroSeleccionado?.total_areas,
                                     ) === 0
@@ -1237,7 +1295,7 @@ function PedidosProduccionLista() {
                             >
                                 🖼 Montajes (
                                 {registroSeleccionado?.total_montajes || 0})
-                            </button>
+                            </button> */}
                         </div>
 
                         {/* Visible solo en pantallas pequeñas */}

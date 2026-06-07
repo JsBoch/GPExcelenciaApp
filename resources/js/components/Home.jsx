@@ -221,6 +221,14 @@ function Home() {
                     to = `/maquinas_produccion`;
                     text = 'Máquinas de producción';
                     icon = <FiSearch />;
+                }else if (opcion.nombre === 'Autorizacion Monitor_de_Cotizaciones' && opcion.accion === 'autorizacion') {
+                    to = `/autorizacion_logistica/lista`;
+                    text = 'Autorización de pedidos';
+                    icon = <FiSearch />;
+                }else if (opcion.nombre === 'Logistica Monitor_logistica' && opcion.accion === 'logistica') {
+                    to = `/logistica_produccion/monitor`;
+                    text = 'Monitor de logística y producción';
+                    icon = <FiSearch />;
                 }
 
                 if (to && text) {
@@ -246,6 +254,8 @@ function Home() {
                 else if (tipo === 'areas') groupIcon = <FiBox />;
                 else if (tipo === 'monitor_produccion') groupIcon = <FiBox />;
                 else if (tipo === 'maquinas_produccion') groupIcon = <FiBox />;
+                else if (tipo === 'Monitor_logistica') groupIcon = <FiBox />;
+
                 else groupIcon = <FiBox />; // Icono por defecto si no se encuentra el tipo
 
                 menuStructure.push({

@@ -27,6 +27,7 @@ use App\Http\Controllers\MaquinasProduccionController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AreaTrabajoController;
 use App\Http\Controllers\PlanificacionDetalleProduccionController;
+use App\Http\Controllers\LogisticaProduccionController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -203,6 +204,12 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);
     Route::get('/pedidosproduccion/cotizacion/{numero}', [PedidosProduccionController::class, 'buscarCotizacionPorNumero']);
+    // Para Autorización de Pedidos a Producción hacia Logística.
+    Route::get('/pedidosproduccion/autorizacion-logistica',[PedidosProduccionController::class, 'autorizacionALogistica']);
+    Route::put('/pedidosproduccion/regresar-ventas/{id}',[PedidosProduccionController::class, 'regresarVentas']);
+    Route::put('/pedidosproduccion/enviar-logistica/{id}',[PedidosProduccionController::class, 'enviarLogistica']);
+     Route::put('/pedidosproduccion/pasar-autorizacion/{id}',[PedidosProduccionController::class, 'pasarAutorizacion']);
+     
     Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
     Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
     Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
@@ -216,6 +223,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pedidosproduccion/{id}/areas', [PedidosProduccionController::class, 'obtenerAreasPedido']);
     Route::get('/pedidosproduccion/{id}/permisos', [PedidosProduccionController::class, 'obtenerPermisos']);
     Route::get('/pedidosproduccion/{id}/montajes', [PedidosProduccionController::class, 'obtenerMontajes']);
+      
 });
 
 // CUENTAS POR COBRAR
@@ -325,4 +333,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/maquinasproduccion', [MaquinasProduccionController::class, 'store']);
     Route::put('/maquinasproduccion/{id}', [MaquinasProduccionController::class, 'update']);
     Route::delete('/maquinasproduccion/{id}', [MaquinasProduccionController::class, 'destroy']);
+});
+
+//LOGISTICA DE PEDIDO A PRODUCCIÓN
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/logistica-produccion/board', [LogisticaProduccionController::class, 'board']);
+    Route::get('/logistica-produccion/calendario', [LogisticaProduccionController::class, 'calendario']);
+    Route::get('/logistica-produccion/carga', [LogisticaProduccionController::class, 'cargaPorFecha']);
+    Route::put('/logistica-produccion/{id}/fecha', [LogisticaProduccionController::class, 'cambiarFecha']);
+    Route::put('/logistica-produccion/{id}/estado', [LogisticaProduccionController::class, 'cambiarEstado']);
 });
