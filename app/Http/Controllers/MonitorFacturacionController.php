@@ -1315,32 +1315,112 @@ class MonitorFacturacionController extends Controller
         $Frases->appendChild($Frase);
         $DatosEmision->appendChild($Frases);
 
-        // Ítems: una única línea de ajuste
+        // Ítems de la nota
         $Items = $doc->createElement('dte:Items');
-        $Item = $doc->createElement('dte:Item');
-        $Item->setAttribute('BienOServicio', $bienOServicio);
-        $Item->setAttribute('NumeroLinea', 1);
-        $Item->appendChild($doc->createElement('dte:Cantidad', '1'));
-        $Item->appendChild($doc->createElement('dte:UnidadMedida', 'UND'));
-        $Item->appendChild($doc->createElement(
-            'dte:Descripcion',
-            ($tipo === 'NCRE' ? 'Ajuste Nota de Crédito: ' : 'Ajuste Nota de Débito: ') . $motivo
-        ));
-        $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($monto, 2, '.', '')));
-        $Item->appendChild($doc->createElement('dte:Precio', number_format($monto, 2, '.', '')));
-        $Item->appendChild($doc->createElement('dte:Descuento', '0.00'));
 
-        $Impuestos = $doc->createElement('dte:Impuestos');
-        $Impuesto = $doc->createElement('dte:Impuesto');
-        $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
-        $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
-        $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($monto_gravable, 2, '.', '')));
-        $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($monto_impuesto, 2, '.', '')));
-        $Impuestos->appendChild($Impuesto);
-        $Item->appendChild($Impuestos);
+        $detallesOrigen = DB::select("
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY d.iddetallecotizacion) AS numero_linea,
+        d.cantidad,
+        IF(CHAR_LENGTH(d.unidad_medida) > 3, LEFT(d.unidad_medida, 3), d.unidad_medida) AS unidad_medida,
+        d.descripcion,
+        d.precio_unitario,
+        d.precio,
+        d.descuento,
+        d.subtotal AS monto_gravable,
+        d.impuesto_iva AS monto_impuesto,
+        d.total
+    FROM adm_detalle_cotizacion d
+    WHERE d.estado = 1
+    AND d.idcotizacion = ?
+    ORDER BY d.iddetallecotizacion
+", [$idcotizacion]);
 
-        $Item->appendChild($doc->createElement('dte:Total', number_format($monto, 2, '.', '')));
-        $Items->appendChild($Item);
+        $sumaNota = 0.00;
+        $sumaImpuestosNota = 0.00;
+
+        $esNotaTotal = abs($monto - array_sum(array_map(fn($d) => (float)$d->total, $detallesOrigen))) < 0.01;
+
+        if ($esNotaTotal && !empty($detallesOrigen)) {
+            foreach ($detallesOrigen as $d) {
+                $Item = $doc->createElement('dte:Item');
+                $Item->setAttribute('BienOServicio', $bienOServicio);
+                $Item->setAttribute('NumeroLinea', $d->numero_linea);
+
+                $Item->appendChild($doc->createElement('dte:Cantidad', $d->cantidad));
+                $Item->appendChild($doc->createElement('dte:UnidadMedida', $d->unidad_medida ?: 'UNI'));
+
+                $descripcionNode = $doc->createElement('dte:Descripcion');
+                $descripcionNode->appendChild(
+                    $doc->createCDATASection(($tipo === 'NCRE' ? 'NC: ' : 'ND: ') . $d->descripcion)
+                );
+                $Item->appendChild($descripcionNode);
+
+                $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format((float)$d->precio_unitario, 3, '.', '')));
+                $Item->appendChild($doc->createElement('dte:Precio', number_format((float)$d->precio, 3, '.', '')));
+                $Item->appendChild($doc->createElement('dte:Descuento', number_format((float)$d->descuento, 3, '.', '')));
+
+                $Impuestos = $doc->createElement('dte:Impuestos');
+                $Impuesto = $doc->createElement('dte:Impuesto');
+                $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
+
+                if ($exento) {
+                    $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '2'));
+                    $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format((float)$d->total, 3, '.', '')));
+                    $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format(0, 3, '.', '')));
+                } else {
+                    $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', '1'));
+                    $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format((float)$d->monto_gravable, 3, '.', '')));
+                    $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format((float)$d->monto_impuesto, 3, '.', '')));
+                    $sumaImpuestosNota += (float)$d->monto_impuesto;
+                }
+
+                $Impuestos->appendChild($Impuesto);
+                $Item->appendChild($Impuestos);
+
+                $Item->appendChild($doc->createElement('dte:Total', number_format((float)$d->total, 3, '.', '')));
+
+                $Items->appendChild($Item);
+
+                $sumaNota += (float)$d->total;
+            }
+
+            $monto = round($sumaNota, 2);
+            $monto_impuesto = round($sumaImpuestosNota, 2);
+        } else {
+            // Si es nota parcial, mantiene una sola línea,
+            // pero evita que el IVA se pase por centavo.
+            $monto_gravable = $exento ? 0.00 : round($monto / 1.12, 3);
+            $monto_impuesto = $exento ? 0.00 : round($monto - $monto_gravable, 3);
+
+            $Item = $doc->createElement('dte:Item');
+            $Item->setAttribute('BienOServicio', $bienOServicio);
+            $Item->setAttribute('NumeroLinea', 1);
+
+            $Item->appendChild($doc->createElement('dte:Cantidad', '1'));
+            $Item->appendChild($doc->createElement('dte:UnidadMedida', 'UNI'));
+            $Item->appendChild($doc->createElement(
+                'dte:Descripcion',
+                ($tipo === 'NCRE' ? 'Ajuste Nota de Crédito: ' : 'Ajuste Nota de Débito: ') . $motivo
+            ));
+            $Item->appendChild($doc->createElement('dte:PrecioUnitario', number_format($monto, 3, '.', '')));
+            $Item->appendChild($doc->createElement('dte:Precio', number_format($monto, 3, '.', '')));
+            $Item->appendChild($doc->createElement('dte:Descuento', '0.000'));
+
+            $Impuestos = $doc->createElement('dte:Impuestos');
+            $Impuesto = $doc->createElement('dte:Impuesto');
+            $Impuesto->appendChild($doc->createElement('dte:NombreCorto', 'IVA'));
+            $Impuesto->appendChild($doc->createElement('dte:CodigoUnidadGravable', $exento ? '2' : '1'));
+            $Impuesto->appendChild($doc->createElement('dte:MontoGravable', number_format($monto_gravable, 3, '.', '')));
+            $Impuesto->appendChild($doc->createElement('dte:MontoImpuesto', number_format($monto_impuesto, 3, '.', '')));
+            $Impuestos->appendChild($Impuesto);
+            $Item->appendChild($Impuestos);
+
+            $Item->appendChild($doc->createElement('dte:Total', number_format($monto, 3, '.', '')));
+
+            $Items->appendChild($Item);
+        }
+
         $DatosEmision->appendChild($Items);
 
         // Totales
@@ -1348,9 +1428,11 @@ class MonitorFacturacionController extends Controller
         $TotalImpuestos = $doc->createElement('dte:TotalImpuestos');
         $TotalImpuesto = $doc->createElement('dte:TotalImpuesto');
         $TotalImpuesto->setAttribute('NombreCorto', 'IVA');
+        //$TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($monto_impuesto, 2, '.', ''));
         $TotalImpuesto->setAttribute('TotalMontoImpuesto', number_format($monto_impuesto, 2, '.', ''));
         $TotalImpuestos->appendChild($TotalImpuesto);
         $Totales->appendChild($TotalImpuestos);
+        //$Totales->appendChild($doc->createElement('dte:GranTotal', number_format($monto, 2, '.', '')));
         $Totales->appendChild($doc->createElement('dte:GranTotal', number_format($monto, 2, '.', '')));
         $DatosEmision->appendChild($Totales);
 
@@ -1419,12 +1501,12 @@ class MonitorFacturacionController extends Controller
             $response = Http::withHeaders($headers)->send('POST', $apiUrl, ['body' => $xmlString]);
             $json = $response->json() ?? [];
 
-            // Log de la respuesta
-            // Log::info('Respuesta INFILE - ' . strtoupper($tipo), [
-            //     'cotizacion_id' => $idcotizacion,
-            //     'identificador' => $identificador,
-            //     'response'      => $json,
-            // ]);
+            //Log de la respuesta
+            Log::info('Respuesta INFILE - ' . strtoupper($tipo), [
+                'cotizacion_id' => $idcotizacion,
+                'identificador' => $identificador,
+                'response'      => $json,
+            ]);
 
             // === Persistencia para Notas FEL ===
             if (in_array($tipo, ['NCRE', 'NDEB']) && is_array($notaMeta)) {
