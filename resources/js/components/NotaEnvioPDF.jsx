@@ -8,97 +8,196 @@ import {
     Image,
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
-import logoBase64 from "../logoBase64";
-import whatsappIcon from "../whatsappIconBase64";
 
-const FOOTER_SPACE = 100; // espacio reservado solo en la última página (ajustado)
+const BLUE = "#005f8f";
+const FOOTER_SPACE = 110;
+
+const logoSrc = "/images/LogoGPv3.jpg";
+const watermarkSrc = "/images/marcagua_pg.png";
+const whatsappSrc = "/images/whatsapp.png";
 
 const styles = StyleSheet.create({
     page: {
         fontSize: 10,
-        paddingTop: 30,
-        paddingHorizontal: 30,
-        paddingBottom: 30, // sin gran espacio aquí
+        paddingTop: 35,
+        paddingHorizontal: 35,
+        paddingBottom: 35,
         fontFamily: "Helvetica",
+        position: "relative",
     },
-    title: {
-        fontSize: 14,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginBottom: 4,
-    },
-    contact: { textAlign: "center", fontSize: 9 },
-    row: { flexDirection: "row", justifyContent: "space-between" },
-    bold: { fontWeight: "bold" },
 
-    redText: {
-        color: "red",
-        fontWeight: "bold",
+    watermark: {
+        position: "absolute",
+        width: 420,
+        opacity: 0.12,
+        top: 285,
+        left: 95,
+    },
+
+    header: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        marginBottom: 20,
+    },
+
+    logoBox: {
+        width: "28%",
+    },
+
+    logo: {
+        width: 115,
+    },
+
+    companyBox: {
+        width: "44%",
+        alignItems: "center",
+    },
+
+    noteBox: {
+        width: "28%",
+        alignItems: "flex-end",
+        paddingTop: 30,
+    },
+
+    contact: {
+        color: BLUE,
+        fontSize: 9,
         textAlign: "center",
-        marginVertical: 4, // antes 10
+        fontWeight: "bold",
+        lineHeight: 1.25,
+    },
+
+    noteTitle: {
+        color: BLUE,
+        fontSize: 15,
+        fontWeight: "bold",
+    },
+
+    noteNumber: {
+        color: BLUE,
+        fontSize: 10,
+        fontWeight: "bold",
+        marginTop: 4,
+    },
+
+    dataBox: {
+        marginTop: 5,
+        marginBottom: 18,
+    },
+
+    dataText: {
+        fontSize: 10,
+        marginBottom: 2,
+        color: "#000",
+    },
+
+    label: {
+        color: BLUE,
+        fontWeight: "bold",
+    },
+
+    tableHeader: {
+        flexDirection: "row",
+        borderBottomWidth: 2,
+        borderBottomColor: BLUE,
+        paddingBottom: 3,
+        marginBottom: 5,
+    },
+
+    tableHeaderCell: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 10,
     },
 
     tableRow: {
         flexDirection: "row",
         alignItems: "flex-start",
         paddingVertical: 2,
-        //borderBottomWidth: 0.5,
-        //borderBottomColor: "#ccc",
-        //borderBottomStyle: "solid",
     },
-    tableHeader: {
-        marginTop: 10,
-        marginBottom: 4,
-        flexDirection: "row",
-        borderBottomWidth: 1,
-        borderBottomColor: "#000",
-        borderBottomStyle: "solid",
-        paddingBottom: 2,
-    },
-    tableHeaderCell: { fontWeight: "bold" },
 
-    line: {
-        marginTop: 8, // antes 16
+    qtyCol: {
+        width: "12%",
+        textAlign: "left",
+        paddingRight: 8,
+    },
+
+    descCol: {
+        width: "88%",
+    },
+
+    detailText: {
+        color: "#000",
+        fontSize: 10,
+        lineHeight: 1.25,
+    },
+
+    footerSpacer: {
+        height: FOOTER_SPACE,
+    },
+
+    footer: {
+        position: "absolute",
+        bottom: 35,
+        left: 35,
+        right: 35,
+    },
+
+    redText: {
+        color: "red",
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 10,
+    },
+
+    observationRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 14,
+    },
+
+    observationLabel: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 10,
+    },
+
+    observationLine: {
+        flex: 1,
         borderBottomWidth: 1,
-        borderBottomColor: "#000",
-        borderBottomStyle: "solid",
-        width: "100%",
+        borderBottomColor: BLUE,
+        marginLeft: 5,
     },
 
     signatureGroup: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: 8, // antes 20
     },
-    signatureBox: { textAlign: "center", width: "30%" },
 
-    footer: {
-        position: "absolute",
-        bottom: 30,
-        left: 30,
-        right: 30,
-    },
-    footerSpacer: { height: FOOTER_SPACE },
-
-    contactPhonesRow: {
-        flexDirection: "row",
-        justifyContent: "center",
+    signatureBox: {
+        width: "30%",
         alignItems: "center",
-        gap: 10,
-        marginTop: 4,
     },
-    contactPhoneText: { fontSize: 10, fontWeight: "bold" },
-    whatsappIcon: { width: 10, height: 10, marginRight: 4 },
-    whatsappGroup: { flexDirection: "row", alignItems: "center" },
 
-    qtyCol: {
-        flex: 0.07,
-        textAlign: "right",
-        paddingRight: 6,
-        //borderRightWidth: 0.5,
-        //borderRightColor: "#ccc",
+    line: {
+        borderBottomWidth: 1,
+        borderBottomColor: BLUE,
+        width: "100%",
+        marginBottom: 4,
     },
-    descCol: { flex: 0.93, paddingLeft: 6 },
+
+    signatureText: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 9,
+        textAlign: "center",
+    },
+
+    whatsappIcon: {
+        width: 10,
+        height: 10,
+        marginVertical: 1,
+    },
 });
 
 function fmtFechaSafe(v) {
@@ -127,50 +226,41 @@ const NotaEnvioPDF = ({ data }) => {
     return (
         <Document>
             <Page size="A4" style={styles.page}>
-                {/* Encabezado */}
-                <View
-                    style={[
-                        styles.row,
-                        { alignItems: "center", marginBottom: 10 },
-                    ]}
-                >
-                    <View style={{ width: "33%" }}>
-                        <Image src={logoBase64} style={{ width: 100 }} />
+                <Image src={watermarkSrc} style={styles.watermark} fixed />
+
+                <View style={styles.header}>
+                    <View style={styles.logoBox}>
+                        <Image src={logoSrc} style={styles.logo} />
                     </View>
 
-                    <View style={{ width: "34%" }}>
-                        <Text style={[styles.title, { textAlign: "center" }]}>
-                            GP Excelencia S.A.
+                    <View style={styles.companyBox}>
+                        <Text style={styles.contact}>
+                            11 calle, 41-20 Aldea “El Naranjito”,
                         </Text>
                         <Text style={styles.contact}>
-                            ventas@gpexcelencia.com
+                            Zona 6 de Mixco, Guatemala
                         </Text>
-                        <Text style={styles.contact}>www.gpexcelencia.com</Text>
                         <Text style={styles.contact}>
-                            11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco,
-                            Guatemala
+                            Tel: 2309-9419  2294-9257
                         </Text>
-                        <View style={styles.contactPhonesRow}>
-                            <Text style={styles.contactPhoneText}>
-                                Tel: 2309-9419
-                            </Text>
-                            <View style={styles.whatsappGroup}>
-                                <Image
-                                    src={whatsappIcon}
-                                    style={styles.whatsappIcon}
-                                />
-                                <Text style={styles.contactPhoneText}>
-                                    3595-5875
-                                </Text>
-                            </View>
-                        </View>
+
+                        <Image src={whatsappSrc} style={styles.whatsappIcon} />
+
+                        <Text style={styles.contact}>3595-5875</Text>
+                        <Text style={styles.contact}>
+                            Ventas: servicioalcliente@gpexcelencia.com
+                        </Text>
+                        <Text style={styles.contact}>
+                            Contabilidad: creditos@gpexcelencia.com
+                        </Text>
+                        <Text style={styles.contact}>
+                            Número Interno: GP-20234610-10812
+                        </Text>
                     </View>
 
-                    <View style={{ width: "33%", textAlign: "right" }}>
-                        <Text style={{ fontSize: 14, fontWeight: "bold" }}>
-                            NOTA DE ENVÍO
-                        </Text>
-                        <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                    <View style={styles.noteBox}>
+                        <Text style={styles.noteTitle}>NOTA DE ENVIO</Text>
+                        <Text style={styles.noteNumber}>
                             {noCotizacion
                                 ? `${noCotizacion} / Envío ${no_envio}`
                                 : `Envío ${no_envio}`}
@@ -178,25 +268,29 @@ const NotaEnvioPDF = ({ data }) => {
                     </View>
                 </View>
 
-                {/* Datos principales */}
-                <View style={{ marginBottom: 10 }}>
-                    <Text>
-                        <Text style={styles.bold}>EMPRESA:</Text> {cliente}
+                <View style={styles.dataBox}>
+                    <Text style={styles.dataText}>
+                        <Text style={styles.label}>EMPRESA: </Text>
+                        {cliente}
                     </Text>
-                    <Text>
-                        <Text style={styles.bold}>DIRECCIÓN:</Text>{" "}
+                    <Text style={styles.dataText}>
+                        <Text style={styles.label}>DIRECCIÓN: </Text>
                         {direccion || "-"}
                     </Text>
-                    <Text>
-                        <Text style={styles.bold}>FECHA:</Text> {fecha}
+                    <Text style={styles.dataText}>
+                        <Text style={styles.label}>FECHA: </Text>
+                        {fecha}
                     </Text>
-                    {/* <Text><Text style={styles.bold}>CONTACTO:</Text> {contacto}</Text>
-                    <Text><Text style={styles.bold}>TELÉFONO:</Text> {telefono}</Text> */}
-                    <Text>CONTACTO: {data.cabecera.contacto}</Text>
-                    <Text>TELÉFONO: {data.cabecera.telefono}</Text>
+                    <Text style={styles.dataText}>
+                        <Text style={styles.label}>CONTACTO: </Text>
+                        {contacto}
+                    </Text>
+                    <Text style={styles.dataText}>
+                        <Text style={styles.label}>TELÉFONO: </Text>
+                        {telefono}
+                    </Text>
                 </View>
 
-                {/* Tabla */}
                 <View style={styles.tableHeader}>
                     <Text style={[styles.tableHeaderCell, styles.qtyCol]}>
                         CANT.
@@ -207,44 +301,52 @@ const NotaEnvioPDF = ({ data }) => {
                 </View>
 
                 {productos.length === 0 ? (
-                    <Text>No hay registros para este envío.</Text>
+                    <Text style={styles.detailText}>
+                        No hay registros para este envío.
+                    </Text>
                 ) : (
                     productos.map((item, index) => (
                         <View key={index} style={styles.tableRow} wrap={false}>
-                            <Text style={styles.qtyCol}>{Number(item.cantidad).toFixed(0)}</Text>
-                            <Text style={styles.descCol}>
+                            <Text style={[styles.qtyCol, styles.detailText]}>
+                                {Number(item.cantidad).toFixed(0)}
+                            </Text>
+                            <Text style={[styles.descCol, styles.detailText]}>
                                 {item.descripcion}
                             </Text>
                         </View>
                     ))
                 )}
 
-                {/* Reserva SOLO al final */}
                 <View style={styles.footerSpacer} />
 
-                {/* Footer compacto */}
                 <View style={styles.footer}>
                     <Text style={styles.redText}>
-                        Verificar producto, no se aceptan cambios ni
-                        devoluciones.
+                        Verificar producto, no se aceptan cambios ni devoluciones.
                     </Text>
 
-                    <Text>
-                        OBSERVACIÓN: ___________________________________________
-                    </Text>
+                    <View style={styles.observationRow}>
+                        <Text style={styles.observationLabel}>
+                            OBSERVACIÓN:
+                        </Text>
+                        <View style={styles.observationLine} />
+                    </View>
 
                     <View style={styles.signatureGroup}>
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>NOMBRE DE QUIEN RECIBE</Text>
+                            <Text style={styles.signatureText}>
+                                NOMBRE DE QUIEN RECIBE
+                            </Text>
                         </View>
+
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>FIRMA</Text>
+                            <Text style={styles.signatureText}>FIRMA</Text>
                         </View>
+
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>HORA</Text>
+                            <Text style={styles.signatureText}>HORA</Text>
                         </View>
                     </View>
                 </View>

@@ -8,10 +8,14 @@ import {
     Image,
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
-import logoBase64 from "../logoBase64";
-import whatsappIcon from "../whatsappIconBase64";
 
-const FOOTER_SPACE = 70; // más pequeño que A4
+const BLUE = "#005B8F";
+
+const logoSrc = "/images/LogoGPv3.jpg";
+const watermarkSrc = "/images/marcagua_gp.png";
+const whatsappSrc = "/images/whatsapp.png";
+
+const FOOTER_SPACE = 70;
 
 const styles = StyleSheet.create({
     page: {
@@ -20,35 +24,64 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 20,
         fontFamily: "Helvetica",
+        position: "relative",
     },
 
-    row: { flexDirection: "row", justifyContent: "space-between" },
-    bold: { fontWeight: "bold" },
-
-    title: {
-        fontSize: 11,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginBottom: 2,
+    watermark: {
+        position: "absolute",
+        width: 230,
+        top: 240,
+        left: 80,
+        opacity: 1,
     },
 
-    contact: { textAlign: "center", fontSize: 8 },
+    row: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
 
-    redText: {
-        color: "red",
-        fontWeight: "bold",
+    logo: {
+        width: 80,
+    },
+
+    contactBlue: {
+        color: BLUE,
         textAlign: "center",
-        marginVertical: 3,
-        fontSize: 8,
+        fontSize: 7,
+        fontWeight: "bold",
+        marginBottom: 1,
+    },
+
+    noteTitle: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 13,
+    },
+
+    noteNumber: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 9,
+        marginTop: 2,
+    },
+
+    labelBlue: {
+        color: BLUE,
+        fontWeight: "bold",
     },
 
     tableHeader: {
-        marginTop: 6,
-        marginBottom: 3,
+        marginTop: 8,
+        marginBottom: 4,
         flexDirection: "row",
-        borderBottomWidth: 1,
-        borderBottomColor: "#000",
+        borderBottomWidth: 2,
+        borderBottomColor: BLUE,
         paddingBottom: 2,
+    },
+
+    tableHeaderText: {
+        color: BLUE,
+        fontWeight: "bold",
     },
 
     tableRow: {
@@ -57,32 +90,51 @@ const styles = StyleSheet.create({
     },
 
     qtyCol: {
-        flex: 0.1,
-        textAlign: "right",
-        paddingRight: 4,
+        flex: 0.12,
+        paddingRight: 5,
+        color: "#000",
     },
 
     descCol: {
-        flex: 0.9,
-        paddingLeft: 4,
+        flex: 0.88,
+        color: "#000",
+    },
+
+    redText: {
+        color: "red",
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 8,
+        fontSize: 8,
+    },
+
+    obsText: {
+        color: BLUE,
+        fontWeight: "bold",
+        fontSize: 8,
     },
 
     line: {
-        marginTop: 6,
         borderBottomWidth: 1,
-        borderBottomColor: "#000",
+        borderBottomColor: BLUE,
         width: "100%",
+        marginBottom: 3,
     },
 
     signatureGroup: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: 6,
+        marginTop: 8,
     },
 
     signatureBox: {
-        textAlign: "center",
         width: "30%",
+        textAlign: "center",
+    },
+
+    signatureText: {
+        color: BLUE,
+        fontWeight: "bold",
         fontSize: 8,
     },
 
@@ -97,28 +149,24 @@ const styles = StyleSheet.create({
         height: FOOTER_SPACE,
     },
 
-    contactPhonesRow: {
+    whatsappRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        gap: 6,
         marginTop: 2,
-    },
-
-    contactPhoneText: {
-        fontSize: 8,
-        fontWeight: "bold",
+        marginBottom: 2,
     },
 
     whatsappIcon: {
         width: 8,
         height: 8,
-        marginRight: 3,
+        marginRight: 4,
     },
 
-    whatsappGroup: {
-        flexDirection: "row",
-        alignItems: "center",
+    whatsappText: {
+        color: BLUE,
+        fontSize: 8,
+        fontWeight: "bold",
     },
 });
 
@@ -139,45 +187,60 @@ const NotaEnvioPDFHalf = ({ data }) => {
     const { no_envio, direccion, cabecera, items } = data;
 
     const productos = Array.isArray(items) ? items : [];
+
     const fecha = fmtFechaSafe(cabecera?.fecha);
 
     return (
         <Document>
             <Page size={[396, 612]} style={styles.page}>
-                {/* ===== HEADER (MISMO QUE A4, ESCALADO) ===== */}
-                <View style={[styles.row, { alignItems: "center", marginBottom: 6 }]}>
-                    <View style={{ width: "33%" }}>
-                        <Image src={logoBase64} style={{ width: 70 }} />
+                <Image src={watermarkSrc} style={styles.watermark} fixed />
+
+                <View style={[styles.row, { marginBottom: 10 }]}>
+                    <View style={{ width: "28%" }}>
+                        <Image src={logoSrc} style={styles.logo} />
                     </View>
 
-                    <View style={{ width: "34%" }}>
-                        <Text style={styles.title}>GP Excelencia S.A.</Text>
-                        <Text style={styles.contact}>ventas@gpexcelencia.com</Text>
-                        <Text style={styles.contact}>www.gpexcelencia.com</Text>
-                        <Text style={styles.contact}>
-                            11 Calle 41-21 Aldea "El Naranjo" Zona 6 de Mixco
+                    <View style={{ width: "44%" }}>
+                        <Text style={styles.contactBlue}>
+                            11 calle, 41-20 Aldea "El Naranjito"
                         </Text>
-                        <View style={styles.contactPhonesRow}>
-                            <Text style={styles.contactPhoneText}>
-                                Tel: 2309-9419
-                            </Text>
-                            <View style={styles.whatsappGroup}>
-                                <Image
-                                    src={whatsappIcon}
-                                    style={styles.whatsappIcon}
-                                />
-                                <Text style={styles.contactPhoneText}>
-                                    3595-5875
-                                </Text>
-                            </View>
+
+                        <Text style={styles.contactBlue}>
+                            Zona 6 de Mixco, Guatemala
+                        </Text>
+
+                        <Text style={styles.contactBlue}>
+                            Tel: 2309-9419 2294-9257
+                        </Text>
+
+                        <View style={styles.whatsappRow}>
+                            <Image
+                                src={whatsappSrc}
+                                style={styles.whatsappIcon}
+                            />
+
+                            <Text style={styles.whatsappText}>3595-5875</Text>
                         </View>
+
+                        <Text style={styles.contactBlue}>
+                            Ventas: servicioalcliente@gpexcelencia.com
+                        </Text>
+
+                        <Text style={styles.contactBlue}>
+                            Contabilidad: creditos@gpexcelencia.com
+                        </Text>
                     </View>
 
-                    <View style={{ width: "33%", textAlign: "right" }}>
-                        <Text style={{ fontSize: 11, fontWeight: "bold" }}>
-                            NOTA DE ENVÍO
-                        </Text>
-                        <Text style={{ fontSize: 9, fontWeight: "bold" }}>
+                    <View
+                        style={{
+                            width: "28%",
+                            alignItems: "flex-end",
+                            paddingTop: 20,
+                        }}
+                    >
+                        <Text style={styles.noteTitle}>NOTA DE ENVÍO</Text>
+
+                        <Text style={styles.noteNumber}>
                             {cabecera?.nocotizacion
                                 ? `${cabecera.nocotizacion} / Envío ${no_envio}`
                                 : `Envío ${no_envio}`}
@@ -185,71 +248,80 @@ const NotaEnvioPDFHalf = ({ data }) => {
                     </View>
                 </View>
 
-                {/* ===== DATOS ===== */}
-                <View style={{ marginBottom: 6 }}>
+                <View style={{ marginBottom: 10 }}>
                     <Text>
-                        <Text style={styles.bold}>EMPRESA:</Text>{" "}
+                        <Text style={styles.labelBlue}>EMPRESA:</Text>{" "}
                         {cabecera?.cliente}
                     </Text>
+
                     <Text>
-                        <Text style={styles.bold}>DIRECCIÓN:</Text>{" "}
+                        <Text style={styles.labelBlue}>DIRECCIÓN:</Text>{" "}
                         {direccion || "-"}
                     </Text>
+
                     <Text>
-                        <Text style={styles.bold}>FECHA:</Text> {fecha}
+                        <Text style={styles.labelBlue}>FECHA:</Text> {fecha}
                     </Text>
-                    <Text>CONTACTO: {cabecera?.contacto || "-"}</Text>
-                    <Text>TELÉFONO: {cabecera?.telefono || "-"}</Text>
+
+                    <Text>
+                        <Text style={styles.labelBlue}>CONTACTO:</Text>{" "}
+                        {cabecera?.contacto || "-"}
+                    </Text>
+
+                    <Text>
+                        <Text style={styles.labelBlue}>TELÉFONO:</Text>{" "}
+                        {cabecera?.telefono || "-"}
+                    </Text>
                 </View>
 
-                {/* ===== TABLA ===== */}
                 <View style={styles.tableHeader}>
-                    <Text style={[styles.bold, styles.qtyCol]}>CANT.</Text>
-                    <Text style={[styles.bold, styles.descCol]}>
+                    <Text style={[styles.qtyCol, styles.tableHeaderText]}>
+                        CANT.
+                    </Text>
+
+                    <Text style={[styles.descCol, styles.tableHeaderText]}>
                         DESCRIPCIÓN
                     </Text>
                 </View>
 
-                {productos.length === 0 ? (
-                    <Text>No hay registros para este envío.</Text>
-                ) : (
-                    productos.map((item, index) => (
-                        <View key={index} style={styles.tableRow} wrap={false}>
-                            <Text style={styles.qtyCol}>
-                                {Number(item.cantidad).toFixed(0)}
-                            </Text>
-                            <Text style={styles.descCol}>
-                                {item.descripcion}
-                            </Text>
-                        </View>
-                    ))
-                )}
+                {productos.map((item, index) => (
+                    <View key={index} style={styles.tableRow} wrap={false}>
+                        <Text style={styles.qtyCol}>
+                            {Number(item.cantidad).toFixed(0)}
+                        </Text>
 
-                {/* ===== RESERVA FOOTER ===== */}
+                        <Text style={styles.descCol}>{item.descripcion}</Text>
+                    </View>
+                ))}
+
                 <View style={styles.footerSpacer} />
 
-                {/* ===== FOOTER (IGUAL QUE A4, ESCALADO) ===== */}
                 <View style={styles.footer}>
                     <Text style={styles.redText}>
-                        Verificar producto, no se aceptan cambios ni devoluciones.
+                        Verificar producto, no se aceptan cambios ni
+                        devoluciones.
                     </Text>
 
-                    <Text style={{ fontSize: 8 }}>
-                        OBSERVACIÓN: ___________________________________________
+                    <Text style={styles.obsText}>
+                        OBSERVACIÓN: __________________________________
                     </Text>
 
                     <View style={styles.signatureGroup}>
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>NOMBRE DE QUIEN RECIBE</Text>
+                            <Text style={styles.signatureText}>
+                                NOMBRE DE QUIEN RECIBE
+                            </Text>
                         </View>
+
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>FIRMA</Text>
+                            <Text style={styles.signatureText}>FIRMA</Text>
                         </View>
+
                         <View style={styles.signatureBox}>
                             <View style={styles.line} />
-                            <Text>HORA</Text>
+                            <Text style={styles.signatureText}>HORA</Text>
                         </View>
                     </View>
                 </View>
