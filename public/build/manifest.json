@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-B6nxyYM3.js",
+    "file": "assets/index.es-DxOfxg9s.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -58,7 +58,7 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-BuqETgHF.js",
+    "file": "assets/app-BUjEFZKH.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
@@ -71,6 +71,8 @@
       "assets/app-PeenkE9l.css"
     ],
     "assets": [
+      "assets/marca_de_agua-HcIyKq0T.jpg",
+      "assets/whatsapp-DFh_Js_l.png",
       "assets/fa-brands-400-D_cYUPeE.woff2",
       "assets/fa-brands-400-D1LuMI3I.ttf",
       "assets/fa-regular-400-BjRzuEpd.woff2",
@@ -80,5 +82,13 @@
       "assets/fa-v4compatibility-C9RhG_FT.woff2",
       "assets/fa-v4compatibility-CCth-dXg.ttf"
     ]
+  },
+  "resources/js/assets/marca_de_agua.jpg": {
+    "file": "assets/marca_de_agua-HcIyKq0T.jpg",
+    "src": "resources/js/assets/marca_de_agua.jpg"
+  },
+  "resources/js/assets/whatsapp.png": {
+    "file": "assets/whatsapp-DFh_Js_l.png",
+    "src": "resources/js/assets/whatsapp.png"
   }
 }
