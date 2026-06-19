@@ -1,4 +1,6 @@
 import "../utils/disableHyphenation"; // Asegúrate de que este archivo exista y desactive la hipenación
+import marcaAgua from "../assets/marca_de_agua.jpg";
+import whatsapp from "../assets/whatsapp.png";
 import React from "react";
 import {
     Page,
@@ -30,9 +32,10 @@ Font.register({
 const styles = StyleSheet.create({
     page: {
         padding: 30,
-        paddingBottom: 60,
+        paddingBottom: 35,
         fontFamily: "Roboto",
         fontSize: 10,
+        color: "#0A467C",
     },
     header: {
         flexDirection: "row",
@@ -41,28 +44,30 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     logo: {
-        width: 100,
-        height: "auto",
+        width: 110,
+        height: 110,
+        objectFit: "contain",
     },
     headerCenter: {
         flex: 1,
-        textAlign: "center",
-        fontSize: 10,
-        marginTop: 5,
-        marginLeft: 10,
-        marginRight: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 9,
+        color: "#0A467C",
+        marginTop: 0,
+        lineHeight: 1.2,
     },
     headerRight: {
-        width: 120,
-        alignItems: "flex-start",
-        fontSize: 9,
+        width: 140,
+        alignItems: "center",
+        marginTop: 0,
     },
     cotizacionLabel: {
         fontSize: 10,
         marginBottom: 4,
     },
     fechaEncabezado: {
-        backgroundColor: "rgb(39,50,56)",
+        backgroundColor: "#0A467C",
         color: "white",
         fontSize: 8,
         textAlign: "center",
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
     },
     tableRow: {
         flexDirection: "row",
-        backgroundColor: "rgb(39,50,56)",
+        backgroundColor: "#0A467C",
         color: "white",
     },
     tableRowData: {
@@ -122,6 +127,11 @@ const styles = StyleSheet.create({
     footer: {
         marginTop: 20,
         alignItems: "flex-end",
+    },
+
+    tableCellBlack: {
+        fontSize: 10,
+        color: "#000000",
     },
 });
 
@@ -158,42 +168,99 @@ const fechaDMY = (valor) => {
 const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
     <Document>
         <Page style={styles.page}>
+            <Image
+                fixed
+                src={marcaAgua}
+                style={{
+                    position: "absolute",
+                    top: 260,
+                    left: 150,
+                    width: 260,
+                    height: 260,
+                    opacity: 1,
+                }}
+            />
+
             {/* Encabezado */}
             <View style={styles.header}>
                 <Image style={styles.logo} src={logoSrc} />
 
                 <View style={styles.headerCenter}>
-                    <Text style={{ fontSize: 12, fontWeight: 700 }}>
-                        GP EXCELENCIA, S.A.
-                    </Text>
-                    <Text>Tel: 2309-9419 / 2294-9257</Text>
-                    <Text>11 calle 41-20 Aldea "El Naranjito"</Text>
-                    <Text>Zona 6 de Mixco Guatemala</Text>
+                    <Text>11 calle, 41-20 Aldea “El Naranjito”</Text>
+
+                    <Text>Zona 6 de Mixco, Guatemala</Text>
+
+                    <Text>Tel: 2309-9419 &nbsp; 2294-9257</Text>
+
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginTop: 2,
+                        }}
+                    >
+                        <Image
+                            src={whatsapp}
+                            style={{
+                                width: 10,
+                                height: 10,
+                                marginRight: 3,
+                            }}
+                        />
+
+                        <Text>3595-5875</Text>
+                    </View>
+
                     <Text>Ventas: servicioalcliente@gpexcelencia.com</Text>
+
                     <Text>Contabilidad: creditos@gpexcelencia.com</Text>
-                    <Text>www.gpexcelencia.com</Text>
+                   
                 </View>
 
                 <View style={styles.headerRight}>
-                    <Text style={styles.cotizacionLabel}>
-                        COTIZACION: {cotizacion.nocotizacion}
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            marginBottom: 4,
+                        }}
+                    >
+                        COTIZACIÓN: {cotizacion.nocotizacion}
                     </Text>
-                    <View style={styles.fechaEncabezado}>
-                        <Text>DIA MES AÑO</Text>
+
+                    <View
+                        style={{
+                            backgroundColor: "#0A467C",
+                            width: "100%",
+                            padding: 2,
+                            alignItems: "center",
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: "#FFF",
+                                fontSize: 8,
+                            }}
+                        >
+                            DIA MES AÑO
+                        </Text>
                     </View>
-                    <View style={styles.fechaBox}>
-                        {/* <Text>
-                            {cotizacion.fecha_cotizacion
-                                ? (() => {
-                                      const [y, m, d] =
-                                          cotizacion.fecha_cotizacion.split(
-                                              "-"
-                                          );
-                                      return `${d}/${m}/${y}`;
-                                  })()
-                                : "N/A"}
-                        </Text> */}
-                        <Text>{fechaDMY(cotizacion.fecha_cotizacion)}</Text>
+
+                    <View
+                        style={{
+                            border: "1px solid #0A467C",
+                            width: "100%",
+                            padding: 6,
+                            alignItems: "center",
+                        }}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 12,
+                            }}
+                        >
+                            {fechaDMY(cotizacion.fecha_cotizacion)}
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -313,14 +380,14 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                         wrap={false}
                     >
                         <View style={[styles.tableCol, { width: "8%" }]}>
-                            <Text style={styles.tableCell}>
+                            <Text style={styles.tableCellBlack}>
                                 {detalle.cantidad}
                             </Text>
                         </View>
                         <View style={[styles.tableCol, { width: "62%" }]}>
                             <Text
                                 style={[
-                                    styles.tableCell,
+                                    styles.tableCellBlack,
                                     {
                                         textAlign: "left",
                                         margin: 0, //elimina el centrado
@@ -337,7 +404,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                 { width: "15%", textAlign: "right" },
                             ]}
                         >
-                            <Text style={styles.tableCell}>
+                            <Text style={styles.tableCellBlack}>
                                 {formatoMoneda.format(detalle.precio_unitario)}
                             </Text>
                         </View>
@@ -347,7 +414,7 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                                 { width: "15%", textAlign: "right" },
                             ]}
                         >
-                            <Text style={styles.tableCell}>
+                            <Text style={styles.tableCellBlack}>
                                 {formatoMoneda.format(detalle.precio)}
                             </Text>
                         </View>
@@ -355,93 +422,142 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                 ))}
             </View>
 
-            {/* Total General */}
             <View
                 style={{
-                    marginTop: 40,
-                    backgroundColor: "rgb(39,50,56)",
-                    color: "white",
-                    padding: 2,
-                    width: "100%",
-                    marginBottom: 5,
+                    marginTop: "auto",
+                    paddingTop: 10,
                 }}
             >
-                <Text style={{ fontSize: 10 }}>TOTAL GENERAL</Text>
-            </View>
-            <View
-                style={{
-                    borderBottom: "2px solid rgb(39,50,56)",
-                    marginBottom: 5,
-                }}
-            />
-            <View
-                style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                }}
-            >
-                <View>
-                    {totalEnLetras && (
-                        <>
-                            <Text style={{ fontSize: 10 }}>
-                                TOTAL EN LETRAS
-                            </Text>
-                            <Text style={{ fontSize: 10 }}>
-                                {totalEnLetras}
-                            </Text>
-                        </>
-                    )}
+                <View
+                    style={{
+                        backgroundColor: "#0A467C",
+                        padding: 3,
+                        width: "100%",
+                    }}
+                >
+                    <Text
+                        style={{
+                            color: "#FFF",
+                            fontSize: 10,
+                        }}
+                    >
+                        TOTAL GENERAL
+                    </Text>
                 </View>
-                {cotizacion.descuento_monto > 0 ? (
-                    <View>
-                        <Text style={{ fontSize: 10 }}>
+
+                <View
+                    style={{
+                        borderBottom: "2px solid #0A467C",
+                        marginBottom: 8,
+                    }}
+                />
+
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                    }}
+                >
+                    <View style={{ width: "70%" }}>
+                        <Text
+                            style={{
+                                color: "#000",
+                                fontWeight: 700,
+                                fontSize: 10,
+                            }}
+                        >
+                            TOTAL EN LETRAS
+                        </Text>
+
+                        <Text
+                            style={{
+                                color: "#000",
+                                fontSize: 10,
+                            }}
+                        >
+                            {totalEnLetras}
+                        </Text>
+
+                        <Text
+                            style={{
+                                marginTop: 10,
+                                color: "#000",
+                                fontWeight: 700,
+                            }}
+                        >
+                            OBSERVACIONES:
+                        </Text>
+
+                        <Text style={{ color: "#000" }}>
+                            {cotizacion.observaciones_cliente || ""}
+                        </Text>
+                    </View>
+
+                    <View
+                        style={{
+                            width: "30%",
+                            alignItems: "flex-end",
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: "#000",
+                                fontSize: 11,
+                            }}
+                        >
                             Subtotal:{" "}
                             {formatoMoneda.format(cotizacion.total_general)}
                         </Text>
-                        <Text style={{ fontSize: 10 }}>
+
+                        <Text
+                            style={{
+                                color: "#000",
+                                fontSize: 11,
+                            }}
+                        >
                             Descuento:{" "}
                             {formatoMoneda.format(cotizacion.descuento_monto)}
                         </Text>
-                        <Text style={{ fontSize: 14 }}>
-                            Total:{" "}
+
+                        <Text
+                            style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: "#000",
+                                marginTop: 6,
+                            }}
+                        >
+                            TOTAL{" "}
                             {formatoMoneda.format(
-                                cotizacion.total_general - cotizacion.descuento_monto
+                                cotizacion.total_general -
+                                    cotizacion.descuento_monto,
                             )}
                         </Text>
                     </View>
-                ) : (
-                    <View>
-                        <Text style={{ fontSize: 14 }}>
-                            Total:{" "}
-                            {formatoMoneda.format(cotizacion.total_general)}
-                        </Text>
-                    </View>
-                )}
+                </View>
             </View>
-            <View style={{ marginTop: 5, marginBottom: 5, width: "100%" }}>
-                <Text>
-                    <Text style={{ fontWeight: 700 }}>OBSERVACIONES:</Text>{" "}
-                    {cotizacion.observaciones_cliente || ""}
-                </Text>
-            </View>
+
+            {/* Pie azul con número de página */}
             <View
                 fixed
                 style={{
                     position: "absolute",
                     bottom: 10,
-                    left: 30, // igual al padding del `page`
+                    left: 30,
                     right: 30,
-                    height: 30,
-                    backgroundColor: "rgb(39,50,56)",
+                    height: 22,
+                    backgroundColor: "#0A467C",
                     paddingHorizontal: 10,
-                    paddingTop: 8,
                     flexDirection: "row",
                     justifyContent: "flex-end",
                     alignItems: "center",
                 }}
             >
                 <Text
-                    style={{ color: "white", fontSize: 10 }}
+                    style={{
+                        color: "white",
+                        fontSize: 10,
+                    }}
                     render={({ pageNumber, totalPages }) =>
                         `Página ${pageNumber} de ${totalPages}`
                     }

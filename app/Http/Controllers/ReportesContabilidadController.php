@@ -27,6 +27,11 @@ class ReportesContabilidadController extends Controller
 
         $query = $this->construirConsultaCotizaciones($request->all());
 
+//             Log::info('SQL generado:', [
+//     'sql' => $query->toSql(),
+//     'bindings' => $query->getBindings()
+// ]);
+
         $perPage = $request->input('per_page', 10);
         $page = $request->input('page', 1);
 
@@ -408,6 +413,12 @@ class ReportesContabilidadController extends Controller
         }
 
         $query->orderBy('fecha_cotizacion', 'asc');
+
+//     Log::info('SQL generado:', [
+//     'sql' => $query->toSql(),
+//     'bindings' => $query->getBindings(),
+//     'filtros' => $filtros
+// ]);
 
         return $query;
     }
