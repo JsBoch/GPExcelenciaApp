@@ -1217,7 +1217,7 @@ function MonitorFacturacion() {
                             <CotizacionPDF
                                 cotizacion={pdfData.cotizacion}
                                 totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGP.jpg"
+                                logoSrc="/images/LogoGPv2.jpg"
                             />
                         </PDFViewer>
 
@@ -1227,7 +1227,7 @@ function MonitorFacturacion() {
                                     <CotizacionPDF
                                         cotizacion={pdfData.cotizacion}
                                         totalEnLetras={pdfData.totalEnLetras}
-                                        logoSrc="/images/LogoGP.jpg"
+                                        logoSrc="/images/LogoGPv2.jpg"
                                     />
                                 }
                                 fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}

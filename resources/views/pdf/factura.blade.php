@@ -16,6 +16,7 @@ FACTURA GP
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
             position: relative;
+            color: #0A467C;
             margin: 0;
         }
 
@@ -42,7 +43,7 @@ FACTURA GP
         .tabla-detalles,
         .tabla-detalles th,
         .tabla-detalles td {
-            border: 1px solid #000;
+            border: 1px solid #0A467C;
             border-collapse: collapse;
         }
 
@@ -65,7 +66,7 @@ FACTURA GP
             height: 140mm;
             margin-left: -80mm;
             margin-top: -70mm;
-            opacity: .06;
+            opacity: 1;
             z-index: 1;
         }
 
@@ -75,9 +76,9 @@ FACTURA GP
         }
 
         .tabla-detalles-head thead th {
-            background: #000;
+            background: #0A467C;
             color: #fff;
-            border-color: #000;
+            border-color: #0A467C;
         }
 
         .tabla-detalles-head thead th:first-child {
@@ -96,23 +97,31 @@ FACTURA GP
             font-size: 10px;
             padding: 3px;
         }
+
+        .tabla-detalles-body,
+.tabla-detalles-body td {
+    color: #000000;
+}
     </style>
 </head>
 
 <body>
-    <img src="{{ public_path('images/marca_agua_gp.png') }}" class="watermark" alt="Marca de agua">
+    <img src="{{ public_path('images/marcagua_gp.png') }}" class="watermark" alt="Marca de agua">
 
     <div class="content">
         <!-- Encabezado -->
         <table width="100%" style="border-collapse: collapse; margin-bottom: 10px;">
             <tr>
-                <td style="width: 15%; text-align: left;">
-                    <img src="{{ public_path('images/LogoGP.jpg') }}" style="height: 180px;">
+                <td style="width: 25%; text-align: left;">
+                    <img src="{{ public_path('images/LogoGPv3.jpg') }}" style="height: 115px;">
                 </td>
 
-                <td style="width: 45%; text-align: center; font-size: 11px;">
+                <td style="width: 42%; text-align: center; font-size: 10px; padding-top: 10px;">
                     <strong style="font-size: 14px;">GP EXCELENCIA, S.A.</strong><br>
-                    Tel: 2309-9419 &nbsp;&nbsp; 2294-9257<br>
+                    Tel: 2309-9419&nbsp;&nbsp;2294-9257<br>
+
+                    <img src="{{ public_path('images/whatsapp.png') }}" style="height:10px; vertical-align:middle;">
+                    <strong>3595-5875</strong><br>
                     11 calle, 41-20 Aldea “El Naranjito”,<br>
                     Zona 6 de Mixco, Guatemala<br>
                     <span>Ventas: serviciocliente@gpexcelencia.com</span><br>
@@ -120,31 +129,62 @@ FACTURA GP
                     <span>Número Interno: {{ $cotizacion->numero_interno }}</span>
                 </td>
 
-                <td style="width: 40%; text-align: right; font-size: 10px;">
-                    <span>DOCUMENTO TRIBUTARIO ELECTRONICO</span><br>
+                <td style="width: 33%; text-align: right; font-size: 9px;">
+                    <div style="
+                            margin-bottom:12px;
+                            font-size:9px;
+                            font-weight:normal;
+                            text-align:right;
+                        ">
+                        DOCUMENTO TRIBUTARIO ELECTRONICO
+
+                    </div>
 
                     <div style="
-            display:inline-block; text-align:left; border:1px solid #000; border-radius:16px;
-            position:relative; padding:26px 14px 10px; font-size:12px; background:#fff; margin-top:10px;">
+                                width: 155px;
+                                display:inline-block;
+                                text-align:left;
+                                border:1px solid #0A467C;
+                                border-radius:10px;
+                                position:relative;
+                                padding:18px 8px 8px;
+                                font-size:9px;
+                                background:#fff;
+                                margin-top:4px;
+                            ">
+
                         <div style="
-              position:absolute; top:-10px; left:1px; right:1px; background:#fff;
-              border:1px solid #000; border-radius:18px; padding:4px 0; font-weight:700; text-align:center; white-space:nowrap;">
+                                position:absolute;
+                                top:-9px;
+                                left:-1px;
+                                right:-1px;
+                                background:#fff;
+                                border:1px solid #0A467C;
+                                border-radius:10px;
+                                padding:2px 0;
+                                font-weight:700;
+                                text-align:center;
+                                white-space:nowrap;
+                                font-size:9px;
+                            ">
                             Factura Cambiaria Electrónica
                         </div>
-                        <div style="padding:4px 6px 6px;">
+
+                        <div style="padding:2px 4px 2px;">
                             <strong>Serie:</strong> {{ $cotizacion->serie }}<br>
                             <strong>No.:</strong> {{ $cotizacion->numero }}<br>
-                            <strong>Fecha Emisión:</strong> {{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}
+                            <strong>Fecha Emisión:</strong><br>
+                            {{ \Carbon\Carbon::parse($cotizacion->fecha_emision)->format('d/m/Y') }}
                         </div>
                     </div><br>
-                    <strong>NIT.: <span style="font-size: 13px;">109126599</span></strong><br>
+                    <strong style="font-size:11px;">NIT.: <span style="font-size:12px;">109126599</span></strong><br>
                     GP Excelencia, Sociedad Anónima
                 </td>
             </tr>
         </table>
 
         <!-- Información del cliente -->
-        <table width="100%" style="border-collapse: separate; border-spacing: 0; margin-bottom: 10px; font-size: 10px; border: 1px solid #000; border-radius: 10px;">
+        <table width="100%" style="border-collapse: separate; border-spacing: 0; margin-bottom: 10px; font-size: 10px; border: 1px solid #0A467C; border-radius: 10px;">
             <tr>
                 <td style="padding: 6px;">
                     <span>NIT:</span> {{ $cotizacion->nit }}<br>
@@ -155,12 +195,12 @@ FACTURA GP
         </table>
 
         <!-- Encabezado detalle -->
-        <table class="tabla-detalles-head" width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 9px; border: 1px solid #000; border-radius: 8px;">
+        <table class="tabla-detalles-head" width="100%" style="border-collapse: separate; border-spacing: 0; font-size: 9px; border: 1px solid #0A467C; border-radius: 8px;">
             <thead>
                 <tr>
-                    <th style="width: 10%; border-right: 1px solid #000; padding: 4px; border-top-left-radius: 8px;">Cant.</th>
-                    <th style="width: 60%; border-right: 1px solid #000; padding: 4px;">Descripción</th>
-                    <th style="width: 15%; border-right: 1px solid #000; padding: 4px; text-align: right;">P.U.</th>
+                    <th style="width: 10%; border-right: 1px solid #0A467C; padding: 4px; border-top-left-radius: 8px;">Cant.</th>
+                    <th style="width: 60%; border-right: 1px solid #0A467C; padding: 4px;">Descripción</th>
+                    <th style="width: 15%; border-right: 1px solid #0A467C; padding: 4px; text-align: right;">P.U.</th>
                     <th style="width: 15%; padding: 4px; text-align: right; border-top-right-radius: 8px;">Total</th>
                 </tr>
             </thead>
@@ -180,18 +220,18 @@ FACTURA GP
             </tbody>
         </table>
         <!-- Spacer SOLO para la última página (porque está al final del flujo) -->
-        <div class="last-page-spacer" style="height:47mm;"></div>
+        <div class="last-page-spacer" style="height:47mm;"></div>        
     </div><!-- /content -->
 
 
     <!-- *** SIN footer HTML fijo *** -->
 
-@php
+    @php
     // Evaluar el estado antes de entrar al script
     $estadoLiteral = isset($cotizacion->estado) ? (int)$cotizacion->estado : -1;
-@endphp
+    @endphp
     <script type="text/php">
-if (isset($pdf)) {
+        if (isset($pdf)) {
     // ======== Inyección segura de variables desde Blade ========
     $estadoFactura = (int) {{ (int)($cotizacion->estado ?? -1) }};
     $__esAnulada = in_array($estadoFactura, [0, 7], true) ? 1 : 0;
@@ -199,8 +239,8 @@ if (isset($pdf)) {
 $mm = 2.83465;
   // ==== Parámetros del pie (sin cambios de imágenes) ====
   $bottomMargin_mm = 18;     // igual al @page margin-bottom
-  $imgH_mm         = 35;     // alto visible de la onda (footer_gp.jpg)
-  $overlayH_mm     = 30;     // alto de la imagen con títulos (sujeto_pagos_gp.jpg)
+  $imgH_mm         = 35;     // alto visible de la onda (footer_gp_v2.jpg)
+  $overlayH_mm     = 30;     // alto de la imagen con títulos (sujeto_pagos_gpv2.jpg)
   $txtPad_mm       = 2;      // padding superior para los valores
 
   // Parte de la onda que invade el área de contenido por encima del margen inferior
@@ -216,8 +256,8 @@ $mm = 2.83465;
   $txtPad   = $txtPad_mm   * $mm;
 
   // Imágenes
-  $footerImg  = public_path('images/footer_gp.jpg');           // onda
-  $overlayImg = public_path('images/sujeto_pagos_gp.jpg');     // títulos
+  $footerImg  = public_path('images/footer_gp_v2.jpg');           // onda
+  $overlayImg = public_path('images/sujeto_pagos_gpv2.jpg');     // títulos
 
   // ===== Offsets hacia la derecha (en mm) =====
   // Aumenta estos valores si aún quieres correr más a la derecha.
@@ -311,25 +351,63 @@ $mm = 2.83465;
       $fontB = $fontMetrics->getFont("DejaVu Sans", "bold");
       $fontN = $fontMetrics->getFont("DejaVu Sans", "normal");
 
+      $pdf->set_opacity(1);
+
       $xL = 20 * $mm;                  // columna izquierda (ancla)
       $xR = $w - (80 * $mm);           // columna derecha (ancla aproximada)
       $yBase = $overlayY + $txtPad;    // base superior de la zona de textos
 
+      
+
       // --- Total en letras (valor) -> corrido a la derecha ---
-      $pdf->text($xL + $letrasShift, $yBase + (12 * $mm), "' . $txtLetrasEsc . '", $fontN, 8);
+      
+
+$pdf->text(
+    $xL + $letrasShift,
+    $yBase + (12 * $mm),
+    "' . $txtLetrasEsc . '",
+    $fontN,
+    8
+);
+
 
       // --- TOTAL Q. (valor) -> alineado a la derecha de su caja ---
       $montoTxt = "' . $txtMontoEsc . '";
       $montoSize = 10;
       $montoWidth = $fontMetrics->getTextWidth($montoTxt, $fontB, $montoSize);
       $xMonto = $w - $montoRightPad - $montoWidth;   // right-align
-      $pdf->text($xMonto, $yBase + (10 * $mm), $montoTxt, $fontB, $montoSize);
+      
+
+ $pdf->text(
+    $xMonto,
+    $yBase + (10 * $mm),
+    $montoTxt,
+    $fontB,
+    $montoSize
+); 
+
 
       // --- Número de autorización (valor) -> corrido a la derecha ---
-      $pdf->text($xL + $autoShift, $yBase + (22 * $mm), "' . $txtAutoEsc . '", $fontN, 7);
+      
+
+ $pdf->text(
+    $xL + $autoShift,
+    $yBase + (22 * $mm),
+    "' . $txtAutoEsc . '",
+    $fontN,
+    7
+); 
 
       // --- Fecha certificación (valor) -> corrido a la derecha ---
-      $pdf->text($xR + $fechaShift, $yBase + (22 * $mm), "' . $txtFechaEsc . '", $fontN, 8);
+      
+
+ $pdf->text(
+    $xR + $fechaShift,
+    $yBase + (22 * $mm),
+    "' . $txtFechaEsc . '",
+    $fontN,
+    8
+); 
 
       // 4 Campos FEL sobre la onda (siguen igual)
       $dx = (' . $shiftRightMm . ') * $mm;
@@ -341,4 +419,5 @@ $mm = 2.83465;
 }
 </script>
 </body>
+
 </html>

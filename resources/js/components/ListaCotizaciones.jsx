@@ -415,65 +415,6 @@ function ListaCotizaciones() {
             });
     };
 
-    // const handleFacturar = (estadoDestino) => {
-    //     const cotizacion = registroSeleccionado;
-    //     if (!cotizacion?.idcotizacion) {
-    //         alertify.alert(
-    //             "Error",
-    //             "No se encontró la cotización seleccionada.",
-    //         );
-    //         return;
-    //     }
-    //     const cid = cotizacion.idcotizacion;
-
-    //     if (
-    //         Number(cotizacion.total_general) === 0 &&
-    //         Number(cotizacion.estado) > 3
-    //     ) {
-    //         alertify.alert(
-    //             "TOTAL EN CERO",
-    //             "No se puede enviar a pre-facturación una cotización con total igual a 0.00.",
-    //         );
-    //         return;
-    //     }
-    //     if (Number(cotizacion.estado) === 5) {
-    //         alertify.alert(
-    //             "PRE-FACTURACIÓN",
-    //             "El registro ya está en FACTURACIÓN, no se puede volver a enviar.",
-    //         );
-    //         return;
-    //     }
-    //     if (Number(cotizacion.estado) > 5) {
-    //         alertify.alert(
-    //             "FACTURACIÓN",
-    //             "El registro ya pasó la etapa de FACTURACIÓN, no se puede volver a enviar.",
-    //         );
-    //         return;
-    //     }
-
-    //     const token = localStorage.getItem("token");
-    //     if (!token) return;
-
-    //     axios
-    //         .put(
-    //             `/api/cotizaciones/activarfacturacion/${cid}`,
-    //             { estado: estadoDestino },
-    //             { headers: { Authorization: `Bearer ${token}` } },
-    //         )
-    //         .then((response) => {
-    //             alertify.success(response.data.message);
-    //             fetchCotizaciones(
-    //                 fechaInicio,
-    //                 fechaFin,
-    //                 estadoFiltro,
-    //                 filtro.trim(),
-    //             );
-    //         })
-    //         .catch(() => {
-    //             alertify.error("Ocurrió un error al actualizar la cotización.");
-    //         });
-    // };
-
     const handleFacturar = async (estadoDestino) => {
         const cotizacion = registroSeleccionado;
 
@@ -666,7 +607,7 @@ function ListaCotizaciones() {
                             <CotizacionPDF
                                 cotizacion={pdfData.cotizacion}
                                 totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGP.jpg"
+                                logoSrc="/images/LogoGPv2.jpg"
                             />
                         </PDFViewer>
                     </div>
@@ -677,7 +618,7 @@ function ListaCotizaciones() {
                                 <CotizacionPDF
                                     cotizacion={pdfData.cotizacion}
                                     totalEnLetras={pdfData.totalEnLetras}
-                                    logoSrc="/images/LogoGP.jpg"
+                                    logoSrc="/images/LogoGPv2.jpg"
                                 />
                             }
                             fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
