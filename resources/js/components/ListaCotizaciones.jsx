@@ -124,11 +124,17 @@ function ListaCotizaciones() {
     const [fechasSincronizadas, setFechasSincronizadas] = useState(false);
 
     //regla para decidir si se imprime en carga o media carta
-    const itemsNotaEnvio = notaEnvioPayload?.items ?? [];
-    const useHalfLetter = itemsNotaEnvio.length <= 8;
+    // const itemsNotaEnvio = notaEnvioPayload?.items ?? [];
+    // const useHalfLetter = itemsNotaEnvio.length <= 8;
 
     //selección del componente
-    const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+    // const PdfComponent = useHalfLetter ? NotaEnvioPDFHalf : NotaEnvioPDF;
+
+    // Selección manual del formato de nota de envío
+    const PdfComponent =
+        notaEnvioPayload?.tipoImpresion === "media"
+            ? NotaEnvioPDFHalf
+            : NotaEnvioPDF;
 
     // ===========================================================
     //   Sync selección cuando cambian las cotizaciones
