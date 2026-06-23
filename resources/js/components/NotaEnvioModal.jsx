@@ -23,10 +23,13 @@ export default function NotaEnvioModal({
     const [editData, setEditData] = useState(null);
     const [noEnvioReimp, setNoEnvioReimp] = useState("");
 
+    //Se utiliza para seleccionar el tipo de nota de envío (carta o media carta) en el modal 2026-06-23
+    const [tipoImpresion, setTipoImpresion] = useState("carta");
+
     const token = useMemo(() => localStorage.getItem("token"), []);
 
     const envios = (config?.envios || []).filter(
-        (e) => e?.no_envio && Number(e.no_envio) > 0
+        (e) => e?.no_envio && Number(e.no_envio) > 0,
     );
 
     /* ============================================
@@ -40,7 +43,7 @@ export default function NotaEnvioModal({
                 setLoading(true);
                 const { data } = await axios.get(
                     `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
-                    { headers: { Authorization: `Bearer ${token}` } }
+                    { headers: { Authorization: `Bearer ${token}` } },
                 );
 
                 setConfig(data || null);
@@ -67,9 +70,9 @@ export default function NotaEnvioModal({
                     (data?.detalles || [])
                         .filter(
                             (d) =>
-                                !d.numero_envio || Number(d.numero_envio) === 0
+                                !d.numero_envio || Number(d.numero_envio) === 0,
                         )
-                        .map((d) => d.iddetallecotizacion)
+                        .map((d) => d.iddetallecotizacion),
                 );
                 setChecked(initialChecked);
 
@@ -85,7 +88,7 @@ export default function NotaEnvioModal({
                 const qtyMap = {};
                 (data?.detalles || []).forEach((it) => {
                     const pend = Number(
-                        it.cantidad_pendiente ?? it.cantidad ?? 0
+                        it.cantidad_pendiente ?? it.cantidad ?? 0,
                     );
                     if (pend > 0) qtyMap[it.iddetallecotizacion] = pend;
                 });
@@ -99,7 +102,7 @@ export default function NotaEnvioModal({
                 setNoEnvioReimp(last);
             } catch (err) {
                 alertify.error(
-                    "No se pudo cargar información de Nota de Envío"
+                    "No se pudo cargar información de Nota de Envío",
                 );
             } finally {
                 setLoading(false);
@@ -155,15 +158,18 @@ export default function NotaEnvioModal({
                     direccion_envio: direccion.trim(),
                     id_contacto: idContacto || null,
                 },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
-            onPdfReady?.(data);
+            onPdfReady?.({
+                ...data,
+                tipoImpresion,
+            });
             onClose?.();
         } catch (err) {
             alertify.error(
                 err?.response?.data?.message ||
-                    "Error al generar Nota de Envío."
+                    "Error al generar Nota de Envío.",
             );
         } finally {
             setLoading(false);
@@ -181,9 +187,12 @@ export default function NotaEnvioModal({
             const { data } = await axios.post(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
                 { no_envio: Number(noEnvioReimp) },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
-            onPdfReady?.(data);
+            onPdfReady?.({
+                ...data,
+                tipoImpresion,
+            });
             onClose?.();
         } catch (err) {
             alertify.error("Error al reimprimir PDF.");
@@ -204,7 +213,7 @@ export default function NotaEnvioModal({
             const { data } = await axios.post(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/reimprimir`,
                 { no_envio: Number(noEnvioReimp) },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             setEditData({
@@ -267,7 +276,7 @@ export default function NotaEnvioModal({
             await axios.post(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/actualizar`,
                 body,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             alertify.success("Envío actualizado.");
@@ -277,7 +286,7 @@ export default function NotaEnvioModal({
             // refrescar config
             const { data } = await axios.get(
                 `/api/cotizaciones/${idCotizacion}/nota-envio/config`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             setConfig(data || null);
         } catch (err) {
@@ -334,10 +343,10 @@ export default function NotaEnvioModal({
                                             const pend = Number(
                                                 it.cantidad_pendiente ??
                                                     it.cantidad ??
-                                                    0
+                                                    0,
                                             );
                                             const isChecked = checked.has(
-                                                it.iddetallecotizacion
+                                                it.iddetallecotizacion,
                                             );
                                             return (
                                                 <tr
@@ -347,11 +356,16 @@ export default function NotaEnvioModal({
                                                         <input
                                                             type="checkbox"
                                                             className="form-check-input"
-                                                            disabled={Number(it.cantidad_pendiente ?? 0) <= 0}
+                                                            disabled={
+                                                                Number(
+                                                                    it.cantidad_pendiente ??
+                                                                        0,
+                                                                ) <= 0
+                                                            }
                                                             checked={isChecked}
                                                             onChange={() =>
                                                                 toggle(
-                                                                    it.iddetallecotizacion
+                                                                    it.iddetallecotizacion,
                                                                 )
                                                             }
                                                         />
@@ -376,7 +390,7 @@ export default function NotaEnvioModal({
                                                                     ] ?? pend
                                                                 }
                                                                 onChange={(
-                                                                    e
+                                                                    e,
                                                                 ) => {
                                                                     const v =
                                                                         Math.max(
@@ -387,18 +401,18 @@ export default function NotaEnvioModal({
                                                                                     e
                                                                                         .target
                                                                                         .value ||
-                                                                                        0
-                                                                                )
-                                                                            )
+                                                                                        0,
+                                                                                ),
+                                                                            ),
                                                                         );
                                                                     setQty(
                                                                         (
-                                                                            prev
+                                                                            prev,
                                                                         ) => ({
                                                                             ...prev,
                                                                             [it.iddetallecotizacion]:
                                                                                 v,
-                                                                        })
+                                                                        }),
                                                                     );
                                                                 }}
                                                             />
@@ -411,20 +425,20 @@ export default function NotaEnvioModal({
 
                                                     <td className="text-end">
                                                         {Number(
-                                                            it.total || 0
+                                                            it.total || 0,
                                                         ).toLocaleString(
                                                             "es-GT",
                                                             {
                                                                 style: "currency",
                                                                 currency: "GTQ",
-                                                            }
+                                                            },
                                                         )}
                                                     </td>
 
                                                     <td>
                                                         {it.numero_envio &&
                                                         Number(
-                                                            it.numero_envio
+                                                            it.numero_envio,
                                                         ) > 0 ? (
                                                             <span className="badge bg-secondary">
                                                                 Envío #
@@ -479,6 +493,61 @@ export default function NotaEnvioModal({
                             value={direccion}
                             onChange={(e) => setDireccion(e.target.value)}
                         />
+
+                        {/* TAMAÑO DE IMPRESIÓN */}
+                        <div className="mt-3 mb-3 p-3 border rounded bg-light">
+                            <label className="form-label fw-bold d-block">
+                                Tamaño de impresión
+                            </label>
+
+                            <div className="d-flex gap-4">
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        id="tipoCarta"
+                                        name="tipoImpresion"
+                                        value="carta"
+                                        checked={tipoImpresion === "carta"}
+                                        onChange={() =>
+                                            setTipoImpresion("carta")
+                                        }
+                                    />
+                                    <label
+                                        className="form-check-label"
+                                        htmlFor="tipoCarta"
+                                    >
+                                        Carta normal
+                                    </label>
+                                </div>
+
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        id="tipoMediaCarta"
+                                        name="tipoImpresion"
+                                        value="media"
+                                        checked={tipoImpresion === "media"}
+                                        onChange={() =>
+                                            setTipoImpresion("media")
+                                        }
+                                    />
+                                    <label
+                                        className="form-check-label"
+                                        htmlFor="tipoMediaCarta"
+                                    >
+                                        Media carta
+                                    </label>
+                                </div>
+                            </div>
+
+                            <small className="text-muted">
+                                Esta opción aplica para generar y reimprimir la
+                                nota de envío.
+                            </small>
+                        </div>
+
                         {/* SECCIÓN DE REIMPRESIÓN */}
                         {envios.length > 0 && (
                             <div className="mt-4 p-3 border rounded">
@@ -505,7 +574,7 @@ export default function NotaEnvioModal({
                                                     {`#${e.no_envio} — ${
                                                         e.fecha_envio
                                                             ? new Date(
-                                                                  e.fecha_envio
+                                                                  e.fecha_envio,
                                                               )
                                                                   .toISOString()
                                                                   .slice(0, 10)

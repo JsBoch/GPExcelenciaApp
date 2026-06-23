@@ -225,7 +225,7 @@ const NotaEnvioPDF = ({ data }) => {
 
     return (
         <Document>
-            <Page size="A4" style={styles.page}>
+            <Page size="LETTER" style={styles.page}>
                 <Image src={watermarkSrc} style={styles.watermark} fixed />
 
                 <View style={styles.header}>
