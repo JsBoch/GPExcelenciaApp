@@ -19,10 +19,19 @@ use App\Support\NitUtils;
 use Carbon\Carbon;
 use App\Models\ComentarioPreFacturacion;
 use App\Models\AdmFacturacion;
+use App\Services\CotizacionPdfService;
 
 
 class MonitorFacturacionController extends Controller
 {
+    private CotizacionPdfService $cotizacionPdfService;
+
+    public function __construct(
+        CotizacionPdfService $cotizacionPdfService
+    ) {
+        $this->cotizacionPdfService = $cotizacionPdfService;
+    }
+
     public function index(Request $request)
     {
         $estado      = $request->query('estado');
@@ -355,41 +364,52 @@ class MonitorFacturacionController extends Controller
             // puedes recibir 'fecha_cotizacion' como en el otro componente:
             $fechaInput = $request->input('fecha_cotizacion');
 
-            $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
-                ->select(
-                    'c.idcotizacion',
-                    'c.nocotizacion',
-                    'c.fecha_cotizacion',
-                    't.tipo as tipo_pago',
-                    'c.total_general',
-                    'c.costear',
-                    'cl.nombre as cliente',
-                    'cl.nit as nit',
-                    'ct.nombre as contacto',
-                    'e.nombre as vendedor',
-                    'e.movil as telefono_vendedor',
-                    'e.correo_personal as correo_vendedor',
-                    'c.direccion_entrega',
-                    'c.observaciones_costeo',
-                    'c.observaciones_cliente',
-                    'c.costeo_observaciones',
-                    'c.trabajo',
-                    'c.version',
-                    'c.tipo_facturacion',
-                )
-                ->from('adm_cotizacion as c')
-                ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
-                ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
-                ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
-                ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
-                ->first();
+            // $cotizacion = AdmCotizacion::where('c.idcotizacion', $id)
+            //     ->select(
+            //         'c.idcotizacion',
+            //         'c.nocotizacion',
+            //         'c.fecha_cotizacion',
+            //         't.tipo as tipo_pago',
+            //         'c.total_general',
+            //         'c.costear',
+            //         'cl.nombre as cliente',
+            //         'cl.nit as nit',
+            //         'ct.nombre as contacto',
+            //         'e.nombre as vendedor',
+            //         'e.movil as telefono_vendedor',
+            //         'e.correo_personal as correo_vendedor',
+            //         'c.direccion_entrega',
+            //         'c.observaciones_costeo',
+            //         'c.observaciones_cliente',
+            //         'c.costeo_observaciones',
+            //         'c.trabajo',
+            //         'c.version',
+            //         'c.tipo_facturacion',
+            //         'c.descuento_monto',
+            //         'c.subtotal',
+            //         'c.impuesto_iva',
+            //         'c.total',
+            //     )
+            //     ->from('adm_cotizacion as c')
+            //     ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')
+            //     ->join('contacto_cliente as ct', 'c.idcontacto', '=', 'ct.id_contactocliente')
+            //     ->join('adm_empleados as e', 'c.idusuario', '=', 'e.iduser')
+            //     ->join('adm_tipo_pago as t', 'c.idtipopago', '=', 't.idtipopago')
+            //     ->first();
+
+            // if (!$cotizacion) {
+            //     return response()->json(['message' => 'Cotización no encontrada'], 404);
+            // }
+
+            $cotizacion = $this->cotizacionPdfService->obtener($id);
 
             if (!$cotizacion) {
-                return response()->json(['message' => 'Cotización no encontrada'], 404);
+                return response()->json([
+                    'message' => 'Cotización no encontrada'
+                ], 404);
             }
-
-            $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
-            $cotizacion->detalles = $detalles;
+            // $detalles = AdmDetalleCotizacion::where('idcotizacion', $id)->get();
+            // $cotizacion->detalles = $detalles;
 
             // Si te mandan fecha por request y pasa el formato, úsala; si no, deja la original
             if ($fechaInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaInput)) {
@@ -399,9 +419,10 @@ class MonitorFacturacionController extends Controller
             // Total a letras:
             $numberToWords     = new NumberToWords();
             $numberTransformer = $numberToWords->getNumberTransformer('es');
-            $entero = floor($cotizacion->total_general);
-            $centavos = round(($cotizacion->total_general - $entero) * 100);
-            $totalEnLetras = strtoupper($numberTransformer->toWords($entero) . ' CON ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100');
+            // $entero = floor($cotizacion->total_general);
+            // $centavos = round(($cotizacion->total_general - $entero) * 100);
+            // $totalEnLetras = strtoupper($numberTransformer->toWords($entero) . ' CON ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100');
+            $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
 
             return response()->json([
                 'cotizacion'    => $cotizacion,
