@@ -214,7 +214,6 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
                     <Text>Ventas: servicioalcliente@gpexcelencia.com</Text>
 
                     <Text>Contabilidad: creditos@gpexcelencia.com</Text>
-                   
                 </View>
 
                 <View style={styles.headerRight}>
@@ -423,9 +422,10 @@ const CotizacionPDF = ({ cotizacion, totalEnLetras, logoSrc }) => (
             </View>
 
             <View
+                wrap={false}
                 style={{
-                    marginTop: "auto",
-                    paddingTop: 10,
+                    marginTop: 15,
+                    paddingTop: 5,
                 }}
             >
                 <View
