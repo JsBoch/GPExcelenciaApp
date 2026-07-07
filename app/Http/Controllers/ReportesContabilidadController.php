@@ -435,7 +435,7 @@ class ReportesContabilidadController extends Controller
         return DB::table('adm_cuentas_porcobrar as cxc')
             ->join('clientes as cli', 'cli.idcliente', '=', 'cxc.idcliente')
             ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
-            ->leftJoin('adm_facturacion as fac', function ($join) {
+            ->Join('adm_facturacion as fac', function ($join) {
                 $join->on('cot.idcotizacion', '=', 'fac.idcotizacion')
                     ->where('fac.estado', '>', 0); // ← evita tomar facturas estado 0
             })
