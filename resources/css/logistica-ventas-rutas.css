@@ -1,0 +1,564 @@
+.gp-rutas-page {
+    --gp-blue: #0e4f84;
+    --gp-green: #39b54a;
+
+    width: 100%;
+
+    height: auto !important;
+    min-height: 100vh;
+
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+
+    padding-bottom: 30px;
+}
+
+.gp-rutas-card {
+    overflow: visible !important;
+}
+
+/* =========================================================
+   ENCABEZADO ESTÁNDAR GP EXCELENCIA
+========================================================= */
+
+
+
+.gp-rutas-accent-line span {
+    display: block;
+    height: 3px;
+}
+
+.gp-rutas-accent-line .blue {
+    width: 92px;
+    background: #0e4f84;
+}
+
+.gp-rutas-accent-line .green {
+    width: 44px;
+    background: #39b54a;
+}
+
+.gp-rutas-accent-line .yellow {
+    width: 34px;
+    background: #fdb515;
+}
+
+.gp-rutas-title-row h1 {
+    margin: 0 0 4px;
+
+    color: #0f172a;
+
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.gp-rutas-title-row p {
+    margin: 0;
+
+    color: #718096;
+
+    font-size: 10.5px;
+    line-height: 1.45;
+}
+
+.gp-rutas-new {
+    height: 34px;
+
+    flex-shrink: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 0 13px;
+
+    color: #ffffff;
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gp-rutas-new:hover {
+    background: #0b426f;
+    border-color: #0b426f;
+}
+
+@media (max-width: 900px) {
+    .gp-rutas-accent-line {
+        max-width: 65%;
+    }
+}
+
+@media (max-width: 650px) {
+    .gp-rutas-page-header {
+        padding: 18px;
+    }
+
+    .gp-rutas-page-meta {
+        margin-left: 0;
+        margin-bottom: 15px;
+    }
+
+    .gp-rutas-title-row {
+        flex-direction: column;
+    }
+
+    .gp-rutas-new {
+        width: 100%;
+    }
+
+    .gp-rutas-accent-line {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-rutas-page-icon {
+        display: none;
+    }
+}
+
+.gp-rutas-new {
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 0 12px;
+
+    color: #fff;
+    background: var(--gp-blue);
+
+    border: 1px solid var(--gp-blue);
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-rutas-section {
+    margin: 13px;
+
+    overflow: hidden;
+
+    border: 1px solid #e0e6eb;
+    border-radius: 9px;
+
+    background: #fff;
+}
+
+.gp-rutas-section-header {
+    min-height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    padding: 8px 12px;
+
+    background: #fafbfc;
+
+    border-bottom: 1px solid #e7ecef;
+}
+
+.gp-rutas-section-header > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gp-rutas-section-header svg {
+    color: var(--gp-blue);
+}
+
+.gp-rutas-section-header strong {
+    display: block;
+
+    color: #253347;
+
+    font-size: 10px;
+}
+
+.gp-rutas-section-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8px;
+}
+
+.gp-rutas-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gp-rutas-count {
+    padding: 4px 8px;
+
+    color: #536274 !important;
+    background: #f0f3f6;
+
+    border: 1px solid #dbe2e8;
+    border-radius: 20px;
+
+    font-weight: 700;
+}
+
+.gp-rutas-section-actions button {
+    height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 0 9px;
+
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-rutas-table-wrapper {
+    overflow-x: auto;
+}
+
+.gp-rutas-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.gp-rutas-table th {
+    padding: 8px;
+
+    color: #475569;
+    background: #f3f6f9;
+
+    border-bottom: 1px solid #dfe6ec;
+
+    text-align: left;
+
+    font-size: 8px;
+}
+
+.gp-rutas-table td {
+    padding: 8px;
+
+    color: #344256;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 8.7px;
+}
+
+.gp-rutas-name {
+    color: var(--gp-blue) !important;
+
+    font-weight: 700;
+}
+
+.gp-rutas-inline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gp-rutas-inline svg {
+    color: #718092;
+}
+
+.gp-rutas-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.gp-rutas-actions button {
+    height: 28px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 0 8px;
+
+    background: #fff;
+
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-rutas-actions .edit {
+    color: #0e4f84;
+
+    border: 1px solid #b9cfdf;
+}
+
+.gp-rutas-actions .delete {
+    color: #b42318;
+
+    border: 1px solid #e5b8b4;
+}
+
+.gp-rutas-empty {
+    padding: 28px !important;
+
+    color: #7b8796 !important;
+
+    text-align: center !important;
+}
+
+.gp-rutas-modal-backdrop {
+    position: fixed;
+    inset: 0;
+
+    z-index: 1700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.gp-rutas-modal {
+    width: min(720px, 96vw);
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(15, 23, 42, 0.24);
+}
+
+.gp-rutas-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 12px 14px;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-rutas-modal-header strong {
+    display: block;
+
+    color: #1e293b;
+
+    font-size: 12px;
+}
+
+.gp-rutas-modal-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-rutas-modal-header button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+    background: #fff;
+
+    border: 1px solid #d5dde5;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-rutas-form {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    padding: 14px;
+}
+
+.gp-rutas-field label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+.gp-rutas-field input,
+.gp-rutas-field select,
+.gp-rutas-field textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    color: #334155;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    outline: none;
+
+    font-family: inherit;
+    font-size: 9px;
+}
+
+.gp-rutas-field input,
+.gp-rutas-field select {
+    height: 35px;
+
+    padding: 0 8px;
+}
+
+.gp-rutas-field textarea {
+    padding: 8px;
+
+    resize: vertical;
+}
+
+.gp-rutas-field-full {
+    grid-column: 1 / -1;
+}
+
+.gp-rutas-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+
+    padding: 10px 14px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e5eaf0;
+}
+
+.gp-rutas-cancel,
+.gp-rutas-save {
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 0 10px;
+
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-rutas-cancel {
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-rutas-save {
+    color: #fff;
+    background: var(--gp-green);
+
+    border: 1px solid var(--gp-green);
+}
+
+.gp-rutas-save:disabled {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+    .gp-rutas-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-rutas-new {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .gp-rutas-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.gp-logcal-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gp-logcal-remove-button {
+    height: 29px;
+
+    padding: 0 9px;
+
+    color: #b42318;
+    background: #ffffff;
+
+    border: 1px solid #e2b8b5;
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-remove-button:hover {
+    color: #ffffff;
+    background: #b42318;
+    border-color: #b42318;
+}

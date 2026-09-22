@@ -5,9 +5,12 @@ import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
 import { useParams, useNavigate } from "react-router-dom";
 
-import Header from "./Header";
 import "../../css/pedido_produccion.css";
 import "../../css/pedido_produccion_moderno.css";
+
+import { Factory, FileDown, FileText, X } from "lucide-react";
+
+import "../../css/pedido-produccion-page.css";
 
 import PedidoProduccionForm from "./pedidosproduccion/PedidoProduccionForm";
 import PedidoProduccionActions from "./pedidosproduccion/PedidoProduccionActions";
@@ -851,10 +854,7 @@ export default function PedidoProduccion() {
         try {
             const formData = buildFormData();
 
-            console.log(
-    "DETALLES ENVIADOS",
-    JSON.stringify(detalles, null, 2)
-);
+            console.log("DETALLES ENVIADOS", JSON.stringify(detalles, null, 2));
 
             if (id) {
                 await pedidoProduccionService.actualizarPedido(id, formData);
@@ -878,17 +878,103 @@ export default function PedidoProduccion() {
 
     return (
         <>
-            <div className="mt-4 mb-4 pp-container">
-                <Header
-                    title={
-                        id
-                            ? "Editar Pedido a Producción"
-                            : "Crear Nuevo Pedido a Producción"
-                    }
-                />
+            <div className="gp-module-page gp-production-page">
+                <div className="gp-module-card gp-production-card">
+                    {/* =================================================
+                    HEADER
+                   ================================================= */}
 
-                <div className="card pp-card">
-                    <div className="card-body card-form pp-card-body">
+                    <div className="gp-production-header">
+                        <div>
+                            <div className="gp-module-meta">
+                                MÓDULO · PRODUCCIÓN
+                            </div>
+
+                            <h1 className="gp-production-title">
+                                {id
+                                    ? "Editar pedido a producción"
+                                    : "Crear pedido a producción"}
+                            </h1>
+
+                            <p className="gp-production-description">
+                                Gestiona la información del pedido,
+                                requerimientos de producción, logística,
+                                permisos, montajes y documentación asociada.
+                            </p>
+                        </div>
+
+                        <div className="gp-production-header-icon">
+                            <Factory size={25} />
+                        </div>
+                    </div>
+
+                    {/* =================================================
+                    RESUMEN SUPERIOR
+                   ================================================= */}
+
+                    <div className="gp-production-summary">
+                        <div className="gp-production-summary-item">
+                            <span>Cotización</span>
+
+                            <strong>
+                                {pedidoProduccion.nocotizacion || "Sin asignar"}
+                            </strong>
+                        </div>
+
+                        <div className="gp-production-summary-divider" />
+
+                        <div className="gp-production-summary-item">
+                            <span>Cliente</span>
+
+                            <strong>
+                                {pedidoProduccion.cliente || "Sin seleccionar"}
+                            </strong>
+                        </div>
+
+                        <div className="gp-production-summary-divider" />
+
+                        <div className="gp-production-summary-item">
+                            <span>Detalles</span>
+
+                            <strong>
+                                {detalles.filter((d) => !d._deleted).length}
+                            </strong>
+                        </div>
+
+                        <div className="gp-production-summary-divider" />
+
+                        <div className="gp-production-summary-item">
+                            <span>Áreas asignadas</span>
+
+                            <strong>{areasSeleccionadas.length}</strong>
+                        </div>
+
+                        <div className="gp-production-summary-divider" />
+
+                        <div className="gp-production-summary-item">
+                            <span>Nota de envío</span>
+
+                            <strong
+                                className={
+                                    tieneNotaEnvio
+                                        ? "gp-production-status-ok"
+                                        : "gp-production-status-pending"
+                                }
+                            >
+                                {tieneNotaEnvio
+                                    ? envioSeleccionado
+                                        ? `Envío ${envioSeleccionado}`
+                                        : "Registrada"
+                                    : "Pendiente"}
+                            </strong>
+                        </div>
+                    </div>
+
+                    {/* =================================================
+                    FORMULARIO PRINCIPAL
+                   ================================================= */}
+
+                    <div className="gp-production-body">
                         <form
                             onSubmit={handleSubmit}
                             encType="multipart/form-data"
@@ -917,6 +1003,10 @@ export default function PedidoProduccion() {
                                 }
                             />
 
+                            {/* =========================================
+                            LOGÍSTICA
+                           ========================================= */}
+
                             <LogisticaPedidoPanel
                                 idCotizacion={pedidoProduccion.idcotizacion}
                                 areasSeleccionadas={areasSeleccionadas}
@@ -931,6 +1021,7 @@ export default function PedidoProduccion() {
                                             "Cotización requerida",
                                             "Debe seleccionar una cotización antes de registrar nota de envío.",
                                         );
+
                                         return;
                                     }
 
@@ -968,10 +1059,18 @@ export default function PedidoProduccion() {
                                 }
                             />
 
+                            {/* =========================================
+                            ACCIONES
+                           ========================================= */}
+
                             <PedidoProduccionActions
                                 id={id}
                                 limpiarCampos={limpiarCampos}
                             />
+
+                            {/* =========================================
+                            MODAL CONTACTO
+                           ========================================= */}
 
                             <ContactoClienteModal
                                 isOpen={contactoModalIsOpen}
@@ -980,11 +1079,19 @@ export default function PedidoProduccion() {
                                 onContactCreated={handleContactCreated}
                             />
 
+                            {/* =========================================
+                            MODAL IMAGEN
+                           ========================================= */}
+
                             <ImagenDetalleModal
                                 isOpen={isImageModalOpen}
                                 toggle={toggleImageModal}
                                 selectedImageUrl={selectedImageUrl}
                             />
+
+                            {/* =========================================
+                            DETALLE COTIZACIÓN
+                           ========================================= */}
 
                             <CotizacionDetalleModal
                                 isOpen={detalleCotizacionModal}
@@ -992,6 +1099,10 @@ export default function PedidoProduccion() {
                                 detalles={detalleCotizacion}
                                 onVerImagen={handleVerImagenCotizacion}
                             />
+
+                            {/* =========================================
+                            SELECTOR COTIZACIÓN
+                           ========================================= */}
 
                             <CotizacionSelectorModal
                                 isOpen={cotizacionModalIsOpen}
@@ -1007,6 +1118,10 @@ export default function PedidoProduccion() {
                                 onSeleccionar={handleSeleccionarCotizacion}
                             />
 
+                            {/* =========================================
+                            ÁREAS
+                           ========================================= */}
+
                             <AsignarAreasPedidoModal
                                 isOpen={modalAreasOpen}
                                 toggle={toggleAreasModal}
@@ -1015,6 +1130,10 @@ export default function PedidoProduccion() {
                                 setAreasSeleccionadas={setAreasSeleccionadas}
                                 fechaProgramacion={fechaProgramacion}
                             />
+
+                            {/* =========================================
+                            PERMISOS
+                           ========================================= */}
 
                             <AdjuntarArchivosModal
                                 isOpen={modalAdjuntosOpen}
@@ -1029,6 +1148,10 @@ export default function PedidoProduccion() {
                                 setEliminados={setAdjuntosEliminados}
                             />
 
+                            {/* =========================================
+                            MONTAJES
+                           ========================================= */}
+
                             <AdjuntarArchivosModal
                                 isOpen={modalMontajesOpen}
                                 toggle={() =>
@@ -1041,76 +1164,109 @@ export default function PedidoProduccion() {
                                 eliminados={montajesEliminados}
                                 setEliminados={setMontajesEliminados}
                             />
-
-                            {showNotaEnvioModal &&
-                                pedidoProduccion.idcotizacion && (
-                                    <NotaEnvioModal
-                                        idCotizacion={
-                                            pedidoProduccion.idcotizacion
-                                        }
-                                        open={showNotaEnvioModal}
-                                        onClose={() =>
-                                            setShowNotaEnvioModal(false)
-                                        }
-                                        onPdfReady={async (data) => {
-                                            setNotaEnvioPayload(data);
-                                            await cargarResumenEnvios(
-                                                pedidoProduccion.idcotizacion,
-                                                data?.no_envio || "",
-                                            );
-                                        }}
-                                        direccionSugerida={
-                                            pedidoProduccion.direccion_entrega ||
-                                            ""
-                                        }
-                                    />
-                                )}
                         </form>
                     </div>
                 </div>
             </div>
-            {notaEnvioPayload && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
+
+            {/* =========================================
+                            NOTA DE ENVÍO
+                           ========================================= */}
+
+            {showNotaEnvioModal && pedidoProduccion.idcotizacion && (
+                <NotaEnvioModal
+                    idCotizacion={pedidoProduccion.idcotizacion}
+                    open={showNotaEnvioModal}
+                    onClose={() => setShowNotaEnvioModal(false)}
+                    onPdfReady={async (data) => {
+                        setNotaEnvioPayload(data);
+
+                        await cargarResumenEnvios(
+                            pedidoProduccion.idcotizacion,
+                            data?.no_envio || "",
+                        );
                     }}
-                >
-                    <div style={{ width: "80%", height: "80%" }}>
-                        <PDFViewer width="100%" height="100%">
-                            <PdfComponent data={notaEnvioPayload} />
-                        </PDFViewer>
-                    </div>
+                    direccionSugerida={pedidoProduccion.direccion_entrega || ""}
+                />
+            )}
+            {/* =====================================================
+            VISOR NOTA DE ENVÍO
+           ===================================================== */}
 
-                    <div className="mt-3 d-flex gap-2">
-                        <PDFDownloadLink
-                            document={<PdfComponent data={notaEnvioPayload} />}
-                            fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
-                            className="btn btn-primary"
-                        >
-                            {({ loading }) =>
-                                loading
-                                    ? "Generando PDF..."
-                                    : "Descargar Nota de Envío"
-                            }
-                        </PDFDownloadLink>
+            {notaEnvioPayload && (
+                <div className="gp-production-pdf-overlay">
+                    <div className="gp-production-pdf-window">
+                        <div className="gp-production-pdf-header">
+                            <div className="gp-production-pdf-heading">
+                                <div className="gp-production-pdf-heading-icon">
+                                    <FileText size={18} />
+                                </div>
 
-                        <button
-                            type="button"
-                            className="btn btn-danger"
-                            onClick={() => setNotaEnvioPayload(null)}
-                        >
-                            Cerrar PDF
-                        </button>
+                                <div>
+                                    <span>NOTA DE ENVÍO</span>
+
+                                    <strong>
+                                        Cotización{" "}
+                                        {notaEnvioPayload.cabecera.nocotizacion}
+                                        {" · "}
+                                        Envío {notaEnvioPayload.no_envio}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="gp-production-pdf-close"
+                                onClick={() => setNotaEnvioPayload(null)}
+                                title="Cerrar"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="gp-production-pdf-viewer">
+                            <PDFViewer width="100%" height="100%">
+                                <PdfComponent data={notaEnvioPayload} />
+                            </PDFViewer>
+                        </div>
+
+                        <div className="gp-production-pdf-footer">
+                            <span>
+                                {itemsNotaEnvio.length} artículo
+                                {itemsNotaEnvio.length !== 1 ? "s" : ""} ·
+                                Formato{" "}
+                                {useHalfLetter ? "media carta" : "carta"}
+                            </span>
+
+                            <div className="gp-production-pdf-footer-actions">
+                                <button
+                                    type="button"
+                                    className="gp-production-pdf-cancel"
+                                    onClick={() => setNotaEnvioPayload(null)}
+                                >
+                                    <X size={15} />
+                                    Cerrar
+                                </button>
+
+                                <PDFDownloadLink
+                                    document={
+                                        <PdfComponent data={notaEnvioPayload} />
+                                    }
+                                    fileName={`nota-envio-${notaEnvioPayload.cabecera.nocotizacion}-envio-${notaEnvioPayload.no_envio}.pdf`}
+                                    className="gp-production-pdf-download"
+                                >
+                                    {({ loading }) => (
+                                        <>
+                                            <FileDown size={15} />
+
+                                            {loading
+                                                ? "Generando..."
+                                                : "Descargar PDF"}
+                                        </>
+                                    )}
+                                </PDFDownloadLink>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

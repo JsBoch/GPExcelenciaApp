@@ -18,7 +18,6 @@ import {
     FaWindowClose,
     FaPlus,
 } from "react-icons/fa";
-import Header from "./Header";
 import FormSection from "./FormSection";
 import TipoPagoModal from "./TipoPagoModal";
 import CotizacionPDF from "./CotizacionPDF";
@@ -1607,10 +1606,8 @@ function CotizacionForm() {
     };
 
     return (
-        <div className="cotizacion-layout mt-4 mb-4">
-            <Header title={id ? "Editar Cotización" : "Crear Cotización"} />
-
-            <div className="card cotizacion-card shadow-sm p-4">
+        <div className="gp-module-page cotizacion-layout">
+            <div className="cotizacion-card gp-module-card">
                 <div className="card-body card-form">
                     {/* Meta header ERP */}
                     <div className="erp-meta-header mb-3 d-flex justify-content-between align-items-center">
@@ -2060,25 +2057,33 @@ function CotizacionForm() {
                                         )}
                                     </div>
 
-                                    <div className="col-auto d-flex flex-column gap-2">
+                                    <div className="col-auto d-flex flex-column gap-2 detalle-action-buttons">
                                         <button
                                             type="button"
                                             onClick={handleAddDetalle}
-                                            className="btn erp-btn-primary btn-sm me-2"
+                                            className="erp-icon-action erp-icon-action-add"
+                                            data-tooltip={
+                                                detalleSeleccionado
+                                                    ? "Actualizar detalle"
+                                                    : "Agregar detalle"
+                                            }
+                                            aria-label={
+                                                detalleSeleccionado
+                                                    ? "Actualizar detalle"
+                                                    : "Agregar detalle"
+                                            }
                                         >
-                                            <i className="bi bi-plus-square me-1"></i>
-                                            {detalleSeleccionado
-                                                ? "Actualizar"
-                                                : "Agregar"}
+                                            <FaPlus />
                                         </button>
 
                                         <button
                                             type="button"
                                             onClick={handleQuitarDetalle}
-                                            className="btn erp-btn-danger btn-sm"
+                                            className="erp-icon-action erp-icon-action-remove"
+                                            data-tooltip="Quitar detalle"
+                                            aria-label="Quitar detalle"
                                         >
-                                            <i className="bi bi-x-circle me-1"></i>
-                                            Quitar
+                                            <FaWindowClose />
                                         </button>
                                     </div>
                                 </div>

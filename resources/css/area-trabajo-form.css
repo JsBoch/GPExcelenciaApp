@@ -1,0 +1,613 @@
+/* =========================================================
+   ÁREA DE TRABAJO
+   ========================================================= */
+
+.gp-area-form-page {
+    width: 100%;
+}
+
+.gp-area-form-card {
+    max-width: 980px;
+
+    margin: 0 auto;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-area-form-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 21px 23px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #ffffff;
+
+    border-bottom:
+        1px solid #e6ecf1;
+}
+
+.gp-area-form-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+}
+
+.gp-area-form-heading-icon {
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid
+        #d3e3ee;
+
+    border-radius: 10px;
+}
+
+.gp-area-form-heading h1 {
+    margin:
+        4px
+        0
+        3px;
+
+    color: #172033;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.gp-area-form-heading p {
+    margin: 0;
+
+    color: #728092;
+
+    font-size: 11.5px;
+}
+
+.gp-area-form-close {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    padding: 0;
+
+    color: #657384;
+
+    background: transparent;
+
+    border: 0;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-area-form-close:hover {
+    color: #b42318;
+
+    background:
+        #fff0ef;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-area-form-body {
+    padding:
+        20px
+        23px
+        24px;
+}
+
+.gp-area-form-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 13px;
+
+    padding-bottom: 8px;
+
+    border-bottom:
+        1px solid #e9edf1;
+}
+
+.gp-area-form-section-header
+    > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    color: #344256;
+}
+
+.gp-area-form-section-header
+    svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-area-form-section-header
+    strong {
+    font-size: 11.5px;
+    font-weight: 700;
+}
+
+.gp-area-form-section-header
+    > span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    color: #8793a1;
+
+    font-size: 8.5px;
+}
+
+.gp-area-form-section-header
+    > span
+    i {
+    width: 7px;
+    height: 7px;
+
+    display: block;
+
+    background:
+        #fdb515;
+
+    border-radius: 50%;
+}
+
+
+/* =========================================================
+   CAMPOS
+   ========================================================= */
+
+.gp-area-form-fields {
+    display: grid;
+
+    grid-template-columns:
+        minmax(260px, 0.9fr)
+        minmax(320px, 1.4fr);
+
+    gap: 15px;
+}
+
+.gp-area-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-area-field label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    margin-bottom: 5px;
+
+    color: #465568;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.gp-area-field
+    label
+    > span:not(.gp-area-optional) {
+    color: #d92d20;
+}
+
+.gp-area-optional {
+    margin-left: 3px;
+
+    padding:
+        2px
+        5px;
+
+    color: #7a8795;
+
+    background:
+        #eef2f5;
+
+    border-radius:
+        20px;
+
+    font-size: 7.5px;
+    font-weight: 600;
+}
+
+.gp-area-input {
+    width: 100%;
+    height: 37px;
+
+    padding:
+        0
+        10px;
+
+    color: #253247;
+
+    background: #fff;
+
+    border:
+        1px solid #cad4de;
+
+    border-radius:
+        7px;
+
+    outline: none;
+
+    font-size: 11px;
+
+    transition:
+        border-color
+            0.15s ease,
+        box-shadow
+            0.15s ease;
+}
+
+.gp-area-input:hover {
+    border-color:
+        #b2c1ce;
+}
+
+.gp-area-input:focus {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            14,
+            79,
+            132,
+            0.07
+        );
+}
+
+.gp-area-required {
+    background:
+        #fffdf6;
+}
+
+.gp-area-field small {
+    margin-top: 4px;
+
+    color: #929eaa;
+
+    font-size: 8.5px;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.gp-area-form-loading {
+    padding:
+        28px
+        14px;
+
+    color: #7b8794;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px dashed
+        #d8e0e7;
+
+    border-radius:
+        8px;
+
+    font-size: 10px;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.gp-area-form-actions {
+    min-height: 57px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding:
+        10px
+        23px;
+
+    background:
+        #fafbfc;
+
+    border-top:
+        1px solid #e5eaee;
+}
+
+.gp-area-form-actions-left,
+.gp-area-form-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.gp-area-action {
+    min-height: 33px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    padding:
+        0
+        11px;
+
+    border-radius:
+        6px;
+
+    font-size:
+        9.5px;
+
+    font-weight:
+        700;
+
+    text-decoration:
+        none;
+
+    cursor: pointer;
+
+    transition:
+        background-color
+            0.15s ease,
+        border-color
+            0.15s ease;
+}
+
+.gp-area-action:disabled {
+    opacity: 0.5;
+
+    cursor:
+        not-allowed;
+}
+
+
+/* VOLVER */
+
+.gp-area-back {
+    color: #64748b;
+
+    background: #fff;
+
+    border:
+        1px solid
+        #d4dde5;
+}
+
+.gp-area-back:hover {
+    background:
+        #f3f6f8;
+}
+
+
+/* LIMPIAR */
+
+.gp-area-clear {
+    color: #66501c;
+
+    background:
+        #fffaf0;
+
+    border:
+        1px solid
+        #e8d79c;
+}
+
+.gp-area-clear:hover:not(:disabled) {
+    background:
+        #fff4d6;
+}
+
+
+/* CONSULTAR */
+
+.gp-area-consult {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #fff;
+
+    border:
+        1px solid
+        #aac6da;
+}
+
+.gp-area-consult:hover {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #eff6fa;
+}
+
+
+/* CANCELAR */
+
+.gp-area-cancel {
+    color: #566474;
+
+    background: #fff;
+
+    border:
+        1px solid
+        #d4dce3;
+}
+
+.gp-area-cancel:hover:not(:disabled) {
+    background:
+        #f3f5f7;
+}
+
+
+/* GUARDAR */
+
+.gp-area-save {
+    min-width: 105px;
+
+    color: #fff;
+
+    background:
+        var(
+            --gp-green,
+            #39b54a
+        );
+
+    border:
+        1px solid
+        var(
+            --gp-green,
+            #39b54a
+        );
+}
+
+.gp-area-save:hover:not(:disabled) {
+    background:
+        #2f9d3e;
+
+    border-color:
+        #2f9d3e;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 720px) {
+    .gp-area-form-header {
+        padding:
+            18px;
+    }
+
+    .gp-area-form-heading h1 {
+        font-size:
+            18px;
+    }
+
+    .gp-area-form-body {
+        padding:
+            18px;
+    }
+
+    .gp-area-form-fields {
+        grid-template-columns:
+            1fr;
+    }
+
+    .gp-area-form-actions {
+        padding:
+            10px
+            18px;
+
+        align-items:
+            stretch;
+
+        flex-direction:
+            column;
+    }
+
+    .gp-area-form-actions-left,
+    .gp-area-form-actions-right {
+        width: 100%;
+
+        flex-wrap: wrap;
+    }
+
+    .gp-area-form-actions-right
+        .gp-area-action {
+        flex: 1;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-area-form-heading-icon {
+        display: none;
+    }
+
+    .gp-area-form-section-header {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+
+    .gp-area-form-actions-left,
+    .gp-area-form-actions-right {
+        flex-direction:
+            column;
+    }
+
+    .gp-area-action {
+        width: 100%;
+    }
+}

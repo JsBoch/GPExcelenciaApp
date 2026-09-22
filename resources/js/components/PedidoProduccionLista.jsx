@@ -13,14 +13,28 @@ import alertify from "alertifyjs";
 import { format } from "date-fns";
 import DetallePedidoModal from "./DetallePedidoModal"; // Importa el componente del modal de detalle de cotización
 import "../../css/tableFormat.css";
-import { FaRegFileAlt } from "react-icons/fa";
-import Header from "./Header";
 import NotaEnvioPDF from "./NotaEnvioPDF";
 import NotaEnvioPDFHalf from "./NotaEnvioPDFHalf";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap";
 import DetallePedidoVistaModal from "./DetallePedidoVistaModal";
 import PedidoProduccionPDF from "./PedidoProduccionPDF";
+import {
+    CalendarDays,
+    Eye,
+    FileDown,
+    FilePlus2,
+    FileSpreadsheet,
+    FileText,
+    LockKeyhole,
+    PackageCheck,
+    Pencil,
+    Search,
+    Trash2,
+    X,
+} from "lucide-react";
+
+import "../../css/pedidos-produccion-lista.css";
 
 DataTable.use(DT);
 
@@ -77,10 +91,12 @@ function PedidosProduccionLista() {
             })
             .catch(() => {
                 const localDate = new Date().toISOString().split("T")[0];
-                setFechaActual(localDate); // fallback
-                setFechaInicio(fechaActual);
-                setFechaFin(fechaActual);
-                fetchPedidosProduccion(fechaActual, fechaActual);
+
+                setFechaActual(localDate);
+                setFechaInicio(localDate);
+                setFechaFin(localDate);
+
+                fetchPedidosProduccion(localDate, localDate);
             });
     }, []);
 
@@ -437,16 +453,24 @@ function PedidosProduccionLista() {
     }, []);
 
     const options = {
-        autoWidth: false, // Desactiva el autoajuste
+        autoWidth: false,
         searching: false,
         order: [[1, "desc"]],
         scrollX: false,
+
         columnDefs: [
-            { targets: 0, width: "100px" },
-            { targets: 2, width: "120px" },
+            {
+                targets: 0,
+                width: "100px",
+            },
+            {
+                targets: 2,
+                width: "120px",
+            },
         ],
-        language: spanishTranslation, // Agrega la traducción aquí
-        order: [[1, "desc"]], // Ordena por la segunda columna (índice 1, 'nocotizacion') de forma descendente
+
+        language: spanishTranslation,
+
         rowCallback: (row, data) => {
             row.classList.remove(
                 "estado-1",
@@ -471,7 +495,6 @@ function PedidosProduccionLista() {
                 row.classList.add("selected");
             }
 
-            // Manejo de selección de fila
             row.style.cursor = "pointer";
 
             row.onclick = null;
@@ -486,6 +509,7 @@ function PedidosProduccionLista() {
                 });
 
                 row.classList.add("selected");
+
                 setRegistroSeleccionado(data);
             });
         },
@@ -822,107 +846,154 @@ function PedidosProduccionLista() {
     };
 
     return (
-        <div className="mt-4 px-3 px-md-4">
-            {pdfData && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div style={{ width: "80%", height: "80%" }}>
-                        <PDFViewer width="100%" height="100%">
-                            <PedidoProduccionPDF
-                                pedido={pdfData.pedido}
-                                //totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGP.png"
-                            />
-                        </PDFViewer>
-                    </div>
+        <div className="gp-module-page gp-pedidos-list-page">
+            {/* =====================================================
+            PDF PEDIDO
+           ===================================================== */}
 
-                    <div className="mt-3 d-flex gap-2">
-                        <PDFDownloadLink
-                            document={
+            {pdfData && (
+                <div className="gp-pedidos-pdf-overlay">
+                    <div className="gp-pedidos-pdf-window">
+                        <div className="gp-pedidos-pdf-header">
+                            <div className="gp-pedidos-pdf-heading">
+                                <div className="gp-pedidos-pdf-icon">
+                                    <FileText size={18} />
+                                </div>
+
+                                <div>
+                                    <span>PRODUCCIÓN · PEDIDO</span>
+
+                                    <strong>
+                                        Pedido {pdfData.pedido?.nopedido || ""}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="gp-pedidos-pdf-close"
+                                onClick={() => setPdfData(null)}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="gp-pedidos-pdf-viewer">
+                            <PDFViewer width="100%" height="100%">
                                 <PedidoProduccionPDF
                                     pedido={pdfData.pedido}
-                                    //totalEnLetras={pdfData.totalEnLetras}
                                     logoSrc="/images/LogoGP.png"
                                 />
-                            }
-                            fileName={`PEDIDO-${pdfData.pedido.nopedido}.pdf`}
-                            className="btn btn-primary"
-                        >
-                            {({ loading }) =>
-                                loading ? "Preparando PDF..." : "Descargar PDF"
-                            }
-                        </PDFDownloadLink>
+                            </PDFViewer>
+                        </div>
 
-                        <button
-                            className="btn btn-danger"
-                            onClick={() => setPdfData(null)}
-                        >
-                            Cerrar PDF
-                        </button>
+                        <div className="gp-pedidos-pdf-footer">
+                            <button
+                                type="button"
+                                className="gp-pedidos-pdf-secondary"
+                                onClick={() => setPdfData(null)}
+                            >
+                                <X size={15} />
+                                Cerrar
+                            </button>
+
+                            <PDFDownloadLink
+                                document={
+                                    <PedidoProduccionPDF
+                                        pedido={pdfData.pedido}
+                                        logoSrc="/images/LogoGP.png"
+                                    />
+                                }
+                                fileName={`PEDIDO-${pdfData.pedido.nopedido}.pdf`}
+                                className="gp-pedidos-pdf-download"
+                            >
+                                {({ loading }) => (
+                                    <>
+                                        <FileDown size={15} />
+
+                                        {loading
+                                            ? "Preparando..."
+                                            : "Descargar PDF"}
+                                    </>
+                                )}
+                            </PDFDownloadLink>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* =====================================================
+            PDF NOTA ENVÍO
+           ===================================================== */}
 
             {notaEnvioPayload && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        style={{
-                            width: "80%",
-                            height: "80%",
-                        }}
-                    >
-                        <PDFViewer width="100%" height="100%">
-                            <PdfComponent data={notaEnvioPayload} />
-                        </PDFViewer>
-                    </div>
+                <div className="gp-pedidos-pdf-overlay">
+                    <div className="gp-pedidos-pdf-window">
+                        <div className="gp-pedidos-pdf-header">
+                            <div className="gp-pedidos-pdf-heading">
+                                <div className="gp-pedidos-pdf-icon">
+                                    <FileText size={18} />
+                                </div>
 
-                    <div className="mt-3 d-flex gap-2">
-                        <PDFDownloadLink
-                            document={<PdfComponent data={notaEnvioPayload} />}
-                            fileName={`nota-envio-${notaEnvioPayload.no_envio}.pdf`}
-                            className="btn btn-primary"
-                        >
-                            {({ loading }) =>
-                                loading ? "Generando PDF..." : "Descargar Nota"
-                            }
-                        </PDFDownloadLink>
+                                <div>
+                                    <span>NOTA DE ENVÍO</span>
 
-                        <button
-                            className="btn btn-danger"
-                            onClick={() => setNotaEnvioPayload(null)}
-                        >
-                            Cerrar PDF
-                        </button>
+                                    <strong>
+                                        Envío {notaEnvioPayload.no_envio}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="gp-pedidos-pdf-close"
+                                onClick={() => setNotaEnvioPayload(null)}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="gp-pedidos-pdf-viewer">
+                            <PDFViewer width="100%" height="100%">
+                                <PdfComponent data={notaEnvioPayload} />
+                            </PDFViewer>
+                        </div>
+
+                        <div className="gp-pedidos-pdf-footer">
+                            <button
+                                type="button"
+                                className="gp-pedidos-pdf-secondary"
+                                onClick={() => setNotaEnvioPayload(null)}
+                            >
+                                <X size={15} />
+                                Cerrar
+                            </button>
+
+                            <PDFDownloadLink
+                                document={
+                                    <PdfComponent data={notaEnvioPayload} />
+                                }
+                                fileName={`nota-envio-${notaEnvioPayload.no_envio}.pdf`}
+                                className="gp-pedidos-pdf-download"
+                            >
+                                {({ loading }) => (
+                                    <>
+                                        <FileDown size={15} />
+
+                                        {loading
+                                            ? "Generando..."
+                                            : "Descargar nota"}
+                                    </>
+                                )}
+                            </PDFDownloadLink>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* =====================================================
+            DETALLE
+           ===================================================== */}
 
             {modalVisible && detallePedido && (
                 <DetallePedidoVistaModal
@@ -935,9 +1006,16 @@ function PedidosProduccionLista() {
                 />
             )}
 
+            {/* =====================================================
+            ÁREAS
+           ===================================================== */}
+
             {modalAreasVisible && (
                 <>
-                    <div className="modal fade show d-block" tabIndex="-1">
+                    <div
+                        className="modal fade show d-block gp-pedidos-modal"
+                        tabIndex="-1"
+                    >
                         <div className="modal-dialog modal-dialog-centered">
                             <div className="modal-content">
                                 <div className="modal-header">
@@ -961,33 +1039,46 @@ function PedidosProduccionLista() {
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="mb-3">
-                                                <strong>
-                                                    Fecha programada:
-                                                </strong>{" "}
-                                                {
-                                                    areasPedido[0]
-                                                        ?.fecha_programada
-                                                }
+                                            <div className="gp-pedidos-info-box">
+                                                <CalendarDays size={16} />
+
+                                                <div>
+                                                    <span>
+                                                        Fecha programada
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            areasPedido[0]
+                                                                ?.fecha_programada
+                                                        }
+                                                    </strong>
+                                                </div>
                                             </div>
 
-                                            <ul className="list-group">
+                                            <div className="gp-pedidos-area-list">
                                                 {areasPedido.map((area) => (
-                                                    <li
+                                                    <div
                                                         key={area.id}
-                                                        className="list-group-item"
+                                                        className="gp-pedidos-area-item"
                                                     >
-                                                        {area.orden}.{" "}
-                                                        {area.nombre}
-                                                    </li>
+                                                        <span>
+                                                            {area.orden}
+                                                        </span>
+
+                                                        <strong>
+                                                            {area.nombre}
+                                                        </strong>
+                                                    </div>
                                                 ))}
-                                            </ul>
+                                            </div>
                                         </>
                                     )}
                                 </div>
 
                                 <div className="modal-footer">
                                     <button
+                                        type="button"
                                         className="btn btn-secondary"
                                         onClick={() =>
                                             setModalAreasVisible(false)
@@ -1000,14 +1091,18 @@ function PedidosProduccionLista() {
                         </div>
                     </div>
 
-                    <div className="modal-backdrop fade show"></div>
+                    <div className="modal-backdrop fade show" />
                 </>
             )}
 
+            {/* =====================================================
+            DOCUMENTOS
+           ===================================================== */}
+
             {modalDocumentosVisible && (
                 <>
-                    <div className="modal fade show d-block">
-                        <div className="modal-dialog modal-lg">
+                    <div className="modal fade show d-block gp-pedidos-modal">
+                        <div className="modal-dialog modal-lg modal-dialog-centered">
                             <div className="modal-content">
                                 <div className="modal-header">
                                     <h5 className="modal-title">
@@ -1015,6 +1110,7 @@ function PedidosProduccionLista() {
                                     </h5>
 
                                     <button
+                                        type="button"
                                         className="btn-close"
                                         onClick={() =>
                                             setModalDocumentosVisible(false)
@@ -1030,60 +1126,72 @@ function PedidosProduccionLista() {
                                             </div>
 
                                             {justificacionDocumento && (
-                                                <div className="alert alert-info">
+                                                <div className="gp-pedidos-justification">
                                                     <strong>
-                                                        Justificación:
+                                                        Justificación
                                                     </strong>
-                                                    <br />
-                                                    {justificacionDocumento}
+
+                                                    <p>
+                                                        {justificacionDocumento}
+                                                    </p>
                                                 </div>
                                             )}
                                         </>
                                     ) : (
-                                        <table className="table table-bordered">
-                                            <thead>
-                                                <tr>
-                                                    <th>Archivo</th>
-                                                    <th width="120">Acción</th>
-                                                </tr>
-                                            </thead>
+                                        <div className="table-responsive">
+                                            <table className="table table-sm align-middle">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Archivo</th>
 
-                                            <tbody>
-                                                {documentosPedido.map(
-                                                    (archivo) => (
-                                                        <tr
-                                                            key={
-                                                                archivo.idarchivo
-                                                            }
+                                                        <th
+                                                            style={{
+                                                                width: 100,
+                                                            }}
                                                         >
-                                                            <td>
-                                                                {
-                                                                    archivo.nombre_archivo
-                                                                }
-                                                            </td>
+                                                            Acción
+                                                        </th>
+                                                    </tr>
+                                                </thead>
 
-                                                            <td>
-                                                                <a
-                                                                    href={
-                                                                        archivo.url
+                                                <tbody>
+                                                    {documentosPedido.map(
+                                                        (archivo) => (
+                                                            <tr
+                                                                key={
+                                                                    archivo.idarchivo
+                                                                }
+                                                            >
+                                                                <td>
+                                                                    {
+                                                                        archivo.nombre_archivo
                                                                     }
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className="btn btn-primary btn-sm"
-                                                                >
-                                                                    Ver
-                                                                </a>
-                                                            </td>
-                                                        </tr>
-                                                    ),
-                                                )}
-                                            </tbody>
-                                        </table>
+                                                                </td>
+
+                                                                <td>
+                                                                    <a
+                                                                        href={
+                                                                            archivo.url
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="btn btn-outline-primary btn-sm"
+                                                                    >
+                                                                        Ver
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                        ),
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     )}
                                 </div>
 
                                 <div className="modal-footer">
                                     <button
+                                        type="button"
                                         className="btn btn-secondary"
                                         onClick={() =>
                                             setModalDocumentosVisible(false)
@@ -1096,396 +1204,272 @@ function PedidosProduccionLista() {
                         </div>
                     </div>
 
-                    <div className="modal-backdrop fade show"></div>
+                    <div className="modal-backdrop fade show" />
                 </>
             )}
 
-            <div className="card">
-                {/* <div className="card-header bg-primary text-white">
-                    <Header title="Lista de Cotizaciones" />
-                </div> */}
-                <Header title="Lista de Pedidos" />
-                <div className="card-body">
-                    <div className="mb-3">
-                        <div className="row g-3 align-items-center">
-                            <div className="col-auto">
-                                <label
-                                    htmlFor="fechaInicio"
-                                    className="form-label"
-                                >
-                                    Fecha Inicio:
-                                </label>
-                            </div>
-                            <div className="col-md-3">
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    id="fechaInicio"
-                                    value={fechaInicio}
-                                    onChange={(e) =>
-                                        setFechaInicio(e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="col-auto">
-                                <label
-                                    htmlFor="fechaFin"
-                                    className="form-label"
-                                >
-                                    Fecha Fin:
-                                </label>
-                            </div>
-                            <div className="col-md-3">
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    id="fechaFin"
-                                    value={fechaFin}
-                                    onChange={(e) =>
-                                        setFechaFin(e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="col-auto">
-                                <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={handleFiltrar}
-                                >
-                                    Consultar
-                                </button>
-                                <button
-                                    className="btn btn-success btn-sm"
-                                    onClick={exportarExcel}
-                                >
-                                    📊 Exportar Excel
-                                </button>
-                            </div>
+            {/* =====================================================
+            CARD PRINCIPAL
+           ===================================================== */}
+
+            <div className="gp-module-card gp-pedidos-list-card">
+                {/* HEADER */}
+
+                <div className="gp-pedidos-list-header">
+                    <div>
+                        <div className="gp-module-meta">
+                            MÓDULO · PRODUCCIÓN
                         </div>
+
+                        <h1>Pedidos de producción</h1>
+
+                        <p>
+                            Consulta, administra y da seguimiento a los pedidos
+                            registrados para producción.
+                        </p>
                     </div>
-                    <div className="mb-4 d-flex flex-wrap gap-2 align-items-center">
-                        {/* Visible solo en pantallas grandes */}
-                        <div className="d-none d-md-flex flex-wrap gap-2">
-                            <button
-                                className="btn btn-info btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado}
-                                onClick={() =>
-                                    obtenerDetalleCotizacion(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Abre una ventana con el detalle de la cotización"
-                            >
-                                <i className="fas fa-eye"></i> Detalle
-                            </button>
-                            <button
-                                className="btn btn-success btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado || !puedeEditar}
-                                onClick={() =>
-                                    navigate(
-                                        `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`,
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Abre el formulario de registro para cambiar datos"
-                            >
-                                <i className="fas fa-edit"></i> Editar
-                            </button>
-                            <button
-                                className="btn btn-danger btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado || !puedeEliminar
-                                }
-                                onClick={() =>
-                                    handleDesactivar(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Elimina el registro seleccionado"
-                            >
-                                <i className="fas fa-trash"></i> Eliminar
-                            </button>
-                            <button
-                                className="btn btn-primary btn-sm toolbar-btn"
-                                disabled={!registroSeleccionado}
-                                onClick={() =>
-                                    generarPDF(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                    )
-                                }
-                                // data-bs-toggle="tooltip"
-                                // data-bs-placement="top"
-                                // title="Generar el PDF del registro seleccionado"
-                            >
-                                <i className="fas fa-file-pdf"></i> PDF
-                            </button>
 
-                            <button
-                                className="btn btn-warning btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    Number(registroSeleccionado?.estado) !== 1
-                                }
-                                onClick={pasarAutorizacion}
-                            >
-                                🔒 Pasar a Autorización
-                            </button>
-
-                            {/* <button
-                                className="btn btn-warning btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    Number(
-                                        registroSeleccionado?.total_areas,
-                                    ) === 0
-                                }
-                                onClick={() =>
-                                    obtenerAreasPedido(
-                                        registroSeleccionado?.idpedidoproduccion,
-                                    )
-                                }
-                            >
-                                <i className="fas fa-project-diagram"></i> Áreas
-                            </button>
-
-                            <button
-                                className="btn btn-secondary btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    Number(
-                                        registroSeleccionado?.no_envio_asociado,
-                                    ) === 0
-                                }
-                                onClick={verNotaEnvio}
-                            >
-                                📄 Nota Envío
-                            </button>
-
-                            <button
-                                className="btn btn-info btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    (Number(
-                                        registroSeleccionado?.total_permisos,
-                                    ) === 0 &&
-                                        registroSeleccionado?.permisos_estado !==
-                                            "PENDIENTE")
-                                }
-                                onClick={verPermisos}
-                            >
-                                📎 Permisos (
-                                {registroSeleccionado?.total_permisos || 0})
-                            </button>
-
-                            <button
-                                className="btn btn-dark btn-sm toolbar-btn"
-                                disabled={
-                                    !registroSeleccionado ||
-                                    (Number(
-                                        registroSeleccionado?.total_montajes,
-                                    ) === 0 &&
-                                        registroSeleccionado?.montajes_estado !==
-                                            "PENDIENTE")
-                                }
-                                onClick={verMontajes}
-                            >
-                                🖼 Montajes (
-                                {registroSeleccionado?.total_montajes || 0})
-                            </button> */}
-                        </div>
-
-                        {/* Visible solo en pantallas pequeñas */}
-                        <div className="dropdown d-md-none">
-                            <button
-                                className="btn btn-primary btn-sm dropdown-toggle"
-                                type="button"
-                                id="accionesDropdown"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
-                                disabled={!registroSeleccionado}
-                            >
-                                Acciones
-                            </button>
-                            <ul
-                                className="dropdown-menu"
-                                aria-labelledby="accionesDropdown"
-                            >
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            obtenerDetallePedido(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                            )
-                                        }
-                                    >
-                                        Detalle
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            navigate(
-                                                `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`,
-                                            )
-                                        }
-                                    >
-                                        Editar
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            handleDesactivar(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                            )
-                                        }
-                                    >
-                                        Eliminar
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            generarPDF(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                            )
-                                        }
-                                    >
-                                        PDF
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            obtenerAreasPedido(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                            )
-                                        }
-                                    >
-                                        Áreas
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            handleFacturar(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                                registroSeleccionado,
-                                            )
-                                        }
-                                    >
-                                        Pre-Facturar
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            handleFacturacion(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                                registroSeleccionado,
-                                            )
-                                        }
-                                    >
-                                        Facturar
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() =>
-                                            generarNotaEnvio(
-                                                registroSeleccionado?.idpedidoproduccion,
-                                            )
-                                        }
-                                    >
-                                        Nota Envío
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
+                    <div className="gp-pedidos-list-header-icon">
+                        <PackageCheck size={25} />
                     </div>
-                    <div className="mb-3">
-                        <label
-                            htmlFor="buscador"
-                            className="form-label fw-bold"
-                        >
-                            🔍 Buscar pedido:
-                        </label>
-                        <div className="input-group">
+                </div>
+
+                {/* FILTROS */}
+
+                <div className="gp-pedidos-filter-section">
+                    <div className="gp-pedidos-filter-title">
+                        <div>
+                            <CalendarDays size={16} />
+
+                            <span>Rango de consulta</span>
+                        </div>
+
+                        {!loading && (
+                            <span className="gp-pedidos-count">
+                                {pedidosFiltrados.length} registros
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="gp-pedidos-filters">
+                        <div className="gp-pedidos-field">
+                            <label>Fecha inicio</label>
+
                             <input
-                                type="text"
-                                id="buscador"
-                                className="form-control form-control-lg"
-                                placeholder="Buscar por número, cliente, asesor..."
-                                value={filtro}
-                                onChange={(e) => setFiltro(e.target.value)}
+                                type="date"
+                                value={fechaInicio}
+                                onChange={(e) => setFechaInicio(e.target.value)}
                             />
-                            {filtro && (
-                                <button
-                                    className="btn btn-outline-secondary"
-                                    onClick={limpiarFiltro}
-                                >
-                                    ✖
-                                </button>
-                            )}
                         </div>
-                    </div>
-                    {loading || !spanishTranslation ? (
-                        <p className="text-center">Cargando pedidos...</p>
-                    ) : (
-                        <div
-                            className="table-responsive"
-                            style={{ overflowX: "auto" }}
+
+                        <div className="gp-pedidos-field">
+                            <label>Fecha final</label>
+
+                            <input
+                                type="date"
+                                value={fechaFin}
+                                onChange={(e) => setFechaFin(e.target.value)}
+                            />
+                        </div>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-consult"
+                            onClick={handleFiltrar}
+                            disabled={loading}
                         >
+                            <Search size={15} />
+
+                            {loading ? "Consultando..." : "Consultar"}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-excel"
+                            onClick={exportarExcel}
+                            disabled={!registroSeleccionado}
+                        >
+                            <FileSpreadsheet size={15} />
+                            Exportar Excel
+                        </button>
+                    </div>
+                </div>
+
+                {/* BUSCADOR */}
+
+                <div className="gp-pedidos-search-section">
+                    <div className="gp-pedidos-search-label">Buscar pedido</div>
+
+                    <div className="gp-pedidos-search-control">
+                        <Search size={16} />
+
+                        <input
+                            type="text"
+                            placeholder="Número, cliente, asesor o fecha de entrega..."
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                        />
+
+                        {filtro && (
+                            <button type="button" onClick={limpiarFiltro}>
+                                <X size={15} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* TOOLBAR */}
+
+                <div className="gp-pedidos-toolbar">
+                    <div className="gp-pedidos-toolbar-left">
+                        <button
+                            type="button"
+                            className="gp-pedidos-action gp-action-view"
+                            disabled={!registroSeleccionado}
+                            onClick={() =>
+                                obtenerDetalleCotizacion(
+                                    registroSeleccionado?.idpedidoproduccion,
+                                )
+                            }
+                        >
+                            <Eye size={15} />
+                            Detalle
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-action gp-action-edit"
+                            disabled={!registroSeleccionado || !puedeEditar}
+                            onClick={() =>
+                                navigate(
+                                    `/pedidosproduccion/editar/${registroSeleccionado?.idpedidoproduccion}`,
+                                )
+                            }
+                        >
+                            <Pencil size={15} />
+                            Editar
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-action gp-action-delete"
+                            disabled={!registroSeleccionado || !puedeEliminar}
+                            onClick={() =>
+                                handleDesactivar(
+                                    registroSeleccionado?.idpedidoproduccion,
+                                )
+                            }
+                        >
+                            <Trash2 size={15} />
+                            Eliminar
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-action gp-action-pdf"
+                            disabled={!registroSeleccionado}
+                            onClick={() =>
+                                generarPDF(
+                                    registroSeleccionado?.idpedidoproduccion,
+                                )
+                            }
+                        >
+                            <FileText size={15} />
+                            PDF
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gp-pedidos-action gp-action-auth"
+                            disabled={
+                                !registroSeleccionado ||
+                                Number(registroSeleccionado?.estado) !== 1
+                            }
+                            onClick={pasarAutorizacion}
+                        >
+                            <LockKeyhole size={15} />
+                            Pasar a autorización
+                        </button>
+                    </div>
+
+                    <div className="gp-pedidos-selected-info">
+                        {registroSeleccionado ? (
+                            <>
+                                <span>Seleccionado</span>
+
+                                <strong>{registroSeleccionado.nopedido}</strong>
+
+                                <span className="gp-pedidos-status-pill">
+                                    {registroSeleccionado.estado_texto ||
+                                        "Sin estado"}
+                                </span>
+                            </>
+                        ) : (
+                            <span>
+                                Selecciona un pedido para habilitar las
+                                acciones.
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* TABLA */}
+
+                <div className="gp-module-body gp-pedidos-table-body">
+                    <div className="gp-pedidos-table-heading">
+                        <div>
+                            <h2>Registros de pedidos</h2>
+
+                            <p>
+                                Selecciona una fila para consultar o modificar
+                                el pedido.
+                            </p>
+                        </div>
+
+                        <span>{pedidosFiltrados.length} registros</span>
+                    </div>
+
+                    {loading || !spanishTranslation ? (
+                        <div className="gp-pedidos-loading">
+                            Cargando pedidos...
+                        </div>
+                    ) : pedidosFiltrados.length === 0 ? (
+                        <div className="gp-pedidos-empty">
+                            No se encontraron pedidos para los filtros actuales.
+                        </div>
+                    ) : (
+                        <div className="gp-pedidos-table-wrapper">
                             <DataTable
                                 key={tableKey}
-                                data={pedidoProduccion.filter((cot) => {
-                                    const texto = filtro.toLowerCase();
-                                    return (
-                                        cot.nopedido
-                                            ?.toLowerCase()
-                                            .includes(texto) ||
-                                        cot.cliente
-                                            ?.toLowerCase()
-                                            .includes(texto) ||
-                                        cot.asesor?.toString().includes(texto)
-                                    );
-                                })}
+                                data={pedidosFiltrados}
                                 columns={columns}
                                 options={{
                                     ...options,
                                     language: spanishTranslation,
                                 }}
-                                className="table table-bordered table-hover table-sm"
+                                className="table table-hover table-sm"
                                 ref={dtRef}
                             />
                         </div>
                     )}
                 </div>
-                <div
-                    className="mt-4 p-3 border rounded shadow-sm bg-light"
-                    style={{ borderColor: "#ddd" }}
-                >
-                    <div className="d-flex flex-wrap gap-2 justify-content-between">
-                        <Link
-                            to="/pedidosproduccion/crear"
-                            className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
-                            style={{ minWidth: "150px" }}
-                        >
-                            <FaRegFileAlt /> Registro de Pedidos
-                        </Link>
+
+                {/* FOOTER */}
+
+                <div className="gp-pedidos-footer">
+                    <div>
+                        <strong>Gestión de pedidos</strong>
+
+                        <span>Crea un nuevo pedido de producción.</span>
                     </div>
+
+                    <Link
+                        to="/pedidosproduccion/crear"
+                        className="gp-pedidos-new-button"
+                    >
+                        <FilePlus2 size={16} />
+                        Nuevo pedido
+                    </Link>
                 </div>
             </div>
         </div>

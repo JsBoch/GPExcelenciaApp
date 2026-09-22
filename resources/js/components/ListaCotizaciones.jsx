@@ -42,7 +42,6 @@ import {
     Divider,
     ListItemIcon,
     ListItemText,
-    Stack,
     Button as MUIButton,
     Badge,
 } from "@mui/material";
@@ -59,11 +58,14 @@ import {
     Description,
     Comment,
     Block,
+    Search as SearchIcon,
+    Close as CloseIcon,
+    Add as AddIcon,
+    FilterAltOutlined,
+    ReceiptLongOutlined,
 } from "@mui/icons-material";
 
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { FaRegFileAlt } from "react-icons/fa";
-import Header from "./Header";
 
 function ListaCotizaciones() {
     const navigate = useNavigate();
@@ -670,89 +672,138 @@ function ListaCotizaciones() {
                 />
             )}
 
-            <div className="card">
-                <Header title="Lista de Cotizaciones" />
-                <div className="card-body">
-                    {/* Filtros */}
-                    <div className="mb-3">
-                        <div className="row g-3 align-items-center">
-                            <div className="col-auto">
-                                <label
-                                    htmlFor="fechaInicio"
-                                    className="form-label"
-                                >
-                                    Fecha Inicio:
-                                </label>
-                            </div>
-                            <div className="col-md-3">
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    id="fechaInicio"
-                                    value={fechaInicio}
-                                    onChange={(e) =>
-                                        setFechaInicio(e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="col-auto">
-                                <label
-                                    htmlFor="fechaFin"
-                                    className="form-label"
-                                >
-                                    Fecha Fin:
-                                </label>
-                            </div>
-                            <div className="col-md-3">
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    id="fechaFin"
-                                    value={fechaFin}
-                                    onChange={(e) =>
-                                        setFechaFin(e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="col-auto">
-                                <label
-                                    htmlFor="estadoFiltro"
-                                    className="form-label"
-                                >
-                                    Estado:
-                                </label>
-                            </div>
-                            <div className="col-md-3">
-                                <select
-                                    id="estadoFiltro"
-                                    className="form-select form-select-sm"
-                                    value={estadoFiltro}
-                                    onChange={(e) =>
-                                        setEstadoFiltro(e.target.value)
-                                    }
-                                >
-                                    {ESTADOS.map((op) => (
-                                        <option key={op.value} value={op.value}>
-                                            {op.label}
-                                        </option>
-                                    ))}
-                                </select>
+            <div className="gp-module-page cotizaciones-lista-page">
+                <div className="gp-module-card">
+                    <div className="cotizaciones-lista-body">
+                        {/* =====================================================
+                ENCABEZADO
+               ===================================================== */}
+
+                        <div className="erp-meta-header cotizaciones-meta-header">
+                            <div>
+                                <span className="erp-badge">
+                                    Módulo · Cotizaciones
+                                </span>
+
+                                <h2 className="cotizaciones-page-title">
+                                    Consulta de cotizaciones
+                                </h2>
+
+                                <span className="text-muted small d-block">
+                                    Consulte, administre y dé seguimiento al
+                                    proceso comercial de las cotizaciones
+                                    registradas.
+                                </span>
                             </div>
 
-                            {esComodin && (
-                                <>
-                                    <div className="col-auto">
-                                        <label
-                                            htmlFor="vendedorFiltro"
-                                            className="form-label"
-                                        >
-                                            Vendedor:
+                            <div className="cotizaciones-count-badge">
+                                <ReceiptLongOutlined
+                                    sx={{
+                                        fontSize: 17,
+                                    }}
+                                />
+
+                                <span>
+                                    {cotizacionesFiltradas.length} registro
+                                    {cotizacionesFiltradas.length === 1
+                                        ? ""
+                                        : "s"}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* =====================================================
+                FILTROS
+               ===================================================== */}
+
+                        <div className="cotizaciones-filter-panel">
+                            <div className="cotizaciones-filter-title">
+                                <FilterAltOutlined
+                                    sx={{
+                                        fontSize: 19,
+                                    }}
+                                />
+
+                                <div>
+                                    <strong>Filtros de consulta</strong>
+
+                                    <span>
+                                        Defina el período y estado que desea
+                                        consultar.
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="cotizaciones-filter-grid">
+                                {/* FECHA INICIO */}
+
+                                <div className="cotizaciones-filter-field">
+                                    <label htmlFor="fechaInicio">
+                                        Fecha inicio
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        id="fechaInicio"
+                                        className="cotizaciones-control"
+                                        value={fechaInicio}
+                                        onChange={(e) =>
+                                            setFechaInicio(e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* FECHA FIN */}
+
+                                <div className="cotizaciones-filter-field">
+                                    <label htmlFor="fechaFin">Fecha fin</label>
+
+                                    <input
+                                        type="date"
+                                        id="fechaFin"
+                                        className="cotizaciones-control"
+                                        value={fechaFin}
+                                        onChange={(e) =>
+                                            setFechaFin(e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* ESTADO */}
+
+                                <div className="cotizaciones-filter-field">
+                                    <label htmlFor="estadoFiltro">Estado</label>
+
+                                    <select
+                                        id="estadoFiltro"
+                                        className="cotizaciones-control cotizaciones-select"
+                                        value={estadoFiltro}
+                                        onChange={(e) =>
+                                            setEstadoFiltro(e.target.value)
+                                        }
+                                    >
+                                        {ESTADOS.map((op) => (
+                                            <option
+                                                key={op.value}
+                                                value={op.value}
+                                            >
+                                                {op.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* VENDEDOR */}
+
+                                {esComodin && (
+                                    <div className="cotizaciones-filter-field">
+                                        <label htmlFor="vendedorFiltro">
+                                            Vendedor
                                         </label>
-                                    </div>
-                                    <div className="col-md-3">
+
                                         <select
                                             id="vendedorFiltro"
-                                            className="form-select form-select-sm"
+                                            className="cotizaciones-control cotizaciones-select"
                                             value={vendedorSeleccionado}
                                             onChange={(e) =>
                                                 setVendedorSeleccionado(
@@ -761,6 +812,7 @@ function ListaCotizaciones() {
                                             }
                                         >
                                             <option value="">Todos</option>
+
                                             {vendedores.map((v) => (
                                                 <option
                                                     key={v.id_empleado}
@@ -771,542 +823,768 @@ function ListaCotizaciones() {
                                             ))}
                                         </select>
                                     </div>
-                                </>
-                            )}
+                                )}
 
-                            <div className="col-auto">
-                                <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={handleFiltrar}
-                                >
-                                    Consultar
-                                </button>
+                                {/* CONSULTAR */}
+
+                                <div className="cotizaciones-filter-action">
+                                    <button
+                                        type="button"
+                                        className="gp-action-button gp-action-consult cotizaciones-consult-button"
+                                        onClick={handleFiltrar}
+                                    >
+                                        <SearchIcon
+                                            sx={{
+                                                fontSize: 18,
+                                            }}
+                                        />
+                                        Consultar
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Buscador */}
-                    <div className="mb-3">
-                        <label
-                            htmlFor="buscador"
-                            className="form-label fw-bold"
-                        >
-                            🔍 Buscar cotización:
-                        </label>
-                        <div className="input-group">
-                            <input
-                                type="text"
-                                id="buscador"
-                                className="form-control form-control-lg"
-                                placeholder="Buscar por número, cliente, total, observación..."
-                                value={filtro}
-                                onChange={handleSearchChange}
-                            />
-                            {filtro && (
-                                <button
-                                    className="btn btn-outline-secondary"
-                                    onClick={limpiarFiltro}
-                                >
-                                    ✖
-                                </button>
+                        {/* =====================================================
+                BUSCADOR PRINCIPAL
+               ===================================================== */}
+
+                        <div className="cotizaciones-search-area">
+                            <div className="cotizaciones-search-box">
+                                <SearchIcon
+                                    className="cotizaciones-search-icon"
+                                    sx={{
+                                        fontSize: 20,
+                                    }}
+                                />
+
+                                <input
+                                    type="text"
+                                    id="buscador"
+                                    value={filtro}
+                                    onChange={handleSearchChange}
+                                    placeholder="Buscar por número de cotización, cliente, total u observación..."
+                                    className="cotizaciones-search-input"
+                                />
+
+                                {filtro && (
+                                    <button
+                                        type="button"
+                                        className="cotizaciones-search-clear"
+                                        onClick={limpiarFiltro}
+                                        title="Limpiar búsqueda"
+                                    >
+                                        <CloseIcon
+                                            sx={{
+                                                fontSize: 18,
+                                            }}
+                                        />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* =====================================================
+                INFORMACIÓN + ACCIONES
+               ===================================================== */}
+
+                        <div className="cotizaciones-table-header">
+                            <div>
+                                <h3>Cotizaciones registradas</h3>
+
+                                <p>
+                                    {cotizacionesFiltradas.length} registro
+                                    {cotizacionesFiltradas.length === 1
+                                        ? ""
+                                        : "s"}{" "}
+                                    disponible
+                                    {cotizacionesFiltradas.length === 1
+                                        ? ""
+                                        : "s"}
+                                </p>
+                            </div>
+
+                            {registroSeleccionado && (
+                                <div className="cotizaciones-selected-info">
+                                    <span>Seleccionada</span>
+
+                                    <strong>
+                                        {registroSeleccionado.nocotizacion}
+                                    </strong>
+
+                                    {chipEstado(registroSeleccionado)}
+                                </div>
                             )}
                         </div>
-                    </div>
 
-                    {/* Barra de acciones */}
-                    <Stack
-                        direction="row"
-                        spacing={1.5}
-                        className="mb-3"
-                        alignItems="center"
-                        flexWrap="wrap"
-                    >
-                        <MUIButton
-                            variant="contained"
-                            size="small"
-                            color={primaryAction.color}
-                            startIcon={primaryAction.icon}
-                            onClick={primaryAction.onClick || undefined}
-                            disabled={!primaryAction.onClick}
-                        >
-                            {primaryAction.label}
-                        </MUIButton>
+                        {/* =====================================================
+                TOOLBAR
+               ===================================================== */}
 
-                        <MUIButton
-                            variant="contained"
-                            size="small"
-                            color="inherit"
-                            endIcon={<MoreVert />}
-                            onClick={openActions}
-                            disabled={!cotizacionesFiltradas.length}
-                        >
-                            Más acciones
-                        </MUIButton>
+                        <div className="cotizaciones-action-toolbar">
+                            <div className="cotizaciones-action-left">
+                                {/* NUEVA COTIZACIÓN */}
 
-                        {!registroSeleccionado && (
-                            <span className="text-muted small ms-2">
-                                Selecciona una fila para habilitar acciones.
-                            </span>
-                        )}
-                    </Stack>
+                                <Link
+                                    to="/cotizaciones/crear"
+                                    className="gp-action-button cotizaciones-new-button"
+                                >
+                                    <AddIcon
+                                        sx={{
+                                            fontSize: 18,
+                                        }}
+                                    />
+                                    Nueva cotización
+                                </Link>
 
-                    {/* Menú de acciones */}
-                    <Menu
-                        anchorEl={actionsAnchor}
-                        open={Boolean(actionsAnchor)}
-                        onClose={closeActions}
-                    >
-                        {/* DOCUMENTOS */}
-                        <MenuItem disabled>
-                            <ListItemText
-                                primaryTypographyProps={{ fontWeight: 600 }}
-                            >
-                                Documentos
-                            </ListItemText>
-                        </MenuItem>
+                                {/* ACCIÓN PRINCIPAL */}
 
-                        <MenuItem
-                            onClick={async () => {
-                                closeActions();
-                                await abrirModalPDF();
+                                <MUIButton
+                                    variant="contained"
+                                    size="small"
+                                    color={primaryAction.color}
+                                    startIcon={primaryAction.icon}
+                                    onClick={primaryAction.onClick || undefined}
+                                    disabled={!primaryAction.onClick}
+                                    className="cotizaciones-primary-action"
+                                >
+                                    {primaryAction.label}
+                                </MUIButton>
+
+                                {/* MÁS ACCIONES */}
+
+                                <MUIButton
+                                    variant="outlined"
+                                    size="small"
+                                    endIcon={<MoreVert />}
+                                    onClick={openActions}
+                                    disabled={!registroSeleccionado}
+                                    className="cotizaciones-more-actions"
+                                >
+                                    Más acciones
+                                </MUIButton>
+                            </div>
+
+                            {!registroSeleccionado && (
+                                <span className="cotizaciones-selection-help">
+                                    Seleccione una fila para habilitar las
+                                    acciones.
+                                </span>
+                            )}
+                        </div>
+
+                        {/* =====================================================
+                MENÚ DE ACCIONES
+               ===================================================== */}
+
+                        <Menu
+                            anchorEl={actionsAnchor}
+                            open={Boolean(actionsAnchor)}
+                            onClose={closeActions}
+                            PaperProps={{
+                                sx: {
+                                    minWidth: 260,
+                                    borderRadius: 2,
+                                    mt: 0.5,
+                                },
                             }}
-                            disabled={!registroSeleccionado}
                         >
-                            <ListItemIcon>
-                                <PictureAsPdf fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary="PDF Cotización"
-                                secondary={
-                                    registroSeleccionado?.nocotizacion || ""
+                            {/* DOCUMENTOS */}
+
+                            <MenuItem disabled>
+                                <ListItemText
+                                    primaryTypographyProps={{
+                                        fontWeight: 700,
+                                        fontSize: "0.74rem",
+                                        textTransform: "uppercase",
+                                        color: "#64748b",
+                                        letterSpacing: ".04em",
+                                    }}
+                                >
+                                    Documentos
+                                </ListItemText>
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={async () => {
+                                    closeActions();
+                                    await abrirModalPDF();
+                                }}
+                                disabled={!registroSeleccionado}
+                            >
+                                <ListItemIcon>
+                                    <PictureAsPdf fontSize="small" />
+                                </ListItemIcon>
+
+                                <ListItemText
+                                    primary="PDF Cotización"
+                                    secondary={
+                                        registroSeleccionado?.nocotizacion || ""
+                                    }
+                                />
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+
+                                    if (!registroSeleccionado) {
+                                        return;
+                                    }
+
+                                    obtenerDetalleCotizacion(
+                                        registroSeleccionado.idcotizacion,
+                                    );
+                                }}
+                                disabled={!registroSeleccionado}
+                            >
+                                <ListItemIcon>
+                                    <Visibility fontSize="small" />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Ver detalle" />
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    setShowNotaEnvioModal(true);
+                                }}
+                                disabled={!registroSeleccionado}
+                            >
+                                <ListItemIcon>
+                                    <Description fontSize="small" />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Nota de envío" />
+                            </MenuItem>
+
+                            <Divider />
+
+                            {/* COMENTARIOS */}
+
+                            <MenuItem disabled>
+                                <ListItemText
+                                    primaryTypographyProps={{
+                                        fontWeight: 700,
+                                        fontSize: "0.74rem",
+                                        textTransform: "uppercase",
+                                        color: "#64748b",
+                                        letterSpacing: ".04em",
+                                    }}
+                                >
+                                    Comentarios
+                                </ListItemText>
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+
+                                    if (!registroSeleccionado) {
+                                        return;
+                                    }
+
+                                    fetchComentarios(
+                                        registroSeleccionado.idcotizacion,
+                                        1,
+                                        "",
+                                    );
+                                }}
+                                disabled={!registroSeleccionado}
+                            >
+                                <ListItemIcon>
+                                    <Comment fontSize="small" />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Ver comentarios" />
+                            </MenuItem>
+
+                            <Divider />
+
+                            {/* FLUJO */}
+
+                            <MenuItem disabled>
+                                <ListItemText
+                                    primaryTypographyProps={{
+                                        fontWeight: 700,
+                                        fontSize: "0.74rem",
+                                        textTransform: "uppercase",
+                                        color: "#64748b",
+                                        letterSpacing: ".04em",
+                                    }}
+                                >
+                                    Flujo de cotización
+                                </ListItemText>
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    handleFacturar(2);
+                                }}
+                                disabled={
+                                    !puedeEnviarCosteo || !registroSeleccionado
                                 }
-                            />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                if (!registroSeleccionado) return;
-                                obtenerDetalleCotizacion(
-                                    registroSeleccionado.idcotizacion,
-                                );
-                            }}
-                            disabled={!registroSeleccionado}
-                        >
-                            <ListItemIcon>
-                                <Visibility fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Detalle" />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                setShowNotaEnvioModal(true);
-                            }}
-                            disabled={!registroSeleccionado}
-                        >
-                            <ListItemIcon>
-                                <Description fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Nota de Envío…" />
-                        </MenuItem>
-
-                        <Divider />
-
-                        {/* COMENTARIOS */}
-                        <MenuItem disabled>
-                            <ListItemText
-                                primaryTypographyProps={{ fontWeight: 600 }}
                             >
-                                Comentarios
-                            </ListItemText>
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                if (!registroSeleccionado) return;
-                                fetchComentarios(
-                                    registroSeleccionado.idcotizacion,
-                                    1,
-                                    "",
-                                );
-                            }}
-                            disabled={!registroSeleccionado}
-                        >
-                            <ListItemIcon>
-                                <Comment fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Ver comentarios…" />
-                        </MenuItem>
+                                <ListItemIcon>
+                                    <Send fontSize="small" />
+                                </ListItemIcon>
 
-                        <Divider />
+                                <ListItemText primary="Enviar a costeo" />
+                            </MenuItem>
 
-                        {/* ESTADO */}
-                        <MenuItem disabled>
-                            <ListItemText
-                                primaryTypographyProps={{ fontWeight: 600 }}
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    handleFacturar(4);
+                                }}
+                                disabled={
+                                    !puedePreFacturar || !registroSeleccionado
+                                }
                             >
-                                Estado
-                            </ListItemText>
-                        </MenuItem>
+                                <ListItemIcon>
+                                    <HourglassTop fontSize="small" />
+                                </ListItemIcon>
 
-                        <MenuItem
-                            onClick={
-                                () => handleFacturar(2) // Enviar a costeo
-                            }
-                            disabled={
-                                !puedeEnviarCosteo || !registroSeleccionado
-                            }
-                        >
-                            <ListItemIcon>
-                                <Send fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Enviar a costeo" />
-                        </MenuItem>
+                                <ListItemText primary="Pre-Facturar" />
+                            </MenuItem>
 
-                        <MenuItem
-                            onClick={() => handleFacturar(4)}
-                            disabled={
-                                !puedePreFacturar || !registroSeleccionado
-                            }
-                        >
-                            <ListItemIcon>
-                                <HourglassTop fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Pre-Facturar" />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => handleFacturar(5)}
-                            disabled={
-                                !puedeEnviarAFacturacion ||
-                                !registroSeleccionado
-                            }
-                        >
-                            <ListItemIcon>
-                                <Send fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Enviar a Facturación" />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                navigate(
-                                    `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`,
-                                );
-                            }}
-                            disabled={!registroSeleccionado || !puedeEditar}
-                        >
-                            <ListItemIcon>
-                                <EditIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Editar" />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                handleDesactivar();
-                            }}
-                            disabled={!registroSeleccionado || !puedeEliminar}
-                        >
-                            <ListItemIcon>
-                                <DeleteIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Eliminar" />
-                        </MenuItem>
-
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                abrirModalRechazo();
-                            }}
-                            disabled={
-                                !registroSeleccionado ||
-                                !(estado === 1 || estado === 3)
-                            }
-                        >
-                            <ListItemIcon>
-                                <Block fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Rechazar…" />
-                        </MenuItem>
-                    </Menu>
-
-                    {/* Tabla MUI */}
-                    <Paper
-                        elevation={1}
-                        sx={{
-                            width: "100%",
-                            overflow: "hidden",
-                            borderRadius: 2,
-                        }}
-                    >
-                        <TableContainer sx={{ maxHeight: 560 }}>
-                            <Table
-                                stickyHeader
-                                size="small"
-                                aria-label="cotizaciones"
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    handleFacturar(5);
+                                }}
+                                disabled={
+                                    !puedeEnviarAFacturacion ||
+                                    !registroSeleccionado
+                                }
                             >
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>No. Cotización</TableCell>
-                                        <TableCell>Fecha</TableCell>
-                                        <TableCell>Forma Pago</TableCell>
-                                        <TableCell align="right">
-                                            Total General
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            Descuento
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            Total
-                                        </TableCell>
-                                        <TableCell>Costear</TableCell>
-                                        <TableCell>Cliente</TableCell>
-                                        <TableCell>Nit</TableCell>
-                                        <TableCell>Contacto</TableCell>
-                                        <TableCell>Obsv. Costeo</TableCell>
-                                        <TableCell>Obsv. Vendedor</TableCell>
-                                        <TableCell align="center">💬</TableCell>
-                                        <TableCell>Estado</TableCell>
-                                        <TableCell>
-                                            Fecha Prefacturación
-                                        </TableCell>
-                                    </TableRow>
-                                </TableHead>
+                                <ListItemIcon>
+                                    <Send fontSize="small" />
+                                </ListItemIcon>
 
-                                <TableBody>
-                                    {loading ? (
+                                <ListItemText primary="Enviar a Facturación" />
+                            </MenuItem>
+
+                            <Divider />
+
+                            {/* ADMINISTRACIÓN */}
+
+                            <MenuItem disabled>
+                                <ListItemText
+                                    primaryTypographyProps={{
+                                        fontWeight: 700,
+                                        fontSize: "0.74rem",
+                                        textTransform: "uppercase",
+                                        color: "#64748b",
+                                        letterSpacing: ".04em",
+                                    }}
+                                >
+                                    Administración
+                                </ListItemText>
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+
+                                    navigate(
+                                        `/cotizaciones/editar/${registroSeleccionado?.idcotizacion}`,
+                                    );
+                                }}
+                                disabled={!registroSeleccionado || !puedeEditar}
+                            >
+                                <ListItemIcon>
+                                    <EditIcon fontSize="small" />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Editar" />
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    handleDesactivar();
+                                }}
+                                disabled={
+                                    !registroSeleccionado || !puedeEliminar
+                                }
+                            >
+                                <ListItemIcon>
+                                    <DeleteIcon
+                                        fontSize="small"
+                                        color="error"
+                                    />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Eliminar" />
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    closeActions();
+                                    abrirModalRechazo();
+                                }}
+                                disabled={
+                                    !registroSeleccionado ||
+                                    !(estado === 1 || estado === 3)
+                                }
+                            >
+                                <ListItemIcon>
+                                    <Block fontSize="small" color="error" />
+                                </ListItemIcon>
+
+                                <ListItemText primary="Rechazar" />
+                            </MenuItem>
+                        </Menu>
+
+                        {/* =====================================================
+                TABLA
+               ===================================================== */}
+
+                        <Paper
+                            elevation={0}
+                            className="cotizaciones-table-paper"
+                        >
+                            <TableContainer
+                                sx={{
+                                    maxHeight: 570,
+                                }}
+                            >
+                                <Table
+                                    stickyHeader
+                                    size="small"
+                                    aria-label="cotizaciones"
+                                    className="cotizaciones-table"
+                                >
+                                    <TableHead>
                                         <TableRow>
-                                            <TableCell
-                                                colSpan={15}
-                                                align="center"
-                                            >
-                                                Cargando cotizaciones…
+                                            <TableCell>
+                                                No. Cotización
+                                            </TableCell>
+
+                                            <TableCell>Fecha</TableCell>
+
+                                            <TableCell>Forma Pago</TableCell>
+
+                                            <TableCell align="right">
+                                                Total General
+                                            </TableCell>
+
+                                            <TableCell align="right">
+                                                Descuento
+                                            </TableCell>
+
+                                            <TableCell align="right">
+                                                Total
+                                            </TableCell>
+
+                                            <TableCell>Costear</TableCell>
+
+                                            <TableCell>Cliente</TableCell>
+
+                                            <TableCell>NIT</TableCell>
+
+                                            <TableCell>Contacto</TableCell>
+
+                                            <TableCell>Obsv. Costeo</TableCell>
+
+                                            <TableCell>
+                                                Obsv. Vendedor
+                                            </TableCell>
+
+                                            <TableCell align="center">
+                                                Comentarios
+                                            </TableCell>
+
+                                            <TableCell>Estado</TableCell>
+
+                                            <TableCell>
+                                                Fecha Prefacturación
                                             </TableCell>
                                         </TableRow>
-                                    ) : rowsToShow.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={15}
-                                                align="center"
-                                            >
-                                                Sin resultados
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        rowsToShow.map((row) => {
-                                            const selected = isSelected(row);
-                                            const isPre =
-                                                Number(row?.estado) === 4;
-                                            const hasCom =
-                                                Number(
-                                                    row?.comentarios_count ??
-                                                        row?.has_comentarios ??
-                                                        0,
-                                                ) > 0 ||
-                                                Number(row?.has_comentarios) ===
-                                                    1 ||
-                                                row?.has_comentarios === true;
+                                    </TableHead>
 
-                                            const disabled = !(isPre && hasCom);
-                                            const badgeColor = !disabled
-                                                ? "warning"
-                                                : "default";
-                                            const tooltipTitle = !isPre
-                                                ? "Comentarios visibles en Pre-Facturación (estado 4)"
-                                                : hasCom
-                                                  ? row.last_comentario_snippet
-                                                      ? `Último: ${row.last_comentario_snippet}`
-                                                      : "Ver comentarios"
-                                                  : "Sin comentarios";
-
-                                            return (
-                                                <TableRow
-                                                    hover
-                                                    key={row.idcotizacion}
-                                                    onClick={() => {
-                                                        setSelectedId(
-                                                            row.idcotizacion,
-                                                        );
-                                                        setRegistroSeleccionado(
-                                                            row,
-                                                        );
-                                                    }}
-                                                    selected={selected}
-                                                    sx={{
-                                                        cursor: "pointer",
-                                                        "&.Mui-selected": {
-                                                            backgroundColor:
-                                                                "rgba(25,118,210,0.08) !important",
-                                                            outline:
-                                                                "2px solid rgba(25,118,210,0.6)",
-                                                            outlineOffset:
-                                                                "-2px",
-                                                        },
-                                                    }}
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={15}
+                                                    align="center"
+                                                    className="cotizaciones-table-message"
                                                 >
-                                                    <TableCell>
-                                                        {row.nocotizacion}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {fmtFecha(
-                                                            row.fecha_cotizacion,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {row.tipo_pago}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {fmtMoney(
-                                                            row.total_general,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {fmtMoney(
-                                                            row.descuento_monto,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {fmtMoney(row.total)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {row.costear}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {row.cliente}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {row.nit}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {row.contacto}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {
-                                                            row.observaciones_costeo
-                                                        }
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {
-                                                            row.costeo_observaciones
-                                                        }
-                                                    </TableCell>
+                                                    Cargando cotizaciones...
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : rowsToShow.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={15}
+                                                    align="center"
+                                                    className="cotizaciones-table-message"
+                                                >
+                                                    No se encontraron
+                                                    cotizaciones con los filtros
+                                                    seleccionados.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            rowsToShow.map((row) => {
+                                                const selected =
+                                                    isSelected(row);
 
-                                                    <TableCell align="center">
-                                                        <Tooltip
-                                                            title={
-                                                                <>
-                                                                    <div>
-                                                                        {
-                                                                            tooltipTitle
-                                                                        }
-                                                                    </div>
-                                                                    {row.last_comentario_at &&
-                                                                        hasCom && (
-                                                                            <small>
-                                                                                {new Date(
-                                                                                    row.last_comentario_at,
-                                                                                ).toLocaleString()}
-                                                                            </small>
-                                                                        )}
-                                                                </>
-                                                            }
+                                                const isPre =
+                                                    Number(row?.estado) === 4;
+
+                                                const hasCom =
+                                                    Number(
+                                                        row?.comentarios_count ??
+                                                            row?.has_comentarios ??
+                                                            0,
+                                                    ) > 0 ||
+                                                    Number(
+                                                        row?.has_comentarios,
+                                                    ) === 1 ||
+                                                    row?.has_comentarios ===
+                                                        true;
+
+                                                const disabled = !(
+                                                    isPre && hasCom
+                                                );
+
+                                                const badgeColor = !disabled
+                                                    ? "warning"
+                                                    : "default";
+
+                                                const tooltipTitle = !isPre
+                                                    ? "Comentarios visibles en Pre-Facturación (estado 4)"
+                                                    : hasCom
+                                                      ? row.last_comentario_snippet
+                                                          ? `Último: ${row.last_comentario_snippet}`
+                                                          : "Ver comentarios"
+                                                      : "Sin comentarios";
+
+                                                return (
+                                                    <TableRow
+                                                        hover
+                                                        key={row.idcotizacion}
+                                                        onClick={() => {
+                                                            setSelectedId(
+                                                                row.idcotizacion,
+                                                            );
+
+                                                            setRegistroSeleccionado(
+                                                                row,
+                                                            );
+                                                        }}
+                                                        selected={selected}
+                                                        className={
+                                                            selected
+                                                                ? "cotizacion-row-selected"
+                                                                : ""
+                                                        }
+                                                        sx={{
+                                                            cursor: "pointer",
+
+                                                            "&.Mui-selected": {
+                                                                backgroundColor:
+                                                                    "#c9e2f3 !important",
+                                                            },
+
+                                                            "&.Mui-selected:hover":
+                                                                {
+                                                                    backgroundColor:
+                                                                        "#bddbef !important",
+                                                                },
+                                                        }}
+                                                    >
+                                                        <TableCell
+                                                            className="cotizacion-number-cell"
+                                                            sx={{
+                                                                borderLeft:
+                                                                    selected
+                                                                        ? "5px solid #0e4f84"
+                                                                        : "5px solid transparent",
+                                                            }}
                                                         >
-                                                            <span>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    disabled={
-                                                                        disabled
-                                                                    }
-                                                                    onClick={(
-                                                                        e,
-                                                                    ) => {
-                                                                        if (
+                                                            {row.nocotizacion}
+                                                        </TableCell>
+
+                                                        <TableCell>
+                                                            {fmtFecha(
+                                                                row.fecha_cotizacion,
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell>
+                                                            {row.tipo_pago}
+                                                        </TableCell>
+
+                                                        <TableCell align="right">
+                                                            {fmtMoney(
+                                                                row.total_general,
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell align="right">
+                                                            {fmtMoney(
+                                                                row.descuento_monto,
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="right"
+                                                            className="cotizacion-total-cell"
+                                                        >
+                                                            {fmtMoney(
+                                                                row.total,
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell>
+                                                            {row.costear}
+                                                        </TableCell>
+
+                                                        <TableCell className="cotizacion-client-cell">
+                                                            {row.cliente}
+                                                        </TableCell>
+
+                                                        <TableCell>
+                                                            {row.nit}
+                                                        </TableCell>
+
+                                                        <TableCell>
+                                                            {row.contacto}
+                                                        </TableCell>
+
+                                                        <TableCell className="cotizaciones-observation-cell">
+                                                            {
+                                                                row.observaciones_costeo
+                                                            }
+                                                        </TableCell>
+
+                                                        <TableCell className="cotizaciones-observation-cell">
+                                                            {
+                                                                row.costeo_observaciones
+                                                            }
+                                                        </TableCell>
+
+                                                        {/* COMENTARIOS */}
+
+                                                        <TableCell align="center">
+                                                            <Tooltip
+                                                                title={
+                                                                    <>
+                                                                        <div>
+                                                                            {
+                                                                                tooltipTitle
+                                                                            }
+                                                                        </div>
+
+                                                                        {row.last_comentario_at &&
+                                                                            hasCom && (
+                                                                                <small>
+                                                                                    {new Date(
+                                                                                        row.last_comentario_at,
+                                                                                    ).toLocaleString()}
+                                                                                </small>
+                                                                            )}
+                                                                    </>
+                                                                }
+                                                            >
+                                                                <span>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        disabled={
                                                                             disabled
-                                                                        )
-                                                                            return;
-                                                                        e.stopPropagation();
-                                                                        setSelectedId(
-                                                                            row.idcotizacion,
-                                                                        );
-                                                                        setRegistroSeleccionado(
-                                                                            row,
-                                                                        );
-                                                                        fetchComentarios(
-                                                                            row.idcotizacion,
-                                                                            1,
-                                                                            "",
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <Badge
-                                                                        badgeContent={
-                                                                            Number(
-                                                                                row?.comentarios_count,
-                                                                            ) ||
-                                                                            0
                                                                         }
-                                                                        color={
-                                                                            badgeColor
-                                                                        }
+                                                                        className="cotizaciones-comment-button"
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) => {
+                                                                            if (
+                                                                                disabled
+                                                                            ) {
+                                                                                return;
+                                                                            }
+
+                                                                            e.stopPropagation();
+
+                                                                            setSelectedId(
+                                                                                row.idcotizacion,
+                                                                            );
+
+                                                                            setRegistroSeleccionado(
+                                                                                row,
+                                                                            );
+
+                                                                            fetchComentarios(
+                                                                                row.idcotizacion,
+                                                                                1,
+                                                                                "",
+                                                                            );
+                                                                        }}
                                                                     >
-                                                                        <ChatBubbleIcon />
-                                                                    </Badge>
-                                                                </IconButton>
-                                                            </span>
-                                                        </Tooltip>
-                                                    </TableCell>
+                                                                        <Badge
+                                                                            badgeContent={
+                                                                                Number(
+                                                                                    row?.comentarios_count,
+                                                                                ) ||
+                                                                                0
+                                                                            }
+                                                                            color={
+                                                                                badgeColor
+                                                                            }
+                                                                        >
+                                                                            <ChatBubbleIcon
+                                                                                sx={{
+                                                                                    fontSize: 19,
+                                                                                }}
+                                                                            />
+                                                                        </Badge>
+                                                                    </IconButton>
+                                                                </span>
+                                                            </Tooltip>
+                                                        </TableCell>
 
-                                                    <TableCell>
-                                                        {chipEstado(row)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {fmtFecha(
-                                                            row.fecha_prefacturacion,
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                                                        {/* ESTADO */}
 
-                        {/* Paginación */}
-                        <TablePagination
-                            component="div"
-                            count={cotizacionesFiltradas.length}
-                            page={page}
-                            onPageChange={(_, newPage) => setPage(newPage)}
-                            rowsPerPage={rowsPerPage}
-                            onRowsPerPageChange={(e) => {
-                                setRowsPerPage(parseInt(e.target.value, 10));
-                                setPage(0);
-                            }}
-                            rowsPerPageOptions={[10, 25, 50]}
-                            labelRowsPerPage="Filas por página"
-                        />
-                    </Paper>
-                </div>
+                                                        <TableCell>
+                                                            {chipEstado(row)}
+                                                        </TableCell>
 
-                {/* Botón crear */}
-                <div
-                    className="mt-4 p-3 border rounded shadow-sm bg-light"
-                    style={{ borderColor: "#ddd" }}
-                >
-                    <div className="d-flex flex-wrap gap-2 justify-content-between">
-                        <Link
-                            to="/cotizaciones/crear"
-                            className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
-                            style={{ minWidth: "150px" }}
-                        >
-                            <FaRegFileAlt /> Registro de Cotizaciones
-                        </Link>
+                                                        <TableCell>
+                                                            {fmtFecha(
+                                                                row.fecha_prefacturacion,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+
+                            {/* PAGINACIÓN */}
+
+                            <TablePagination
+                                component="div"
+                                count={cotizacionesFiltradas.length}
+                                page={page}
+                                onPageChange={(_, newPage) => setPage(newPage)}
+                                rowsPerPage={rowsPerPage}
+                                onRowsPerPageChange={(e) => {
+                                    setRowsPerPage(
+                                        parseInt(e.target.value, 10),
+                                    );
+
+                                    setPage(0);
+                                }}
+                                rowsPerPageOptions={[10, 25, 50]}
+                                labelRowsPerPage="Filas por página"
+                            />
+                        </Paper>
                     </div>
                 </div>
             </div>

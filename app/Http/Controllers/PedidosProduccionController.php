@@ -62,12 +62,32 @@ class PedidosProduccionController extends Controller
                 'c.requiere_entrega',
                 'c.permisos_justificacion',
                 'c.montajes_justificacion',
-                DB::raw("CASE
-                    WHEN c.estado = 0 THEN 'ANULADO'
-                    WHEN c.estado = 1 THEN 'REGISTRO'
-                    WHEN c.estado = 2 THEN 'AUTORIZACIÓN'                   
-                    ELSE 'DESCONOCIDO'
-                END as estado_texto"),
+                'c.autorizacion_estado',
+                'c.autorizacion_fecha',
+                'c.autorizacion_usuario',
+                'c.autorizacion_observacion',
+                DB::raw("
+                        CASE
+                            WHEN c.estado = 0
+                                THEN 'ANULADO'
+
+                            WHEN c.estado = 1
+                                AND c.autorizacion_estado =
+                                    'RECHAZADO'
+                                THEN 'RECHAZADO'
+
+                            WHEN c.estado = 1
+                                THEN 'REGISTRO'
+
+                            WHEN c.estado = 2
+                                THEN 'AUTORIZACIÓN'
+
+                            WHEN c.estado = 3
+                                THEN 'LOGÍSTICA'
+
+                            ELSE 'DESCONOCIDO'
+                        END as estado_texto
+                    "),
                 'e.nombre as asesor',
                 DB::raw("
                 (
@@ -1543,17 +1563,31 @@ class PedidosProduccionController extends Controller
             ], 404);
         }
 
-        if ($pedido->estado != 1) {
+        if ((int) $pedido->estado !== 1) {
             return response()->json([
-                'message' => 'Solo los pedidos registrados pueden enviarse a autorización'
-            ], 400);
+                'message' =>
+                'Solo los pedidos registrados pueden enviarse a autorización'
+            ], 422);
         }
 
         $pedido->estado = 2;
+
+        $pedido->autorizacion_estado = 'PENDIENTE';
+        $pedido->autorizacion_fecha = null;
+        $pedido->autorizacion_usuario = null;
+        $pedido->autorizacion_observacion = null;
+
+        $pedido->usuario_modificacion =
+            auth()->user()->name;
+
+        $pedido->fecha_modificacion =
+            now();
+
         $pedido->save();
 
         return response()->json([
-            'message' => 'Pedido enviado a autorización'
+            'message' =>
+            'Pedido enviado a autorización de Contabilidad'
         ]);
     }
 
@@ -1600,7 +1634,7 @@ class PedidosProduccionController extends Controller
                 ) as total_permisos
                 "),
 
-                                DB::raw("
+                DB::raw("
                 (
                     SELECT COUNT(*)
                     FROM adm_pedido_produccion_archivos a
@@ -1674,5 +1708,360 @@ class PedidosProduccionController extends Controller
         return response()->json([
             'message' => 'Pedido enviado a logística correctamente'
         ]);
+    }
+
+    public function autorizacionContabilidad(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'nullable|date_format:Y-m-d',
+            'fecha_fin' => 'nullable|date_format:Y-m-d',
+            'autorizacion_estado' =>
+            'nullable|in:PENDIENTE,APROBADO,RECHAZADO',
+        ]);
+
+        $query = DB::table('adm_pedidos_produccion as c')
+            ->join(
+                'clientes as cl',
+                'c.idcliente',
+                '=',
+                'cl.idcliente'
+            )
+            ->leftJoin(
+                'contacto_cliente as ct',
+                'c.idcontacto',
+                '=',
+                'ct.id_contactocliente'
+            )
+            ->join(
+                'adm_empleados as e',
+                'c.idusuario',
+                '=',
+                'e.iduser'
+            )
+            ->select(
+                'c.idpedidoproduccion',
+
+                DB::raw(
+                    "CONCAT(
+                    'P-',
+                    CAST(c.nopedido AS CHAR)
+                ) as nopedido"
+                ),
+
+                'c.nopedido as nopedido_num',
+                'c.nocotizacion',
+                'c.idcotizacion',
+
+                'c.fecha_pedido',
+                'c.fecha_entrega',
+
+                'c.idcliente',
+                'c.idcontacto',
+
+                'cl.nombre as cliente',
+
+                DB::raw(
+                    "COALESCE(ct.nombre, '') as contacto"
+                ),
+
+                'e.nombre as asesor',
+
+                'c.direccion_entrega',
+                'c.trabajo',
+                'c.version',
+
+                'c.no_envio_asociado',
+
+                'c.permisos_estado',
+                'c.permisos_justificacion',
+
+                'c.requiere_instalacion',
+                'c.requiere_entrega',
+
+                'c.montajes_estado',
+                'c.montajes_justificacion',
+
+                'c.estado',
+
+                'c.autorizacion_estado',
+                'c.autorizacion_fecha',
+                'c.autorizacion_usuario',
+                'c.autorizacion_observacion',
+
+                DB::raw("
+                CASE
+                    WHEN c.estado = 2
+                         AND c.autorizacion_estado = 'PENDIENTE'
+                        THEN 'PENDIENTE'
+
+                    WHEN c.autorizacion_estado = 'APROBADO'
+                        THEN 'APROBADO'
+
+                    WHEN c.autorizacion_estado = 'RECHAZADO'
+                        THEN 'RECHAZADO'
+
+                    ELSE 'SIN DEFINIR'
+                END as estado_autorizacion_texto
+            "),
+
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos a
+
+                    WHERE
+                        a.idpedidoproduccion =
+                            c.idpedidoproduccion
+
+                        AND a.tipo_documento =
+                            'PERMISO'
+
+                        AND a.estado = 1
+                ) as total_permisos
+            "),
+
+                DB::raw("
+                (
+                    SELECT COUNT(*)
+                    FROM adm_pedido_produccion_archivos a
+
+                    WHERE
+                        a.idpedidoproduccion =
+                            c.idpedidoproduccion
+
+                        AND a.tipo_documento =
+                            'MONTAJE'
+
+                        AND a.estado = 1
+                ) as total_montajes
+            ")
+            )
+
+            /*
+         * Solamente pedidos que ya entraron
+         * alguna vez al proceso de autorización.
+         */
+            ->whereNotNull(
+                'c.autorizacion_estado'
+            );
+
+        if ($request->filled('fecha_inicio')) {
+            $query->where(
+                'c.fecha_pedido',
+                '>=',
+                $request->fecha_inicio . ' 00:00:00'
+            );
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $fechaFin = \Carbon\Carbon::createFromFormat(
+                'Y-m-d',
+                $request->fecha_fin
+            )
+                ->addDay()
+                ->format('Y-m-d');
+
+            $query->where(
+                'c.fecha_pedido',
+                '<',
+                $fechaFin . ' 00:00:00'
+            );
+        }
+
+        if (
+            $request->filled(
+                'autorizacion_estado'
+            )
+        ) {
+            $query->where(
+                'c.autorizacion_estado',
+                $request->autorizacion_estado
+            );
+        }
+
+        $pedidos = $query
+            ->orderByRaw("
+            CASE
+                WHEN c.autorizacion_estado =
+                    'PENDIENTE'
+                    THEN 1
+
+                WHEN c.autorizacion_estado =
+                    'RECHAZADO'
+                    THEN 2
+
+                WHEN c.autorizacion_estado =
+                    'APROBADO'
+                    THEN 3
+
+                ELSE 4
+            END
+        ")
+            ->orderByDesc('c.nopedido')
+            ->get();
+
+        return response()->json($pedidos);
+    }
+
+    public function aprobarContabilidad($id)
+    {
+        $pedido =
+            AdmPedidosProduccion::find($id);
+
+        if (!$pedido) {
+            return response()->json([
+                'message' => 'Pedido no encontrado'
+            ], 404);
+        }
+
+        if (
+            (int) $pedido->estado !== 2 ||
+            $pedido->autorizacion_estado !==
+            'PENDIENTE'
+        ) {
+            return response()->json([
+                'message' =>
+                'El pedido ya no está pendiente de autorización'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            /*
+         * Pasa al siguiente paso:
+         * LOGÍSTICA.
+         */
+            $pedido->estado = 3;
+
+            $pedido->autorizacion_estado =
+                'APROBADO';
+
+            $pedido->autorizacion_fecha =
+                now();
+
+            $pedido->autorizacion_usuario =
+                auth()->user()->name;
+
+            $pedido->autorizacion_observacion =
+                null;
+
+            $pedido->usuario_modificacion =
+                auth()->user()->name;
+
+            $pedido->fecha_modificacion =
+                now();
+
+            $pedido->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message' =>
+                'Pedido aprobado y enviado a Logística'
+            ]);
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            Log::error(
+                'ERROR APROBANDO PEDIDO PRODUCCION',
+                [
+                    'idpedidoproduccion' => $id,
+                    'error' =>
+                    $e->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'message' =>
+                'No fue posible aprobar el pedido'
+            ], 500);
+        }
+    }
+    public function rechazarContabilidad(
+        Request $request,
+        $id
+    ) {
+        $request->validate([
+            'motivo' =>
+            'required|string|max:2000',
+        ]);
+
+        $pedido =
+            AdmPedidosProduccion::find($id);
+
+        if (!$pedido) {
+            return response()->json([
+                'message' =>
+                'Pedido no encontrado'
+            ], 404);
+        }
+
+        if (
+            (int) $pedido->estado !== 2 ||
+            $pedido->autorizacion_estado !==
+            'PENDIENTE'
+        ) {
+            return response()->json([
+                'message' =>
+                'El pedido ya no está pendiente de autorización'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            /*
+         * Regresa a Ventas.
+         */
+            $pedido->estado = 1;
+
+            $pedido->autorizacion_estado =
+                'RECHAZADO';
+
+            $pedido->autorizacion_fecha =
+                now();
+
+            $pedido->autorizacion_usuario =
+                auth()->user()->name;
+
+            $pedido->autorizacion_observacion =
+                trim($request->motivo);
+
+            $pedido->usuario_modificacion =
+                auth()->user()->name;
+
+            $pedido->fecha_modificacion =
+                now();
+
+            $pedido->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message' =>
+                'Pedido rechazado y regresado a Ventas'
+            ]);
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            Log::error(
+                'ERROR RECHAZANDO PEDIDO PRODUCCION',
+                [
+                    'idpedidoproduccion' => $id,
+                    'error' =>
+                    $e->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'message' =>
+                'No fue posible rechazar el pedido'
+            ], 500);
+        }
     }
 }

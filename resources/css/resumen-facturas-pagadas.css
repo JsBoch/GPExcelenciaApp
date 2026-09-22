@@ -1,0 +1,780 @@
+/* =========================================================
+   RESUMEN FACTURAS PAGADAS
+   ========================================================= */
+
+.gp-paid-invoices-page {
+    width: 100%;
+}
+
+.gp-paid-invoices-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-paid-invoices-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 21px 23px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid #e6ecf1;
+}
+
+.gp-paid-invoices-heading {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+.gp-paid-invoices-heading-icon {
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid #d3e3ee;
+
+    border-radius:
+        10px;
+}
+
+.gp-paid-invoices-heading h1 {
+    margin: 4px 0 3px;
+
+    color: #172033;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.gp-paid-invoices-heading p {
+    max-width: 680px;
+
+    margin: 0;
+
+    color: #728092;
+
+    font-size: 11.5px;
+}
+
+
+/* TOTAL HEADER */
+
+.gp-paid-invoices-header-total {
+    min-width: 150px;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 8px 11px;
+
+    background: #edf8ef;
+
+    border: 1px solid #cee7d3;
+    border-radius: 8px;
+}
+
+.gp-paid-invoices-header-total span {
+    color: #60806a;
+
+    font-size: 8px;
+}
+
+.gp-paid-invoices-header-total strong {
+    color: #28723a;
+
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.gp-paid-invoices-filter-wrapper {
+    padding: 17px 23px 0;
+
+    background: #f8fafb;
+}
+
+.gp-paid-invoices-filter {
+    padding: 14px;
+
+    background: #fff;
+
+    border: 1px solid #e0e6eb;
+    border-radius: 9px;
+}
+
+.gp-paid-invoices-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 12px;
+    padding-bottom: 9px;
+
+    border-bottom: 1px solid #edf1f4;
+}
+
+.gp-paid-invoices-filter-header
+    > div {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color: #344256;
+}
+
+.gp-paid-invoices-filter-header svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-paid-invoices-filter-header strong {
+    font-size: 10.5px;
+}
+
+.gp-paid-invoices-filter-header
+    > span {
+    color: #8a97a4;
+
+    font-size: 8.5px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.gp-paid-invoices-filter-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(160px, 1fr)
+        minmax(160px, 1fr)
+        minmax(180px, 1fr)
+        auto;
+
+    gap: 10px;
+
+    align-items: end;
+}
+
+.gp-paid-invoices-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-paid-invoices-field label {
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.gp-paid-invoices-field input,
+.gp-paid-invoices-field select {
+    width: 100%;
+    height: 35px;
+
+    padding: 0 9px;
+
+    color: #27364a;
+
+    background: #fff;
+
+    border:
+        1px solid #cad4de;
+
+    border-radius: 6px;
+
+    outline: none;
+
+    font-size: 9.5px;
+}
+
+.gp-paid-invoices-field input:focus,
+.gp-paid-invoices-field select:focus {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+
+/* =========================================================
+   FECHA
+   ========================================================= */
+
+.gp-paid-invoices-date {
+    position: relative;
+}
+
+.gp-paid-invoices-date svg {
+    position: absolute;
+
+    top: 50%;
+    left: 9px;
+
+    z-index: 1;
+
+    color: #718095;
+
+    transform: translateY(-50%);
+
+    pointer-events: none;
+}
+
+.gp-paid-invoices-date input {
+    padding-left: 29px;
+}
+
+
+/* =========================================================
+   CONSULTAR
+   ========================================================= */
+
+.gp-paid-invoices-search-button {
+    height: 35px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    min-width: 110px;
+
+    padding: 0 11px;
+
+    color: #fff;
+
+    background:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    border:
+        1px solid
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    border-radius: 6px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-paid-invoices-search-button:hover:not(:disabled) {
+    background:
+        var(
+            --gp-blue-light,
+            #1769aa
+        );
+}
+
+.gp-paid-invoices-search-button:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   EXPORTACIONES
+   ========================================================= */
+
+.gp-paid-invoices-export-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 11px;
+    padding-top: 10px;
+
+    border-top: 1px solid #edf1f4;
+}
+
+.gp-paid-invoices-export-info {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    color: #8794a1;
+
+    font-size: 8.5px;
+}
+
+.gp-paid-invoices-export-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+}
+
+.gp-paid-invoices-export {
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    padding: 0 9px;
+
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-paid-invoices-export:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+.gp-paid-invoices-pdf {
+    color: #a02c22;
+
+    background: #fff;
+
+    border: 1px solid #dfb6b2;
+}
+
+.gp-paid-invoices-pdf:hover:not(:disabled) {
+    background: #fff3f2;
+}
+
+.gp-paid-invoices-receipt-pdf {
+    color: #5b477d;
+
+    background: #fff;
+
+    border: 1px solid #cfc2df;
+}
+
+.gp-paid-invoices-receipt-pdf:hover:not(:disabled) {
+    background: #f6f1fb;
+}
+
+
+/* =========================================================
+   RESULTADOS
+   ========================================================= */
+
+.gp-paid-invoices-results {
+    padding: 14px 23px 23px;
+
+    background: #f8fafb;
+}
+
+
+/* =========================================================
+   RESUMEN
+   ========================================================= */
+
+.gp-paid-invoices-summary {
+    display: grid;
+
+    grid-template-columns:
+        1.4fr
+        0.6fr
+        1fr;
+
+    gap: 9px;
+
+    margin-bottom: 13px;
+}
+
+.gp-paid-invoices-summary-item,
+.gp-paid-invoices-summary-total {
+    min-height: 54px;
+
+    padding: 9px 10px;
+
+    background: #fff;
+
+    border: 1px solid #e0e6eb;
+    border-radius: 7px;
+}
+
+.gp-paid-invoices-summary-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-paid-invoices-summary-item span,
+.gp-paid-invoices-summary-total span {
+    color: #8794a1;
+
+    font-size: 8px;
+}
+
+.gp-paid-invoices-summary-item strong {
+    margin-top: 2px;
+
+    color: #3f4e61;
+
+    font-size: 10.5px;
+}
+
+.gp-paid-invoices-summary-total {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: #28723a;
+
+    background: #f3faf4;
+
+    border-color: #cce3d0;
+}
+
+.gp-paid-invoices-summary-total
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-paid-invoices-summary-total strong {
+    color: #28723a;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   CLIENTE
+   ========================================================= */
+
+.gp-paid-invoices-client {
+    margin-top: 11px;
+
+    overflow: hidden;
+
+    background: #fff;
+
+    border: 1px solid #dfe6ec;
+    border-radius: 8px;
+}
+
+.gp-paid-invoices-client-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 9px 11px;
+
+    background: #f3f6f9;
+
+    border-bottom: 1px solid #dfe6ec;
+}
+
+.gp-paid-invoices-client-name,
+.gp-paid-invoices-client-total {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-paid-invoices-client-name span,
+.gp-paid-invoices-client-total span {
+    color: #8895a2;
+
+    font-size: 7.5px;
+}
+
+.gp-paid-invoices-client-name strong {
+    color: #344256;
+
+    font-size: 10px;
+}
+
+.gp-paid-invoices-client-total {
+    text-align: right;
+}
+
+.gp-paid-invoices-client-total strong {
+    color: #28723a;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.gp-paid-invoices-table-wrapper {
+    overflow-x: auto;
+}
+
+.gp-paid-invoices-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.gp-paid-invoices-table thead th {
+    padding: 7px 9px;
+
+    color: #475569;
+
+    background: #fafbfc;
+
+    border-bottom: 1px solid #e0e6eb;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.gp-paid-invoices-table tbody td {
+    padding: 7px 9px;
+
+    color: #344256;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 8.8px;
+
+    vertical-align: middle;
+}
+
+.gp-paid-invoices-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.gp-paid-invoices-table tbody tr:hover td {
+    background: #f8fafb;
+}
+
+.gp-paid-invoices-money {
+    text-align: right !important;
+
+    white-space: nowrap;
+
+    font-weight: 700;
+}
+
+.gp-paid-invoices-series {
+    display: inline-flex;
+
+    padding: 2px 5px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background: #e8f1f7;
+
+    border-radius: 4px;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.gp-paid-invoices-empty {
+    min-height: 160px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    color: #8794a1;
+
+    background: #fff;
+
+    border: 1px dashed #d6dee5;
+    border-radius: 8px;
+
+    text-align: center;
+}
+
+.gp-paid-invoices-empty svg {
+    color: #a7b1ba;
+}
+
+.gp-paid-invoices-empty strong {
+    color: #526173;
+
+    font-size: 10.5px;
+}
+
+.gp-paid-invoices-empty span {
+    font-size: 8.5px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .gp-paid-invoices-filter-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .gp-paid-invoices-summary {
+        grid-template-columns:
+            1fr 1fr;
+    }
+
+    .gp-paid-invoices-summary-total {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 650px) {
+    .gp-paid-invoices-header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        padding: 18px;
+    }
+
+    .gp-paid-invoices-header-total {
+        width: 100%;
+    }
+
+    .gp-paid-invoices-filter-wrapper,
+    .gp-paid-invoices-results {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .gp-paid-invoices-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-paid-invoices-search-button {
+        width: 100%;
+    }
+
+    .gp-paid-invoices-export-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-paid-invoices-export-actions {
+        width: 100%;
+    }
+
+    .gp-paid-invoices-export {
+        flex: 1;
+    }
+
+    .gp-paid-invoices-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-paid-invoices-summary-total {
+        grid-column: auto;
+    }
+
+    .gp-paid-invoices-client-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gp-paid-invoices-client-total {
+        text-align: left;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-paid-invoices-heading-icon {
+        display: none;
+    }
+
+    .gp-paid-invoices-filter-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gp-paid-invoices-export-actions {
+        flex-direction: column;
+    }
+
+    .gp-paid-invoices-export {
+        width: 100%;
+    }
+}

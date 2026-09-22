@@ -1,0 +1,652 @@
+/* =========================================================
+   PEDIDO A PRODUCCIÓN - CONTENEDOR PRINCIPAL
+   ========================================================= */
+
+.gp-production-page {
+    width: 100%;
+}
+
+.gp-production-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-production-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 22px 24px 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #ffffff;
+
+    border-bottom: 1px solid #e7edf3;
+}
+
+.gp-production-title {
+    margin: 5px 0 4px;
+
+    color: #0f172a;
+
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.gp-production-description {
+    max-width: 800px;
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.gp-production-header-icon {
+    width: 46px;
+    height: 46px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.08);
+
+    border:
+        1px solid
+        rgba(14, 79, 132, 0.12);
+
+    border-radius: 12px;
+}
+
+
+/* =========================================================
+   RESUMEN
+   ========================================================= */
+
+.gp-production-summary {
+    display: flex;
+    align-items: stretch;
+
+    margin: 16px 24px 0;
+
+    overflow: hidden;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8ee;
+    border-radius: 9px;
+}
+
+.gp-production-summary-item {
+    min-width: 0;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+
+    padding: 9px 12px;
+}
+
+.gp-production-summary-item span {
+    color: #7a8897;
+
+    font-size: 9px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.gp-production-summary-item strong {
+    overflow: hidden;
+
+    color: #334155;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.gp-production-summary-divider {
+    width: 1px;
+
+    margin: 7px 0;
+
+    background: #e1e7ec;
+}
+
+.gp-production-status-ok {
+    color: #27843a !important;
+}
+
+.gp-production-status-pending {
+    color: #b7791f !important;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-production-body {
+    padding: 18px 24px 24px;
+}
+
+
+/* =========================================================
+   NORMALIZACIÓN FORMULARIOS HIJOS
+   Solo visual.
+   ========================================================= */
+
+.gp-production-body .form-label {
+    margin-bottom: 4px;
+
+    color: #475569;
+
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.gp-production-body
+    .form-control,
+.gp-production-body
+    .form-select {
+    min-height: 36px;
+
+    border-color: #cbd5df;
+    border-radius: 7px;
+
+    font-size: 11.5px;
+}
+
+.gp-production-body
+    .form-control:focus,
+.gp-production-body
+    .form-select:focus {
+    border-color:
+        var(--gp-blue, #0e4f84);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.08);
+}
+
+.gp-production-body textarea.form-control {
+    min-height: auto;
+}
+
+
+/* =========================================================
+   CARDS INTERNAS
+   ========================================================= */
+
+.gp-production-body .card {
+    border:
+        1px solid #e1e7ec;
+
+    border-radius: 9px;
+
+    box-shadow: none;
+}
+
+.gp-production-body .card-header {
+    padding: 8px 11px;
+
+    color: #334155;
+
+    background: #f6f8fa;
+
+    border-bottom:
+        1px solid #e4e9ed;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-production-body .card-body {
+    padding: 12px;
+}
+
+
+/* =========================================================
+   BOTONES INTERNOS
+   ========================================================= */
+
+.gp-production-body .btn {
+    min-height: 32px;
+
+    border-radius: 6px;
+
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.gp-production-body .btn-primary {
+    background:
+        var(--gp-blue, #0e4f84);
+
+    border-color:
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-production-body .btn-success {
+    background:
+        var(--gp-green, #39b54a);
+
+    border-color:
+        var(--gp-green, #39b54a);
+}
+
+
+/* =========================================================
+   TABLAS INTERNAS
+   ========================================================= */
+
+.gp-production-body table {
+    font-size: 11px;
+}
+
+.gp-production-body table thead th {
+    padding: 7px 8px;
+
+    color: #475569;
+
+    background: #f3f6f9;
+
+    border-color: #e0e6eb;
+
+    font-size: 9.5px;
+    font-weight: 700;
+
+    vertical-align: middle;
+}
+
+.gp-production-body table tbody td {
+    padding: 7px 8px;
+
+    color: #334155;
+
+    border-color: #edf1f4;
+
+    vertical-align: middle;
+}
+
+.gp-production-body table tbody tr:hover td {
+    background: #f5f9fb;
+}
+
+
+/* =========================================================
+   PDF NOTA DE ENVÍO
+   ========================================================= */
+
+.gp-production-pdf-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 2200;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 18px;
+
+    background:
+        rgba(15, 23, 42, 0.64);
+
+    backdrop-filter: blur(2px);
+}
+
+.gp-production-pdf-window {
+    width:
+        min(1100px, 94vw);
+
+    height:
+        min(850px, 92vh);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 28px 70px
+        rgba(15, 23, 42, 0.3);
+}
+
+
+/* HEADER PDF */
+
+.gp-production-pdf-header {
+    min-height: 57px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 9px 13px;
+
+    background: #ffffff;
+
+    border-bottom:
+        1px solid #e1e7ec;
+}
+
+.gp-production-pdf-heading {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gp-production-pdf-heading-icon {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 8px;
+}
+
+.gp-production-pdf-heading
+    > div:last-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-production-pdf-heading span {
+    color:
+        var(--gp-blue, #0e4f84);
+
+    font-size: 8px;
+    font-weight: 800;
+
+    letter-spacing: 0.07em;
+}
+
+.gp-production-pdf-heading strong {
+    overflow: hidden;
+
+    color: #334155;
+
+    font-size: 11.5px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+/* CERRAR */
+
+.gp-production-pdf-close {
+    width: 31px;
+    height: 31px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #b42318;
+
+    background: #fff1f0;
+
+    border:
+        1px solid #efd4d1;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-production-pdf-close:hover {
+    background: #fde5e3;
+}
+
+
+/* VIEWER */
+
+.gp-production-pdf-viewer {
+    flex: 1;
+
+    min-height: 0;
+
+    padding: 8px;
+
+    background: #e9eef2;
+}
+
+
+/* FOOTER PDF */
+
+.gp-production-pdf-footer {
+    min-height: 51px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 8px 13px;
+
+    background: #fafbfc;
+
+    border-top:
+        1px solid #e1e7ec;
+}
+
+.gp-production-pdf-footer
+    > span {
+    color: #718096;
+
+    font-size: 9.5px;
+}
+
+.gp-production-pdf-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.gp-production-pdf-cancel,
+.gp-production-pdf-download {
+    min-height: 31px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 10px;
+
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.gp-production-pdf-cancel {
+    color: #475569;
+
+    background: #ffffff;
+
+    border:
+        1px solid #d5dde4;
+}
+
+.gp-production-pdf-download {
+    color: #ffffff;
+
+    background:
+        var(--gp-blue, #0e4f84);
+
+    border:
+        1px solid
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-production-pdf-download:hover {
+    color: #ffffff;
+
+    background:
+        var(--gp-blue-light, #1769aa);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1000px) {
+    .gp-production-summary {
+        flex-wrap: wrap;
+    }
+
+    .gp-production-summary-item {
+        min-width: 30%;
+    }
+
+    .gp-production-summary-divider {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .gp-production-header {
+        padding: 18px;
+    }
+
+    .gp-production-title {
+        font-size: 19px;
+    }
+
+    .gp-production-header-icon {
+        display: none;
+    }
+
+    .gp-production-summary {
+        margin:
+            14px
+            18px
+            0;
+    }
+
+    .gp-production-summary-item {
+        min-width: 45%;
+    }
+
+    .gp-production-body {
+        padding:
+            17px
+            18px
+            20px;
+    }
+
+    .gp-production-pdf-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-production-pdf-footer-actions {
+        width: 100%;
+    }
+
+    .gp-production-pdf-cancel,
+    .gp-production-pdf-download {
+        flex: 1;
+    }
+}
+
+@media (max-width: 520px) {
+    .gp-production-header {
+        padding: 16px;
+    }
+
+    .gp-production-summary {
+        margin:
+            12px
+            16px
+            0;
+
+        flex-direction: column;
+    }
+
+    .gp-production-summary-item {
+        width: 100%;
+    }
+
+    .gp-production-body {
+        padding: 16px;
+    }
+
+    .gp-production-pdf-overlay {
+        padding: 8px;
+    }
+
+    .gp-production-pdf-window {
+        width: 100%;
+        height: 96vh;
+    }
+
+    .gp-production-pdf-footer-actions {
+        flex-direction: column;
+    }
+
+    .gp-production-pdf-cancel,
+    .gp-production-pdf-download {
+        width: 100%;
+    }
+}

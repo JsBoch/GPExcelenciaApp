@@ -1,53 +1,91 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import {
+    Link,
+    useParams,
+    useNavigate,
+    useLocation,
+} from "react-router-dom";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-bs5";
 import "bootstrap/dist/css/bootstrap.min.css";
 import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
-import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from "reactstrap"; // Importa los componentes de reactstrap
-import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
-//import * as XLSX from 'xlsx';
-import Header from "./Header";
+
+import {
+    Modal,
+    ModalBody,
+    ModalHeader,
+    ModalFooter,
+    Button,
+} from "reactstrap";
+
+import {
+    Save,
+    Search,
+    Calculator,
+    FileSpreadsheet,
+    Download,
+    Upload,
+    Image as ImageIcon,
+    MessageSquareText,
+    BadgeDollarSign,
+} from "lucide-react";
+
+import "../../css/cotizacion-costeo.css";
 
 DataTable.use(DT);
 
 function CotizacionCosteo() {
-    //const fechaActual = new Date().toISOString().split("T")[0];
     const [fechaActual, setFechaActual] = useState("");
+
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation(); // Obtiene la información de la ruta actual
-    const [detalles, setDetalles] = useState([]); // Estado para almacenar los datos del datatable
+    const location = useLocation();
+
+    const [detalles, setDetalles] = useState([]);
     const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
 
-    // Obtén los valores de location.state ANTES de declarar el estado
     const initialObservacionesCliente =
         location.state?.observaciones_cliente || "";
+
     const initialObservacionesCosteo =
         location.state?.observaciones_costeo || "";
 
     const [archivoExcel, setArchivoExcel] = useState(null);
 
-    // Cargar la fecha desde el servidor
+    /* =========================================================
+       FECHA DEL SERVIDOR
+       ========================================================= */
+
     useEffect(() => {
         const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
 
         axios
-            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, { headers })
+            .get(`${import.meta.env.VITE_API_URL}/fecha-servidor`, {
+                headers,
+            })
             .then((res) => {
                 setFechaActual(res.data.fecha);
             })
             .catch(() => {
-                const localDate = new Date().toISOString().split("T")[0];
-                setFechaActual(localDate); // fallback
+                const localDate = new Date()
+                    .toISOString()
+                    .split("T")[0];
+
+                setFechaActual(localDate);
             });
     }, []);
 
-    //Estado de la cotización principal
+    /* =========================================================
+       COTIZACIÓN
+       ========================================================= */
+
     const [cotizacion, setCotizacion] = useState({
         idcotizacion: 0,
         idcotizacionoriginal: 0,
@@ -68,7 +106,10 @@ function CotizacionCosteo() {
         costear: "N",
     });
 
-    //Estado del detalle de la cotización
+    /* =========================================================
+       DETALLE
+       ========================================================= */
+
     const [detalle, setDetalle] = useState({
         unidad_medida: "",
         descripcion: "",
@@ -81,108 +122,157 @@ function CotizacionCosteo() {
         total: 0,
     });
 
-    // Estados para controlar el modal de la imagen
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-    const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+    /* =========================================================
+       MODAL IMAGEN
+       ========================================================= */
 
-    const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
-    //Actualiza el estado de la cotización con el valor de cada campo cuando estos cambian
+    const [isImageModalOpen, setIsImageModalOpen] =
+        useState(false);
+
+    const [selectedImageUrl, setSelectedImageUrl] =
+        useState(null);
+
+    const toggleImageModal = () =>
+        setIsImageModalOpen(!isImageModalOpen);
+
+    /* =========================================================
+       CAMBIOS COTIZACIÓN
+       ========================================================= */
+
     const handleChange = (e) => {
-        setCotizacion({ ...cotizacion, [e.target.name]: e.target.value });
+        setCotizacion({
+            ...cotizacion,
+            [e.target.name]: e.target.value,
+        });
     };
 
-    //Envía los datos al back-end para registrar, en el método store.
+    /* =========================================================
+       GUARDAR
+       ========================================================= */
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
         const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
+
         const formData = new FormData();
 
-        // const dataToSend = {
-        //     ...cotizacion,
-        //     detalles: detalles, // Incluye los detalles aquí
-        // };
-        // Agrega los datos de la cotización al FormData
         for (const key in cotizacion) {
             formData.append(key, cotizacion[key]);
         }
 
-        // Agrega los detalles como un string JSON
         formData.append("detalles", JSON.stringify(detalles));
 
-        // Agrega el archivo Excel si existe
         if (archivoExcel) {
             formData.append("archivo_costeo", archivoExcel);
         }
 
         if (id) {
-            // Editar cotización (usando FormData para enviar archivos)
             axios
-                .post(`/api/costeocotizaciones/${id}?_method=PUT`, formData, {
-                    headers,
-                    "Content-Type": "multipart/form-data",
-                })
+                .post(
+                    `/api/costeocotizaciones/${id}?_method=PUT`,
+                    formData,
+                    {
+                        headers,
+                        "Content-Type": "multipart/form-data",
+                    }
+                )
                 .then((res) => {
-                    alertify.success("Cotización actualizada correctamente");
-                    setCotizacion(res.data); // <-- **Agregar esta línea**
-                    setDetalles(res.data.detalles); // <-- También recargar detalles si el backend los devuelve
+                    alertify.success(
+                        "Cotización actualizada correctamente"
+                    );
+
+                    setCotizacion(res.data);
+                    setDetalles(res.data.detalles);
+
                     navigate("/costeocotizaciones/lista");
                 })
-                .catch((error) => {
-                    //console.error('Error al actualizar la cotización:', error);
-                    alertify.error("Error al actualizar la cotización");
+                .catch(() => {
+                    alertify.error(
+                        "Error al actualizar la cotización"
+                    );
                 });
         } else {
-            // Crear nueva cotización (usando FormData para enviar archivos)
             axios
                 .post("/api/cotizaciones", formData, {
                     headers,
                     "Content-Type": "multipart/form-data",
                 })
-                .then((res) => {
-                    alertify.success("Cotización creada correctamente");
-                    // Si estás navegando inmediatamente, quizás no necesites setear el estado aquí,
-                    // pero si te quedas en la página después de crear, hazlo:
-                    // setCotizacion(res.data); // <-- Agregar si te quedas en la página
-                    // setDetalles(res.data.detalles); // <-- Agregar si te quedas en la página
+                .then(() => {
+                    alertify.success(
+                        "Cotización creada correctamente"
+                    );
+
                     navigate("/cotizaciones/lista");
                 })
                 .catch((error) => {
-                    console.error("Error al crear la cotización:", error);
-                    alertify.error("Error al crear la cotización");
+                    console.error(
+                        "Error al crear la cotización:",
+                        error
+                    );
+
+                    alertify.error(
+                        "Error al crear la cotización"
+                    );
                 });
         }
     };
 
-    //Para cargar el detalle de la cotización
+    /* =========================================================
+       CAMBIOS DETALLE
+       ========================================================= */
+
     const handleDetalleChange = (e) => {
-        setDetalle({ ...detalle, [e.target.name]: e.target.value });
+        setDetalle({
+            ...detalle,
+            [e.target.name]: e.target.value,
+        });
     };
 
-    //Calcular el total del detalle ---
+    /* =========================================================
+       TOTAL DETALLE
+       Se conserva la lógica original
+       ========================================================= */
+
     useEffect(() => {
-        const cantidadNum = parseFloat(detalle.cantidad) || 0; // Convierte a número, si es inválido o vacío, usa 0
-        const precioNum = parseFloat(detalle.precio) || 0;
+        const cantidadNum =
+            parseFloat(detalle.cantidad) || 0;
 
-        const totalCalculado = (cantidadNum * precioNum).toFixed(2); //2 decimales
+        const precioNum =
+            parseFloat(detalle.precio) || 0;
 
-        // Actualiza el estado 'detalle' solo con el nuevo total
-        // Usamos el callback para asegurar que no perdemos otros datos del detalle
+        const totalCalculado = (
+            cantidadNum * precioNum
+        ).toFixed(2);
+
         setDetalle((prevDetalle) => ({
             ...prevDetalle,
             total: totalCalculado,
         }));
-    }, [detalle.precio]); // Se ejecuta cada vez que cantidad o precio cambien
-    // --------------------------------------------------------
-    //Agregar los datos del detalle al DataTable
+    }, [detalle.precio]);
+
+    /* =========================================================
+       ASIGNAR PRECIO
+       ========================================================= */
+
     const handleAddDetalle = () => {
         if (detalleSeleccionado) {
-            const index = detalles.findIndex((d) => d === detalleSeleccionado);
+            const index = detalles.findIndex(
+                (d) => d === detalleSeleccionado
+            );
+
             if (index !== -1) {
                 const nuevosDetalles = [...detalles];
+
                 nuevosDetalles[index] = detalle;
+
                 setDetalles(nuevosDetalles);
             }
+
             setDetalleSeleccionado(null);
         } else {
             setDetalles([...detalles, detalle]);
@@ -201,17 +291,47 @@ function CotizacionCosteo() {
         });
     };
 
-    //Se establecen las columnas que se mostrarán en el DataTable
+    /* =========================================================
+       COLUMNAS
+       ========================================================= */
+
     const columns = [
-        { title: "Unidad Medida", data: "unidad_medida" },
-        { title: "Descripción", data: "descripcion" },
-        { title: "Cantidad", data: "cantidad" },
-        { title: "Ancho", data: "ancho" },
-        { title: "Alto", data: "alto" },
-        { title: "M2", data: "m2" },
-        { title: "Profundidad", data: "profundidad" },
-        { title: "Precio", data: "precio" },
-        { title: "Total", data: "total" },
+        {
+            title: "Unidad Medida",
+            data: "unidad_medida",
+        },
+        {
+            title: "Descripción",
+            data: "descripcion",
+        },
+        {
+            title: "Cantidad",
+            data: "cantidad",
+        },
+        {
+            title: "Ancho",
+            data: "ancho",
+        },
+        {
+            title: "Alto",
+            data: "alto",
+        },
+        {
+            title: "M2",
+            data: "m2",
+        },
+        {
+            title: "Profundidad",
+            data: "profundidad",
+        },
+        {
+            title: "Precio",
+            data: "precio",
+        },
+        {
+            title: "Total",
+            data: "total",
+        },
         {
             title: "Imagen",
             data: "imagen_ruta",
@@ -228,409 +348,775 @@ function CotizacionCosteo() {
         },
     ];
 
-    //agregado 20250406
+    /* =========================================================
+       CARGAR COTIZACIÓN
+       ========================================================= */
+
     useEffect(() => {
         const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
+
         if (id) {
             axios
-                .get(`/api/costeocotizaciones/${id}`, { headers })
+                .get(`/api/costeocotizaciones/${id}`, {
+                    headers,
+                })
                 .then((res) => {
                     const cotizacionData = res.data;
+
                     setCotizacion({
                         ...cotizacionData,
+
                         observaciones_cliente:
-                            cotizacionData.observaciones_cliente || "",
+                            cotizacionData.observaciones_cliente ||
+                            "",
+
                         observaciones_costeo:
-                            cotizacionData.observaciones_costeo || "",
+                            cotizacionData.observaciones_costeo ||
+                            "",
+
                         costeo_observaciones:
-                            cotizacionData.costeo_observaciones || "",
+                            cotizacionData.costeo_observaciones ||
+                            "",
                     });
-                    //Carga detalles desde la cotización existente
-                    setDetalles(cotizacionData.detalles);
-                    //console.log('Datos de detalles:', cotizacionData.detalles); // <--- Aquí
+
+                    setDetalles(
+                        cotizacionData.detalles
+                    );
                 })
                 .catch((error) => {
-                    console.error("Error al obtener la cotización:", error);
-                    alertify.error("Error al obtener la cotización");
+                    console.error(
+                        "Error al obtener la cotización:",
+                        error
+                    );
+
+                    alertify.error(
+                        "Error al obtener la cotización"
+                    );
                 });
         }
     }, [id]);
 
-    //Ejecutan la función handleRowClick cuando se hace clic en una fila del DataTable
+    /* =========================================================
+       SLOTS DATATABLE
+       Se conserva el comportamiento original de clic
+       ========================================================= */
+
     const slots = {
         0: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         1: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         2: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         3: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         4: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         5: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         6: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         7: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
+
         8: (data, row) => (
             <div
                 onClick={() => handleRowClick(row)}
-                style={{ cursor: "pointer" }}
+                className="gp-costeo-cell-click"
             >
                 {data}
             </div>
         ),
     };
 
-    //Carla los valores de la fila seleccionada en el DataTable a los inputs correspondientes del detalle.
+    /* =========================================================
+       SELECCIÓN DE FILA
+       ========================================================= */
+
     const handleRowClick = (rowData) => {
         setDetalleSeleccionado(rowData);
+
         setDetalle({
-            unidad_medida: rowData.unidad_medida || "", // Usar cadena vacía si es null
-            descripcion: rowData.descripcion || "",
-            cantidad: rowData.cantidad || 0, // Usar 0 si es null (si aplica)
-            ancho: rowData.ancho || 0,
-            alto: rowData.alto || 0,
-            m2: rowData.m2 || 0,
-            profundidad: rowData.profundidad || 0,
-            precio: rowData.precio || 0,
-            total: rowData.total || 0,
+            unidad_medida:
+                rowData.unidad_medida || "",
+
+            descripcion:
+                rowData.descripcion || "",
+
+            cantidad:
+                rowData.cantidad || 0,
+
+            ancho:
+                rowData.ancho || 0,
+
+            alto:
+                rowData.alto || 0,
+
+            m2:
+                rowData.m2 || 0,
+
+            profundidad:
+                rowData.profundidad || 0,
+
+            precio:
+                rowData.precio || 0,
+
+            total:
+                rowData.total || 0,
         });
 
         if (rowData.imagen_ruta) {
-            setSelectedImageUrl(`/images_cotizaciones/${rowData.imagen_ruta}`);
+            setSelectedImageUrl(
+                `/images_cotizaciones/${rowData.imagen_ruta}`
+            );
+
             setIsImageModalOpen(true);
         } else {
-            alertify.error("No hay imagen para mostrar");
+            alertify.error(
+                "No hay imagen para mostrar"
+            );
+
             setSelectedImageUrl(null);
-            setIsImageModalOpen(false); // Asegurarse de que el modal esté cerrado si no hay imagen
+            setIsImageModalOpen(false);
         }
     };
 
-    // const handleExportarExcel = () => {
-    //     // Crear una nueva hoja de cálculo
-    //     const libro = XLSX.utils.book_new();
-    //     const nombreHoja = "Detalles Cotización";
+    /* =========================================================
+       EXPORTAR EXCEL
+       ========================================================= */
 
-    //     // Convertir el array de objetos 'detalles' a formato de hoja de cálculo
-    //     const hoja = XLSX.utils.json_to_sheet(detalles);
-
-    //     // Agregar la hoja al libro
-    //     XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
-
-    //     // Generar el archivo Excel y forzar la descarga
-    //     XLSX.writeFile(libro, `cotizacion_${cotizacion.nocotizacion || 'sin_numero'}_detalles.xlsx`);
-    // };
-    /************************************************** */
     const handleExportarExcel = () => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+        const token =
+            localStorage.getItem("token");
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
+
         axios
             .get(`/api/exportar/cotizacion/${id}`, {
                 headers,
                 responseType: "blob",
             })
             .then((response) => {
-                const url = window.URL.createObjectURL(
-                    new Blob([response.data])
-                );
-                const link = document.createElement("a");
+                const url =
+                    window.URL.createObjectURL(
+                        new Blob([response.data])
+                    );
+
+                const link =
+                    document.createElement("a");
+
                 link.href = url;
+
                 link.setAttribute(
                     "download",
                     `cotizacion_${
-                        cotizacion.nocotizacion || "sin_numero"
+                        cotizacion.nocotizacion ||
+                        "sin_numero"
                     }_detalles.xlsx`
                 );
+
                 document.body.appendChild(link);
+
                 link.click();
+
                 document.body.removeChild(link);
+
                 window.URL.revokeObjectURL(url);
             })
             .catch((error) => {
-                //console.error('Error al exportar a Excel:', error);
-                if (error.response && error.response.data instanceof Blob) {
+                if (
+                    error.response &&
+                    error.response.data instanceof Blob
+                ) {
                     const reader = new FileReader();
+
                     reader.onloadend = () => {
                         try {
-                            const errorData = JSON.parse(reader.result);
-                            //console.error('Error del servidor (JSON):', errorData);
+                            const errorData =
+                                JSON.parse(
+                                    reader.result
+                                );
+
                             alertify.error(
                                 errorData.message ||
                                     "Error al exportar el archivo Excel"
                             );
                         } catch (e) {
-                            //console.error('Error al parsear la respuesta JSON:', reader.result);
                             alertify.error(
                                 "Error al exportar el archivo Excel (error desconocido)"
                             );
                         }
                     };
-                    reader.readAsText(error.response.data);
+
+                    reader.readAsText(
+                        error.response.data
+                    );
                 } else {
-                    alertify.error("Error al exportar el archivo Excel");
+                    alertify.error(
+                        "Error al exportar el archivo Excel"
+                    );
                 }
             });
     };
 
     return (
-        <div className="mt-4 px-3 px-md-4">
-            <div className="card shadow p-4">
-                {/* <div className="card-header bg-primary text-white">                    
-                    <h4 className="mb-0">Costeo de Cotización</h4>
-                </div> */}
-                <Header title="Costeo de Cotización" />
-                <div className="card-body">
-                    <form onSubmit={handleSubmit} encType="multipart/form-data">
-                        {/* --- Sección Detalle de Cotización --- */}
-                        <h5 className="mt-4 mb-3 border-bottom pb-2">
-                            Agregar Detalle
-                        </h5>{" "}
-                        {/* Título para la sección */}
-                        {/* --- Sección Observaciones --- */}
-                        <div className="row g-2 mb-3">
-                            <div className="col-md-6">
-                                <label className="form-label fw-bold">
-                                    Observaciones cliente
-                                </label>
-                                <textarea
-                                    rows="3"
-                                    name="observaciones_cliente"
-                                    value={cotizacion.observaciones_cliente}
-                                    onChange={handleChange}
-                                    placeholder="Observaciones para cliente"
-                                    className="form-control form-control-sm"
-                                ></textarea>
-                            </div>
-                            <div className="col-md-6">
-                                <label className="form-label fw-bold">
-                                    Observaciones costeo (Internas)
-                                </label>
-                                <textarea
-                                    rows="3"
-                                    name="observaciones_costeo"
-                                    value={cotizacion.observaciones_costeo}
-                                    onChange={handleChange}
-                                    placeholder="Observaciones internas para costeo"
-                                    className="form-control form-control-sm"
-                                ></textarea>
-                            </div>
+        <div className="gp-module-page gp-costeo-form-page">
+            <div className="gp-module-card gp-costeo-form-card">
+
+                {/* =================================================
+                    ENCABEZADO
+                   ================================================= */}
+
+                <div className="gp-costeo-form-header">
+                    <div>
+                        <div className="gp-module-meta">
+                            MÓDULO · COTIZACIONES
                         </div>
-                        {/* Fila 2: Medidas, Precio, Total y Botón Agregar */}
-                        <div className="row g-2 align-items-end mb-3">
-                            {" "}
-                            {/* align-items-end para alinear el botón */}
-                            <div className="col">
-                                <label className="form-label fw-bold">
-                                    precio
-                                </label>
-                                <input
-                                    type="number"
-                                    name="precio"
-                                    value={detalle.precio} // Muestra el total calculado
-                                    onChange={handleDetalleChange} // Quita el onChange si es de solo lectura
-                                    className="form-control form-control-sm"
-                                    step="0.01"
-                                />
+
+                        <h1 className="gp-costeo-form-title">
+                            Costeo de cotización
+                        </h1>
+
+                        <p className="gp-costeo-form-description">
+                            Asigna precios a los productos,
+                            documenta las observaciones del costeo
+                            y adjunta el archivo final para el
+                            vendedor.
+                        </p>
+                    </div>
+
+                    <div className="gp-costeo-form-header-icon">
+                        <Calculator size={25} />
+                    </div>
+                </div>
+
+                {/* =================================================
+                    RESUMEN COTIZACIÓN
+                   ================================================= */}
+
+                <div className="gp-costeo-form-summary">
+                    <div className="gp-costeo-form-summary-item">
+                        <span>Cotización</span>
+
+                        <strong>
+                            {cotizacion.nocotizacion ||
+                                "—"}
+                        </strong>
+                    </div>
+
+                    <div className="gp-costeo-form-summary-divider" />
+
+                    <div className="gp-costeo-form-summary-item gp-costeo-form-summary-client">
+                        <span>Cliente</span>
+
+                        <strong>
+                            {cotizacion.cliente || "—"}
+                        </strong>
+                    </div>
+
+                    <div className="gp-costeo-form-summary-divider" />
+
+                    <div className="gp-costeo-form-summary-item">
+                        <span>Productos</span>
+
+                        <strong>
+                            {detalles.length}
+                        </strong>
+                    </div>
+                </div>
+
+                <form
+                    onSubmit={handleSubmit}
+                    encType="multipart/form-data"
+                >
+                    <div className="gp-module-body gp-costeo-form-body">
+
+                        {/* =================================================
+                            OBSERVACIONES RECIBIDAS
+                           ================================================= */}
+
+                        <section className="gp-costeo-section">
+                            <div className="gp-costeo-section-title">
+                                <div className="gp-costeo-section-title-icon">
+                                    <MessageSquareText
+                                        size={17}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h2>
+                                        Información para costeo
+                                    </h2>
+
+                                    <p>
+                                        Observaciones recibidas
+                                        con la cotización.
+                                    </p>
+                                </div>
                             </div>
-                            <div className="col-auto">
-                                {" "}
-                                {/* col-auto para que ocupe solo el espacio necesario */}
+
+                            <div className="gp-costeo-form-grid-2">
+                                <div className="gp-costeo-field">
+                                    <label>
+                                        Observaciones cliente
+                                    </label>
+
+                                    <textarea
+                                        rows="3"
+                                        name="observaciones_cliente"
+                                        value={
+                                            cotizacion.observaciones_cliente
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Observaciones para cliente"
+                                    />
+                                </div>
+
+                                <div className="gp-costeo-field">
+                                    <label>
+                                        Observaciones costeo
+                                        <span className="gp-costeo-label-note">
+                                            Internas
+                                        </span>
+                                    </label>
+
+                                    <textarea
+                                        rows="3"
+                                        name="observaciones_costeo"
+                                        value={
+                                            cotizacion.observaciones_costeo
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Observaciones internas para costeo"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* =================================================
+                            ASIGNACIÓN PRECIO
+                           ================================================= */}
+
+                        <section className="gp-costeo-section">
+                            <div className="gp-costeo-section-title">
+                                <div className="gp-costeo-section-title-icon">
+                                    <BadgeDollarSign
+                                        size={18}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h2>
+                                        Asignación de precio
+                                    </h2>
+
+                                    <p>
+                                        Selecciona un producto de
+                                        la tabla y asigna el precio
+                                        correspondiente.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {detalleSeleccionado && (
+                                <div className="gp-costeo-selected-product">
+                                    <div>
+                                        <span>
+                                            Producto seleccionado
+                                        </span>
+
+                                        <strong>
+                                            {detalle.descripcion ||
+                                                "Detalle seleccionado"}
+                                        </strong>
+                                    </div>
+
+                                    <span className="gp-costeo-selected-badge">
+                                        Editando precio
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="gp-costeo-price-row">
+                                <div className="gp-costeo-field gp-costeo-price-field">
+                                    <label htmlFor="precio">
+                                        Precio
+                                    </label>
+
+                                    <div className="gp-costeo-price-input">
+                                        <span>Q</span>
+
+                                        <input
+                                            id="precio"
+                                            type="number"
+                                            name="precio"
+                                            value={
+                                                detalle.precio
+                                            }
+                                            onChange={
+                                                handleDetalleChange
+                                            }
+                                            step="0.01"
+                                        />
+                                    </div>
+                                </div>
+
                                 <button
                                     type="button"
-                                    onClick={handleAddDetalle}
+                                    onClick={
+                                        handleAddDetalle
+                                    }
                                     className={
                                         detalleSeleccionado
-                                            ? "btn btn-primary btn-sm"
-                                            : "btn btn-success btn-sm"
+                                            ? "gp-action-button gp-costeo-assign-button gp-costeo-assign-edit"
+                                            : "gp-action-button gp-costeo-assign-button gp-costeo-assign-new"
                                     }
                                 >
-                                    {detalleSeleccionado
-                                        ? "Asignar Precio"
-                                        : "Asignar Precio"}
+                                    <BadgeDollarSign
+                                        size={16}
+                                    />
+
+                                    Asignar precio
                                 </button>
                             </div>
-                        </div>
-                        {/* --- Tabla de Detalles Agregados --- */}
-                        <h5 className="mt-4 mb-3 border-bottom pb-2">
-                            Detalles Agregados
-                        </h5>
-                        <div className="table-responsive mb-4">
-                            {" "}
-                            {/* Añadido mb-4 */}
-                            <DataTable
-                                data={detalles}
-                                columns={columns}
-                                options={{
-                                    paging: false,
-                                    searching: false,
-                                    info: false, // Oculta "Showing 1 to X of Y entries"
-                                    ordering: true, // Deshabilita el ordenamiento si no lo necesitas
-                                }}
-                                slots={slots}
-                                className="table table-striped table-bordered table-hover table-sm" // Añadido table-hover y table-sm
-                                id="tabla-detalles" // Añade un id por si necesitas referenciarla
-                            >
-                                {/* No es necesario definir thead aquí si usas 'columns' */}
-                                <thead>
-                                    <tr>
-                                        <th>Unidad Medida</th>
-                                        <th>Descripción</th>
-                                        <th>Cantidad</th>
-                                        <th>Ancho</th>
-                                        <th>Alto</th>
-                                        <th>M2</th>
-                                        <th>Profundidad</th>
-                                        <th>Precio</th>
-                                        <th>Total</th>
-                                        <th>Imagen</th>
-                                    </tr>
-                                </thead>
-                            </DataTable>
-                        </div>
-                        <div className="mt-3 mb-3">
-                            <button
-                                type="button"
-                                className="btn btn-success btn-sm"
-                                onClick={handleExportarExcel}
-                            >
-                                Exportar a Excel
-                            </button>
-                        </div>
-                        <div className="mb-3">
-                            <label
-                                htmlFor="archivo_excel"
-                                className="form-label fw-bold"
-                            >
-                                Subir Archivo de Costeo (Excel)
-                            </label>
-                            <input
-                                className="form-control form-control-sm"
-                                type="file"
-                                id="archivo_excel"
-                                accept=".xlsx, .xls" // Acepta solo archivos Excel
-                                onChange={(e) =>
-                                    setArchivoExcel(e.target.files[0])
-                                }
-                            />
-                        </div>
-                        {/* --- Sección Observaciones --- */}
-                        <div className="row g-2 mb-3">
-                            <div className="col-md-6">
-                                <label className="form-label fw-bold">
+                        </section>
+
+                        {/* =================================================
+                            TABLA DETALLES
+                           ================================================= */}
+
+                        <section className="gp-costeo-section">
+                            <div className="gp-costeo-section-title gp-costeo-section-title-between">
+                                <div className="gp-costeo-section-title-left">
+                                    <div className="gp-costeo-section-title-icon">
+                                        <Calculator
+                                            size={17}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <h2>
+                                            Detalle de productos
+                                        </h2>
+
+                                        <p>
+                                            Haz clic sobre un
+                                            producto para
+                                            seleccionarlo y
+                                            consultar su imagen.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <span className="gp-costeo-products-count">
+                                    {detalles.length}{" "}
+                                    {detalles.length === 1
+                                        ? "producto"
+                                        : "productos"}
+                                </span>
+                            </div>
+
+                            <div className="gp-costeo-details-table-wrapper">
+                                <DataTable
+                                    data={detalles}
+                                    columns={columns}
+                                    options={{
+                                        paging: false,
+                                        searching: false,
+                                        info: false,
+                                        ordering: true,
+                                    }}
+                                    slots={slots}
+                                    className="table gp-costeo-details-table"
+                                    id="tabla-detalles"
+                                />
+                            </div>
+                        </section>
+
+                        {/* =================================================
+                            ARCHIVO COSTEO
+                           ================================================= */}
+
+                        <section className="gp-costeo-section">
+                            <div className="gp-costeo-section-title">
+                                <div className="gp-costeo-section-title-icon">
+                                    <FileSpreadsheet
+                                        size={18}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h2>
+                                        Archivo de costeo
+                                    </h2>
+
+                                    <p>
+                                        Exporta los productos a
+                                        Excel y adjunta el archivo
+                                        trabajado antes de guardar.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="gp-costeo-excel-actions">
+                                <button
+                                    type="button"
+                                    className="gp-costeo-excel-download"
+                                    onClick={
+                                        handleExportarExcel
+                                    }
+                                >
+                                    <Download size={17} />
+
+                                    <div>
+                                        <strong>
+                                            Exportar cotización
+                                        </strong>
+
+                                        <span>
+                                            Descargar archivo
+                                            Excel
+                                        </span>
+                                    </div>
+                                </button>
+
+                                <div className="gp-costeo-upload-box">
+                                    <div className="gp-costeo-upload-icon">
+                                        <Upload size={19} />
+                                    </div>
+
+                                    <div className="gp-costeo-upload-content">
+                                        <label htmlFor="archivo_excel">
+                                            Subir archivo de
+                                            costeo
+                                        </label>
+
+                                        <span>
+                                            Formatos permitidos:
+                                            XLSX o XLS
+                                        </span>
+
+                                        <input
+                                            type="file"
+                                            id="archivo_excel"
+                                            accept=".xlsx, .xls"
+                                            onChange={(e) =>
+                                                setArchivoExcel(
+                                                    e.target
+                                                        .files[0]
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {archivoExcel && (
+                                <div className="gp-costeo-file-selected">
+                                    <FileSpreadsheet
+                                        size={15}
+                                    />
+
+                                    <span>
+                                        Archivo seleccionado:
+                                    </span>
+
+                                    <strong>
+                                        {archivoExcel.name}
+                                    </strong>
+                                </div>
+                            )}
+                        </section>
+
+                        {/* =================================================
+                            OBSERVACIONES VENDEDOR
+                           ================================================= */}
+
+                        <section className="gp-costeo-section">
+                            <div className="gp-costeo-section-title">
+                                <div className="gp-costeo-section-title-icon">
+                                    <MessageSquareText
+                                        size={17}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h2>
+                                        Observaciones para vendedor
+                                    </h2>
+
+                                    <p>
+                                        Información resultante
+                                        del proceso de costeo.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="gp-costeo-field gp-costeo-vendor-observation">
+                                <label>
                                     Observaciones vendedor
                                 </label>
+
                                 <textarea
                                     rows="3"
                                     name="costeo_observaciones"
-                                    value={cotizacion.costeo_observaciones}
-                                    onChange={handleChange}
+                                    value={
+                                        cotizacion.costeo_observaciones
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
                                     placeholder="Observaciones para vendedor"
-                                    className="form-control form-control-sm"
-                                ></textarea>
+                                />
                             </div>
-                        </div>
-                        {/* --- Botones de Acción --- */}
-                        <div
-                            className="mt-4 p-3 border rounded shadow-sm bg-light"
-                            style={{ borderColor: "#ddd" }}
+                        </section>
+                    </div>
+
+                    {/* =================================================
+                        FOOTER
+                       ================================================= */}
+
+                    <div className="gp-action-footer gp-costeo-footer">
+                        <Link
+                            to="/costeocotizaciones/lista"
+                            className="gp-action-button gp-action-consult gp-costeo-footer-consult"
                         >
-                            <div className="d-flex flex-wrap gap-2 justify-content-between">
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{ minWidth: "150px" }}
-                                >
-                                    <FaSave /> GUARDAR
-                                </button>
-                                <div>
-                                    <Link
-                                        to="/costeocotizaciones/lista"
-                                        className="btn btn-success d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                        style={{ minWidth: "150px" }}
-                                    >
-                                        <FaSearch /> Consultar
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                            <Search size={17} />
+                            Consultar
+                        </Link>
+
+                        <button
+                            type="submit"
+                            className="gp-action-button gp-action-save gp-costeo-footer-save"
+                        >
+                            <Save size={17} />
+                            Guardar costeo
+                        </button>
+                    </div>
+                </form>
             </div>
-            {/* Modal para mostrar la imagen */}
+
+            {/* =================================================
+                MODAL IMAGEN
+               ================================================= */}
+
             <Modal
                 isOpen={isImageModalOpen}
                 toggle={toggleImageModal}
                 centered
                 size="lg"
+                className="gp-costeo-image-modal"
+                contentClassName="gp-costeo-image-modal-content"
             >
-                <ModalHeader toggle={toggleImageModal}>
-                    Imagen del Detalle
+                <ModalHeader
+                    toggle={toggleImageModal}
+                    className="gp-costeo-image-modal-header"
+                >
+                    <div className="gp-costeo-image-title">
+                        <ImageIcon size={19} />
+
+                        <div>
+                            <span>
+                                DETALLE DE COTIZACIÓN
+                            </span>
+
+                            <strong>
+                                Imagen del producto
+                            </strong>
+                        </div>
+                    </div>
                 </ModalHeader>
-                <ModalBody>
+
+                <ModalBody className="gp-costeo-image-modal-body">
                     {selectedImageUrl ? (
                         <img
                             src={selectedImageUrl}
                             alt="Imagen del Detalle"
-                            style={{ maxWidth: "100%", height: "auto" }}
+                            className="gp-costeo-detail-image"
                         />
                     ) : (
-                        <p>Este detalle no tiene una imagen asociada.</p>
+                        <div className="gp-costeo-no-image">
+                            <ImageIcon size={34} />
+
+                            <span>
+                                Este detalle no tiene una
+                                imagen asociada.
+                            </span>
+                        </div>
                     )}
                 </ModalBody>
-                <ModalFooter>
-                    <Button color="secondary" onClick={toggleImageModal}>
+
+                <ModalFooter className="gp-costeo-image-modal-footer">
+                    <Button
+                        color="secondary"
+                        size="sm"
+                        onClick={toggleImageModal}
+                    >
                         Cerrar
                     </Button>
                 </ModalFooter>

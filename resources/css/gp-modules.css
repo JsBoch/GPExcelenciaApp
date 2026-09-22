@@ -1,0 +1,2041 @@
+/* =========================================================
+   GP EXCELENCIA
+   SISTEMA VISUAL GENERAL PARA MÓDULOS
+========================================================= */
+
+:root {
+    --gp-blue: #0e4f84;
+    --gp-blue-light: #1769aa;
+    --gp-blue-soft: #edf5fb;
+
+    --gp-green: #39b54a;
+    --gp-green-soft: #eef9f0;
+
+    --gp-yellow: #fdb515;
+    --gp-yellow-soft: #fff8e7;
+
+    --gp-red: #dc3545;
+    --gp-red-soft: #fff1f2;
+
+    --gp-dark: #0f172a;
+    --gp-text: #334155;
+
+    --gp-muted: #64748b;
+    --gp-muted-light: #94a3b8;
+
+    --gp-border: #dfe6ec;
+    --gp-border-light: #edf1f5;
+
+    --gp-bg: #f5f7fa;
+    --gp-section-bg: #f8fafc;
+
+    --gp-white: #ffffff;
+}
+
+
+/* =========================================================
+   CONTENEDOR GENERAL DEL MÓDULO
+========================================================= */
+
+.gp-module-page {
+    width: 100%;
+    max-width: 1640px;
+
+    margin: 0 auto;
+
+    padding:
+        26px
+        clamp(18px, 3vw, 42px)
+        42px;
+
+    color: var(--gp-text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   TARJETA PRINCIPAL
+========================================================= */
+
+.gp-module-card {
+    width: 100%;
+
+    position: relative;
+
+    overflow: visible;
+
+    padding: 0;
+
+    background:
+        var(--gp-white);
+
+    border:
+        1px solid
+        var(--gp-border-light);
+
+    border-radius:
+        18px;
+
+    box-shadow:
+        0 8px 30px
+        rgba(15, 23, 42, 0.045);
+}
+
+
+.gp-module-card > .card-body,
+.gp-module-body {
+    padding:
+        28px
+        30px
+        30px;
+}
+
+
+/* =========================================================
+   ENCABEZADO INTERNO DE MÓDULO
+========================================================= */
+
+.erp-meta-header,
+.gp-module-meta {
+    position: relative;
+
+    min-height: 62px;
+
+    margin-bottom:
+        27px !important;
+
+    padding:
+        0
+        0
+        18px;
+
+    border-bottom:
+        1px solid
+        var(--gp-border-light);
+}
+
+
+.erp-meta-header::after,
+.gp-module-meta::after {
+    content: "";
+
+    width: 130px;
+    height: 3px;
+
+    position: absolute;
+
+    left: 0;
+    bottom: -1px;
+
+    border-radius:
+        10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gp-blue) 0%,
+            var(--gp-blue) 54%,
+            var(--gp-green) 54%,
+            var(--gp-green) 80%,
+            var(--gp-yellow) 80%,
+            var(--gp-yellow) 100%
+        );
+}
+
+
+/* =========================================================
+   BADGE DE MÓDULO
+========================================================= */
+
+.erp-badge,
+.gp-module-badge {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    margin-bottom:
+        6px;
+
+    padding:
+        6px
+        10px;
+
+    border-radius:
+        7px;
+
+    background:
+        rgba(14, 79, 132, 0.075) !important;
+
+    color:
+        var(--gp-blue) !important;
+
+    font-size:
+        9px;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        0.07em;
+
+    text-transform:
+        uppercase;
+}
+
+
+/* =========================================================
+   TEXTO AUXILIAR
+========================================================= */
+
+.gp-module-card .text-muted,
+.gp-module-page .text-muted {
+    color:
+        var(--gp-muted-light) !important;
+}
+
+
+.gp-module-card .small,
+.gp-module-page .small {
+    font-size:
+        10px;
+}
+
+
+/* =========================================================
+   SECCIONES
+========================================================= */
+
+.form-section,
+.erp-form-section,
+.gp-form-section {
+    position: relative;
+
+    margin-bottom:
+        22px;
+
+    padding:
+        20px
+        22px;
+
+    border:
+        1px solid
+        #e4eaf0;
+
+    border-radius:
+        13px;
+
+    background:
+        #fbfcfd;
+
+    box-shadow:
+        0 2px 7px
+        rgba(15, 23, 42, 0.018);
+}
+
+
+/* =========================================================
+   FIELDSET
+========================================================= */
+
+.gp-module-card fieldset {
+    margin-bottom:
+        22px;
+
+    padding:
+        20px
+        22px;
+
+    border:
+        1px solid
+        #e4eaf0 !important;
+
+    border-radius:
+        13px;
+
+    background:
+        #fbfcfd;
+}
+
+
+.gp-module-card legend {
+    float:
+        none;
+
+    width:
+        auto;
+
+    margin:
+        0
+        0
+        18px;
+
+    padding:
+        0;
+
+    color:
+        #1e293b;
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+}
+
+
+/* =========================================================
+   TÍTULOS DE SECCIÓN
+========================================================= */
+
+.erp-section-title,
+.form-section-title,
+.gp-section-title {
+    min-height:
+        31px;
+
+    position:
+        relative;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    margin:
+        -4px
+        -5px
+        18px;
+
+    padding:
+        7px
+        12px;
+
+    border-radius:
+        7px;
+
+    background:
+        rgba(14, 79, 132, 0.055);
+
+    color:
+        var(--gp-blue);
+
+    font-size:
+        12px;
+
+    font-weight:
+        750;
+}
+
+
+.erp-section-title::before,
+.form-section-title::before,
+.gp-section-title::before {
+    content:
+        "";
+
+    width:
+        3px;
+
+    position:
+        absolute;
+
+    left:
+        0;
+
+    top:
+        6px;
+
+    bottom:
+        6px;
+
+    border-radius:
+        5px;
+
+    background:
+        var(--gp-green);
+}
+
+
+/* =========================================================
+   SUBTÍTULOS
+========================================================= */
+
+.erp-subsection-title,
+.gp-subsection-title {
+    position:
+        relative;
+
+    margin:
+        26px
+        0
+        14px !important;
+
+    padding-left:
+        11px;
+
+    color:
+        #1e293b;
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+}
+
+
+.erp-subsection-title::before,
+.gp-subsection-title::before {
+    content:
+        "";
+
+    width:
+        4px;
+
+    position:
+        absolute;
+
+    left:
+        0;
+
+    top:
+        1px;
+
+    bottom:
+        1px;
+
+    border-radius:
+        8px;
+
+    background:
+        var(--gp-green);
+}
+
+
+/* =========================================================
+   LABELS
+========================================================= */
+
+.gp-module-card .form-label {
+    margin-bottom:
+        5px;
+
+    color:
+        #475569;
+
+    font-size:
+        11px;
+
+    font-weight:
+        650;
+}
+
+
+/* =========================================================
+   INPUTS / SELECTS / TEXTAREAS
+========================================================= */
+
+.gp-module-card .form-control,
+.gp-module-card .form-select {
+    min-height:
+        38px;
+
+    padding:
+        7px
+        10px;
+
+    border:
+        1px solid
+        #dbe2e8;
+
+    border-radius:
+        8px;
+
+    background:
+        #ffffff;
+
+    color:
+        #334155;
+
+    font-size:
+        12px;
+
+    box-shadow:
+        none;
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease,
+        background-color .18s ease;
+}
+
+
+.gp-module-card textarea.form-control {
+    min-height:
+        unset;
+
+    resize:
+        vertical;
+
+    line-height:
+        1.45;
+}
+
+
+.gp-module-card .form-control:hover,
+.gp-module-card .form-select:hover {
+    border-color:
+        #c4d0da;
+}
+
+
+.gp-module-card .form-control:focus,
+.gp-module-card .form-select:focus {
+    border-color:
+        var(--gp-blue);
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.075);
+}
+
+
+/* =========================================================
+   PLACEHOLDER
+========================================================= */
+
+.gp-module-card
+.form-control::placeholder {
+    color:
+        #a8b3c1;
+
+    opacity:
+        1;
+}
+
+
+/* =========================================================
+   READONLY
+========================================================= */
+
+.gp-module-card
+.form-control[readonly] {
+    background:
+        #f4f7f9;
+
+    color:
+        #64748b;
+
+    cursor:
+        default;
+}
+
+
+/* =========================================================
+   CAMPOS OBLIGATORIOS
+========================================================= */
+
+.gp-module-card
+.campo-obligatorio-fondo {
+    background:
+        #fffdf7;
+
+    border-color:
+        #e9dcae;
+}
+
+
+.gp-module-card
+.campo-obligatorio-fondo:focus {
+    background:
+        #ffffff;
+
+    border-color:
+        var(--gp-blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.075);
+}
+
+
+/* =========================================================
+   REACT SELECT
+========================================================= */
+
+.gp-module-card
+.react-select-erp {
+    font-size:
+        12px;
+}
+
+
+.gp-module-card
+.react-select-erp
+div[class*="-control"] {
+    min-height:
+        38px;
+
+    border-color:
+        #dbe2e8;
+
+    border-radius:
+        8px;
+
+    box-shadow:
+        none;
+
+    transition:
+        .18s ease;
+}
+
+
+.gp-module-card
+.react-select-erp
+div[class*="-control"]:hover {
+    border-color:
+        #cbd5e1;
+}
+
+
+.gp-module-card
+.react-select-erp
+div[class*="-control"]:focus-within {
+    border-color:
+        var(--gp-blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.075);
+}
+
+
+.gp-module-card
+.react-select-erp
+div[class*="-menu"] {
+    z-index:
+        3000;
+
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        #e2e8f0;
+
+    border-radius:
+        9px;
+
+    box-shadow:
+        0 12px 30px
+        rgba(15, 23, 42, 0.12);
+}
+
+
+/* =========================================================
+   BOTÓN PEQUEÑO +
+========================================================= */
+
+.erp-btn-add,
+.gp-btn-add {
+    width:
+        38px;
+
+    height:
+        38px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        0;
+
+    border:
+        1px solid
+        rgba(14, 79, 132, 0.18);
+
+    border-radius:
+        8px;
+
+    background:
+        rgba(14, 79, 132, 0.065);
+
+    color:
+        var(--gp-blue);
+
+    cursor:
+        pointer;
+
+    transition:
+        .18s ease;
+}
+
+
+.erp-btn-add:hover,
+.gp-btn-add:hover {
+    border-color:
+        var(--gp-blue);
+
+    background:
+        var(--gp-blue);
+
+    color:
+        #ffffff;
+
+    transform:
+        translateY(-1px);
+}
+
+
+/* =========================================================
+   LINKS DE ACCIÓN
+========================================================= */
+
+.erp-small-link-btn,
+.gp-small-link {
+    margin-top:
+        5px;
+
+    color:
+        var(--gp-blue) !important;
+
+    font-size:
+        10px !important;
+
+    font-weight:
+        600;
+
+    text-decoration:
+        none !important;
+}
+
+
+.erp-small-link-btn:hover,
+.gp-small-link:hover {
+    color:
+        var(--gp-blue-light) !important;
+
+    text-decoration:
+        underline !important;
+}
+
+
+/* =========================================================
+   TOOLBAR INTERNA
+========================================================= */
+
+.gp-module-toolbar,
+.detalle-toolbar {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        20px;
+
+    padding:
+        11px
+        13px;
+
+    border:
+        1px solid
+        #dde5ec;
+
+    border-radius:
+        10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f4f8fb,
+            #f8fafc
+        );
+}
+
+
+/* =========================================================
+   BOTÓN PRIMARIO
+========================================================= */
+
+.erp-btn-primary,
+.gp-btn-primary {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        6px;
+
+    min-height:
+        36px;
+
+    padding:
+        7px
+        13px;
+
+    border:
+        1px solid
+        var(--gp-blue) !important;
+
+    border-radius:
+        8px !important;
+
+    background:
+        var(--gp-blue) !important;
+
+    color:
+        #ffffff !important;
+
+    font-size:
+        10px !important;
+
+    font-weight:
+        650;
+
+    transition:
+        .18s ease;
+}
+
+
+.erp-btn-primary:hover,
+.gp-btn-primary:hover {
+    border-color:
+        #0b416d !important;
+
+    background:
+        #0b416d !important;
+
+    color:
+        #ffffff !important;
+
+    transform:
+        translateY(-1px);
+}
+
+
+/* =========================================================
+   BOTÓN PELIGRO
+========================================================= */
+
+.erp-btn-danger,
+.gp-btn-danger {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        6px;
+
+    min-height:
+        36px;
+
+    padding:
+        7px
+        13px;
+
+    border:
+        1px solid
+        rgba(220, 53, 69, 0.25) !important;
+
+    border-radius:
+        8px !important;
+
+    background:
+        rgba(220, 53, 69, 0.06) !important;
+
+    color:
+        #c93645 !important;
+
+    font-size:
+        10px !important;
+
+    font-weight:
+        650;
+
+    transition:
+        .18s ease;
+}
+
+
+.erp-btn-danger:hover,
+.gp-btn-danger:hover {
+    border-color:
+        var(--gp-red) !important;
+
+    background:
+        var(--gp-red) !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* =========================================================
+   BOTONES DE SOLO ICONO
+========================================================= */
+
+.erp-icon-action,
+.gp-icon-action {
+    width:
+        38px;
+
+    height:
+        38px;
+
+    position:
+        relative;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex-shrink:
+        0;
+
+    padding:
+        0;
+
+    border-radius:
+        9px;
+
+    font-size:
+        15px;
+
+    cursor:
+        pointer;
+
+    transition:
+        transform .18s ease,
+        background-color .18s ease,
+        border-color .18s ease,
+        color .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.erp-icon-action:hover,
+.gp-icon-action:hover {
+    transform:
+        translateY(-2px);
+}
+
+
+/* AGREGAR */
+
+.erp-icon-action-add,
+.gp-icon-action-add {
+    border:
+        1px solid
+        rgba(57, 181, 74, 0.32);
+
+    background:
+        rgba(57, 181, 74, 0.09);
+
+    color:
+        #29923a;
+}
+
+
+.erp-icon-action-add:hover,
+.gp-icon-action-add:hover {
+    border-color:
+        var(--gp-green);
+
+    background:
+        var(--gp-green);
+
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 6px 14px
+        rgba(57, 181, 74, 0.20);
+}
+
+
+/* ELIMINAR */
+
+.erp-icon-action-remove,
+.gp-icon-action-remove {
+    border:
+        1px solid
+        rgba(220, 53, 69, 0.25);
+
+    background:
+        rgba(220, 53, 69, 0.065);
+
+    color:
+        #c93645;
+}
+
+
+.erp-icon-action-remove:hover,
+.gp-icon-action-remove:hover {
+    border-color:
+        var(--gp-red);
+
+    background:
+        var(--gp-red);
+
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 6px 14px
+        rgba(220, 53, 69, 0.17);
+}
+
+
+/* =========================================================
+   TOOLTIP DE ICONOS
+========================================================= */
+
+.erp-icon-action::after,
+.gp-icon-action::after {
+    content:
+        attr(data-tooltip);
+
+    position:
+        absolute;
+
+    right:
+        calc(100% + 10px);
+
+    top:
+        50%;
+
+    z-index:
+        4000;
+
+    transform:
+        translateY(-50%)
+        translateX(4px);
+
+    padding:
+        6px
+        9px;
+
+    border-radius:
+        6px;
+
+    background:
+        #0f172a;
+
+    color:
+        #ffffff;
+
+    font-size:
+        9px;
+
+    font-weight:
+        600;
+
+    white-space:
+        nowrap;
+
+    pointer-events:
+        none;
+
+    opacity:
+        0;
+
+    visibility:
+        hidden;
+
+    transition:
+        opacity .16s ease,
+        transform .16s ease,
+        visibility .16s ease;
+
+    box-shadow:
+        0 5px 15px
+        rgba(15, 23, 42, 0.18);
+}
+
+
+.erp-icon-action:hover::after,
+.gp-icon-action:hover::after {
+    opacity:
+        1;
+
+    visibility:
+        visible;
+
+    transform:
+        translateY(-50%)
+        translateX(0);
+}
+
+
+/* =========================================================
+   MATERIAL REACT TABLE
+========================================================= */
+
+.gp-module-card
+.MuiPaper-root {
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        #dce4eb !important;
+
+    border-radius:
+        11px !important;
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 5px 16px
+        rgba(15, 23, 42, 0.045) !important;
+}
+
+
+.gp-module-card
+.MuiTableHead-root
+.MuiTableCell-root {
+    background:
+        #eef3f7 !important;
+
+    color:
+        #334155 !important;
+
+    border-bottom:
+        1px solid
+        #dce4eb !important;
+
+    font-family:
+        inherit !important;
+
+    font-size:
+        10px !important;
+
+    font-weight:
+        700 !important;
+
+    letter-spacing:
+        .035em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.gp-module-card
+.MuiTableBody-root
+.MuiTableCell-root {
+    color:
+        #475569;
+
+    border-bottom:
+        1px solid
+        #eef2f5;
+
+    font-family:
+        inherit;
+
+    font-size:
+        11px;
+}
+
+
+.gp-module-card
+.MuiTableRow-root:hover
+.MuiTableCell-root {
+    background:
+        #f8fbfd;
+}
+
+
+/* =========================================================
+   RESUMEN / TOTALES
+========================================================= */
+
+.erp-summary-box,
+.gp-summary-box {
+    min-width:
+        220px;
+
+    padding:
+        12px
+        14px;
+
+    border:
+        1px solid
+        #dce4eb;
+
+    border-radius:
+        11px;
+
+    background:
+        #f5f8fb;
+}
+
+
+.erp-summary-box label,
+.gp-summary-box label {
+    display:
+        block;
+
+    margin-bottom:
+        5px;
+
+    color:
+        #64748b;
+
+    font-size:
+        9px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        .04em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.erp-summary-box input,
+.gp-summary-box input {
+    width:
+        100%;
+
+    padding:
+        0;
+
+    border:
+        none;
+
+    outline:
+        none;
+
+    background:
+        transparent;
+
+    color:
+        #1e293b;
+
+    font-size:
+        17px;
+
+    font-weight:
+        750;
+}
+
+
+/* TOTAL PRINCIPAL */
+
+.erp-summary-box-main,
+.gp-summary-box-main {
+    background:
+        linear-gradient(
+            135deg,
+            var(--gp-blue),
+            var(--gp-blue-light)
+        );
+
+    border:
+        none;
+
+    box-shadow:
+        0 7px 18px
+        rgba(14, 79, 132, 0.13);
+}
+
+
+.erp-summary-box-main label,
+.gp-summary-box-main label {
+    color:
+        #bfdbfe;
+}
+
+
+.erp-summary-box-main input,
+.gp-summary-box-main input {
+    color:
+        #ffffff !important;
+}
+
+
+/* =========================================================
+   TARJETA SECUNDARIA
+========================================================= */
+
+.erp-secondary-card,
+.gp-secondary-card,
+.erp-discount-card {
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        #dfe6ec !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        #f8fafc !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* =========================================================
+   BARRA DE ACCIONES INFERIOR
+========================================================= */
+
+.erp-footer,
+.gp-action-footer {
+    position:
+        sticky;
+
+    bottom:
+        0;
+
+    z-index:
+        15;
+
+    margin-top:
+        26px !important;
+
+    padding:
+        12px !important;
+
+    border:
+        1px solid
+        #e1e7ed !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        rgba(248, 250, 252, .97) !important;
+
+    box-shadow:
+        0 -4px 18px
+        rgba(15, 23, 42, .035) !important;
+
+    backdrop-filter:
+        blur(8px);
+}
+
+
+/* =========================================================
+   ACTION TOOLBAR
+========================================================= */
+
+.action-toolbar,
+.gp-action-toolbar {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        10px;
+}
+
+
+/* =========================================================
+   BOTONES ACCIÓN
+========================================================= */
+
+.btn-action,
+.gp-action-button {
+    min-height:
+        42px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        7px;
+
+    padding:
+        8px
+        16px;
+
+    border:
+        1px solid
+        transparent;
+
+    border-radius:
+        9px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        750;
+
+    letter-spacing:
+        .04em;
+
+    text-decoration:
+        none;
+
+    cursor:
+        pointer;
+
+    transition:
+        transform .18s ease,
+        background-color .18s ease,
+        border-color .18s ease,
+        color .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.btn-action:hover,
+.gp-action-button:hover {
+    transform:
+        translateY(-1px);
+}
+
+
+/* GUARDAR */
+
+.btn-save,
+.gp-action-save {
+    background:
+        linear-gradient(
+            135deg,
+            var(--gp-blue),
+            var(--gp-blue-light)
+        );
+
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 5px 13px
+        rgba(14, 79, 132, 0.14);
+}
+
+
+.btn-save:hover,
+.gp-action-save:hover {
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 7px 17px
+        rgba(14, 79, 132, 0.20);
+}
+
+
+/* LIMPIAR */
+
+.btn-clean,
+.gp-action-clean {
+    border-color:
+        #dbe2e8;
+
+    background:
+        #ffffff;
+
+    color:
+        #64748b;
+}
+
+
+.btn-clean:hover,
+.gp-action-clean:hover {
+    border-color:
+        #cbd5e1;
+
+    background:
+        #f8fafc;
+
+    color:
+        #334155;
+}
+
+
+/* CONSULTAR */
+
+.btn-consult,
+.gp-action-consult {
+    border-color:
+        rgba(57, 181, 74, 0.22);
+
+    background:
+        rgba(57, 181, 74, 0.065);
+
+    color:
+        #248334;
+}
+
+
+.btn-consult:hover,
+.gp-action-consult:hover {
+    border-color:
+        var(--gp-green);
+
+    background:
+        var(--gp-green);
+
+    color:
+        #ffffff;
+}
+
+
+/* =========================================================
+   MODALES
+========================================================= */
+
+.modal-content {
+    overflow:
+        hidden;
+
+    border:
+        none !important;
+
+    border-radius:
+        15px !important;
+
+    box-shadow:
+        0 25px 60px
+        rgba(15, 23, 42, .20);
+}
+
+
+.modal-header {
+    min-height:
+        58px;
+
+    padding:
+        14px
+        18px !important;
+
+    border-bottom:
+        1px solid
+        #e8edf2 !important;
+
+    background:
+        #ffffff;
+}
+
+
+.modal-title {
+    color:
+        #1e293b;
+
+    font-size:
+        14px;
+
+    font-weight:
+        700;
+}
+
+
+.modal-footer {
+    border-top:
+        1px solid
+        #e8edf2 !important;
+
+    background:
+        #f8fafc;
+}
+
+
+/* =========================================================
+   SCROLL INTERNO
+========================================================= */
+
+.gp-module-card
+div[style*="overflowY"] {
+    scrollbar-width:
+        thin;
+
+    scrollbar-color:
+        #cbd5e1
+        transparent;
+}
+
+
+.gp-module-card
+div[style*="overflowY"]::-webkit-scrollbar {
+    width:
+        6px;
+
+    height:
+        6px;
+}
+
+
+.gp-module-card
+div[style*="overflowY"]::-webkit-scrollbar-thumb {
+    background:
+        #cbd5e1;
+
+    border-radius:
+        20px;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .gp-module-page {
+        padding:
+            22px
+            22px
+            36px;
+    }
+
+
+    .gp-module-card > .card-body,
+    .gp-module-body {
+        padding:
+            24px;
+    }
+
+
+    .gp-module-toolbar,
+    .detalle-toolbar {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+        gap:
+            8px;
+    }
+
+}
+
+
+/* =========================================================
+   MÓVIL
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .gp-module-page {
+        padding:
+            14px
+            10px
+            28px;
+    }
+
+
+    .gp-module-card {
+        border-radius:
+            13px;
+    }
+
+
+    .gp-module-card > .card-body,
+    .gp-module-body {
+        padding:
+            17px
+            14px;
+    }
+
+
+    .erp-meta-header,
+    .gp-module-meta {
+        align-items:
+            flex-start !important;
+
+        flex-direction:
+            column;
+
+        gap:
+            8px;
+    }
+
+
+    .erp-meta-header
+    .text-end {
+        text-align:
+            left !important;
+    }
+
+
+    .erp-summary-box,
+    .gp-summary-box {
+        width:
+            100%;
+
+        min-width:
+            0;
+    }
+
+
+    .action-toolbar,
+    .gp-action-toolbar {
+        flex-direction:
+            column;
+    }
+
+
+    .btn-action,
+    .gp-action-button {
+        width:
+            100%;
+    }
+
+
+    .erp-footer,
+    .gp-action-footer {
+        position:
+            static;
+    }
+
+}
+
+
+/* =========================================================
+   PANTALLAS PEQUEÑAS
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .gp-module-card > .card-body,
+    .gp-module-body {
+        padding:
+            14px
+            11px;
+    }
+
+}
+
+
+/* =========================================================
+   GP EXCELENCIA
+   AJUSTE GLOBAL DE LEGIBILIDAD
+   ========================================================= */
+
+/*
+ * Las primeras versiones premium del rediseño quedaron
+ * demasiado compactas para uso diario.
+ *
+ * Este bloque unifica la escala tipográfica de todos los
+ * módulos que utilizan .gp-module-page.
+ */
+
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+.gp-module-page {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+
+/* =========================================================
+   TÍTULO PRINCIPAL
+   ========================================================= */
+
+.gp-module-page h1 {
+    font-size: 22px !important;
+    line-height: 1.25 !important;
+}
+
+
+/* =========================================================
+   SUBTÍTULOS / TÍTULOS DE SECCIÓN
+   ========================================================= */
+
+.gp-module-page h2 {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+}
+
+.gp-module-page h3 {
+    font-size: 13px !important;
+}
+
+
+/* =========================================================
+   META SUPERIOR
+   Ejemplo:
+   CONTABILIDAD · FACTURACIÓN
+   ========================================================= */
+
+.gp-module-page .gp-module-meta {
+    font-size: 10.5px !important;
+    letter-spacing: 0.05em;
+}
+
+
+/* =========================================================
+   DESCRIPCIÓN PRINCIPAL
+   ========================================================= */
+
+.gp-module-page h1 + p,
+.gp-module-page [class*="-heading"] p {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+}
+
+
+/* =========================================================
+   LABELS
+   ========================================================= */
+
+.gp-module-page label {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+}
+
+
+/* =========================================================
+   INPUTS / SELECTS / TEXTAREAS
+   ========================================================= */
+
+.gp-module-page input,
+.gp-module-page select,
+.gp-module-page textarea {
+    font-size: 13px !important;
+}
+
+
+/* Placeholder */
+
+.gp-module-page input::placeholder,
+.gp-module-page textarea::placeholder {
+    font-size: 12px !important;
+}
+
+
+/* =========================================================
+   BOTONES
+   ========================================================= */
+
+.gp-module-page button {
+    font-size: 12px !important;
+}
+
+
+/* =========================================================
+   TABLAS HTML
+   ========================================================= */
+
+.gp-module-page table thead th {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+}
+
+.gp-module-page table tbody td {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+}
+
+.gp-module-page table tfoot td {
+    font-size: 12px !important;
+}
+
+
+/* =========================================================
+   MATERIAL UI
+   ========================================================= */
+
+.gp-module-page .MuiInputBase-input {
+    font-size: 13px !important;
+}
+
+.gp-module-page .MuiInputLabel-root {
+    font-size: 12px !important;
+}
+
+.gp-module-page .MuiMenuItem-root {
+    font-size: 13px !important;
+}
+
+.gp-module-page .MuiButton-root {
+    font-size: 12px !important;
+}
+
+.gp-module-page .MuiFormHelperText-root {
+    font-size: 11px !important;
+}
+
+
+/* =========================================================
+   AUTOCOMPLETE
+   ========================================================= */
+
+.gp-module-page .MuiAutocomplete-input {
+    font-size: 13px !important;
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-option {
+    font-size: 13px !important;
+}
+
+
+/* =========================================================
+   MATERIAL REACT TABLE
+   ========================================================= */
+
+.gp-module-page .MuiTableHead-root .MuiTableCell-root {
+    font-size: 11.5px !important;
+}
+
+.gp-module-page .MuiTableBody-root .MuiTableCell-root {
+    font-size: 12px !important;
+}
+
+.gp-module-page .MuiTablePagination-root,
+.gp-module-page .MuiTablePagination-selectLabel,
+.gp-module-page .MuiTablePagination-displayedRows {
+    font-size: 12px !important;
+}
+
+
+/* =========================================================
+   TEXTO AUXILIAR
+   ========================================================= */
+
+/*
+ * Muchas de nuestras cabeceras internas tienen un:
+ *
+ * <strong>Título</strong>
+ * <span>Descripción</span>
+ */
+
+.gp-module-page [class*="-section-header"] strong,
+.gp-module-page [class*="-filter-header"] strong,
+.gp-module-page [class*="-results-header"] strong {
+    font-size: 13px !important;
+}
+
+.gp-module-page [class*="-section-header"] span,
+.gp-module-page [class*="-filter-header"] > span,
+.gp-module-page [class*="-results-header"] p {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+}
+
+
+/* =========================================================
+   TEXTOS DE AYUDA
+   ========================================================= */
+
+.gp-module-page [class*="-help"],
+.gp-module-page [class*="-note"] {
+    font-size: 11px !important;
+}
+
+
+/* =========================================================
+   BADGES
+   No deben crecer tanto como el texto normal.
+   ========================================================= */
+
+.gp-module-page [class*="-status"],
+.gp-module-page [class*="-badge"],
+.gp-module-page [class*="-type"],
+.gp-module-page [class*="-mode"] {
+    font-size: 10px !important;
+}
+
+
+/* =========================================================
+   CONTADORES / PILLS
+   ========================================================= */
+
+.gp-module-page [class*="-counter"] span,
+.gp-module-page [class*="-selected-info"] span {
+    font-size: 10px !important;
+}
+
+.gp-module-page [class*="-counter"] strong {
+    font-size: 18px !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 650px) {
+    .gp-module-page {
+        font-size: 13px;
+    }
+
+    .gp-module-page h1 {
+        font-size: 20px !important;
+    }
+
+    .gp-module-page input,
+    .gp-module-page select,
+    .gp-module-page textarea,
+    .gp-module-page .MuiInputBase-input {
+        /*
+         * 16px evita además el zoom automático
+         * de algunos navegadores móviles al enfocar.
+         */
+        font-size: 16px !important;
+    }
+
+    .gp-module-page button,
+    .gp-module-page .MuiButton-root {
+        font-size: 13px !important;
+    }
+}

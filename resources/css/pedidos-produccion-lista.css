@@ -1,0 +1,1133 @@
+/* =========================================================
+   LISTA PEDIDOS DE PRODUCCIÓN
+   ========================================================= */
+
+.gp-pedidos-list-page {
+    width: 100%;
+}
+
+.gp-pedidos-list-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-pedidos-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 22px 24px 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid #e7edf3;
+}
+
+.gp-pedidos-list-header h1 {
+    margin: 5px 0 4px;
+
+    color: #0f172a;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.gp-pedidos-list-header p {
+    max-width: 720px;
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.gp-pedidos-list-header-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background:
+        rgba(14, 79, 132, 0.08);
+
+    border:
+        1px solid
+        rgba(14, 79, 132, 0.12);
+
+    border-radius: 12px;
+}
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.gp-pedidos-filter-section {
+    margin: 17px 24px 0;
+
+    padding: 11px 12px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e1e7ec;
+    border-radius: 9px;
+}
+
+.gp-pedidos-filter-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 8px;
+}
+
+.gp-pedidos-filter-title
+    > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    color: #334155;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-pedidos-filter-title svg {
+    color:
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-pedidos-count {
+    padding: 3px 8px;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.gp-pedidos-filters {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.gp-pedidos-field {
+    width: 180px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gp-pedidos-field label {
+    color: #64748b;
+
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+.gp-pedidos-field input {
+    height: 35px;
+
+    padding: 0 9px;
+
+    color: #334155;
+
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-field input:focus {
+    outline: none;
+
+    border-color:
+        var(--gp-blue, #0e4f84);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+
+/* =========================================================
+   BOTONES FILTRO
+   ========================================================= */
+
+.gp-pedidos-consult,
+.gp-pedidos-excel {
+    height: 35px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 12px;
+
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-pedidos-consult {
+    color: #fff;
+
+    background:
+        var(--gp-blue, #0e4f84);
+
+    border:
+        1px solid
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-pedidos-consult:hover:not(:disabled) {
+    background:
+        var(--gp-blue-light, #1769aa);
+}
+
+.gp-pedidos-excel {
+    color: #247335;
+
+    background: #fff;
+
+    border: 1px solid #83bd8d;
+}
+
+.gp-pedidos-excel:hover:not(:disabled) {
+    background: #eef8f0;
+}
+
+.gp-pedidos-consult:disabled,
+.gp-pedidos-excel:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   BUSCADOR
+   ========================================================= */
+
+.gp-pedidos-search-section {
+    margin: 13px 24px 0;
+}
+
+.gp-pedidos-search-label {
+    margin-bottom: 4px;
+
+    color: #64748b;
+
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+.gp-pedidos-search-control {
+    width: min(520px, 100%);
+
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 0 9px;
+
+    background: #fff;
+
+    border: 1px solid #cbd5df;
+    border-radius: 7px;
+}
+
+.gp-pedidos-search-control:focus-within {
+    border-color:
+        var(--gp-blue, #0e4f84);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-pedidos-search-control
+    > svg {
+    flex: 0 0 auto;
+
+    color: #7b8996;
+}
+
+.gp-pedidos-search-control input {
+    min-width: 0;
+
+    flex: 1;
+
+    height: 100%;
+
+    padding: 0;
+
+    color: #334155;
+
+    background: transparent;
+
+    border: 0;
+    outline: none;
+
+    font-size: 11px;
+}
+
+.gp-pedidos-search-control button {
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+
+    background: transparent;
+
+    border: 0;
+    border-radius: 5px;
+}
+
+.gp-pedidos-search-control button:hover {
+    background: #eef2f5;
+}
+
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.gp-pedidos-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin: 13px 24px 0;
+
+    padding: 8px 10px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8ed;
+    border-radius: 8px;
+}
+
+.gp-pedidos-toolbar-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.gp-pedidos-action {
+    min-height: 31px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 9px;
+
+    background: #fff;
+
+    border: 1px solid #ccd6df;
+    border-radius: 6px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-pedidos-action:disabled {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+}
+
+.gp-action-view {
+    color: #1769aa;
+
+    border-color: #a9c7dc;
+}
+
+.gp-action-edit {
+    color: #27783a;
+
+    border-color: #a8cfaf;
+}
+
+.gp-action-delete {
+    color: #b42318;
+
+    border-color: #e0b5b1;
+}
+
+.gp-action-pdf {
+    color:
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-action-auth {
+    color: #986b09;
+
+    border-color: #dfc989;
+}
+
+.gp-pedidos-selected-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    color: #7b8794;
+
+    font-size: 9px;
+}
+
+.gp-pedidos-selected-info strong {
+    color: #334155;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-status-pill {
+    padding: 3px 7px;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 20px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.gp-pedidos-table-body {
+    padding: 17px 24px 22px;
+}
+
+.gp-pedidos-table-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 9px;
+}
+
+.gp-pedidos-table-heading h2 {
+    margin: 0 0 2px;
+
+    color: #334155;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gp-pedidos-table-heading p {
+    margin: 0;
+
+    color: #7c8995;
+
+    font-size: 9.5px;
+}
+
+.gp-pedidos-table-heading
+    > span {
+    padding: 3px 7px;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.gp-pedidos-table-wrapper {
+    overflow-x: auto;
+
+    background: #fff;
+
+    border: 1px solid #dfe6ec;
+    border-radius: 8px;
+}
+
+
+/* DATATABLE */
+
+.gp-pedidos-table-wrapper
+    table.dataTable {
+    width: 100% !important;
+
+    margin: 0 !important;
+
+    border-collapse: collapse !important;
+}
+
+.gp-pedidos-table-wrapper
+    table.dataTable
+    thead
+    th {
+    padding: 7px 8px !important;
+
+    color: #475569;
+
+    background: #f3f6f9;
+
+    border-bottom: 1px solid #dfe5ea;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.gp-pedidos-table-wrapper
+    table.dataTable
+    tbody
+    td {
+    padding: 7px 8px !important;
+
+    color: #334155;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 10px;
+
+    vertical-align: middle;
+}
+
+.gp-pedidos-table-wrapper
+    table.dataTable
+    tbody
+    tr:hover
+    td {
+    background: #f5f9fb;
+}
+
+.gp-pedidos-table-wrapper
+    table.dataTable
+    tbody
+    tr.selected
+    td {
+    background: #c9e2f3 !important;
+}
+
+.gp-pedidos-table-wrapper
+    table.dataTable
+    tbody
+    tr.selected
+    td:first-child {
+    box-shadow:
+        inset 5px 0 0
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-pedidos-table-wrapper
+    .badge {
+    padding: 4px 6px;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+/* DATATABLE FOOTER */
+
+.gp-pedidos-table-wrapper
+    .dt-layout-row {
+    margin: 0 !important;
+
+    padding: 7px 9px;
+
+    font-size: 9.5px;
+}
+
+.gp-pedidos-table-wrapper
+    .dt-info,
+.gp-pedidos-table-wrapper
+    .dt-length,
+.gp-pedidos-table-wrapper
+    .dt-paging {
+    font-size: 9.5px;
+}
+
+.gp-pedidos-table-wrapper
+    .dt-paging
+    .dt-paging-button {
+    min-width: 28px;
+
+    padding: 4px 7px !important;
+
+    font-size: 9px !important;
+}
+
+
+/* =========================================================
+   ESTADOS VACÍOS
+   ========================================================= */
+
+.gp-pedidos-loading,
+.gp-pedidos-empty {
+    padding: 32px 15px;
+
+    color: #7b8794;
+
+    text-align: center;
+
+    font-size: 11px;
+}
+
+.gp-pedidos-empty {
+    color: #8a6c20;
+
+    background: #fffaf1;
+
+    border: 1px solid #f0dfb9;
+    border-radius: 8px;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.gp-pedidos-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 11px 24px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e4e9ed;
+}
+
+.gp-pedidos-footer
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-pedidos-footer strong {
+    color: #475569;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-footer span {
+    color: #8a97a4;
+
+    font-size: 9px;
+}
+
+.gp-pedidos-new-button {
+    min-height: 33px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 11px;
+
+    color: #fff;
+
+    background:
+        var(--gp-green, #39b54a);
+
+    border:
+        1px solid
+        var(--gp-green, #39b54a);
+
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.gp-pedidos-new-button:hover {
+    color: #fff;
+
+    background: #2f9d3e;
+}
+
+
+/* =========================================================
+   MODALES
+   ========================================================= */
+
+.gp-pedidos-modal {
+    z-index: 2100;
+}
+
+.gp-pedidos-modal
+    .modal-content {
+    overflow: hidden;
+
+    border: 0;
+    border-radius: 10px;
+
+    box-shadow:
+        0 22px 55px
+        rgba(15, 23, 42, 0.22);
+}
+
+.gp-pedidos-modal
+    .modal-header {
+    padding: 11px 14px;
+
+    background: #fafbfc;
+
+    border-bottom: 1px solid #e4e9ed;
+}
+
+.gp-pedidos-modal
+    .modal-title {
+    color: #334155;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gp-pedidos-modal
+    .modal-body {
+    padding: 14px;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-modal
+    .modal-footer {
+    padding: 8px 12px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e4e9ed;
+}
+
+.gp-pedidos-info-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 10px;
+
+    padding: 8px 9px;
+
+    background: #f5f8fa;
+
+    border: 1px solid #e1e7ec;
+    border-radius: 7px;
+}
+
+.gp-pedidos-info-box svg {
+    color:
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-pedidos-info-box
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-pedidos-info-box span {
+    color: #8a97a4;
+
+    font-size: 8.5px;
+}
+
+.gp-pedidos-info-box strong {
+    color: #334155;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-area-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gp-pedidos-area-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 7px 8px;
+
+    border: 1px solid #e1e7ec;
+    border-radius: 6px;
+}
+
+.gp-pedidos-area-item span {
+    width: 24px;
+    height: 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    background:
+        var(--gp-blue, #0e4f84);
+
+    border-radius: 50%;
+
+    font-size: 8.5px;
+}
+
+.gp-pedidos-area-item strong {
+    color: #475569;
+
+    font-size: 10.5px;
+}
+
+.gp-pedidos-justification {
+    padding: 10px;
+
+    color: #475569;
+
+    background: #eef6fb;
+
+    border:
+        1px solid #cce0ed;
+
+    border-radius: 7px;
+}
+
+.gp-pedidos-justification strong {
+    font-size: 10px;
+}
+
+.gp-pedidos-justification p {
+    margin: 3px 0 0;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   PDF
+   ========================================================= */
+
+.gp-pedidos-pdf-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 2300;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 18px;
+
+    background:
+        rgba(15, 23, 42, 0.64);
+
+    backdrop-filter: blur(2px);
+}
+
+.gp-pedidos-pdf-window {
+    width:
+        min(1100px, 94vw);
+
+    height:
+        min(850px, 92vh);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #fff;
+
+    border-radius: 11px;
+
+    box-shadow:
+        0 28px 70px
+        rgba(15, 23, 42, 0.3);
+}
+
+.gp-pedidos-pdf-header {
+    min-height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 9px 12px;
+
+    border-bottom: 1px solid #e1e7ec;
+}
+
+.gp-pedidos-pdf-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gp-pedidos-pdf-icon {
+    width: 33px;
+    height: 33px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 7px;
+}
+
+.gp-pedidos-pdf-heading
+    > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-pedidos-pdf-heading span {
+    color:
+        var(--gp-blue, #0e4f84);
+
+    font-size: 7.5px;
+    font-weight: 800;
+
+    letter-spacing: 0.07em;
+}
+
+.gp-pedidos-pdf-heading strong {
+    color: #334155;
+
+    font-size: 11px;
+}
+
+.gp-pedidos-pdf-close {
+    width: 29px;
+    height: 29px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #b42318;
+
+    background: #fff1f0;
+
+    border: 1px solid #eed3d0;
+    border-radius: 6px;
+}
+
+.gp-pedidos-pdf-viewer {
+    flex: 1;
+
+    min-height: 0;
+
+    padding: 7px;
+
+    background: #e9eef2;
+}
+
+.gp-pedidos-pdf-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 7px;
+
+    padding: 8px 12px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e1e7ec;
+}
+
+.gp-pedidos-pdf-secondary,
+.gp-pedidos-pdf-download {
+    min-height: 31px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 10px;
+
+    border-radius: 6px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.gp-pedidos-pdf-secondary {
+    color: #475569;
+
+    background: #fff;
+
+    border: 1px solid #d5dde4;
+}
+
+.gp-pedidos-pdf-download {
+    color: #fff;
+
+    background:
+        var(--gp-blue, #0e4f84);
+
+    border:
+        1px solid
+        var(--gp-blue, #0e4f84);
+}
+
+.gp-pedidos-pdf-download:hover {
+    color: #fff;
+
+    background:
+        var(--gp-blue-light, #1769aa);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .gp-pedidos-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gp-pedidos-selected-info {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .gp-pedidos-list-header {
+        padding: 18px;
+    }
+
+    .gp-pedidos-list-header h1 {
+        font-size: 19px;
+    }
+
+    .gp-pedidos-list-header-icon {
+        display: none;
+    }
+
+    .gp-pedidos-filter-section,
+    .gp-pedidos-search-section,
+    .gp-pedidos-toolbar {
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+
+    .gp-pedidos-table-body {
+        padding:
+            17px
+            18px
+            20px;
+    }
+
+    .gp-pedidos-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gp-pedidos-field {
+        width: 100%;
+    }
+
+    .gp-pedidos-consult,
+    .gp-pedidos-excel {
+        width: 100%;
+    }
+
+    .gp-pedidos-toolbar-left {
+        width: 100%;
+    }
+
+    .gp-pedidos-action {
+        flex: 1;
+    }
+
+    .gp-pedidos-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-pedidos-new-button {
+        width: 100%;
+    }
+}

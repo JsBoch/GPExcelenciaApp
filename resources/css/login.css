@@ -1,79 +1,1242 @@
-/* Estilos para el formulario de login */
+/* =========================================================
+   GP EXCELENCIA
+   LOGIN
+========================================================= */
 
-.login-form {
-    background-image: url('/images/Fondo.jpg');
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  
-  .login-container {
-    background-color: rgba(133, 192, 74, 0.8);
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    width: 400px;
-  }
-  
-  .login-title {
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .login-form input {
+:root {
+    --gp-blue: #0e4f84;
+    --gp-blue-light: #1769aa;
+    --gp-blue-dark: #0f172a;
+
+    --gp-green: #39b54a;
+    --gp-yellow: #fdb515;
+
+    --gp-white: #ffffff;
+    --gp-bg: #f8fafc;
+
+    --gp-text: #0f172a;
+    --gp-muted: #64748b;
+    --gp-border: #e5e7eb;
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
-  
-  .login-button {
-    background-color: #273238;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .login-button:hover {
-    background-color: #395056;
-  }
-  
-  .login-forgot-password {
-    text-align: center;
+    height: 100%;
+}
+
+html {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+    background: var(--gp-bg);
+}
+
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL
+========================================================= */
+
+.gp-login-page {
+    width: 100%;
+    height: 100vh;
+
+    display: grid;
+    grid-template-columns: 55% 45%;
+
+    overflow: hidden;
+
+    background: var(--gp-white);
+}
+
+
+/* =========================================================
+   PANEL IZQUIERDO
+========================================================= */
+
+.gp-login-brand {
+    height: 100vh;
+
+    position: relative;
+
+    overflow: hidden;
+
+    padding:
+        clamp(28px, 3vh, 42px)
+        clamp(45px, 5vw, 80px);
+
+    color: #ffffff;
+
+    background:
+        radial-gradient(
+            circle at 13% 14%,
+            rgba(14, 79, 132, 0.42),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 88% 15%,
+            rgba(57, 181, 74, 0.16),
+            transparent 22%
+        ),
+        radial-gradient(
+            circle at 8% 90%,
+            rgba(253, 181, 21, 0.13),
+            transparent 23%
+        ),
+        linear-gradient(
+            145deg,
+            #07101e 0%,
+            #0f172a 48%,
+            #172554 100%
+        );
+}
+
+
+/* textura */
+
+.gp-login-brand::before {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    background-image:
+        linear-gradient(
+            rgba(255, 255, 255, 0.018) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.018) 1px,
+            transparent 1px
+        );
+
+    background-size: 42px 42px;
+
+    mask-image:
+        linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.85),
+            transparent 90%
+        );
+
+    pointer-events: none;
+}
+
+
+/* círculo decorativo grande */
+
+.gp-login-brand::after {
+    content: "";
+
+    position: absolute;
+
+    width: 520px;
+    height: 520px;
+
+    right: -270px;
+    bottom: -270px;
+
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    border-radius: 50%;
+}
+
+
+/* =========================================================
+   GLOWS
+========================================================= */
+
+.gp-brand-glow {
+    position: absolute;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+.gp-brand-glow-1 {
+    width: 250px;
+    height: 250px;
+
+    right: 8%;
+    top: 13%;
+
+    border: 1px solid rgba(96, 165, 250, 0.055);
+}
+
+.gp-brand-glow-2 {
+    width: 130px;
+    height: 130px;
+
+    right: 25%;
+    bottom: 10%;
+
+    border: 1px solid rgba(57, 181, 74, 0.055);
+}
+
+
+/* =========================================================
+   CONTENIDO IZQUIERDO
+========================================================= */
+
+.gp-brand-content {
+    width: 100%;
+    height: 100%;
+
+    max-width: 720px;
+
+    margin: 0 auto;
+
+    position: relative;
+    z-index: 3;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.gp-brand-logo-area {
+    min-height: auto;
+
+    display: flex;
+    align-items: center;
+
+    flex-shrink: 0;
+}
+
+.gp-brand-logo-glow {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 9px 12px;
+
+    border-radius: 16px;
+
+    background: rgba(255, 255, 255, 0.97);
+
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.18),
+        0 0 38px rgba(14, 79, 132, 0.16);
+}
+
+
+/* glow detrás del logo */
+
+.gp-brand-logo-glow::before {
+    content: "";
+
+    position: absolute;
+
+    inset: -22px;
+
+    z-index: -1;
+
+    border-radius: 28px;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(14, 79, 132, 0.14),
+            transparent 65%
+        );
+
+    filter: blur(14px);
+}
+
+
+/* pequeña línea de marca debajo */
+
+.gp-brand-logo-glow::after {
+    content: "";
+
+    position: absolute;
+
+    width: 54px;
+    height: 4px;
+
+    left: 12px;
+    bottom: -13px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gp-yellow) 0%,
+            var(--gp-yellow) 30%,
+            var(--gp-green) 30%,
+            var(--gp-green) 65%,
+            var(--gp-blue) 65%,
+            var(--gp-blue) 100%
+        );
+}
+
+.gp-brand-logo {
+    width: 125px;
+    height: auto;
+
+    display: block;
+
+    object-fit: contain;
+
+    border-radius: 7px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.gp-brand-main {
+    margin: auto 0;
+
+    padding: 22px 0;
+
+    flex-shrink: 1;
+}
+
+
+/* por si posteriormente vuelves a usarlo */
+
+.gp-brand-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 7px 12px;
+
+    margin-bottom: 20px;
+
+    border-radius: 30px;
+
+    border: 1px solid rgba(255, 255, 255, 0.11);
+
+    background: rgba(255, 255, 255, 0.05);
+
+    color: #cbd5e1;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.13em;
+}
+
+
+.gp-brand-main h1 {
+    max-width: 630px;
+
+    margin: 0;
+
+    color: #f8fafc;
+
+    font-size: clamp(35px, 3.6vw, 56px);
+
+    line-height: 1.03;
+
+    letter-spacing: -0.045em;
+
+    font-weight: 750;
+}
+
+
+/* segunda línea con colores oficiales */
+
+.gp-brand-main h1 span {
+    display: block;
+
     margin-top: 10px;
-  }
-  
-  .login-forgot-password a {
-    color: #273238;
-    text-decoration: none;
-  }
-  
-  /* Estilos adicionales para el formulario de login */
-  
-  .login-form input:focus {
-    outline: none;
-    border-color: #273238;
-  }
-  
-  .login-form label {
+
+    background:
+        linear-gradient(
+            90deg,
+            #60a5fa 0%,
+            var(--gp-blue-light) 35%,
+            var(--gp-green) 73%,
+            var(--gp-yellow) 100%
+        );
+
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    color: transparent;
+}
+
+
+/* por si posteriormente vuelves a activar descripción */
+
+.gp-brand-description {
+    max-width: 570px;
+
+    margin: 22px 0 0;
+
+    color: #cbd5e1;
+
     font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  
-  .login-form .error-message {
-    color: red;
+
+    line-height: 1.65;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.gp-brand-footer {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    padding-top: 6px;
+
+    flex-shrink: 0;
+
+    font-size: 11px;
+
+    color: #64748b;
+}
+
+.gp-brand-footer strong {
+    color: #cbd5e1;
+
+    font-weight: 600;
+}
+
+.gp-brand-footer span {
+    color: #64748b;
+}
+
+
+/* =========================================================
+   LÍNEA DE MARCA INFERIOR
+========================================================= */
+
+.gp-brand-signature {
+    margin-top: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    flex-shrink: 0;
+}
+
+.gp-brand-signature span {
+    width: 150px;
+    height: 4px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gp-yellow) 0%,
+            var(--gp-yellow) 30%,
+            var(--gp-green) 30%,
+            var(--gp-green) 65%,
+            var(--gp-blue) 65%,
+            var(--gp-blue) 100%
+        );
+
+    box-shadow:
+        0 3px 14px rgba(57, 181, 74, 0.12);
+}
+
+
+/* =========================================================
+   PANEL DERECHO
+========================================================= */
+
+.gp-login-access {
+    height: 100vh;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding:
+        clamp(20px, 3vh, 38px)
+        clamp(28px, 4vw, 55px);
+
+    overflow: hidden;
+
+    background:
+        radial-gradient(
+            circle at 96% 7%,
+            rgba(57, 181, 74, 0.055),
+            transparent 19%
+        ),
+        radial-gradient(
+            circle at 4% 94%,
+            rgba(253, 181, 21, 0.055),
+            transparent 18%
+        ),
+        linear-gradient(
+            145deg,
+            #ffffff 0%,
+            #f8fafc 100%
+        );
+}
+
+
+/* círculo decorativo superior */
+
+.gp-login-access::before {
+    content: "";
+
+    position: absolute;
+
+    width: 145px;
+    height: 145px;
+
+    top: -72px;
+    right: -72px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(14, 79, 132, 0.045),
+            rgba(57, 181, 74, 0.035)
+        );
+}
+
+
+/* detalle decorativo inferior */
+
+.gp-login-access::after {
+    content: "";
+
+    position: absolute;
+
+    width: 180px;
+    height: 180px;
+
+    left: -110px;
+    bottom: -110px;
+
+    border-radius: 50%;
+
+    border:
+        1px solid
+        rgba(253, 181, 21, 0.08);
+}
+
+
+/* =========================================================
+   TARJETA LOGIN
+========================================================= */
+
+.gp-login-card {
+    width: 100%;
+    max-width: 420px;
+
+    padding: 34px 38px;
+
+    position: relative;
+
+    z-index: 2;
+
+    background: #ffffff;
+
+    border: 1px solid #e8edf3;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 24px 55px rgba(15, 23, 42, 0.07),
+        0 6px 16px rgba(15, 23, 42, 0.035);
+}
+
+
+/* barra de marca superior */
+
+.gp-login-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 32px;
+    right: 32px;
+
+    height: 3px;
+
+    border-radius: 0 0 20px 20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gp-blue) 0%,
+            var(--gp-blue) 60%,
+            var(--gp-green) 60%,
+            var(--gp-green) 82%,
+            var(--gp-yellow) 82%,
+            var(--gp-yellow) 100%
+        );
+}
+
+
+/* =========================================================
+   HEADER LOGIN
+========================================================= */
+
+.gp-login-card-header {
+    margin-bottom: 24px;
+}
+
+.gp-mobile-logo {
+    display: none;
+}
+
+.gp-login-eyebrow {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: var(--gp-blue);
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.15em;
+}
+
+.gp-login-card-header h2 {
+    margin: 0;
+
+    color: var(--gp-text);
+
+    font-size: 30px;
+
+    font-weight: 720;
+
+    letter-spacing: -0.035em;
+}
+
+.gp-login-card-header p {
+    max-width: 330px;
+
+    margin: 8px 0 0;
+
+    color: var(--gp-muted);
+
+    font-size: 13px;
+
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   CAMPOS
+========================================================= */
+
+.gp-form-group {
+    margin-bottom: 17px;
+}
+
+.gp-form-group label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #334155;
+
     font-size: 12px;
+
+    font-weight: 600;
+}
+
+.gp-input-wrapper {
+    width: 100%;
+    height: 49px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #dbe2e9;
+
+    border-radius: 10px;
+
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background-color 0.18s ease;
+}
+
+.gp-input-wrapper:hover {
+    border-color: #c5ced9;
+}
+
+.gp-input-wrapper:focus-within {
+    border-color: var(--gp-blue);
+
+    box-shadow:
+        0 0 0 4px
+        rgba(14, 79, 132, 0.085);
+}
+
+.gp-input-icon {
+    width: 17px;
+    height: 17px;
+
+    margin-left: 15px;
+
+    flex-shrink: 0;
+
+    color: #94a3b8;
+
+    transition: color 0.18s ease;
+}
+
+.gp-input-wrapper:focus-within .gp-input-icon {
+    color: var(--gp-blue);
+}
+
+.gp-input-wrapper input {
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+
+    padding: 0 12px;
+
+    border: none;
+
+    outline: none;
+
+    background: transparent;
+
+    color: var(--gp-text);
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    font-weight: 400;
+}
+
+.gp-input-wrapper input::placeholder {
+    color: #94a3b8;
+}
+
+
+/* =========================================================
+   MOSTRAR / OCULTAR CONTRASEÑA
+========================================================= */
+
+.gp-password-toggle {
+    width: 46px;
+    height: 100%;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: none;
+
+    outline: none;
+
+    background: transparent;
+
+    color: #94a3b8;
+
+    font-size: 17px;
+
+    cursor: pointer;
+
+    transition: color 0.18s ease;
+}
+
+.gp-password-toggle:hover {
+    color: var(--gp-blue);
+}
+
+
+/* =========================================================
+   BOTÓN
+========================================================= */
+
+.gp-login-button {
+    width: 100%;
+    height: 49px;
+
     margin-top: 5px;
-  }
+
+    padding: 0 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 11px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gp-blue) 0%,
+            var(--gp-blue-light) 78%,
+            var(--gp-green) 140%
+        );
+
+    color: #ffffff;
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    font-weight: 650;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 22px
+        rgba(14, 79, 132, 0.22);
+
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.gp-login-button svg {
+    width: 17px;
+    height: 17px;
+
+    transition: transform 0.18s ease;
+}
+
+.gp-login-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 14px 26px
+        rgba(14, 79, 132, 0.26);
+}
+
+.gp-login-button:hover:not(:disabled) svg {
+    transform: translateX(3px);
+}
+
+.gp-login-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.gp-login-button:disabled {
+    opacity: 0.7;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.gp-login-error {
+    width: 100%;
+
+    margin-bottom: 17px;
+
+    padding: 10px 12px;
+
+    border: 1px solid #fecaca;
+
+    border-radius: 9px;
+
+    background: #fef2f2;
+
+    color: #b91c1c;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   SEGURIDAD
+========================================================= */
+
+.gp-login-security {
+    margin-top: 20px;
+
+    padding-top: 16px;
+
+    border-top: 1px solid #eef2f7;
+
+    text-align: center;
+
+    color: #94a3b8;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   COPYRIGHT
+========================================================= */
+
+.gp-login-copyright {
+    position: absolute;
+
+    bottom: 15px;
+
+    color: #94a3b8;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   PANTALLAS BAJAS
+   Evita scroll en laptops con poca altura
+========================================================= */
+
+@media (max-height: 760px) and (min-width: 901px) {
+
+    .gp-login-brand {
+        padding-top: 24px;
+        padding-bottom: 24px;
+    }
+
+    .gp-brand-logo {
+        width: 105px;
+    }
+
+    .gp-brand-logo-glow {
+        padding: 7px 10px;
+    }
+
+    .gp-brand-main {
+        padding: 14px 0;
+    }
+
+    .gp-brand-main h1 {
+        font-size: clamp(32px, 3.1vw, 47px);
+    }
+
+    .gp-brand-footer {
+        font-size: 10px;
+    }
+
+    .gp-brand-signature {
+        margin-top: 8px;
+    }
+
+    .gp-brand-signature span {
+        height: 3px;
+        width: 125px;
+    }
+
+    .gp-login-card {
+        max-width: 400px;
+
+        padding: 27px 34px;
+    }
+
+    .gp-login-card-header {
+        margin-bottom: 19px;
+    }
+
+    .gp-login-card-header h2 {
+        font-size: 27px;
+    }
+
+    .gp-form-group {
+        margin-bottom: 13px;
+    }
+
+    .gp-input-wrapper {
+        height: 45px;
+    }
+
+    .gp-login-button {
+        height: 45px;
+    }
+
+    .gp-login-security {
+        margin-top: 15px;
+        padding-top: 12px;
+    }
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+
+    html,
+    body,
+    #root {
+        height: auto;
+        min-height: 100%;
+    }
+
+    body {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .gp-login-page {
+        display: block;
+
+        height: auto;
+        min-height: 100vh;
+
+        overflow: visible;
+
+        background: var(--gp-bg);
+    }
+
+
+    .gp-login-brand {
+        height: auto;
+        min-height: 470px;
+
+        padding:
+            30px
+            26px
+            75px;
+    }
+
+
+    .gp-brand-content {
+        height: auto;
+        min-height: 400px;
+
+        align-items: center;
+
+        text-align: center;
+    }
+
+
+    .gp-brand-logo-area {
+        width: 100%;
+
+        justify-content: center;
+    }
+
+
+    .gp-brand-main {
+        margin: auto;
+
+        padding: 35px 0 20px;
+
+        max-width: 620px;
+    }
+
+
+    .gp-brand-main h1 {
+        font-size: 40px;
+    }
+
+
+    .gp-brand-footer {
+        display: none;
+    }
+
+
+    .gp-brand-signature {
+        justify-content: center;
+
+        margin-top: 10px;
+    }
+
+
+    .gp-login-access {
+        height: auto;
+        min-height: auto;
+
+        margin-top: -45px;
+
+        padding:
+            0
+            20px
+            55px;
+
+        overflow: visible;
+
+        background: transparent;
+    }
+
+
+    .gp-login-card {
+        max-width: 465px;
+
+        padding: 34px;
+    }
+
+
+    .gp-login-copyright {
+        display: none;
+    }
+
+}
+
+
+/* =========================================================
+   MÓVIL
+========================================================= */
+
+@media (max-width: 520px) {
+
+    .gp-login-brand {
+        min-height: 400px;
+
+        padding:
+            24px
+            20px
+            65px;
+    }
+
+
+    .gp-brand-content {
+        min-height: 330px;
+    }
+
+
+    .gp-brand-logo-glow {
+        padding: 7px 9px;
+    }
+
+
+    .gp-brand-logo {
+        width: 100px;
+    }
+
+
+    .gp-brand-main {
+        padding:
+            28px
+            0
+            12px;
+    }
+
+
+    .gp-brand-main h1 {
+        font-size: 31px;
+
+        line-height: 1.04;
+    }
+
+
+    .gp-brand-main h1 span {
+        margin-top: 8px;
+    }
+
+
+    .gp-brand-signature span {
+        width: 120px;
+        height: 3px;
+    }
+
+
+    .gp-login-access {
+        padding:
+            0
+            14px
+            36px;
+    }
+
+
+    .gp-login-card {
+        padding:
+            29px
+            23px;
+
+        border-radius: 16px;
+    }
+
+
+    .gp-login-card::before {
+        left: 22px;
+        right: 22px;
+    }
+
+
+    .gp-login-card-header {
+        margin-bottom: 22px;
+    }
+
+
+    .gp-login-card-header h2 {
+        font-size: 27px;
+    }
+
+
+    .gp-login-card-header p {
+        font-size: 12px;
+    }
+
+
+    .gp-input-wrapper {
+        height: 47px;
+    }
+
+
+    .gp-login-button {
+        height: 47px;
+    }
+
+}

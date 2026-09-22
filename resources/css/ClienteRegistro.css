@@ -1,0 +1,312 @@
+/* =========================================================
+   GP EXCELENCIA
+   CLIENTE REGISTRO
+========================================================= */
+
+
+/* =========================================================
+   INDICADOR EDICIÓN
+========================================================= */
+
+.cliente-edit-status {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding:
+        6px
+        10px;
+
+    border:
+        1px solid
+        rgba(253,181,21,.30);
+
+    border-radius:
+        8px;
+
+    background:
+        rgba(253,181,21,.08);
+}
+
+
+.cliente-edit-status span {
+    color:
+        #a36d00;
+
+    font-size:
+        8px;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .08em;
+}
+
+
+.cliente-edit-status strong {
+    color:
+        #7c5400;
+
+    font-size:
+        11px;
+}
+
+
+/* =========================================================
+   TEXTO INTRODUCTORIO DE SECCIÓN
+========================================================= */
+
+.cliente-section-hint {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    margin:
+        -6px
+        0
+        17px;
+
+    padding:
+        8px
+        10px;
+
+    border-radius:
+        8px;
+
+    background:
+        #f4f7fa;
+
+    color:
+        #748294;
+
+    font-size:
+        10px;
+}
+
+
+.cliente-section-hint svg {
+    flex-shrink:
+        0;
+
+    color:
+        var(--gp-blue);
+
+    font-size:
+        12px;
+}
+
+
+/* =========================================================
+   EXENTO IVA
+========================================================= */
+
+.cliente-check-card {
+    height:
+        38px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    padding:
+        0
+        12px;
+
+    border:
+        1px solid
+        #dfe6ec;
+
+    border-radius:
+        8px;
+
+    background:
+        #f8fafc;
+}
+
+
+.cliente-check-card input {
+    margin:
+        0;
+
+    cursor:
+        pointer;
+}
+
+
+.cliente-check-card label {
+    margin:
+        0;
+
+    color:
+        #475569;
+
+    font-size:
+        11px;
+
+    font-weight:
+        600;
+
+    cursor:
+        pointer;
+}
+
+
+/* =========================================================
+   MONEY INPUT
+========================================================= */
+
+.cliente-money-input {
+    position:
+        relative;
+}
+
+
+.cliente-money-input > span {
+    position:
+        absolute;
+
+    left:
+        11px;
+
+    top:
+        50%;
+
+    z-index:
+        2;
+
+    transform:
+        translateY(-50%);
+
+    color:
+        #64748b;
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+}
+
+
+.cliente-money-input input {
+    padding-left:
+        27px !important;
+}
+
+
+/* =========================================================
+   TEXTO DE AYUDA
+========================================================= */
+
+.cliente-helper {
+    display:
+        block;
+
+    margin-top:
+        4px;
+
+    font-size:
+        8px !important;
+}
+
+
+/* =========================================================
+   CONTACTO
+========================================================= */
+
+.cliente-contact-button {
+    border:
+        1px solid
+        rgba(14,79,132,.22);
+
+    background:
+        rgba(14,79,132,.065);
+
+    color:
+        var(--gp-blue);
+}
+
+
+.cliente-contact-button:hover {
+    border-color:
+        var(--gp-blue);
+
+    background:
+        var(--gp-blue);
+
+    color:
+        #ffffff;
+}
+
+
+/* =========================================================
+   MODAL CONTACTO
+========================================================= */
+
+.cliente-contact-modal {
+    width:
+        92%;
+
+    max-width:
+        1100px;
+
+    max-height:
+        86vh;
+
+    overflow-y:
+        auto;
+
+    margin:
+        7vh auto;
+
+    padding:
+        22px;
+
+    border-radius:
+        15px;
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 25px 65px
+        rgba(0,0,0,.22);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .cliente-edit-status {
+        margin-top:
+            8px;
+    }
+
+
+    .cliente-contact-modal {
+        width:
+            96%;
+
+        margin:
+            3vh auto;
+
+        padding:
+            14px;
+    }
+
+}

@@ -1,0 +1,476 @@
+/* =========================================================
+   CONTACTOS CLIENTE
+   CREAR / EDITAR
+   ========================================================= */
+
+.contacto-form-page {
+    width: 100%;
+}
+
+.contacto-form-body {
+    padding: 24px;
+}
+
+
+/* =========================================================
+   CABECERA
+   ========================================================= */
+
+.contacto-meta-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+}
+
+.contacto-page-title {
+    margin: 8px 0 3px;
+
+    color: #0f172a;
+
+    font-size: 1.18rem;
+    font-weight: 700;
+}
+
+.contacto-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 7px 12px;
+
+    border-radius: 999px;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.contacto-mode-badge.is-new {
+    color: #187329;
+
+    background: #ebf8ed;
+
+    border: 1px solid #bde5c3;
+}
+
+.contacto-mode-badge.is-edit {
+    color: #0e4f84;
+
+    background: #ebf4fa;
+
+    border: 1px solid #bdd7e9;
+}
+
+
+/* =========================================================
+   LABELS
+   ========================================================= */
+
+.contacto-label {
+    margin-bottom: 5px;
+
+    color: #334155;
+
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.contacto-required {
+    margin-left: 3px;
+
+    color: #dc2626;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CONTROLES
+   ========================================================= */
+
+.contacto-input-wrapper,
+.contacto-textarea-wrapper {
+    position: relative;
+
+    width: 100%;
+}
+
+.contacto-control {
+    width: 100%;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 7px;
+
+    background: #ffffff;
+
+    color: #1e293b;
+
+    font-size: 0.82rem;
+
+    box-shadow: none !important;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.15s ease;
+}
+
+input.contacto-control,
+select.contacto-control {
+    height: 36px;
+    min-height: 36px;
+
+    padding-top: 0;
+    padding-bottom: 0;
+
+    line-height: 36px;
+
+    box-sizing: border-box;
+}
+
+select.contacto-control {
+    line-height: normal;
+}
+
+.contacto-control:focus {
+    border-color: #1769aa;
+
+    box-shadow:
+        0 0 0 3px rgba(23, 105, 170, 0.1) !important;
+}
+
+
+/* =========================================================
+   CAMPOS CON ICONO
+   ========================================================= */
+
+.contacto-control-icon {
+    padding-left: 38px !important;
+}
+
+.contacto-input-icon {
+    position: absolute;
+
+    left: 12px;
+    top: 50%;
+
+    z-index: 2;
+
+    transform: translateY(-50%);
+
+    color: #64748b;
+
+    pointer-events: none;
+}
+
+.contacto-input-wrapper:focus-within
+.contacto-input-icon {
+    color: #0e4f84;
+}
+
+
+/* =========================================================
+   CAMPOS OBLIGATORIOS
+   ========================================================= */
+
+.contacto-form-page
+.campo-obligatorio-fondo {
+    background-color: #fffdf4;
+}
+
+.contacto-form-page
+.campo-obligatorio-fondo:focus {
+    background-color: #ffffff;
+}
+
+
+/* =========================================================
+   TELÉFONO
+   ========================================================= */
+
+.contacto-phone-counter {
+    position: absolute;
+
+    right: 11px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #94a3b8;
+
+    font-size: 0.67rem;
+    font-weight: 600;
+
+    pointer-events: none;
+}
+
+.contacto-input-wrapper
+input[name="telefono"] {
+    padding-right: 43px;
+}
+
+
+/* =========================================================
+   OBSERVACIONES
+   ========================================================= */
+
+.contacto-textarea-wrapper {
+    display: flex;
+}
+
+.contacto-textarea-icon {
+    position: absolute;
+
+    left: 12px;
+    top: 12px;
+
+    z-index: 2;
+
+    color: #64748b;
+
+    pointer-events: none;
+}
+
+.contacto-observaciones {
+    min-height: 82px;
+
+    padding:
+        9px
+        12px
+        9px
+        38px !important;
+
+    resize: vertical;
+
+    line-height: 1.45;
+}
+
+
+/* =========================================================
+   CLIENTE FIJO
+   ========================================================= */
+
+.contacto-fixed-client {
+    min-height: 48px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    padding: 7px 11px;
+
+    border: 1px solid #cadce9;
+    border-radius: 8px;
+
+    background: #f4f9fc;
+}
+
+.contacto-field-icon {
+    width: 32px;
+    height: 32px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #dcecf7;
+
+    color: #0e4f84;
+}
+
+.contacto-fixed-client-info {
+    min-width: 0;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.contacto-fixed-client-info span {
+    color: #64748b;
+
+    font-size: 0.66rem;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.contacto-fixed-client-info strong {
+    color: #1e293b;
+
+    font-size: 0.83rem;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contacto-client-id {
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    background: #ffffff;
+
+    color: #64748b;
+
+    font-size: 0.69rem;
+    font-weight: 700;
+
+    border: 1px solid #d7e3eb;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.contacto-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 22px;
+
+    padding-top: 17px;
+
+    border-top: 1px solid #e5eaf0;
+}
+
+.contacto-actions-secondary {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+}
+
+.contacto-link-button {
+    text-decoration: none !important;
+}
+
+.contacto-btn-cancel {
+    color: #475569;
+
+    background: #ffffff;
+
+    border: 1px solid #cbd5e1;
+}
+
+.contacto-btn-cancel:hover {
+    background: #f1f5f9;
+
+    color: #1e293b;
+}
+
+.contacto-save-button {
+    min-width: 190px;
+}
+
+.contacto-actions button:disabled {
+    opacity: 0.65;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MODO MODAL
+   ========================================================= */
+
+.contacto-form-modal {
+    margin: 0 !important;
+}
+
+.contacto-form-modal
+.gp-module-card {
+    box-shadow: none;
+
+    border: none;
+}
+
+.contacto-form-modal
+.contacto-form-body {
+    padding: 5px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .contacto-form-body {
+        padding: 16px;
+    }
+
+    .contacto-meta-header {
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .contacto-mode-badge {
+        align-self: flex-start;
+    }
+
+    .contacto-actions {
+        flex-direction: column-reverse;
+
+        align-items: stretch;
+    }
+
+    .contacto-actions-secondary {
+        width: 100%;
+    }
+
+    .contacto-actions-secondary
+    .gp-action-button {
+        flex: 1;
+
+        justify-content: center;
+    }
+
+    .contacto-save-button {
+        width: 100%;
+
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .contacto-fixed-client {
+        align-items: flex-start;
+    }
+
+    .contacto-client-id {
+        display: none;
+    }
+
+    .contacto-actions-secondary {
+        flex-direction: column;
+    }
+
+    .contacto-actions-secondary
+    .gp-action-button {
+        width: 100%;
+    }
+}

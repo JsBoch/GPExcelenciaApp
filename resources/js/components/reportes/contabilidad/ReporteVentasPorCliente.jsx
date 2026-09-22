@@ -1,369 +1,1236 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import axios from "axios";
+
 import {
-    Box,
-    Button,
-    TextField,
-    MenuItem,
-    CircularProgress,
-    Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Snackbar,
     Alert,
+    Snackbar,
 } from "@mui/material";
+
 import {
     BarChart,
     Bar,
     XAxis,
     YAxis,
     Tooltip,
-    Legend,
     ResponsiveContainer,
     CartesianGrid,
     Cell,
 } from "recharts";
-import Header from "../../Header";
+
+import {
+    BarChart3,
+    CalendarDays,
+    FileDown,
+    FileSpreadsheet,
+    Filter,
+    Search,
+    TrendingUp,
+    UsersRound,
+} from "lucide-react";
+
+import "../../../../css/reporte-ventas-por-cliente.css";
+
 
 const ReporteVentasPorCliente = () => {
-    const [vendedores, setVendedores] = useState([]);
-    const [filtros, setFiltros] = useState({
-        desde: new Date().toISOString().slice(0, 10),
-        hasta: new Date().toISOString().slice(0, 10),
+    const [
+        vendedores,
+        setVendedores,
+    ] = useState([]);
+
+    const [
+        filtros,
+        setFiltros,
+    ] = useState({
+        desde:
+            new Date()
+                .toISOString()
+                .slice(0, 10),
+
+        hasta:
+            new Date()
+                .toISOString()
+                .slice(0, 10),
+
         vendedor_id: "",
     });
-    const [reportData, setReportData] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [exporting, setExporting] = useState(false);
-    const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+    const [
+        reportData,
+        setReportData,
+    ] = useState(null);
+
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
+
+    const [
+        exporting,
+        setExporting,
+    ] = useState("");
+
+    const [
+        snackbar,
+        setSnackbar,
+    ] = useState({
+        open: false,
+        message: "",
+        severity: "success",
+    });
+
+
+    /* =========================================================
+       AUTH
+       ========================================================= */
 
     const authHeaders = () => {
-        const token = localStorage.getItem("token");
-        return token ? { Authorization: `Bearer ${token}` } : {};
+        const token =
+            localStorage.getItem(
+                "token",
+            );
+
+        return token
+            ? {
+                  Authorization:
+                      `Bearer ${token}`,
+              }
+            : {};
     };
+
+
+    /* =========================================================
+       VENDEDORES
+       ========================================================= */
 
     useEffect(() => {
         axios
-            .get("/api/reportes-contabilidad/vendedores", {
-                headers: authHeaders(),
+            .get(
+                "/api/reportes-contabilidad/vendedores",
+                {
+                    headers:
+                        authHeaders(),
+                },
+            )
+            .then((res) => {
+                setVendedores(
+                    res.data || [],
+                );
             })
-            .then((res) => setVendedores(res.data || []))
-            .catch(() => setVendedores([]));
+            .catch((error) => {
+                console.error(
+                    "Error cargando vendedores:",
+                    error,
+                );
+
+                setVendedores(
+                    [],
+                );
+            });
     }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFiltros((f) => ({ ...f, [name]: value }));
+
+    /* =========================================================
+       FILTROS
+       ========================================================= */
+
+    const handleChange = (
+        e,
+    ) => {
+        const {
+            name,
+            value,
+        } = e.target;
+
+        setFiltros(
+            (prev) => ({
+                ...prev,
+                [name]: value,
+            }),
+        );
     };
 
-    const handleBuscar = async () => {
-        if (!filtros.desde || !filtros.hasta) {
-            alert("Seleccione las fechas");
-            return;
-        }
-        setLoading(true);
-        try {
-            const params = {
-                desde: filtros.desde,
-                hasta: filtros.hasta,
-                ...(filtros.vendedor_id && { vendedor_id: filtros.vendedor_id }),
-            };
-            const resp = await axios.get(
-                "/api/reportes-contabilidad/cotizacionesventas",
-                { headers: authHeaders(), params }
+
+    /* =========================================================
+       BUSCAR
+       ========================================================= */
+
+    const handleBuscar =
+        async () => {
+            if (
+                !filtros.desde ||
+                !filtros.hasta
+            ) {
+                setSnackbar({
+                    open: true,
+                    message:
+                        "Seleccione las fechas",
+                    severity:
+                        "warning",
+                });
+
+                return;
+            }
+
+            if (
+                filtros.desde >
+                filtros.hasta
+            ) {
+                setSnackbar({
+                    open: true,
+                    message:
+                        "La fecha inicial no puede ser mayor a la fecha final",
+                    severity:
+                        "warning",
+                });
+
+                return;
+            }
+
+            setLoading(
+                true,
             );
-            setReportData(resp.data);
-        } catch (err) {
-            console.error("Error en buscar:", err);
-            alert("No se pudo cargar el reporte");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    const handleExport = async (tipo) => {
-        if (!filtros.desde || !filtros.hasta) {
-            alert("Seleccione las fechas");
-            return;
-        }
+            try {
+                const params = {
+                    desde:
+                        filtros.desde,
 
-        setExporting(true);
-        const endpoint =
-            tipo === "excel"
-                ? "/api/reportes-contabilidad/export/excelventas"
-                : "/api/reportes-contabilidad/export/pdfventas";
+                    hasta:
+                        filtros.hasta,
 
-        const params = {
-            desde: filtros.desde,
-            hasta: filtros.hasta,
-            ...(filtros.vendedor_id && { vendedor_id: filtros.vendedor_id }),
+                    ...(filtros.vendedor_id && {
+                        vendedor_id:
+                            filtros.vendedor_id,
+                    }),
+                };
+
+
+                const resp =
+                    await axios.get(
+                        "/api/reportes-contabilidad/cotizacionesventas",
+                        {
+                            headers:
+                                authHeaders(),
+
+                            params,
+                        },
+                    );
+
+
+                setReportData(
+                    resp.data,
+                );
+            } catch (err) {
+                console.error(
+                    "Error en buscar:",
+                    err,
+                );
+
+                setSnackbar({
+                    open: true,
+
+                    message:
+                        "No se pudo cargar el reporte",
+
+                    severity:
+                        "error",
+                });
+            } finally {
+                setLoading(
+                    false,
+                );
+            }
         };
 
-        try {
-            const response = await axios.get(endpoint, {
-                headers: authHeaders(),
-                params,
-                responseType: "blob",
-            });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute(
-                "download",
-                tipo === "excel"
-                    ? "ventas_por_cliente.xlsx"
-                    : "ventas_por_cliente.pdf"
+    /* =========================================================
+       EXPORTAR
+       ========================================================= */
+
+    const handleExport =
+        async (tipo) => {
+            if (
+                !filtros.desde ||
+                !filtros.hasta
+            ) {
+                setSnackbar({
+                    open: true,
+
+                    message:
+                        "Seleccione las fechas",
+
+                    severity:
+                        "warning",
+                });
+
+                return;
+            }
+
+
+            setExporting(
+                tipo,
             );
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
 
-            setSnackbar({
-                open: true,
-                message:
+
+            const endpoint =
+                tipo === "excel"
+                    ? "/api/reportes-contabilidad/export/excelventas"
+                    : "/api/reportes-contabilidad/export/pdfventas";
+
+
+            const params = {
+                desde:
+                    filtros.desde,
+
+                hasta:
+                    filtros.hasta,
+
+                ...(filtros.vendedor_id && {
+                    vendedor_id:
+                        filtros.vendedor_id,
+                }),
+            };
+
+
+            try {
+                const response =
+                    await axios.get(
+                        endpoint,
+                        {
+                            headers:
+                                authHeaders(),
+
+                            params,
+
+                            responseType:
+                                "blob",
+                        },
+                    );
+
+
+                const blob =
+                    new Blob([
+                        response.data,
+                    ]);
+
+
+                const url =
+                    window.URL.createObjectURL(
+                        blob,
+                    );
+
+
+                const link =
+                    document.createElement(
+                        "a",
+                    );
+
+
+                link.href =
+                    url;
+
+
+                link.setAttribute(
+                    "download",
+
                     tipo === "excel"
-                        ? "Archivo Excel generado exitosamente"
-                        : "Archivo PDF generado exitosamente",
-                severity: "success",
-            });
-        } catch (error) {
-            console.error("Error exportando:", error);
-            setSnackbar({
-                open: true,
-                message: "Error al generar el archivo",
-                severity: "error",
-            });
-        } finally {
-            setExporting(false);
-        }
-    };
+                        ? "ventas_por_cliente.xlsx"
+                        : "ventas_por_cliente.pdf",
+                );
 
-    const handleCloseSnackbar = () => {
-        setSnackbar({ ...snackbar, open: false });
-    };
 
-    const vendedoresAgrupados = useMemo(() => {
-        if (!reportData) return [];
-        return reportData.data.map((v) => ({
-            vendedor_nombre: v.vendedor_nombre,
-            total_por_vendedor: v.total_por_vendedor,
-            clientes: [...v.clientes].sort(
-                (a, b) => b.total_ventas - a.total_ventas
-            ),
-        }));
-    }, [reportData]);
+                document.body.appendChild(
+                    link,
+                );
+
+
+                link.click();
+
+                link.remove();
+
+
+                window.URL.revokeObjectURL(
+                    url,
+                );
+
+
+                setSnackbar({
+                    open: true,
+
+                    message:
+                        tipo === "excel"
+                            ? "Archivo Excel generado exitosamente"
+                            : "Archivo PDF generado exitosamente",
+
+                    severity:
+                        "success",
+                });
+            } catch (error) {
+                console.error(
+                    "Error exportando:",
+                    error,
+                );
+
+
+                setSnackbar({
+                    open: true,
+
+                    message:
+                        "Error al generar el archivo",
+
+                    severity:
+                        "error",
+                });
+            } finally {
+                setExporting(
+                    "",
+                );
+            }
+        };
+
+
+    /* =========================================================
+       SNACKBAR
+       ========================================================= */
+
+    const handleCloseSnackbar =
+        () => {
+            setSnackbar(
+                (prev) => ({
+                    ...prev,
+
+                    open: false,
+                }),
+            );
+        };
+
+
+    /* =========================================================
+       AGRUPACIÓN
+       ========================================================= */
+
+    const vendedoresAgrupados =
+        useMemo(() => {
+            if (
+                !reportData
+            ) {
+                return [];
+            }
+
+
+            return (
+                reportData.data ||
+                []
+            ).map(
+                (vendedor) => ({
+                    vendedor_nombre:
+                        vendedor.vendedor_nombre,
+
+                    total_por_vendedor:
+                        vendedor.total_por_vendedor,
+
+                    clientes: [
+                        ...(
+                            vendedor.clientes ||
+                            []
+                        ),
+                    ].sort(
+                        (
+                            a,
+                            b,
+                        ) =>
+                            Number(
+                                b.total_ventas,
+                            ) -
+                            Number(
+                                a.total_ventas,
+                            ),
+                    ),
+                }),
+            );
+        }, [
+            reportData,
+        ]);
+
+
+    /* =========================================================
+       PALETA GRÁFICA
+       ========================================================= */
 
     const palette = [
-        "#F44336", "#E91E63", "#9C27B0", "#673AB7",
-        "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
-        "#009688", "#4CAF50", "#8BC34A", "#CDDC39",
-        "#FFC107", "#FF9800", "#FF5722", "#795548",
-        "#607D8B", "#9E9E9E"
+        "#0e4f84",
+        "#39b54a",
+        "#fdb515",
+        "#1769aa",
+        "#6b7280",
+        "#2e7d32",
+        "#9a6700",
+        "#4f46e5",
+        "#0891b2",
+        "#7c3aed",
+        "#c2410c",
+        "#475569",
     ];
 
+
+    /* =========================================================
+       FORMATO
+       ========================================================= */
+
+    const formatoNumero =
+        (valor) =>
+            Number(
+                valor || 0,
+            ).toLocaleString(
+                "es-GT",
+                {
+                    minimumFractionDigits:
+                        2,
+
+                    maximumFractionDigits:
+                        2,
+                },
+            );
+
+
+    /* =========================================================
+       RENDER
+       ========================================================= */
+
     return (
-        <Box p={2}>
-            <Header title="Reporte de Cotizaciones (Prefacturación)" />
-            {/* <Typography variant="h5" gutterBottom>
-                Reporte de Ventas por Cliente
-            </Typography> */}
+        <div className="gp-module-page gp-sales-client-page">
 
-            {/* FILTROS */}
-            <Box
-                mb={2}
-                display="flex"
-                gap={2}
-                alignItems="center"
-                flexWrap="wrap"
-            >
-                <TextField
-                    type="date"
-                    name="desde"
-                    label="Desde"
-                    InputLabelProps={{ shrink: true }}
-                    value={filtros.desde}
-                    onChange={handleChange}
-                />
-                <TextField
-                    type="date"
-                    name="hasta"
-                    label="Hasta"
-                    InputLabelProps={{ shrink: true }}
-                    value={filtros.hasta}
-                    onChange={handleChange}
-                />
-                <TextField
-                    select
-                    name="vendedor_id"
-                    label="Vendedor"
-                    value={filtros.vendedor_id}
-                    onChange={handleChange}
-                    style={{ width: 200 }}
-                >
-                    <MenuItem value="">Todos</MenuItem>
-                    {vendedores.map((v) => (
-                        <MenuItem key={v.id_empleado} value={v.id_empleado}>
-                            {v.nombre}
-                        </MenuItem>
-                    ))}
-                </TextField>
+            <div className="gp-module-card gp-sales-client-card">
 
-                <Button
-                    variant="contained"
-                    onClick={handleBuscar}
-                    disabled={loading}
-                >
-                    {loading ? <CircularProgress size={20} /> : "Ver Reporte"}
-                </Button>
+                {/* HEADER */}
 
-                {reportData && (
-                    <>
-                        <Button
-                            variant="outlined"
-                            onClick={() => handleExport("excel")}
-                            disabled={exporting}
-                        >
-                            {exporting ? (
-                                <CircularProgress size={18} />
-                            ) : (
-                                "Exportar Excel"
-                            )}
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            onClick={() => handleExport("pdf")}
-                            disabled={exporting}
-                        >
-                            {exporting ? (
-                                <CircularProgress size={18} />
-                            ) : (
-                                "Exportar PDF"
-                            )}
-                        </Button>
-                    </>
-                )}
-            </Box>
+                <div className="gp-sales-client-header">
 
-            {/* TABLAS Y GRÁFICAS */}
-            {reportData && (
-                <>
-                    {vendedoresAgrupados.map((v, index) => (
-                        <Box key={index} mb={4}>
-                            <Typography
-                                variant="h6"
-                                sx={{ mt: 2, mb: 1, color: "#1565c0", fontWeight: "bold" }}
-                            >
-                                {v.vendedor_nombre}
-                            </Typography>
+                    <div className="gp-sales-client-heading">
 
-                            {/* Tabla por vendedor */}
-                            <TableContainer component={Paper}>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell><strong>Código Cliente</strong></TableCell>
-                                            <TableCell><strong>Nombre Cliente</strong></TableCell>
-                                            <TableCell align="right"><strong>Total Ventas</strong></TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {v.clientes.map((c, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell>{c.codigo}</TableCell>
-                                                <TableCell>{c.nombre}</TableCell>
-                                                <TableCell align="right">
-                                                    {Number(c.total_ventas).toLocaleString(undefined, {
-                                                        minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2,
-                                                    })}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        <TableRow style={{ backgroundColor: "#f0f0f0", fontWeight: "bold" }}>
-                                            <TableCell colSpan={2}>SUBTOTAL {v.vendedor_nombre}</TableCell>
-                                            <TableCell align="right">
-                                                {Number(v.total_por_vendedor).toLocaleString(undefined, {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })}
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+                        <div className="gp-sales-client-heading-icon">
+                            <TrendingUp
+                                size={
+                                    22
+                                }
+                            />
+                        </div>
 
-                            {/* Gráfica multicolor */}
-                            <Box height={400} mt={2}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={v.clientes}
-                                        layout="vertical"
-                                        margin={{ top: 20, right: 30, left: 100, bottom: 20 }}
+                        <div>
+                            <div className="gp-module-meta">
+                                CONTABILIDAD · VENTAS
+                            </div>
+
+                            <h1>
+                                Ventas por cliente
+                            </h1>
+
+                            <p>
+                                Analiza las ventas agrupadas
+                                por vendedor y cliente dentro
+                                de un rango de fechas.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    {reportData && (
+                        <div className="gp-sales-client-total">
+                            <span>
+                                Total general
+                            </span>
+
+                            <strong>
+                                Q{" "}
+                                {formatoNumero(
+                                    reportData.total_general,
+                                )}
+                            </strong>
+                        </div>
+                    )}
+                </div>
+
+
+                {/* FILTROS */}
+
+                <div className="gp-sales-client-filter-wrapper">
+
+                    <section className="gp-sales-client-filter">
+
+                        <div className="gp-sales-client-filter-header">
+
+                            <div>
+                                <Filter
+                                    size={
+                                        16
+                                    }
+                                />
+
+                                <strong>
+                                    Filtros del reporte
+                                </strong>
+                            </div>
+
+                            <span>
+                                Selecciona el período y,
+                                opcionalmente, un vendedor.
+                            </span>
+                        </div>
+
+
+                        <div className="gp-sales-client-filter-grid">
+
+                            {/* DESDE */}
+
+                            <div className="gp-sales-client-field">
+                                <label>
+                                    Desde
+                                </label>
+
+                                <div className="gp-sales-client-date">
+                                    <CalendarDays
+                                        size={
+                                            14
+                                        }
+                                    />
+
+                                    <input
+                                        type="date"
+                                        name="desde"
+                                        value={
+                                            filtros.desde
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+
+                            {/* HASTA */}
+
+                            <div className="gp-sales-client-field">
+                                <label>
+                                    Hasta
+                                </label>
+
+                                <div className="gp-sales-client-date">
+                                    <CalendarDays
+                                        size={
+                                            14
+                                        }
+                                    />
+
+                                    <input
+                                        type="date"
+                                        name="hasta"
+                                        value={
+                                            filtros.hasta
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+
+                            {/* VENDEDOR */}
+
+                            <div className="gp-sales-client-field gp-sales-client-vendor">
+                                <label>
+                                    Vendedor
+                                </label>
+
+                                <select
+                                    name="vendedor_id"
+                                    value={
+                                        filtros.vendedor_id
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                >
+                                    <option value="">
+                                        Todos los vendedores
+                                    </option>
+
+                                    {vendedores.map(
+                                        (
+                                            vendedor,
+                                        ) => (
+                                            <option
+                                                key={
+                                                    vendedor.id_empleado
+                                                }
+                                                value={
+                                                    vendedor.id_empleado
+                                                }
+                                            >
+                                                {
+                                                    vendedor.nombre
+                                                }
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
+
+
+                            {/* CONSULTAR */}
+
+                            <div className="gp-sales-client-search-action">
+                                <button
+                                    type="button"
+                                    className="gp-sales-client-search-button"
+                                    onClick={
+                                        handleBuscar
+                                    }
+                                    disabled={
+                                        loading
+                                    }
+                                >
+                                    <Search
+                                        size={
+                                            15
+                                        }
+                                    />
+
+                                    {loading
+                                        ? "Consultando..."
+                                        : "Ver reporte"}
+                                </button>
+                            </div>
+                        </div>
+
+
+                        {/* EXPORTAR */}
+
+                        {reportData && (
+                            <div className="gp-sales-client-export-row">
+
+                                <div className="gp-sales-client-export-info">
+                                    <BarChart3
+                                        size={
+                                            14
+                                        }
+                                    />
+
+                                    <span>
+                                        Exporta los resultados
+                                        utilizando los filtros
+                                        actuales.
+                                    </span>
+                                </div>
+
+
+                                <div className="gp-sales-client-export-actions">
+
+                                    <button
+                                        type="button"
+                                        className="gp-sales-client-export gp-sales-client-excel"
+                                        onClick={() =>
+                                            handleExport(
+                                                "excel",
+                                            )
+                                        }
+                                        disabled={
+                                            !!exporting
+                                        }
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            type="number"
-                                            tickFormatter={(value) => Number(value).toLocaleString()}
-                                        />
-                                        <YAxis type="category" dataKey="nombre" width={280} />
-                                        <Tooltip
-                                            formatter={(value) =>
-                                                Number(value).toLocaleString(undefined, {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
+                                        <FileSpreadsheet
+                                            size={
+                                                15
                                             }
                                         />
-                                        <Legend />
-                                        <Bar dataKey="total_ventas" name="Total Ventas">
-                                            {v.clientes.map((_, idx) => (
-                                                <Cell key={`cell-${idx}`} fill={palette[idx % palette.length]} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
-                        </Box>
-                    ))}
 
-                    {/* TOTAL GENERAL */}
-                    <TableContainer component={Paper}>
-                        <Table>
-                            <TableBody>
-                                <TableRow style={{ backgroundColor: "#e0e0e0", fontWeight: "bold" }}>
-                                    <TableCell colSpan={2}>TOTAL GENERAL</TableCell>
-                                    <TableCell align="right">
-                                        {Number(reportData.total_general).toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </>
-            )}
+                                        {exporting ===
+                                        "excel"
+                                            ? "Generando..."
+                                            : "Exportar Excel"}
+                                    </button>
 
-            {/* Snackbar */}
+
+                                    <button
+                                        type="button"
+                                        className="gp-sales-client-export gp-sales-client-pdf"
+                                        onClick={() =>
+                                            handleExport(
+                                                "pdf",
+                                            )
+                                        }
+                                        disabled={
+                                            !!exporting
+                                        }
+                                    >
+                                        <FileDown
+                                            size={
+                                                15
+                                            }
+                                        />
+
+                                        {exporting ===
+                                        "pdf"
+                                            ? "Generando..."
+                                            : "Exportar PDF"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                </div>
+
+
+                {/* RESULTADOS */}
+
+                {reportData && (
+                    <div className="gp-sales-client-results">
+
+                        {/* RESUMEN */}
+
+                        <div className="gp-sales-client-summary">
+
+                            <div className="gp-sales-client-summary-item">
+                                <span>
+                                    Período
+                                </span>
+
+                                <strong>
+                                    {
+                                        filtros.desde
+                                    }
+                                    {" → "}
+                                    {
+                                        filtros.hasta
+                                    }
+                                </strong>
+                            </div>
+
+
+                            <div className="gp-sales-client-summary-item">
+                                <span>
+                                    Vendedores
+                                </span>
+
+                                <strong>
+                                    {
+                                        vendedoresAgrupados.length
+                                    }
+                                </strong>
+                            </div>
+
+
+                            <div className="gp-sales-client-summary-total">
+                                <TrendingUp
+                                    size={
+                                        18
+                                    }
+                                />
+
+                                <div>
+                                    <span>
+                                        Total general
+                                    </span>
+
+                                    <strong>
+                                        Q{" "}
+                                        {formatoNumero(
+                                            reportData.total_general,
+                                        )}
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        {/* SIN RESULTADOS */}
+
+                        {vendedoresAgrupados.length ===
+                            0 && (
+                            <div className="gp-sales-client-empty">
+                                <UsersRound
+                                    size={
+                                        28
+                                    }
+                                />
+
+                                <strong>
+                                    Sin resultados
+                                </strong>
+
+                                <span>
+                                    No se encontraron ventas
+                                    para los filtros seleccionados.
+                                </span>
+                            </div>
+                        )}
+
+
+                        {/* VENDEDORES */}
+
+                        {vendedoresAgrupados.map(
+                            (
+                                vendedor,
+                                vendedorIndex,
+                            ) => (
+                                <section
+                                    key={`${vendedor.vendedor_nombre}-${vendedorIndex}`}
+                                    className="gp-sales-client-vendor-section"
+                                >
+
+                                    {/* HEADER VENDEDOR */}
+
+                                    <div className="gp-sales-client-vendor-header">
+
+                                        <div className="gp-sales-client-vendor-name">
+                                            <span>
+                                                Vendedor
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    vendedor.vendedor_nombre
+                                                }
+                                            </strong>
+                                        </div>
+
+
+                                        <div className="gp-sales-client-vendor-total">
+                                            <span>
+                                                Total vendedor
+                                            </span>
+
+                                            <strong>
+                                                Q{" "}
+                                                {formatoNumero(
+                                                    vendedor.total_por_vendedor,
+                                                )}
+                                            </strong>
+                                        </div>
+                                    </div>
+
+
+                                    {/* TABLA */}
+
+                                    <div className="gp-sales-client-table-wrapper">
+                                        <table className="gp-sales-client-table">
+
+                                            <thead>
+                                                <tr>
+                                                    <th className="gp-sales-client-position">
+                                                        #
+                                                    </th>
+
+                                                    <th>
+                                                        Código
+                                                    </th>
+
+                                                    <th>
+                                                        Cliente
+                                                    </th>
+
+                                                    <th className="gp-sales-client-money">
+                                                        Total ventas
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+
+                                            <tbody>
+                                                {vendedor.clientes.map(
+                                                    (
+                                                        cliente,
+                                                        clienteIndex,
+                                                    ) => (
+                                                        <tr
+                                                            key={`${cliente.codigo}-${clienteIndex}`}
+                                                        >
+
+                                                            <td className="gp-sales-client-position">
+                                                                <span className="gp-sales-client-ranking">
+                                                                    {
+                                                                        clienteIndex +
+                                                                        1
+                                                                    }
+                                                                </span>
+                                                            </td>
+
+
+                                                            <td>
+                                                                <span className="gp-sales-client-code">
+                                                                    {
+                                                                        cliente.codigo
+                                                                    }
+                                                                </span>
+                                                            </td>
+
+
+                                                            <td>
+                                                                <strong className="gp-sales-client-customer-name">
+                                                                    {
+                                                                        cliente.nombre
+                                                                    }
+                                                                </strong>
+                                                            </td>
+
+
+                                                            <td className="gp-sales-client-money">
+                                                                Q{" "}
+                                                                {formatoNumero(
+                                                                    cliente.total_ventas,
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
+
+
+                                                {/* SUBTOTAL */}
+
+                                                <tr className="gp-sales-client-subtotal">
+                                                    <td
+                                                        colSpan={
+                                                            3
+                                                        }
+                                                    >
+                                                        Subtotal{" "}
+                                                        {
+                                                            vendedor.vendedor_nombre
+                                                        }
+                                                    </td>
+
+                                                    <td className="gp-sales-client-money">
+                                                        Q{" "}
+                                                        {formatoNumero(
+                                                            vendedor.total_por_vendedor,
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+
+                                    {/* GRÁFICA */}
+
+                                    {vendedor.clientes.length >
+                                        0 && (
+                                        <div className="gp-sales-client-chart-card">
+
+                                            <div className="gp-sales-client-chart-header">
+                                                <div>
+                                                    <BarChart3
+                                                        size={
+                                                            16
+                                                        }
+                                                    />
+
+                                                    <strong>
+                                                        Distribución de ventas por cliente
+                                                    </strong>
+                                                </div>
+
+                                                <span>
+                                                    Ordenado de mayor a menor
+                                                </span>
+                                            </div>
+
+
+                                            <div
+                                                className="gp-sales-client-chart"
+                                                style={{
+                                                    height:
+                                                        Math.max(
+                                                            280,
+                                                            vendedor
+                                                                .clientes
+                                                                .length *
+                                                                36,
+                                                        ),
+                                                }}
+                                            >
+                                                <ResponsiveContainer
+                                                    width="100%"
+                                                    height="100%"
+                                                >
+                                                    <BarChart
+                                                        data={
+                                                            vendedor.clientes
+                                                        }
+                                                        layout="vertical"
+                                                        margin={{
+                                                            top: 10,
+                                                            right:
+                                                                35,
+                                                            left: 20,
+                                                            bottom:
+                                                                10,
+                                                        }}
+                                                    >
+                                                        <CartesianGrid
+                                                            strokeDasharray="3 3"
+                                                            horizontal={
+                                                                false
+                                                            }
+                                                        />
+
+                                                        <XAxis
+                                                            type="number"
+                                                            tickFormatter={(
+                                                                value,
+                                                            ) =>
+                                                                Number(
+                                                                    value,
+                                                                ).toLocaleString(
+                                                                    "es-GT",
+                                                                )
+                                                            }
+                                                        />
+
+                                                        <YAxis
+                                                            type="category"
+                                                            dataKey="nombre"
+                                                            width={
+                                                                210
+                                                            }
+                                                            tick={{
+                                                                fontSize:
+                                                                    9,
+                                                            }}
+                                                        />
+
+                                                        <Tooltip
+                                                            formatter={(
+                                                                value,
+                                                            ) => [
+                                                                `Q ${formatoNumero(
+                                                                    value,
+                                                                )}`,
+
+                                                                "Total ventas",
+                                                            ]}
+                                                        />
+
+                                                        <Bar
+                                                            dataKey="total_ventas"
+                                                            name="Total ventas"
+                                                            radius={[
+                                                                0,
+                                                                4,
+                                                                4,
+                                                                0,
+                                                            ]}
+                                                        >
+                                                            {vendedor.clientes.map(
+                                                                (
+                                                                    _,
+                                                                    index,
+                                                                ) => (
+                                                                    <Cell
+                                                                        key={`cell-${index}`}
+                                                                        fill={
+                                                                            palette[
+                                                                                index %
+                                                                                    palette.length
+                                                                            ]
+                                                                        }
+                                                                    />
+                                                                ),
+                                                            )}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            ),
+                        )}
+
+
+                        {/* TOTAL GENERAL */}
+
+                        {vendedoresAgrupados.length >
+                            0 && (
+                            <div className="gp-sales-client-grand-total">
+
+                                <div>
+                                    <TrendingUp
+                                        size={
+                                            18
+                                        }
+                                    />
+
+                                    <div>
+                                        <span>
+                                            Total general
+                                        </span>
+
+                                        <strong>
+                                            Ventas del período consultado
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <strong>
+                                    Q{" "}
+                                    {formatoNumero(
+                                        reportData.total_general,
+                                    )}
+                                </strong>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+
+            {/* SNACKBAR */}
+
             <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                open={
+                    snackbar.open
+                }
+                autoHideDuration={
+                    4000
+                }
+                onClose={
+                    handleCloseSnackbar
+                }
+                anchorOrigin={{
+                    vertical:
+                        "bottom",
+
+                    horizontal:
+                        "center",
+                }}
             >
-                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
-                    {snackbar.message}
+                <Alert
+                    onClose={
+                        handleCloseSnackbar
+                    }
+                    severity={
+                        snackbar.severity
+                    }
+                    sx={{
+                        width:
+                            "100%",
+                    }}
+                >
+                    {
+                        snackbar.message
+                    }
                 </Alert>
             </Snackbar>
-        </Box>
+        </div>
     );
 };
+
 
 export default ReporteVentasPorCliente;

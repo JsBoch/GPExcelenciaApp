@@ -1,85 +1,957 @@
-.data-table-container {
-    padding: 20px;
+/* =========================================================
+   GP EXCELENCIA
+   CONSULTA DE CLIENTES
+========================================================= */
+
+
+/* =========================================================
+   HEADER CONTADOR
+========================================================= */
+
+.clientes-header-count {
+    min-width:
+        120px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        10px;
+
+    padding:
+        8px
+        12px;
+
+    border:
+        1px solid
+        #dfe6ec;
+
+    border-radius:
+        10px;
+
+    background:
+        #f8fafc;
 }
 
-.data-table-container h2 {
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
+
+.clientes-header-count > svg {
+    color:
+        var(--gp-blue);
+
+    font-size:
+        19px;
 }
 
-.table-responsive {
-    overflow-x: auto;
+
+.clientes-header-count > div {
+    display:
+        flex;
+
+    flex-direction:
+        column;
 }
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+
+.clientes-header-count span {
+    color:
+        #94a3b8;
+
+    font-size:
+        8px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        .08em;
 }
 
-.table th,
-.table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
+
+.clientes-header-count strong {
+    color:
+        #1e293b;
+
+    font-size:
+        16px;
+
+    line-height:
+        1.15;
 }
 
-.table th {
-    background-color: #d5dee2;
-    color: black;
-    font-weight: bold;
-}
 
-.table tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
+/* =========================================================
+   TOOLBAR
+========================================================= */
 
-.table tbody tr:hover {
-    background-color: #e0f7fa;
-}
+.clientes-toolbar {
+    min-height: 60px;
 
-/* Opcional: Estilo para el encabezado fijo */
-/* .table thead th {
-    position: sticky;
-    top: 0;
-    background-color: #f2f2f2;
-    z-index: 1; /* Para asegurarse de que esté encima del resto de la tabla */
-/*} */
-
-/* Estilo para mensajes de carga */
-
-.loading-message{
-    text-align: center;
-    font-style: italic;
-    color: #666;
-    margin: 20px 0;
-}
-.container {
-    max-width: 1200px;
-    margin: 20px auto;
-}
-
-.button-container {
     display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 24px;
+
+    padding: 10px 13px;
+
+    border:
+        1px solid
+        #e1e7ed;
+
+    border-radius: 11px;
+
+    background:
+        #f8fafc;
+}
+
+
+/* =========================================================
+   BUSCADOR
+========================================================= */
+
+.clientes-search-area {
+    width: min(680px, 100%);
+
+    display: flex;
+    align-items: center;
+
+    flex-shrink: 1;
+}
+
+
+.clientes-search-box {
+    width: 100%;
+    height: 40px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    border: 1px solid #d7e0e8;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.clientes-search-box:focus-within {
+    border-color: var(--gp-blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, .08);
+}
+
+
+.clientes-search-input-icon {
+    position: absolute;
+
+    left: 13px;
+
+    color: var(--gp-blue);
+
+    font-size: 15px;
+
+    pointer-events: none;
+}
+
+
+.clientes-search-input {
+    width: 100%;
+    height: 38px;
+
+    padding:
+        0
+        40px
+        0
+        39px;
+
+    border: 0;
+
+    outline: 0;
+
+    border-radius: 9px;
+
+    background: transparent;
+
+    color: #334155;
+
+    font-family: inherit;
+
+    font-size: 11px;
+}
+
+
+.clientes-search-input::placeholder {
+    color: #94a3b8;
+}
+
+
+.clientes-search-clear {
+    width: 26px;
+    height: 26px;
+
+    position: absolute;
+
+    right: 7px;
+
+    display: flex;
+    align-items: center;
     justify-content: center;
-    margin-top: 20px;
-}
 
-.btn {
-    padding: 10px 20px;
-    margin: 0 10px;
-    border: none;
-    border-radius: 5px;
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 6px;
+
+    background: #f1f5f9;
+
+    color: #64748b;
+
+    font-size: 17px;
+
     cursor: pointer;
-    text-decoration: none;
-    color: white;
 }
 
-.btn-secondary {
-    background-color: #6c757d;
+
+.clientes-search-clear:hover {
+    background: #e2e8f0;
+
+    color: #0f172a;
 }
 
-.btn-secondary:hover {
-    background-color: #5a6268;
+
+/* =========================================================
+   EXPORTACIONES
+========================================================= */
+
+.clientes-export-actions {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    flex-shrink:
+        0;
+}
+
+
+.clientes-export-button,
+.clientes-new-button {
+    min-height:
+        37px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        6px;
+
+    padding:
+        7px
+        12px;
+
+    border-radius:
+        8px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    text-decoration:
+        none;
+
+    cursor:
+        pointer;
+
+    transition:
+        .18s ease;
+}
+
+
+.clientes-export-button {
+    border:
+        1px solid
+        #dce3e9;
+
+    background:
+        #ffffff;
+}
+
+
+.clientes-export-button.excel {
+    color:
+        #26833a;
+}
+
+
+.clientes-export-button.excel:hover {
+    border-color:
+        rgba(57,181,74,.35);
+
+    background:
+        rgba(57,181,74,.07);
+}
+
+
+.clientes-export-button.pdf {
+    color:
+        #c03b48;
+}
+
+
+.clientes-export-button.pdf:hover {
+    border-color:
+        rgba(220,53,69,.30);
+
+    background:
+        rgba(220,53,69,.06);
+}
+
+
+.clientes-new-button {
+    border:
+        1px solid
+        var(--gp-blue);
+
+    background:
+        var(--gp-blue);
+
+    color:
+        #ffffff;
+}
+
+
+.clientes-new-button:hover {
+    background:
+        #0b416d;
+
+    color:
+        #ffffff;
+
+    transform:
+        translateY(-1px);
+}
+
+
+/* =========================================================
+   ENCABEZADO TABLA
+========================================================= */
+
+.clientes-table-heading {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    margin-bottom:
+        11px;
+}
+
+
+.clientes-table-heading h3 {
+    margin:
+        0;
+
+    color:
+        #1e293b;
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+}
+
+
+.clientes-table-heading span {
+    display:
+        block;
+
+    margin-top:
+        2px;
+
+    color:
+        #94a3b8;
+
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+========================================================= */
+
+.clientes-table-wrapper {
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        #dce4eb;
+
+    border-radius:
+        12px;
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 5px 16px
+        rgba(15,23,42,.04);
+}
+
+
+/* =========================================================
+   TOOLBAR MRT
+========================================================= */
+
+.clientes-table-toolbar {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    padding:
+        2px
+        3px;
+
+    color:
+        #64748b;
+
+    font-size:
+        10px;
+
+    font-weight:
+        650;
+}
+
+
+.clientes-table-toolbar svg {
+    color:
+        var(--gp-blue);
+}
+
+
+/* =========================================================
+   CLIENTE
+========================================================= */
+
+.cliente-name-cell {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+}
+
+
+.cliente-table-avatar {
+    width:
+        31px;
+
+    height:
+        31px;
+
+    flex-shrink:
+        0;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        8px;
+
+    background:
+        rgba(14,79,132,.075);
+
+    color:
+        var(--gp-blue);
+
+    font-size:
+        11px;
+
+    font-weight:
+        750;
+}
+
+
+.cliente-name-cell > div:last-child {
+    min-width:
+        0;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+}
+
+
+.cliente-name-cell strong {
+    overflow:
+        hidden;
+
+    color:
+        #334155;
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+}
+
+
+.cliente-name-cell span {
+    max-width:
+        210px;
+
+    overflow:
+        hidden;
+
+    margin-top:
+        1px;
+
+    color:
+        #94a3b8;
+
+    font-size:
+        8px;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+}
+
+
+/* =========================================================
+   CÓDIGO
+========================================================= */
+
+.cliente-code {
+    display:
+        inline-flex;
+
+    padding:
+        3px
+        6px;
+
+    border-radius:
+        5px;
+
+    background:
+        #f1f5f9;
+
+    color:
+        #64748b;
+
+    font-size:
+        9px;
+
+    font-weight:
+        650;
+}
+
+
+/* =========================================================
+   TELÉFONOS
+========================================================= */
+
+.cliente-phone-cell {
+    display:
+        flex;
+
+    flex-direction:
+        column;
+}
+
+
+.cliente-phone-cell strong {
+    color:
+        #475569;
+
+    font-size:
+        10px;
+}
+
+
+.cliente-phone-cell span {
+    color:
+        #94a3b8;
+
+    font-size:
+        8px;
+}
+
+
+/* =========================================================
+   FECHA
+========================================================= */
+
+.cliente-date {
+    display:
+        inline-flex;
+
+    padding:
+        3px
+        7px;
+
+    border-radius:
+        6px;
+
+    background:
+        rgba(14,79,132,.06);
+
+    color:
+        var(--gp-blue);
+
+    font-size:
+        9px;
+
+    font-weight:
+        650;
+}
+
+
+.cliente-no-date {
+    color:
+        #a8b2bf;
+
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   ACCIONES
+========================================================= */
+
+.cliente-table-actions {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+}
+
+
+.cliente-table-actions
+.MuiIconButton-root {
+    width:
+        30px;
+
+    height:
+        30px;
+
+    border:
+        1px solid
+        transparent;
+
+    font-size:
+        14px;
+
+    transition:
+        .18s ease;
+}
+
+
+.cliente-table-actions
+.cliente-action-edit {
+    border-color:
+        rgba(14,79,132,.15);
+
+    background:
+        rgba(14,79,132,.055);
+
+    color:
+        var(--gp-blue);
+}
+
+
+.cliente-table-actions
+.cliente-action-edit:hover {
+    border-color:
+        var(--gp-blue);
+
+    background:
+        var(--gp-blue);
+
+    color:
+        #ffffff;
+}
+
+
+.cliente-table-actions
+.cliente-action-delete {
+    border-color:
+        rgba(220,53,69,.15);
+
+    background:
+        rgba(220,53,69,.045);
+
+    color:
+        #c93645;
+}
+
+
+.cliente-table-actions
+.cliente-action-delete:hover {
+    border-color:
+        #dc3545;
+
+    background:
+        #dc3545;
+
+    color:
+        #ffffff;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.clientes-list-footer {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    padding:
+        19px
+        3px
+        1px;
+
+    color:
+        #94a3b8;
+
+    font-size:
+        8px;
+}
+
+
+.clientes-list-footer
+span:nth-child(2) {
+    width:
+        3px;
+
+    height:
+        3px;
+
+    border-radius:
+        50%;
+
+    background:
+        var(--gp-green);
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.clientes-loading-card {
+    min-height:
+        250px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        12px;
+
+    color:
+        #64748b;
+
+    font-size:
+        10px;
+}
+
+
+.clientes-loading-spinner {
+    width:
+        25px;
+
+    height:
+        25px;
+
+    border:
+        3px solid
+        #e2e8f0;
+
+    border-top-color:
+        var(--gp-blue);
+
+    border-radius:
+        50%;
+
+    animation:
+        clienteSpin
+        .8s
+        linear
+        infinite;
+}
+
+
+@keyframes clienteSpin {
+
+    to {
+        transform:
+            rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .clientes-toolbar {
+        align-items:
+            stretch;
+
+        flex-direction:
+            column;
+    }
+
+
+    .clientes-search-area {
+        width:
+            100%;
+    }
+
+
+    .clientes-export-actions {
+        justify-content:
+            flex-end;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .clientes-header-count {
+        display:
+            none;
+    }
+
+
+    .clientes-export-actions {
+        display:
+            grid;
+
+        grid-template-columns:
+            1fr
+            1fr;
+    }
+
+
+    .clientes-new-button {
+        grid-column:
+            1 / -1;
+    }
+
+
+    .clientes-export-button,
+    .clientes-new-button {
+        width:
+            100%;
+    }
+
+
+    .clientes-search-icon {
+        display:
+            none;
+    }
+
+}
+
+
+/* =========================================================
+   FILA SELECCIONADA
+========================================================= */
+
+.clientes-table-wrapper
+.MuiTableRow-root {
+    transition:
+        background-color .15s ease;
+}
+
+
+.clientes-table-wrapper
+.MuiTableBody-root
+.MuiTableRow-root:hover {
+    cursor: pointer;
 }

@@ -1,0 +1,549 @@
+/* =========================================================
+   REPORTE PRE-FACTURACIÓN
+   ========================================================= */
+
+.gp-prefact-report-page {
+    width: 100%;
+}
+
+.gp-prefact-report-card {
+    max-width: 980px;
+
+    margin: 0 auto;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-prefact-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        21px
+        23px
+        18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid
+        #e6ecf1;
+}
+
+.gp-prefact-report-heading {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+.gp-prefact-report-heading-icon {
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid
+        #d3e3ee;
+
+    border-radius:
+        10px;
+}
+
+.gp-prefact-report-heading h1 {
+    margin:
+        4px
+        0
+        3px;
+
+    color:
+        #172033;
+
+    font-size:
+        20px;
+
+    font-weight:
+        700;
+}
+
+.gp-prefact-report-heading p {
+    max-width:
+        650px;
+
+    margin: 0;
+
+    color:
+        #728092;
+
+    font-size:
+        11.5px;
+
+    line-height:
+        1.45;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-prefact-report-body {
+    padding:
+        19px
+        23px
+        23px;
+
+    background:
+        #f8fafb;
+}
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.gp-prefact-filter-section {
+    padding:
+        15px;
+
+    background:
+        #fff;
+
+    border:
+        1px solid
+        #e0e6eb;
+
+    border-radius:
+        9px;
+}
+
+.gp-prefact-filter-header {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        12px;
+
+    margin-bottom:
+        13px;
+
+    padding-bottom:
+        9px;
+
+    border-bottom:
+        1px solid
+        #edf1f4;
+}
+
+.gp-prefact-filter-header
+    > div {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+    color:
+        #344256;
+}
+
+.gp-prefact-filter-header
+    svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-prefact-filter-header
+    strong {
+    font-size:
+        11px;
+}
+
+.gp-prefact-filter-header
+    > span {
+    color:
+        #8a97a4;
+
+    font-size:
+        8.5px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.gp-prefact-filter-grid {
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(160px, 0.75fr)
+        minmax(160px, 0.75fr)
+        minmax(260px, 1.5fr);
+
+    gap:
+        12px;
+}
+
+.gp-prefact-field {
+    min-width:
+        0;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+}
+
+.gp-prefact-field label {
+    margin-bottom:
+        4px;
+
+    color:
+        #526173;
+
+    font-size:
+        9px;
+
+    font-weight:
+        700;
+}
+
+.gp-prefact-field input,
+.gp-prefact-field select {
+    width:
+        100%;
+
+    height:
+        36px;
+
+    padding:
+        0
+        9px;
+
+    color:
+        #27364a;
+
+    background:
+        #fff;
+
+    border:
+        1px solid
+        #cad4de;
+
+    border-radius:
+        6px;
+
+    outline:
+        none;
+
+    font-size:
+        10px;
+}
+
+.gp-prefact-field input:focus,
+.gp-prefact-field select:focus {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            14,
+            79,
+            132,
+            0.07
+        );
+}
+
+
+/* =========================================================
+   FECHAS
+   ========================================================= */
+
+.gp-prefact-date-control {
+    position:
+        relative;
+}
+
+.gp-prefact-date-control
+    svg {
+    position:
+        absolute;
+
+    top:
+        50%;
+
+    left:
+        9px;
+
+    z-index:
+        1;
+
+    color:
+        #718095;
+
+    transform:
+        translateY(-50%);
+
+    pointer-events:
+        none;
+}
+
+.gp-prefact-date-control
+    input {
+    padding-left:
+        29px;
+}
+
+
+/* =========================================================
+   ACCIÓN
+   ========================================================= */
+
+.gp-prefact-action-row {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        12px;
+
+    margin-top:
+        13px;
+
+    padding-top:
+        11px;
+
+    border-top:
+        1px solid
+        #edf1f4;
+}
+
+.gp-prefact-help {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    color:
+        #8794a1;
+
+    font-size:
+        8.5px;
+}
+
+.gp-prefact-help
+    svg {
+    color:
+        #7b8996;
+}
+
+.gp-prefact-view-button {
+    min-height:
+        35px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        5px;
+
+    min-width:
+        120px;
+
+    padding:
+        0
+        12px;
+
+    color:
+        #fff;
+
+    background:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    border:
+        1px solid
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    border-radius:
+        6px;
+
+    font-size:
+        9.5px;
+
+    font-weight:
+        700;
+
+    cursor:
+        pointer;
+}
+
+.gp-prefact-view-button:hover:not(:disabled) {
+    background:
+        var(
+            --gp-blue-light,
+            #1769aa
+        );
+}
+
+.gp-prefact-view-button:disabled {
+    opacity:
+        0.55;
+
+    cursor:
+        not-allowed;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.gp-prefact-loading {
+    margin-top:
+        10px;
+
+    padding:
+        8px
+        10px;
+
+    color:
+        #64748b;
+
+    background:
+        #f1f5f8;
+
+    border:
+        1px solid
+        #dfe6ec;
+
+    border-radius:
+        6px;
+
+    text-align:
+        center;
+
+    font-size:
+        9.5px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 800px) {
+    .gp-prefact-filter-grid {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .gp-prefact-report-header {
+        padding:
+            18px;
+    }
+
+    .gp-prefact-report-body {
+        padding:
+            16px
+            18px
+            18px;
+    }
+
+    .gp-prefact-report-heading-icon {
+        display:
+            none;
+    }
+
+    .gp-prefact-filter-header {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+
+    .gp-prefact-action-row {
+        align-items:
+            stretch;
+
+        flex-direction:
+            column;
+    }
+
+    .gp-prefact-view-button {
+        width:
+            100%;
+    }
+}

@@ -1,0 +1,1784 @@
+.gp-logcal-page {
+    --gp-blue: #0e4f84;
+    --gp-green: #39b54a;
+
+    width: 100%;
+    height: auto !important;
+    min-height: 100vh;
+
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+
+    padding-bottom: 30px;
+}
+
+.gp-logcal-card {
+    overflow: visible !important;
+}
+
+.gp-logcal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 20px 22px 17px;
+
+    border-bottom: 1px solid #e5ebf0;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+}
+
+.gp-logcal-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gp-logcal-heading-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue);
+
+    background: #e8f1f7;
+
+    border: 1px solid #d5e3ed;
+    border-radius: 9px;
+}
+
+.gp-logcal-heading h1 {
+    margin: 2px 0 3px;
+
+    color: #172033;
+
+    font-size: 20px;
+}
+
+.gp-logcal-heading p {
+    margin: 0;
+
+    color: #748294;
+
+    font-size: 11px;
+}
+
+.gp-logcal-loading {
+    color: #6e7c8e;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.gp-logcal-calendar {
+    padding: 14px;
+}
+
+.gp-logcal-calendar .fc {
+    color: #334155;
+
+    font-size: 10px;
+}
+
+.gp-logcal-calendar .fc-toolbar {
+    margin-bottom: 12px !important;
+}
+
+.gp-logcal-calendar .fc-toolbar-title {
+    color: #1e293b;
+
+    font-size: 15px !important;
+    font-weight: 700;
+}
+
+.gp-logcal-calendar .fc-button {
+    min-height: 31px;
+
+    padding: 5px 9px !important;
+
+    background: #fff !important;
+    color: #526173 !important;
+
+    border: 1px solid #cbd5df !important;
+
+    box-shadow: none !important;
+
+    font-size: 9px !important;
+    font-weight: 700 !important;
+}
+
+.gp-logcal-calendar .fc-button:hover {
+    background: #f3f6f8 !important;
+}
+
+.gp-logcal-calendar .fc-button-active {
+    color: #fff !important;
+    background: var(--gp-blue) !important;
+
+    border-color: var(--gp-blue) !important;
+}
+
+.gp-logcal-calendar .fc-col-header-cell {
+    background: #f5f7fa;
+}
+
+.gp-logcal-calendar .fc-col-header-cell-cushion {
+    padding: 7px 4px;
+
+    color: #475569;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.gp-logcal-calendar .fc-timegrid-slot-label-cushion {
+    color: #718096;
+
+    font-size: 8px;
+}
+
+.gp-logcal-calendar .fc-event {
+    padding: 2px 4px;
+
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+    border-radius: 4px;
+
+    cursor: pointer;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-calendar .fc-event:hover {
+    opacity: 0.9;
+}
+
+.gp-logcal-modal-backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1500;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(
+        15,
+        23,
+        42,
+        0.42
+    );
+}
+
+.gp-logcal-modal {
+    width: min(
+        960px,
+        96vw
+    );
+
+    max-height: 88vh;
+
+    overflow-y: auto;
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(
+            15,
+            23,
+            42,
+            0.22
+        );
+}
+
+.gp-logcal-modal-header {
+    position: sticky;
+    top: 0;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 12px 14px;
+
+    background: #fff;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-modal-header strong {
+    display: block;
+
+    color: #1e293b;
+
+    font-size: 13px;
+}
+
+.gp-logcal-modal-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-modal-header button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+    background: #fff;
+
+    border: 1px solid #d8e0e7;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-modal-info {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        );
+
+    gap: 8px;
+
+    padding: 12px 14px;
+}
+
+.gp-logcal-modal-info > div {
+    padding: 9px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e5eaf0;
+    border-radius: 7px;
+}
+
+.gp-logcal-modal-info svg {
+    color: var(--gp-blue);
+}
+
+.gp-logcal-modal-info span {
+    display: block;
+
+    margin: 5px 0 2px;
+
+    color: #7b8796;
+
+    font-size: 8px;
+}
+
+.gp-logcal-modal-info strong {
+    color: #334155;
+
+    font-size: 9px;
+}
+
+.gp-logcal-orders-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 9px 14px;
+
+    color: #334155;
+
+    border-top: 1px solid #e8edf1;
+    border-bottom: 1px solid #e8edf1;
+
+    background: #fafbfc;
+
+    font-size: 9px;
+}
+
+.gp-logcal-orders-title svg {
+    color: var(--gp-blue);
+}
+
+.gp-logcal-orders-wrapper {
+    overflow-x: auto;
+}
+
+.gp-logcal-orders-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.gp-logcal-orders-table th {
+    padding: 7px 8px;
+
+    background: #f3f6f9;
+
+    color: #526173;
+
+    border-bottom: 1px solid #dfe6ec;
+
+    text-align: left;
+
+    font-size: 8px;
+}
+
+.gp-logcal-orders-table td {
+    padding: 7px 8px;
+
+    color: #3d4b5d;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-order-number {
+    width: 22px;
+    height: 22px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+    background: var(--gp-blue);
+
+    border-radius: 50%;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.gp-logcal-order {
+    color: var(--gp-blue) !important;
+
+    font-weight: 700;
+}
+
+.gp-logcal-status {
+    display: inline-flex;
+
+    padding: 3px 6px;
+
+    background: #eef4f8;
+
+    border-radius: 12px;
+
+    font-size: 7.5px;
+    font-weight: 700;
+}
+
+.gp-logcal-empty {
+    padding: 24px !important;
+
+    color: #7b8796 !important;
+
+    text-align: center !important;
+}
+
+@media (max-width: 750px) {
+    .gp-logcal-modal-info {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .gp-logcal-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-logcal-modal-info {
+        grid-template-columns:
+            1fr;
+    }
+
+    .gp-logcal-heading-icon {
+        display: none;
+    }
+}
+
+/* =========================================================
+   BOTONES HEADER MODAL
+========================================================= */
+
+.gp-logcal-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.gp-logcal-edit-button {
+    width: auto !important;
+    height: 31px !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 11px !important;
+
+    color: #0e4f84 !important;
+    background: #ffffff !important;
+
+    border: 1px solid #b9cfdf !important;
+    border-radius: 6px !important;
+
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gp-logcal-edit-button:hover {
+    background: #eef5fa !important;
+    border-color: #0e4f84 !important;
+}
+
+.gp-logcal-close-button {
+    width: 31px !important;
+    height: 31px !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 !important;
+
+    color: #64748b !important;
+    background: #ffffff !important;
+
+    border: 1px solid #d2dbe3 !important;
+    border-radius: 6px !important;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gp-logcal-close-button:hover {
+    color: #b42318 !important;
+    background: #fff5f4 !important;
+    border-color: #e6b8b4 !important;
+}
+
+.gp-logcal-orders-title {
+    justify-content: space-between;
+}
+
+.gp-logcal-orders-title > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gp-logcal-orders-edit,
+.gp-logcal-orders-cancel,
+.gp-logcal-orders-save {
+    height: 29px;
+
+    padding: 0 9px;
+
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-orders-edit {
+    color: #0e4f84;
+    background: #fff;
+
+    border: 1px solid #b9cfdf;
+}
+
+.gp-logcal-orders-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.gp-logcal-orders-cancel {
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-orders-save {
+    color: #fff;
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+}
+
+.gp-logcal-orders-save:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.gp-logcal-order-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.gp-logcal-order-edit-controls button {
+    width: 24px;
+    height: 24px;
+
+    padding: 0;
+
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+    border-radius: 4px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-order-edit-controls button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.gp-logcal-order-inline {
+    height: 28px;
+
+    padding: 0 6px;
+
+    color: #344256;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 5px;
+
+    font-size: 8px;
+}
+
+.gp-logcal-order-observation {
+    width: 180px;
+}
+
+/* =========================================================
+   EDICIÓN DE PROGRAMACIÓN
+========================================================= */
+
+.gp-logcal-edit-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+
+    padding: 14px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-edit-field {
+    min-width: 0;
+}
+
+.gp-logcal-edit-field label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+.gp-logcal-edit-field input,
+.gp-logcal-edit-field select,
+.gp-logcal-edit-field textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    color: #334155;
+    background: #ffffff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    outline: none;
+
+    font-family: inherit;
+    font-size: 9px;
+}
+
+.gp-logcal-edit-field input,
+.gp-logcal-edit-field select {
+    height: 35px;
+
+    padding: 0 9px;
+}
+
+.gp-logcal-edit-field textarea {
+    min-height: 65px;
+
+    padding: 8px 9px;
+
+    resize: vertical;
+}
+
+.gp-logcal-edit-field input:focus,
+.gp-logcal-edit-field select:focus,
+.gp-logcal-edit-field textarea:focus {
+    border-color: #0e4f84;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-logcal-edit-full {
+    grid-column: 1 / -1;
+}
+
+.gp-logcal-edit-actions {
+    grid-column: 1 / -1;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+
+    padding-top: 2px;
+}
+
+.gp-logcal-cancel-edit,
+.gp-logcal-save-edit {
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 11px;
+
+    border-radius: 6px;
+
+    font-family: inherit;
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-cancel-edit {
+    color: #526173;
+    background: #ffffff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-cancel-edit:hover {
+    background: #f5f7f9;
+}
+
+.gp-logcal-save-edit {
+    color: #ffffff;
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+}
+
+.gp-logcal-save-edit:hover:not(:disabled) {
+    background: #0b426f;
+}
+
+.gp-logcal-save-edit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   BOTONES HEADER MODAL
+========================================================= */
+
+.gp-logcal-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.gp-logcal-edit-button {
+    width: auto !important;
+    height: 31px !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 11px !important;
+
+    color: #0e4f84 !important;
+    background: #ffffff !important;
+
+    border: 1px solid #b9cfdf !important;
+    border-radius: 6px !important;
+
+    font-family: inherit;
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer;
+}
+
+.gp-logcal-edit-button:hover {
+    background: #eef5fa !important;
+    border-color: #0e4f84 !important;
+}
+
+.gp-logcal-close-button {
+    width: 31px !important;
+    height: 31px !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 !important;
+
+    color: #64748b !important;
+    background: #ffffff !important;
+
+    border: 1px solid #d2dbe3 !important;
+    border-radius: 6px !important;
+
+    cursor: pointer;
+}
+
+.gp-logcal-close-button:hover {
+    color: #b42318 !important;
+    background: #fff5f4 !important;
+    border-color: #e6b8b4 !important;
+}
+
+
+/* =========================================================
+   EDICIÓN DE ENTREGAS
+========================================================= */
+
+.gp-logcal-orders-title {
+    justify-content: space-between;
+}
+
+.gp-logcal-orders-title > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gp-logcal-orders-edit,
+.gp-logcal-orders-cancel,
+.gp-logcal-orders-save {
+    height: 29px;
+
+    padding: 0 9px;
+
+    border-radius: 5px;
+
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-orders-edit {
+    color: #0e4f84;
+    background: #ffffff;
+
+    border: 1px solid #b9cfdf;
+}
+
+.gp-logcal-orders-edit:hover {
+    background: #eef5fa;
+    border-color: #0e4f84;
+}
+
+.gp-logcal-orders-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gp-logcal-orders-cancel {
+    color: #526173;
+    background: #ffffff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-orders-save {
+    color: #ffffff;
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+}
+
+.gp-logcal-orders-save:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.gp-logcal-order-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.gp-logcal-order-edit-controls button {
+    width: 24px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #526173;
+    background: #ffffff;
+
+    border: 1px solid #ccd5dd;
+    border-radius: 4px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-order-edit-controls button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.gp-logcal-order-inline {
+    height: 28px;
+
+    box-sizing: border-box;
+
+    padding: 0 6px;
+
+    color: #344256;
+    background: #ffffff;
+
+    border: 1px solid #cad4de;
+    border-radius: 5px;
+
+    outline: none;
+
+    font-family: inherit;
+    font-size: 8px;
+}
+
+.gp-logcal-order-inline:focus {
+    border-color: #0e4f84;
+
+    box-shadow:
+        0 0 0 2px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-logcal-order-observation {
+    width: 180px;
+}
+
+
+/* =========================================================
+   RESPONSIVE EDICIÓN
+========================================================= */
+
+@media (max-width: 750px) {
+    .gp-logcal-edit-form {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 500px) {
+    .gp-logcal-edit-form {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-logcal-edit-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .gp-logcal-cancel-edit,
+    .gp-logcal-save-edit {
+        width: 100%;
+    }
+}
+
+.gp-logcal-route-status-area {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    padding: 10px 14px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e6ebef;
+    border-bottom: 1px solid #e6ebef;
+}
+
+.gp-logcal-route-status-area > div:first-child span {
+    display: block;
+
+    margin-bottom: 2px;
+
+    color: #7b8796;
+
+    font-size: 8px;
+}
+
+.gp-logcal-route-status-area > div:first-child strong {
+    color: #334155;
+
+    font-size: 9px;
+}
+
+.gp-logcal-route-status-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.gp-logcal-route-status-actions button {
+    height: 30px;
+
+    padding: 0 10px;
+
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-state-start {
+    color: #0e4f84;
+    background: #ffffff;
+
+    border: 1px solid #9fc2dc;
+}
+
+.gp-logcal-state-finish {
+    color: #ffffff;
+    background: #39b54a;
+
+    border: 1px solid #39b54a;
+}
+
+.gp-logcal-state-cancel {
+    color: #b42318;
+    background: #fff7f6;
+
+    border: 1px solid #e5b8b4;
+}
+
+.gp-logcal-delivery-status select {
+    height: 28px;
+
+    padding: 0 7px;
+
+    color: #334155;
+    background: #ffffff;
+
+    border: 1px solid #cad4de;
+    border-radius: 5px;
+
+    outline: none;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.gp-logcal-delivery-status select:focus {
+    border-color: #0e4f84;
+
+    box-shadow:
+        0 0 0 2px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-logcal-reprogram-button {
+    height: 27px;
+    padding: 0 8px;
+
+    color: #0e4f84;
+    background: #fff;
+
+    border: 1px solid #b9cfdf;
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-reprogram-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.48);
+}
+
+.gp-logcal-reprogram-modal {
+    width: min(780px, 96vw);
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(15, 23, 42, 0.24);
+}
+
+.gp-logcal-reprogram-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 12px 14px;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-reprogram-header strong {
+    display: block;
+
+    color: #1e293b;
+
+    font-size: 12px;
+}
+
+.gp-logcal-reprogram-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-reprogram-header button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+    background: #fff;
+
+    border: 1px solid #d5dde5;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-reprogram-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    padding: 14px;
+}
+
+.gp-logcal-reprogram-grid label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+.gp-logcal-reprogram-grid input,
+.gp-logcal-reprogram-grid select,
+.gp-logcal-reprogram-grid textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    color: #334155;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    font-family: inherit;
+    font-size: 9px;
+
+    outline: none;
+}
+
+.gp-logcal-reprogram-grid input,
+.gp-logcal-reprogram-grid select {
+    height: 34px;
+
+    padding: 0 8px;
+}
+
+.gp-logcal-reprogram-grid textarea {
+    padding: 8px;
+
+    resize: vertical;
+}
+
+.gp-logcal-reprogram-full {
+    grid-column: 1 / -1;
+}
+
+.gp-logcal-reprogram-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+
+    padding: 10px 14px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e5eaf0;
+}
+
+.gp-logcal-reprogram-cancel,
+.gp-logcal-reprogram-save {
+    height: 32px;
+
+    padding: 0 11px;
+
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-reprogram-cancel {
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-reprogram-save {
+    color: #fff;
+    background: #0e4f84;
+
+    border: 1px solid #0e4f84;
+}
+
+@media (max-width: 650px) {
+    .gp-logcal-reprogram-grid {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+
+.gp-logcal-orders-main-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gp-logcal-orders-add {
+    height: 29px;
+
+    padding: 0 9px;
+
+    color: #ffffff;
+    background: #39b54a;
+
+    border: 1px solid #39b54a;
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-add-backdrop {
+    position: fixed;
+    inset: 0;
+
+    z-index: 1800;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.48);
+}
+
+.gp-logcal-add-modal {
+    width: min(1050px, 96vw);
+    max-height: 88vh;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(15, 23, 42, 0.24);
+}
+
+.gp-logcal-add-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 12px 14px;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-add-header strong {
+    display: block;
+
+    color: #1e293b;
+
+    font-size: 12px;
+}
+
+.gp-logcal-add-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-add-header button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+    background: #fff;
+
+    border: 1px solid #d5dde5;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-add-content {
+    overflow: auto;
+}
+
+.gp-logcal-add-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.gp-logcal-add-table th {
+    padding: 8px;
+
+    color: #475569;
+    background: #f3f6f9;
+
+    border-bottom: 1px solid #dfe6ec;
+
+    text-align: left;
+
+    font-size: 8px;
+}
+
+.gp-logcal-add-table td {
+    padding: 8px;
+
+    color: #344256;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-add-table tr.selected {
+    background: #c9e2f3;
+
+    box-shadow:
+        inset 5px 0 0
+        #0e4f84;
+}
+
+.gp-logcal-add-table input[type="time"] {
+    height: 28px;
+
+    padding: 0 5px;
+
+    border: 1px solid #cad4de;
+    border-radius: 5px;
+
+    font-size: 8px;
+}
+
+.gp-logcal-add-empty {
+    padding: 35px;
+
+    color: #7b8796;
+
+    text-align: center;
+
+    font-size: 9px;
+}
+
+.gp-logcal-add-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 10px 14px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e5eaf0;
+}
+
+.gp-logcal-add-footer > span {
+    color: #64748b;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-add-footer > div {
+    display: flex;
+    gap: 6px;
+}
+
+.gp-logcal-add-cancel,
+.gp-logcal-add-save {
+    height: 32px;
+
+    padding: 0 10px;
+
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-add-cancel {
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-add-save {
+    color: #fff;
+    background: #39b54a;
+
+    border: 1px solid #39b54a;
+}
+
+.gp-logcal-add-save:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.gp-logcal-pdf-button {
+    height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 9px;
+
+    color: #0e4f84;
+    background: #ffffff;
+
+    border: 1px solid #b9cfdf;
+    border-radius: 5px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+.gp-logcal-pdf-button:hover {
+    color: #ffffff;
+    background: #0e4f84;
+    border-color: #0e4f84;
+
+    text-decoration: none;
+}
+
+/* =========================================================
+   EVENTOS DEL CRONOGRAMA
+========================================================= */
+
+.gp-logcal-event-programado {
+    cursor: pointer;
+}
+
+.gp-logcal-event-sin-ruta {
+    cursor: pointer;
+
+    border-style: dashed !important;
+
+    opacity: 0.9;
+}
+
+.fc-event-title {
+    font-weight: 700;
+}
+
+.gp-logcal-order-modal-backdrop {
+    position: fixed;
+    inset: 0;
+
+    z-index: 2000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.48);
+}
+
+.gp-logcal-order-modal {
+    width: min(760px, 96vw);
+
+    overflow: hidden;
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(15, 23, 42, 0.24);
+}
+
+.gp-logcal-order-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 12px 14px;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-order-modal-header strong {
+    display: block;
+
+    color: #1e293b;
+
+    font-size: 12px;
+}
+
+.gp-logcal-order-modal-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-logcal-order-modal-header button {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #64748b;
+    background: #fff;
+
+    border: 1px solid #d5dde5;
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.gp-logcal-order-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+
+    padding: 12px 14px;
+
+    background: #f8fafc;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-logcal-order-summary > div {
+    padding: 8px;
+
+    background: #fff;
+
+    border: 1px solid #e1e7ec;
+    border-radius: 6px;
+}
+
+.gp-logcal-order-summary span {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #7b8796;
+
+    font-size: 7.5px;
+}
+
+.gp-logcal-order-summary strong {
+    color: #334155;
+
+    font-size: 9px;
+}
+
+.gp-logcal-order-form {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    padding: 14px;
+}
+
+.gp-logcal-order-form label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+.gp-logcal-order-form input,
+.gp-logcal-order-form select {
+    width: 100%;
+    height: 35px;
+
+    box-sizing: border-box;
+
+    padding: 0 8px;
+
+    color: #334155;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    font-size: 9px;
+}
+
+.gp-logcal-order-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+
+    padding: 10px 14px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e5eaf0;
+}
+
+.gp-logcal-order-cancel,
+.gp-logcal-order-save {
+    height: 32px;
+
+    padding: 0 10px;
+
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logcal-order-cancel {
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+}
+
+.gp-logcal-order-save {
+    color: #fff;
+    background: #39b54a;
+
+    border: 1px solid #39b54a;
+}
+
+.gp-logcal-order-save:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+    .gp-logcal-order-summary,
+    .gp-logcal-order-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.gp-logcal-event-content {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 0 3px;
+
+    overflow: hidden;
+}
+
+.gp-logcal-event-order {
+    flex: 1;
+    min-width: 0;
+
+    overflow: hidden;
+
+    color: #ffffff;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.gp-logcal-event-route-badge {
+    flex-shrink: 0;
+
+    padding: 2px 4px;
+
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.18);
+
+    border-radius: 3px;
+
+    font-size: 6.5px;
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+.gp-logcal-event-route-badge.sin-ruta {
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.gp-logcal-event-route.sin-ruta {
+    color: #fff1b8;
+    font-weight: 800;
+}

@@ -8,16 +8,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
 import alertify from "alertifyjs";
 import { format } from "date-fns";
-import {
-    FaSearch,
-    FaFilePdf,
-    FaFileInvoice,
-    FaFileInvoiceDollar,
-    FaUndo,
-} from "react-icons/fa";
+
 import CotizacionPDF from "./CotizacionPDF";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
-import Header from "./Header";
+
 import "../../css/tableFormat.css";
 import "../../css/monitor_cotizaciones.css";
 
@@ -28,9 +22,9 @@ import ClienteContactosForm from "./ClienteContactosForm";
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = pdfFonts.vfs; // registra las fuentes embebidas (Roboto)
-import FacturaPDF from "./FacturaPDF";
-import DetalleCotizacionModal from "./DetalleCotizacionModal";
 
+import DetalleCotizacionModal from "./DetalleCotizacionModal";
+import "../../css/monitor-facturacion-premium.css";
 
 // ✅ MUI DataGrid
 import {
@@ -43,8 +37,6 @@ import {
     Divider,
     ListItemIcon,
     ListItemText,
-    Stack,
-    Tooltip,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { esES } from "@mui/x-data-grid/locales";
@@ -65,6 +57,7 @@ import {
     Person,
     CalendarMonth,
     Description,
+    Search,
 } from "@mui/icons-material";
 
 function MonitorFacturacion() {
@@ -200,12 +193,12 @@ function MonitorFacturacion() {
         fi = fechaInicio,
         ff = fechaFinal,
         est = estadoFiltro,
-        idvendedor = vendedorSeleccionado
+        idvendedor = vendedorSeleccionado,
     ) => {
         if (fetchingRef.current) return;
         fetchingRef.current = true;
         setLoading(true);
- setCotizaciones([]);
+        setCotizaciones([]);
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -225,7 +218,9 @@ function MonitorFacturacion() {
             });
 
             // setCotizaciones(data || []);
-            setCotizaciones([...new Map(data.map(x => [x.idcotizacion, x])).values()]);
+            setCotizaciones([
+                ...new Map(data.map((x) => [x.idcotizacion, x])).values(),
+            ]);
         } catch (e) {
             alertify.error("Error al obtener las cotizaciones.");
         } finally {
@@ -253,11 +248,11 @@ function MonitorFacturacion() {
                 .put(
                     `/api/monitorfacturacion/desactivar/${id}`,
                     { estado: estado },
-                    { headers: { Authorization: `Bearer ${token}` } }
+                    { headers: { Authorization: `Bearer ${token}` } },
                 )
                 .then(() => {
                     setCotizaciones((prev) =>
-                        prev.filter((c) => c.idcotizacion !== Number(id))
+                        prev.filter((c) => c.idcotizacion !== Number(id)),
                     );
                     alertify.success("Cotización regresada a ventas.");
                 })
@@ -273,13 +268,13 @@ function MonitorFacturacion() {
             Number(registroSeleccionado.estado) !== 4
         ) {
             return alertify.error(
-                "Seleccione una cotización en PRE-FACTURACIÓN."
+                "Seleccione una cotización en PRE-FACTURACIÓN.",
             );
         }
         const hoy = new Date().toISOString().slice(0, 10);
         setPrefDate(
             (registroSeleccionado.fecha_prefacturacion || "").slice(0, 10) ||
-                hoy
+                hoy,
         );
         setShowPrefModal(true);
     };
@@ -293,7 +288,7 @@ function MonitorFacturacion() {
             await axios.put(
                 `/api/cotizaciones/${registroSeleccionado.idcotizacion}/fecha-prefacturacion`,
                 { fecha_prefacturacion: prefDate },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             alertify.success("Fecha de prefacturación actualizada.");
@@ -301,8 +296,8 @@ function MonitorFacturacion() {
                 prev.map((c) =>
                     c.idcotizacion === registroSeleccionado.idcotizacion
                         ? { ...c, fecha_prefacturacion: prefDate }
-                        : c
-                )
+                        : c,
+                ),
             );
             setShowPrefModal(false);
         } catch (e) {
@@ -330,7 +325,7 @@ function MonitorFacturacion() {
                     idcotizacion: registroSeleccionado.idcotizacion,
                     comentario: newComentario,
                 },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             alertify.success("Comentario guardado.");
             setShowAddComent(false);
@@ -344,8 +339,8 @@ function MonitorFacturacion() {
                               comentarios_count:
                                   Number(c.comentarios_count || 0) + 1,
                           }
-                        : c
-                )
+                        : c,
+                ),
             );
         } catch (e) {
             alertify.error("Error al guardar comentario.");
@@ -362,7 +357,7 @@ function MonitorFacturacion() {
                 {
                     headers: { Authorization: `Bearer ${token}` },
                     params: { page, search },
-                }
+                },
             );
             setComentariosPaginated(data);
             setComentariosPage(page);
@@ -403,47 +398,94 @@ function MonitorFacturacion() {
 
     // ====== PDF Factura generada en backend ======
     const abrirFactura = async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token)
-            return alertify.error("Token no encontrado para abrir PDF.");
+    const token = localStorage.getItem("token");
 
-        try {
-            const url = `${
-                import.meta.env.VITE_API_URL
-            }/monitorfacturacion/${id}/facturapdf`;
-            const res = await fetch(url, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/pdf",
-                },
-            });
+    if (!token) {
+        return alertify.error(
+            "Token no encontrado para abrir PDF."
+        );
+    }
 
-            if (!res.ok) {
-                return alertify.error("No se pudo generar/descargar el PDF.");
-            }
+    try {
+        const url = `${
+            import.meta.env.VITE_API_URL
+        }/monitorfacturacion/${id}/facturapdf`;
 
-            const blob = await res.blob();
-            const fileURL = URL.createObjectURL(blob);
-            window.open(fileURL, "_blank", "noopener");
-            setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
-        } catch (err) {
-            console.error(err);
-            alertify.error("Error al abrir el PDF.");
+        console.log("Solicitando PDF factura:", url);
+
+        const res = await fetch(url, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/pdf",
+            },
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+
+            console.error(
+                "Error generando PDF factura:",
+                {
+                    status: res.status,
+                    statusText: res.statusText,
+                    url,
+                    response: errorText,
+                }
+            );
+
+            alertify.error(
+                `No se pudo generar el PDF. Error ${res.status}.`
+            );
+
+            return;
         }
-    };
+
+        const contentType =
+            res.headers.get("content-type") || "";
+
+        console.log(
+            "Content-Type PDF:",
+            contentType
+        );
+
+        const blob = await res.blob();
+
+        const fileURL =
+            URL.createObjectURL(blob);
+
+        window.open(
+            fileURL,
+            "_blank",
+            "noopener"
+        );
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileURL);
+        }, 60_000);
+    } catch (err) {
+        console.error(
+            "Error al abrir PDF factura:",
+            err
+        );
+
+        alertify.error(
+            "Error al abrir el PDF."
+        );
+    }
+};
 
     // ====== Tooltips bootstrap ======
     useEffect(() => {
         const tooltipTriggerList = [].slice.call(
-            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+            document.querySelectorAll('[data-bs-toggle="tooltip"]'),
         );
         tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
     }, []);
 
     useEffect(() => {
         const tooltipTriggerList = [].slice.call(
-            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+            document.querySelectorAll('[data-bs-toggle="tooltip"]'),
         );
         tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
     }, [cotizacionesFiltradas]);
@@ -469,7 +511,7 @@ function MonitorFacturacion() {
                         { motivo },
                         {
                             headers: { Authorization: `Bearer ${token}` },
-                        }
+                        },
                     );
                     alertify.success("Factura anulada con éxito.");
                     fetchCotizaciones();
@@ -480,7 +522,7 @@ function MonitorFacturacion() {
             },
             function () {
                 alertify.error("Anulación cancelada.");
-            }
+            },
         );
     };
 
@@ -492,7 +534,7 @@ function MonitorFacturacion() {
         const estado = Number(registroSeleccionado.estado);
         if (![4, 5].includes(estado))
             return alertify.error(
-                "Solo puede anular cotizaciones en estado 4 o 5."
+                "Solo puede anular cotizaciones en estado 4 o 5.",
             );
 
         alertify.prompt(
@@ -510,7 +552,7 @@ function MonitorFacturacion() {
                     await axios.put(
                         `/api/monitorfacturacion/${registroSeleccionado.idcotizacion}/anular`,
                         { motivo },
-                        { headers: { Authorization: `Bearer ${token}` } }
+                        { headers: { Authorization: `Bearer ${token}` } },
                     );
 
                     alertify.success("Cotización anulada correctamente.");
@@ -525,7 +567,7 @@ function MonitorFacturacion() {
             },
             function () {
                 alertify.error("Anulación cancelada.");
-            }
+            },
         );
     };
 
@@ -540,7 +582,7 @@ function MonitorFacturacion() {
         try {
             const { data } = await axios.get(
                 `/api/clientes/${registroSeleccionado.idcliente}/facturacion-opciones`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             setOpcionesFact(data);
@@ -588,7 +630,7 @@ function MonitorFacturacion() {
                     registroSeleccionado.idcotizacion
                 }`,
                 certForm,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             if (data?.resultado) {
@@ -651,7 +693,7 @@ function MonitorFacturacion() {
             const { data } = await axios.post(
                 url,
                 { motivo: notaForm.motivo, monto },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
 
             if (data?.resultado) {
@@ -660,7 +702,7 @@ function MonitorFacturacion() {
                         notaTipo === "NCRE"
                             ? "Nota de crédito"
                             : "Nota de débito"
-                    } certificada. UUID: ${data.uuid}`
+                    } certificada. UUID: ${data.uuid}`,
                 );
                 setShowNotaModal(false);
                 fetchCotizaciones();
@@ -688,13 +730,13 @@ function MonitorFacturacion() {
         try {
             const resList = await fetch(
                 `/api/cotizaciones/${registroSeleccionado.idcotizacion}/notasfel?tipo=${tipo}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             const notas = await resList.json();
 
             if (!Array.isArray(notas) || notas.length === 0) {
                 return alertify.error(
-                    `No hay notas ${tipo} para esta factura.`
+                    `No hay notas ${tipo} para esta factura.`,
                 );
             }
 
@@ -746,7 +788,7 @@ function MonitorFacturacion() {
             const qs = tipo ? `?tipo=${tipo}` : "";
             const res = await fetch(
                 `/api/cotizaciones/${registroSeleccionado.idcotizacion}/notasfel${qs}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             if (!res.ok) {
                 const txt = await res.text();
@@ -808,11 +850,11 @@ function MonitorFacturacion() {
             console.log("Obteniendo detalle de cotización ID:", id);
             const response = await axios.get(
                 `/api/cotizaciones/detalle/${id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
             );
             const detalle = response.data;
             const cotizacionSeleccionada = cotizaciones.find(
-                (c) => Number(c.idcotizacion) === Number(id)
+                (c) => Number(c.idcotizacion) === Number(id),
             );
             if (!cotizacionSeleccionada) {
                 alertify.error("No se encontró el estado de la cotización.");
@@ -823,7 +865,7 @@ function MonitorFacturacion() {
                 estado: cotizacionSeleccionada.estado,
             });
             setModalVisible(true);
-        } catch(err) {
+        } catch (err) {
             console.error("Error al obtener el detalle de la cotización.", err);
             alertify.error("Error al obtener el detalle de la cotización.");
         } finally {
@@ -1083,7 +1125,7 @@ function MonitorFacturacion() {
                 if (!cnt) return "";
                 const tip = (row?.last_comentario_snippet || "").replace(
                     /"/g,
-                    "&quot;"
+                    "&quot;",
                 );
                 return (
                     <span
@@ -1107,7 +1149,7 @@ function MonitorFacturacion() {
     useEffect(() => {
         if (!registroSeleccionado) return;
         const exists = cotizaciones.some(
-            (c) => c.idcotizacion === registroSeleccionado.idcotizacion
+            (c) => c.idcotizacion === registroSeleccionado.idcotizacion,
         );
         if (!exists) setRegistroSeleccionado(null);
     }, [cotizaciones]);
@@ -1117,7 +1159,7 @@ function MonitorFacturacion() {
         if (!registroSeleccionado) return;
         const id = registroSeleccionado.idcotizacion;
         const idx = cotizacionesFiltradas.findIndex(
-            (r) => r.idcotizacion === id
+            (r) => r.idcotizacion === id,
         );
         if (idx === -1) return;
 
@@ -1134,7 +1176,7 @@ function MonitorFacturacion() {
 
     const estado = Number(registroSeleccionado?.estado);
     const puedeRegresarVenta = estado === 4;
-    const puedeRegresarPreFacturacion = estado === 5 || estado === 6;;
+    const puedeRegresarPreFacturacion = estado === 5 || estado === 6;
     const puedeEliminar = estado === 1;
     const puedePreFacturar = estado === 1 || estado === 3;
     const puedeFacturar = estado === 5;
@@ -1198,204 +1240,275 @@ function MonitorFacturacion() {
     })();
 
     return (
-        <div className="container-fluid mt-4">
+        <div className="gp-module-page gp-fact-page">
             {/* ====== PDF Viewer Cotización ====== */}
             {pdfData && (
-                <div
-                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                    style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 2000 }}
-                >
-                    <div
-                        className="bg-white rounded shadow"
-                        style={{
-                            width: "80%",
-                            height: "80%",
-                            position: "relative",
-                        }}
-                    >
-                        <PDFViewer width="100%" height="100%">
-                            <CotizacionPDF
-                                cotizacion={pdfData.cotizacion}
-                                totalEnLetras={pdfData.totalEnLetras}
-                                logoSrc="/images/LogoGPv2.jpg"
-                            />
-                        </PDFViewer>
+                <div className="gp-fact-pdf-overlay">
+                    <div className="gp-fact-pdf-modal">
+                        <div className="gp-fact-pdf-header">
+                            <div className="gp-fact-pdf-heading">
+                                <div className="gp-fact-pdf-icon">
+                                    <PictureAsPdf fontSize="small" />
+                                </div>
 
-                        <div className="position-absolute top-0 end-0 m-2 d-flex gap-2">
-                            <PDFDownloadLink
-                                document={
-                                    <CotizacionPDF
-                                        cotizacion={pdfData.cotizacion}
-                                        totalEnLetras={pdfData.totalEnLetras}
-                                        logoSrc="/images/LogoGPv2.jpg"
-                                    />
-                                }
-                                fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
-                                className="btn btn-primary btn-sm"
-                            >
-                                {({ loading }) =>
-                                    loading ? "Preparando…" : "Descargar PDF"
-                                }
-                            </PDFDownloadLink>
+                                <div>
+                                    <span>COTIZACIONES · FACTURACIÓN</span>
 
-                            <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => setPdfData(null)}
-                            >
-                                Cerrar
-                            </button>
+                                    <h2>Vista previa de cotización</h2>
+                                </div>
+                            </div>
+
+                            <div className="gp-fact-pdf-actions">
+                                <PDFDownloadLink
+                                    document={
+                                        <CotizacionPDF
+                                            cotizacion={pdfData.cotizacion}
+                                            totalEnLetras={
+                                                pdfData.totalEnLetras
+                                            }
+                                            logoSrc="/images/LogoGPv2.jpg"
+                                        />
+                                    }
+                                    fileName={`COTIZACION-${pdfData.cotizacion.nocotizacion}.pdf`}
+                                    className="gp-fact-pdf-download"
+                                >
+                                    {({ loading }) =>
+                                        loading
+                                            ? "Preparando…"
+                                            : "Descargar PDF"
+                                    }
+                                </PDFDownloadLink>
+
+                                <button
+                                    type="button"
+                                    className="gp-fact-pdf-close"
+                                    onClick={() => setPdfData(null)}
+                                >
+                                    <Cancel fontSize="small" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="gp-fact-pdf-body">
+                            <PDFViewer width="100%" height="100%">
+                                <CotizacionPDF
+                                    cotizacion={pdfData.cotizacion}
+                                    totalEnLetras={pdfData.totalEnLetras}
+                                    logoSrc="/images/LogoGPv2.jpg"
+                                />
+                            </PDFViewer>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className="card">
-                <Header title="Lista de Cotizaciones para facturar" />
+            <div className="gp-module-card gp-fact-card">
+                <div className="gp-fact-header">
+                    <div>
+                        <div className="gp-module-meta">
+                            MÓDULO · FACTURACIÓN
+                        </div>
+
+                        <h1 className="gp-fact-title">
+                            Monitor de facturación
+                        </h1>
+
+                        <p className="gp-fact-description">
+                            Controla pre-facturación, certificación FEL,
+                            documentos fiscales, notas y seguimiento de
+                            cotizaciones.
+                        </p>
+                    </div>
+
+                    <div className="gp-fact-header-icon">
+                        <ReceiptLong />
+                    </div>
+                </div>
 
                 {/* Filtros superiores */}
-                <div className="row mb-3">
-                    <div className="col-md-3">
-                        <label className="form-label fw-bold">Estado:</label>
-                        <select
-                            className="form-select"
-                            value={estadoFiltro}
-                            onChange={(e) => setEstadoFiltro(e.target.value)}
-                        >
-                            <option value="">Todos</option>
-                            <option value="4">PRE-FACTURACIÓN</option>
-                            <option value="5">PARA FACTURAR</option>
-                            <option value="6">FACTURADA</option>
-                            <option value="0">ANULADA</option>
-                        </select>
+                <div className="gp-fact-filter-section">
+                    <div className="gp-fact-filter-heading">
+                        <div>
+                            <Search fontSize="small" />
+
+                            <span>Parámetros de consulta</span>
+                        </div>
+
+                        {!loading && (
+                            <span className="gp-fact-result-count">
+                                {cotizaciones.length} registros
+                            </span>
+                        )}
                     </div>
-                    <div className="col-md-3">
-                        <label className="form-label fw-bold">
-                            📅 Fecha inicio:
-                        </label>
-                        <input
-                            type="date"
-                            className="form-control"
-                            value={fechaInicio}
-                            onChange={(e) => setFechaInicio(e.target.value)}
-                        />
-                    </div>
-                    <div className="col-md-3">
-                        <label className="form-label fw-bold">
-                            📅 Fecha final:
-                        </label>
-                        <input
-                            type="date"
-                            className="form-control"
-                            value={fechaFinal}
-                            onChange={(e) => setFechaFinal(e.target.value)}
-                        />
-                    </div>
-                    <div className="col-md-3">
-                        <label className="form-label fw-bold">
-                            🧑‍💼 Vendedor:
-                        </label>
-                        <select
-                            className="form-select"
-                            value={vendedorSeleccionado}
-                            onChange={(e) =>
-                                setVendedorSeleccionado(e.target.value)
-                            }
-                        >
-                            {vendedores.map((v) => (
-                                <option
-                                    key={v.id_empleado}
-                                    value={v.id_empleado}
-                                >
-                                    {v.nombre}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="col-md-3 d-flex align-items-end mt-3">
+
+                    <div className="gp-fact-filters">
+                        <div className="gp-fact-field">
+                            <label>Estado</label>
+
+                            <select
+                                value={estadoFiltro}
+                                onChange={(e) =>
+                                    setEstadoFiltro(e.target.value)
+                                }
+                            >
+                                <option value="">Todos</option>
+
+                                <option value="4">PRE-FACTURACIÓN</option>
+
+                                <option value="5">PARA FACTURAR</option>
+
+                                <option value="6">FACTURADA</option>
+
+                                <option value="0">ANULADA</option>
+                            </select>
+                        </div>
+
+                        <div className="gp-fact-field">
+                            <label>Fecha inicio</label>
+
+                            <input
+                                type="date"
+                                value={fechaInicio}
+                                onChange={(e) => setFechaInicio(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="gp-fact-field">
+                            <label>Fecha final</label>
+
+                            <input
+                                type="date"
+                                value={fechaFinal}
+                                onChange={(e) => setFechaFinal(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="gp-fact-field gp-fact-seller-field">
+                            <label>Vendedor</label>
+
+                            <select
+                                value={vendedorSeleccionado}
+                                onChange={(e) =>
+                                    setVendedorSeleccionado(e.target.value)
+                                }
+                            >
+                                {vendedores.map((v) => (
+                                    <option
+                                        key={v.id_empleado}
+                                        value={v.id_empleado}
+                                    >
+                                        {v.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <button
-                            className="btn btn-primary w-100"
+                            type="button"
+                            className="gp-action-button gp-action-consult gp-fact-consult"
                             disabled={loading || fetchingRef.current}
                             onClick={() =>
                                 fetchCotizaciones(
                                     fechaInicio,
                                     fechaFinal,
                                     estadoFiltro,
-                                    vendedorSeleccionado
+                                    vendedorSeleccionado,
                                 )
                             }
                         >
+                            <Search fontSize="small" />
+
                             {loading ? "Consultando…" : "Consultar"}
                         </button>
                     </div>
                 </div>
 
                 {/* Buscador */}
-                <div className="mb-3">
-                    <label htmlFor="buscador" className="form-label fw-bold">
-                        🔍 Buscar cotización:
-                    </label>
-                    <div className="input-group">
+                <div className="gp-fact-search-area">
+                    <div className="gp-fact-search-label">
+                        Buscar cotización
+                    </div>
+
+                    <div className="gp-fact-search-control">
+                        <Search fontSize="small" />
+
                         <input
                             type="text"
                             id="buscador"
-                            className="form-control form-control-lg"
-                            placeholder="Buscar por número, cliente, total, observación..."
+                            placeholder="Número, cliente, total u observación..."
                             value={filtro}
                             onChange={(e) => setFiltro(e.target.value)}
                         />
+
                         {filtro && (
                             <button
-                                className="btn btn-outline-secondary"
-                                onClick={() => setFiltro("")}
+                                type="button"
+                                onClick={limpiarFiltro}
+                                title="Limpiar búsqueda"
                             >
-                                ✖
+                                <Cancel fontSize="small" />
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* Barra de acciones (compacta + menú) */}
-                <Stack
-                    direction="row"
-                    spacing={1.5}
-                    className="mb-3"
-                    alignItems="center"
-                    flexWrap="wrap"
-                >
-                    <MUIButton
-                        variant="contained"
-                        size="small"
-                        color={primaryAction.color}
-                        startIcon={primaryAction.icon}
-                        onClick={primaryAction.onClick || undefined}
-                        disabled={!primaryAction.onClick}
-                    >
-                        {primaryAction.label}
-                    </MUIButton>
+                <div className="gp-fact-action-toolbar">
+                    <div className="gp-fact-action-buttons">
+                        <MUIButton
+                            variant="contained"
+                            size="small"
+                            color={primaryAction.color}
+                            startIcon={primaryAction.icon}
+                            onClick={primaryAction.onClick || undefined}
+                            disabled={!primaryAction.onClick}
+                            className="gp-fact-primary-action"
+                        >
+                            {primaryAction.label}
+                        </MUIButton>
 
-                    <MUIButton
-                        variant="contained"
-                        size="small"
-                        color="inherit"
-                        endIcon={<MoreVert />}
-                        onClick={openActions}
-                        disabled={!cotizacionesFiltradas.length}
-                    >
-                        Más acciones
-                    </MUIButton>
+                        <MUIButton
+                            variant="outlined"
+                            size="small"
+                            endIcon={<MoreVert />}
+                            onClick={openActions}
+                            disabled={!cotizacionesFiltradas.length}
+                            className="gp-fact-more-actions"
+                        >
+                            Más acciones
+                        </MUIButton>
+                    </div>
 
-                    {/* Tip de ayuda cuando no hay selección */}
-                    {!registroSeleccionado && (
-                        <span className="text-muted small ms-2">
-                            Selecciona una fila para habilitar acciones.
+                    {registroSeleccionado ? (
+                        <div className="gp-fact-selected-info">
+                            <span>Seleccionada</span>
+
+                            <strong>
+                                {registroSeleccionado.nocotizacion ||
+                                    registroSeleccionado.nofactura ||
+                                    "Registro"}
+                            </strong>
+
+                            <Chip
+                                size="small"
+                                label={
+                                    registroSeleccionado.estado_texto ||
+                                    "Sin estado"
+                                }
+                            />
+                        </div>
+                    ) : (
+                        <span className="gp-fact-selection-help">
+                            Selecciona una fila para habilitar las acciones.
                         </span>
                     )}
-                </Stack>
+                </div>
 
                 <Menu
                     anchorEl={actionsAnchor}
                     open={Boolean(actionsAnchor)}
                     onClose={closeActions}
+                    className="gp-fact-actions-menu"
                 >
                     {/* DOCUMENTOS */}
                     <MenuItem disabled>
@@ -1581,7 +1694,7 @@ function MonitorFacturacion() {
                             closeActions();
                             handleDesactivar(
                                 registroSeleccionado.idcotizacion,
-                                1
+                                1,
                             );
                         }}
                         disabled={!puedeRegresarVenta}
@@ -1596,7 +1709,7 @@ function MonitorFacturacion() {
                             closeActions();
                             handleDesactivar(
                                 registroSeleccionado.idcotizacion,
-                                4
+                                4,
                             );
                         }}
                         disabled={!puedeRegresarPreFacturacion}
@@ -1632,7 +1745,7 @@ function MonitorFacturacion() {
                         disabled={
                             !registroSeleccionado ||
                             ![4, 5].includes(
-                                Number(registroSeleccionado.estado)
+                                Number(registroSeleccionado.estado),
                             )
                         }
                     >
@@ -1675,7 +1788,7 @@ function MonitorFacturacion() {
                         disabled={
                             !registroSeleccionado ||
                             ![4, 5].includes(
-                                Number(registroSeleccionado.estado)
+                                Number(registroSeleccionado.estado),
                             )
                         }
                     >
@@ -1712,11 +1825,11 @@ function MonitorFacturacion() {
                                 Number(registroSeleccionado.estado) === 4
                             ) {
                                 obtenerDetalleCotizacion(
-                                    registroSeleccionado.idcotizacion
+                                    registroSeleccionado.idcotizacion,
                                 );
                             } else {
                                 alertify.error(
-                                    "Seleccione una cotización en estado PRE‑FACTURACIÓN (estado 4)."
+                                    "Seleccione una cotización en estado PRE‑FACTURACIÓN (estado 4).",
                                 );
                             }
                         }}
@@ -1730,7 +1843,25 @@ function MonitorFacturacion() {
                 </Menu>
 
                 {/* Tabla (MUI DataGrid) */}
-                <div className="card-body">
+                <div className="gp-module-body gp-fact-body">
+                    <div className="gp-fact-table-heading">
+                        <div>
+                            <h2>Registros de facturación</h2>
+
+                            <p>
+                                {cotizacionesFiltradas.length} registros
+                                disponibles según los filtros actuales.
+                            </p>
+                        </div>
+
+                        {registroSeleccionado && (
+                            <span className="gp-fact-selected-badge">
+                                Cotización{" "}
+                                {registroSeleccionado.nocotizacion ||
+                                    "seleccionada"}
+                            </span>
+                        )}
+                    </div>
                     {loading ? (
                         <p className="text-center">Cargando cotizaciones...</p>
                     ) : cotizacionesFiltradas.length === 0 ? (
@@ -1739,7 +1870,7 @@ function MonitorFacturacion() {
                             búsqueda.
                         </div>
                     ) : (
-                        <Box sx={{ height: 600, width: "100%" }}>
+                        <Box className="gp-fact-grid-wrapper">
                             <DataGrid
                                 rows={
                                     cotizacionesFiltradas
@@ -1765,7 +1896,6 @@ function MonitorFacturacion() {
                                 }}
                                 // getRowId={(row) => `COT-${row.idcotizacion}`}
 
-                                
                                 rowSelectionModel={selectionModel}
                                 onRowSelectionModelChange={(newSel) => {
                                     const id = newSel[0];
@@ -1775,7 +1905,7 @@ function MonitorFacturacion() {
                                                 `COT-${c.idcotizacion}` ===
                                                     id ||
                                                 `FAC-${c.uuid}` === id ||
-                                                `FAC-${c.nofactura}` === id
+                                                `FAC-${c.nofactura}` === id,
                                         ) || null;
                                     if (row) row.__rowId = id;
                                     setRegistroSeleccionado(row);
@@ -1797,16 +1927,45 @@ function MonitorFacturacion() {
                                     loadingOverlay: LinearProgress,
                                 }}
                                 disableColumnMenu
-                                density="standard"
+                                density="compact"
                                 localeText={
                                     esES.components.MuiDataGrid.defaultProps
                                         .localeText
                                 }
                                 loading={loading}
                                 sx={{
-                                    ".MuiDataGrid-row.Mui-selected": {
-                                        backgroundColor:
-                                            "rgba(13,110,253,.12) !important",
+                                    border: 0,
+
+                                    "& .MuiDataGrid-columnHeaders": {
+                                        backgroundColor: "#f3f6f9",
+                                    },
+
+                                    "& .MuiDataGrid-row": {
+                                        borderLeft: "5px solid transparent",
+                                    },
+
+                                    "& .MuiDataGrid-row:hover": {
+                                        backgroundColor: "#f5f9fb",
+                                    },
+
+                                    "& .MuiDataGrid-row.Mui-selected": {
+                                        backgroundColor: "#c9e2f3 !important",
+
+                                        borderLeft: "5px solid #0e4f84",
+                                    },
+
+                                    "& .MuiDataGrid-row.Mui-selected:hover": {
+                                        backgroundColor: "#bddbef !important",
+                                    },
+
+                                    "& .MuiDataGrid-cell": {
+                                        fontSize: "12px",
+                                    },
+
+                                    "& .MuiDataGrid-columnHeaderTitle": {
+                                        fontSize: "11px",
+                                        fontWeight: 700,
+                                        color: "#475569",
                                     },
                                 }}
                                 columnVisibilityModel={columnVisibilityModel}
@@ -1859,7 +2018,7 @@ function MonitorFacturacion() {
                                         </thead>
                                         <tbody>
                                             {Array.isArray(
-                                                registroSeleccionado?.errores
+                                                registroSeleccionado?.errores,
                                             ) &&
                                             registroSeleccionado.errores
                                                 .length > 0 ? (
@@ -1882,7 +2041,7 @@ function MonitorFacturacion() {
                                                                 }
                                                             </td>
                                                         </tr>
-                                                    )
+                                                    ),
                                                 )
                                             ) : (
                                                 <p>
@@ -1967,8 +2126,8 @@ function MonitorFacturacion() {
                                     certForm.documento_tipo === "NIT"
                                         ? "NIT"
                                         : certForm.documento_tipo === "CUI"
-                                        ? "DPI/CUI (12-13 dígitos)"
-                                        : "Pasaporte"
+                                          ? "DPI/CUI (12-13 dígitos)"
+                                          : "Pasaporte"
                                 }
                             />
                         </div>
@@ -2114,7 +2273,7 @@ function MonitorFacturacion() {
                                     <div className="fw-semibold">
                                         {Number(
                                             registroSeleccionado.total_general ||
-                                                0
+                                                0,
                                         ).toLocaleString("es-GT", {
                                             style: "currency",
                                             currency: "GTQ",
@@ -2181,8 +2340,8 @@ function MonitorFacturacion() {
                         {notaLoading
                             ? "Enviando…"
                             : notaTipo === "NCRE"
-                            ? "Certificar NC"
-                            : "Certificar ND"}
+                              ? "Certificar NC"
+                              : "Certificar ND"}
                     </Button>
                 </ModalFooter>
             </Modal>
@@ -2316,7 +2475,7 @@ function MonitorFacturacion() {
                                             </td>
                                             <td className="text-end">
                                                 {Number(
-                                                    n.monto || 0
+                                                    n.monto || 0,
                                                 ).toLocaleString("es-GT", {
                                                     style: "currency",
                                                     currency: "GTQ",
@@ -2334,7 +2493,7 @@ function MonitorFacturacion() {
                                                         className="btn btn-outline-primary"
                                                         onClick={() =>
                                                             imprimirNota(
-                                                                n.idnota
+                                                                n.idnota,
                                                             )
                                                         }
                                                     >
@@ -2475,7 +2634,7 @@ function MonitorFacturacion() {
                                     <div className="text-muted small">
                                         Usuario: {c.nombre_usuario || "—"} ·{" "}
                                         {new Date(
-                                            c.fecha_registro
+                                            c.fecha_registro,
                                         ).toLocaleString()}{" "}
                                         · Estado: {c.estado}
                                     </div>

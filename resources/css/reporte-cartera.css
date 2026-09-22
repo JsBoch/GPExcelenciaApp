@@ -1,0 +1,585 @@
+/* =========================================================
+   REPORTE DE CARTERA
+   ========================================================= */
+
+.gp-portfolio-page {
+    width: 100%;
+}
+
+.gp-portfolio-card {
+    max-width: 1050px;
+
+    margin: 0 auto;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-portfolio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 21px 23px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid #e6ecf1;
+}
+
+.gp-portfolio-heading {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+.gp-portfolio-heading-icon {
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid
+        #d3e3ee;
+
+    border-radius:
+        10px;
+}
+
+.gp-portfolio-heading h1 {
+    margin: 4px 0 3px;
+
+    color: #172033;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.gp-portfolio-heading p {
+    max-width: 680px;
+
+    margin: 0;
+
+    color: #728092;
+
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-portfolio-body {
+    padding: 19px 23px 23px;
+
+    background: #f8fafb;
+}
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.gp-portfolio-filter-section {
+    padding: 15px;
+
+    background: #fff;
+
+    border:
+        1px solid
+        #e0e6eb;
+
+    border-radius:
+        9px;
+}
+
+.gp-portfolio-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 13px;
+    padding-bottom: 9px;
+
+    border-bottom:
+        1px solid
+        #edf1f4;
+}
+
+.gp-portfolio-section-header
+    > div {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color: #344256;
+}
+
+.gp-portfolio-section-header
+    svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-portfolio-section-header
+    strong {
+    font-size: 11px;
+}
+
+.gp-portfolio-section-header
+    > span {
+    color: #8a97a4;
+
+    font-size: 8.5px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.gp-portfolio-filter-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(0, 1fr)
+        );
+
+    gap: 12px;
+}
+
+.gp-portfolio-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-portfolio-field label {
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.gp-portfolio-field select,
+.gp-portfolio-field input {
+    width: 100%;
+    height: 36px;
+
+    padding: 0 9px;
+
+    color: #27364a;
+
+    background: #fff;
+
+    border:
+        1px solid
+        #cad4de;
+
+    border-radius: 6px;
+
+    outline: none;
+
+    font-size: 10px;
+}
+
+.gp-portfolio-field select:focus,
+.gp-portfolio-field input:focus {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            14,
+            79,
+            132,
+            0.07
+        );
+}
+
+
+/* DATE */
+
+.gp-portfolio-date {
+    position: relative;
+}
+
+.gp-portfolio-date svg {
+    position: absolute;
+
+    top: 50%;
+    left: 9px;
+
+    z-index: 1;
+
+    color: #718095;
+
+    transform:
+        translateY(-50%);
+
+    pointer-events: none;
+}
+
+.gp-portfolio-date input {
+    padding-left: 29px;
+}
+
+
+/* =========================================================
+   OPCIONES
+   ========================================================= */
+
+.gp-portfolio-options {
+    margin-top: 12px;
+
+    padding: 13px 15px;
+
+    background: #fff;
+
+    border:
+        1px solid
+        #e0e6eb;
+
+    border-radius: 9px;
+}
+
+.gp-portfolio-options-header {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 10px;
+}
+
+.gp-portfolio-options-header
+    > svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-portfolio-options-header
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-portfolio-options-header
+    strong {
+    color: #475569;
+
+    font-size: 10.5px;
+}
+
+.gp-portfolio-options-header
+    span {
+    color: #8a97a4;
+
+    font-size: 8.5px;
+}
+
+
+.gp-portfolio-option-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 9px;
+}
+
+.gp-portfolio-option {
+    min-height: 57px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 9px 10px;
+
+    background: #f8fafc;
+
+    border:
+        1px solid
+        #e1e7ec;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+}
+
+.gp-portfolio-option
+    > div {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.gp-portfolio-option
+    > div
+    > svg {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+}
+
+.gp-portfolio-option
+    > div
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-portfolio-option
+    strong {
+    color: #475569;
+
+    font-size: 9.5px;
+}
+
+.gp-portfolio-option
+    span {
+    color: #8a97a4;
+
+    font-size: 8px;
+}
+
+.gp-portfolio-option
+    input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+
+    accent-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.gp-portfolio-actions {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 10px;
+
+    margin-top: 12px;
+}
+
+.gp-portfolio-action {
+    min-height: 64px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px 12px;
+
+    text-align: left;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+.gp-portfolio-action
+    > svg {
+    flex: 0 0 auto;
+}
+
+.gp-portfolio-action
+    > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-portfolio-action
+    strong {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.gp-portfolio-action
+    span {
+    margin-top: 1px;
+
+    font-size: 8.5px;
+}
+
+
+/* HTML */
+
+.gp-portfolio-html {
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background: #f2f7fb;
+
+    border:
+        1px solid
+        #cbdfea;
+}
+
+.gp-portfolio-html:hover:not(:disabled) {
+    background: #e6f1f8;
+}
+
+
+/* PDF */
+
+.gp-portfolio-pdf {
+    color: #28723a;
+
+    background: #f3faf4;
+
+    border:
+        1px solid
+        #c9e1cd;
+}
+
+.gp-portfolio-pdf:hover:not(:disabled) {
+    background: #e9f6eb;
+}
+
+
+/* DISABLED */
+
+.gp-portfolio-action:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.gp-portfolio-loading {
+    margin-top: 10px;
+
+    padding: 8px 10px;
+
+    color: #64748b;
+
+    background: #f1f5f8;
+
+    border:
+        1px solid
+        #dfe6ec;
+
+    border-radius: 6px;
+
+    text-align: center;
+
+    font-size: 9.5px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 800px) {
+    .gp-portfolio-filter-grid,
+    .gp-portfolio-option-grid,
+    .gp-portfolio-actions {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .gp-portfolio-header {
+        padding: 18px;
+    }
+
+    .gp-portfolio-body {
+        padding:
+            16px
+            18px
+            18px;
+    }
+
+    .gp-portfolio-heading-icon {
+        display: none;
+    }
+
+    .gp-portfolio-section-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

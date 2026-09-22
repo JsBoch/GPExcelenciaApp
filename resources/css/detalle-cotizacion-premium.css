@@ -1,176 +1,572 @@
 /* ============================================================
-   GPExcelenciaApp — Premium Enterprise UI
-   Componente: DetalleCotizacionModal
+   DETALLE COTIZACIÓN
    ============================================================ */
 
-/* ---------------------------
-   MODAL GLOBAL
---------------------------- */
-.detalle-modal .modal-content {
-  border-radius: 16px !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
-  overflow: hidden;
+.detalle-modal-paper {
+    overflow: hidden;
+
+    border-radius: 14px !important;
+
+    background: #ffffff;
 }
 
-.detalle-modal .modal-header {
-  background: linear-gradient(180deg, #f9fafb, #f1f5f9);
-  border-bottom: 1px solid #e2e8f0 !important;
-  padding: 1rem 1.25rem;
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.detalle-modal-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 17px 21px !important;
+
+    border-bottom: 1px solid #e5eaf0;
+
+    background: #ffffff;
 }
 
-.detalle-modal .modal-title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #1e293b;
+.detalle-modal-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
 }
 
-.detalle-modal .btn-close {
-  filter: brightness(0) saturate(0);
+.detalle-modal-title-icon {
+    width: 39px;
+    height: 39px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #e8f2f8;
+
+    color: #0e4f84;
 }
 
-/* ---------------------------
+.detalle-modal-eyebrow {
+    display: block;
+
+    margin-bottom: 1px;
+
+    color: #0e4f84;
+
+    font-size: 0.67rem;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.detalle-modal-heading h2 {
+    margin: 0;
+
+    color: #0f172a;
+
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.detalle-modal-heading p {
+    margin: 2px 0 0;
+
+    color: #64748b;
+
+    font-size: 0.73rem;
+}
+
+.detalle-modal-heading p strong {
+    color: #334155;
+}
+
+.detalle-modal-close-icon {
+    width: 34px !important;
+    height: 34px !important;
+
+    border-radius: 7px !important;
+
+    color: #64748b !important;
+}
+
+.detalle-modal-close-icon:hover {
+    background: #f1f5f9 !important;
+
+    color: #dc2626 !important;
+}
+
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
+
+.detalle-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 12px 21px;
+
+    border-bottom: 1px solid #e9edf2;
+
+    background: #f8fafc;
+}
+
+.detalle-toolbar-info {
+    color: #64748b;
+
+    font-size: 0.75rem;
+}
+
+.detalle-toolbar-info span {
+    margin-right: 4px;
+
+    color: #0e4f84;
+
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   PORCENTAJE GLOBAL
+   ============================================================ */
+
+.detalle-global-percent {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 6px 8px;
+
+    border: 1px solid #d6e1e9;
+    border-radius: 8px;
+
+    background: #ffffff;
+}
+
+.detalle-global-percent-icon {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #fff5dc;
+
+    color: #ad7700;
+}
+
+.detalle-global-percent > div:nth-child(2) {
+    display: flex;
+    flex-direction: column;
+}
+
+.detalle-global-percent label {
+    margin: 0;
+
+    color: #334155;
+
+    font-size: 0.71rem;
+    font-weight: 700;
+}
+
+.detalle-global-percent > div:nth-child(2) span {
+    color: #94a3b8;
+
+    font-size: 0.63rem;
+}
+
+.detalle-global-percent-input {
+    position: relative;
+
+    width: 76px;
+}
+
+.detalle-global-percent-input input {
+    width: 100%;
+    height: 32px;
+
+    padding: 0 25px 0 8px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+
+    outline: none;
+
+    color: #1e293b;
+
+    font-size: 0.78rem;
+
+    box-sizing: border-box;
+}
+
+.detalle-global-percent-input input:focus {
+    border-color: #1769aa;
+
+    box-shadow:
+        0 0 0 2px rgba(23, 105, 170, 0.1);
+}
+
+.detalle-global-percent-input > span {
+    position: absolute;
+
+    right: 8px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #64748b;
+
+    font-size: 0.69rem;
+    font-weight: 700;
+}
+
+
+/* ============================================================
    BODY
---------------------------- */
+   ============================================================ */
+
 .detalle-body {
-  padding: 1.25rem !important;
+    padding: 18px 21px !important;
+
+    background: #ffffff;
 }
 
-/* Secciones */
-.detalle-section-title {
-  font-weight: 700;
-  color: #1f2937;
-  font-size: 1rem;
-  margin-bottom: 0.7rem;
+
+/* ============================================================
+   TABLA
+   ============================================================ */
+
+.detalle-table-container {
+    overflow: hidden;
+
+    border: 1px solid #e1e7ed;
+    border-radius: 10px;
+
+    background: #ffffff;
 }
 
-/* ---------------------------
-   TARJETAS DE CABECERA
---------------------------- */
-.detalle-card {
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+.detalle-modal
+.MuiTableCell-head {
+    background: #f8fafc !important;
 }
 
-.detalle-card h6 {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #1f2937;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.6rem;
+.detalle-modal
+.MuiToolbar-root {
+    min-height: 45px;
 }
 
-.detalle-field {
-  font-size: 0.9rem;
-  margin-bottom: 0.35rem;
+.detalle-modal
+.MuiTablePagination-root {
+    border-top: 1px solid #e6ebf0;
+
+    background: #fafcfd;
 }
 
-.detalle-label {
-  font-weight: 600;
-  color: #475569;
-  margin-right: 6px;
+
+/* ============================================================
+   PORCENTAJE POR FILA
+   ============================================================ */
+
+.detalle-percent-cell {
+    position: relative;
+
+    width: 70px;
 }
 
-.detalle-value {
-  color: #0f172a;
+.detalle-percent-input {
+    width: 100%;
+    height: 30px;
+
+    padding: 0 22px 0 7px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+
+    outline: none;
+
+    background: #fffdf5;
+
+    color: #334155;
+
+    font-size: 0.73rem;
+
+    box-sizing: border-box;
 }
 
-/* ---------------------------
-   TABLA DE DETALLES
---------------------------- */
-.detalle-table {
-  width: 100%;
-  border-collapse: separate !important;
-  border-spacing: 0 4px !important;
+.detalle-percent-input:focus {
+    border-color: #f0b429;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 2px rgba(253, 181, 21, 0.12);
 }
 
-.detalle-table thead th {
-  background: #0f172a;
-  color: #ffffff;
-  padding: 8px 12px;
-  font-size: 0.78rem;
-  letter-spacing: 0.3px;
-  border: none;
+.detalle-percent-cell > span {
+    position: absolute;
+
+    right: 7px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #64748b;
+
+    font-size: 0.65rem;
+
+    pointer-events: none;
 }
 
-.detalle-table tbody tr {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+
+/* ============================================================
+   SUBTOTAL
+   ============================================================ */
+
+.detalle-subtotal {
+    color: #1e293b;
+
+    font-size: 0.75rem;
+
+    white-space: nowrap;
 }
 
-.detalle-table tbody td {
-  padding: 8px 12px !important;
-  font-size: 0.85rem;
-  border-top: 1px solid #f1f5f9;
-  color: #1e293b;
+
+/* ============================================================
+   IMAGEN
+   ============================================================ */
+
+.detalle-image-btn {
+    width: 30px !important;
+    height: 30px !important;
+
+    border-radius: 7px !important;
+
+    color: #0e4f84 !important;
 }
 
-.detalle-table tbody tr:hover {
-  background: #f4f8ff;
+.detalle-image-btn:hover {
+    background: #e6f1f8 !important;
 }
 
-/* ---------------------------
-   TOTALES
---------------------------- */
+.detalle-image-btn.Mui-disabled {
+    color: #cbd5e1 !important;
+}
+
+
+/* ============================================================
+   TOTAL
+   ============================================================ */
+
+.detalle-total-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 20px;
+
+    margin-top: 16px;
+}
+
+.detalle-total-description {
+    display: flex;
+    flex-direction: column;
+
+    text-align: right;
+}
+
+.detalle-total-description span {
+    color: #475569;
+
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.detalle-total-description small {
+    margin-top: 1px;
+
+    color: #94a3b8;
+
+    font-size: 0.64rem;
+}
+
 .detalle-total-box {
-  background: #0d6efd;
-  color: white;
-  padding: 1rem;
-  border-radius: 12px;
-  margin-top: 1rem;
+    min-width: 205px;
+
+    padding: 10px 14px;
+
+    border: 1px solid #cbdfea;
+    border-radius: 9px;
+
+    background: #f2f8fc;
+
+    text-align: right;
 }
 
 .detalle-total-box .label {
-  font-size: 0.88rem;
-  opacity: 0.85;
-  font-weight: 500;
+    color: #64748b;
+
+    font-size: 0.69rem;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .detalle-total-box .value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+    margin-top: 2px;
+
+    color: #0e4f84;
+
+    font-size: 1.15rem;
+    font-weight: 800;
 }
 
-/* ---------------------------
-   BOTONES FOOTER
---------------------------- */
-.detalle-modal .modal-footer {
-  border-top: 1px solid #e5e7eb !important;
-  padding: 12px 16px;
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.detalle-modal-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 15px;
+
+    padding: 13px 21px !important;
+
+    border-top: 1px solid #e5eaf0;
+
+    background: #fafcfd;
+}
+
+.detalle-footer-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
 }
 
 .detalle-btn {
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  padding: 0.6rem 1rem !important;
+    min-height: 34px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+
+    gap: 7px !important;
+
+    padding: 6px 12px !important;
+
+    border-radius: 7px !important;
+
+    text-transform: none !important;
+
+    font-family: inherit !important;
+
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+
+    box-shadow: none !important;
 }
 
-/* Botón cerrar */
-.detalle-btn-close {
-  background: #f1f5f9 !important;
-  color: #334155 !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-.detalle-btn-close:hover {
-  background: #e2e8f0 !important;
-}
-
-/* Botón acción primaria (si hubiera otros) */
 .detalle-btn-primary {
-  background: linear-gradient(135deg, #4d8bff, #1e67ff) !important;
-  border: none !important;
-  color: white !important;
-  box-shadow: 0 2px 10px rgba(77,139,255,0.35);
+    background: #0e4f84 !important;
+
+    color: #ffffff !important;
 }
 
 .detalle-btn-primary:hover {
-  background: linear-gradient(135deg, #3876ff, #1655e7) !important;
+    background: #0b436f !important;
+}
+
+.detalle-btn-close {
+    color: #475569 !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #cbd5e1 !important;
+}
+
+.detalle-btn-close:hover {
+    background: #f1f5f9 !important;
+}
+
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+
+.detalle-footer-status {
+    font-size: 0.69rem;
+}
+
+.detalle-status-editable {
+    color: #278237;
+}
+
+.detalle-status-locked {
+    color: #b45309;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    .detalle-toolbar {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .detalle-global-percent {
+        justify-content: space-between;
+    }
+
+    .detalle-total-area {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .detalle-total-description {
+        text-align: left;
+    }
+
+    .detalle-total-box {
+        width: 100%;
+
+        text-align: right;
+    }
+
+    .detalle-modal-footer {
+        flex-direction: column !important;
+
+        align-items: stretch !important;
+    }
+
+    .detalle-footer-actions {
+        width: 100%;
+    }
+
+    .detalle-footer-actions
+    .detalle-btn {
+        flex: 1;
+    }
 }
