@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AreaTrabajoController;
 use App\Http\Controllers\PlanificacionDetalleProduccionController;
 use App\Http\Controllers\LogisticaProduccionController;
+use App\Http\Controllers\LogisticaVentasController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -200,30 +201,184 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cotizaciones/{idcotizacion}/comentarios', [CotizacionConsultasController::class, 'comentarios']);
 });
 
-//PEDIDOS A PRODUCCIÓN
+// //PEDIDOS A PRODUCCIÓN
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);
+//     Route::get('/pedidosproduccion/cotizacion/{numero}', [PedidosProduccionController::class, 'buscarCotizacionPorNumero']);
+//     // Para Autorización de Pedidos a Producción hacia Logística.
+//     Route::get('/pedidosproduccion/autorizacion-logistica', [PedidosProduccionController::class, 'autorizacionALogistica']);
+//     Route::put('/pedidosproduccion/regresar-ventas/{id}', [PedidosProduccionController::class, 'regresarVentas']);
+//     Route::put('/pedidosproduccion/enviar-logistica/{id}', [PedidosProduccionController::class, 'enviarLogistica']);
+//     Route::put('/pedidosproduccion/pasar-autorizacion/{id}', [PedidosProduccionController::class, 'pasarAutorizacion']);
+
+//     Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
+//     Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
+//     Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
+//     Route::put('/pedidosproduccion/desactivar/{id}', [PedidosProduccionController::class, 'desactivar']);
+//     Route::get('/pedidosproduccion/{id}/pdf', [PedidosProduccionController::class, 'generarPdf']);
+//     Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
+//     Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
+//     Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
+//     Route::get('/pedidosproduccion/export/excel', [PedidosProduccionController::class, 'exportExcel']);
+//     Route::get('/pedidosproduccion/detalle-cotizacion/{idcotizacion}', [PedidosProduccionController::class, 'detalleCotizacion']);
+//     Route::get('/pedidosproduccion/{id}/areas', [PedidosProduccionController::class, 'obtenerAreasPedido']);
+//     Route::get('/pedidosproduccion/{id}/permisos', [PedidosProduccionController::class, 'obtenerPermisos']);
+//     Route::get('/pedidosproduccion/{id}/montajes', [PedidosProduccionController::class, 'obtenerMontajes']);
+// });
+// PEDIDOS A PRODUCCIÓN
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/pedidosproduccion/cotizaciones_pedido_produccion', [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']);
-    Route::get('/pedidosproduccion/cotizacion/{numero}', [PedidosProduccionController::class, 'buscarCotizacionPorNumero']);
-    // Para Autorización de Pedidos a Producción hacia Logística.
-    Route::get('/pedidosproduccion/autorizacion-logistica',[PedidosProduccionController::class, 'autorizacionALogistica']);
-    Route::put('/pedidosproduccion/regresar-ventas/{id}',[PedidosProduccionController::class, 'regresarVentas']);
-    Route::put('/pedidosproduccion/enviar-logistica/{id}',[PedidosProduccionController::class, 'enviarLogistica']);
-     Route::put('/pedidosproduccion/pasar-autorizacion/{id}',[PedidosProduccionController::class, 'pasarAutorizacion']);
-     
-    Route::apiResource('/pedidosproduccion', PedidosProduccionController::class);
-    Route::get('/pedidosproduccion/detalle/{id}', [PedidosProduccionController::class, 'detalle']);
-    Route::post('/pedidosproduccion/{cotizacion}/detalle/guardar', [PedidosProduccionController::class, 'guardarDetalle']);
-    Route::put('/pedidosproduccion/desactivar/{id}', [PedidosProduccionController::class, 'desactivar']);
-    Route::get('/pedidosproduccion/{id}/pdf', [PedidosProduccionController::class, 'generarPdf']);
-    Route::put('/pedidosproduccion/activarfacturacion/{id}', [PedidosProduccionController::class, 'activarFacturacion']);
-    Route::get('/pedidosproduccion/{id}/nota-envio', [PedidosProduccionController::class, 'generarNotaEnvio']);
-    Route::put('/pedidosproduccion/rechazar/{id}', [PedidosProduccionController::class, 'rechazar']);
-    Route::get('/pedidosproduccion/export/excel', [PedidosProduccionController::class, 'exportExcel']);
-    Route::get('/pedidosproduccion/detalle-cotizacion/{idcotizacion}', [PedidosProduccionController::class, 'detalleCotizacion']);
-    Route::get('/pedidosproduccion/{id}/areas', [PedidosProduccionController::class, 'obtenerAreasPedido']);
-    Route::get('/pedidosproduccion/{id}/permisos', [PedidosProduccionController::class, 'obtenerPermisos']);
-    Route::get('/pedidosproduccion/{id}/montajes', [PedidosProduccionController::class, 'obtenerMontajes']);
-      
+
+    Route::get(
+        '/pedidosproduccion/cotizaciones_pedido_produccion',
+        [PedidosProduccionController::class, 'cotizacionesPedidoProduccion']
+    );
+
+    Route::get(
+        '/pedidosproduccion/cotizacion/{numero}',
+        [PedidosProduccionController::class, 'buscarCotizacionPorNumero']
+    );
+
+
+    /* =========================================================
+       AUTORIZACIÓN CONTABILIDAD
+    ========================================================= */
+
+    Route::get(
+        '/pedidosproduccion/autorizacion-contabilidad',
+        [
+            PedidosProduccionController::class,
+            'autorizacionContabilidad'
+        ]
+    );
+
+    Route::put(
+        '/pedidosproduccion/{id}/autorizacion-contabilidad/aprobar',
+        [
+            PedidosProduccionController::class,
+            'aprobarContabilidad'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/pedidosproduccion/{id}/autorizacion-contabilidad/rechazar',
+        [
+            PedidosProduccionController::class,
+            'rechazarContabilidad'
+        ]
+    )->whereNumber('id');
+
+
+    /* =========================================================
+       AUTORIZACIÓN HACIA LOGÍSTICA
+    ========================================================= */
+
+    Route::get(
+        '/pedidosproduccion/autorizacion-logistica',
+        [
+            PedidosProduccionController::class,
+            'autorizacionALogistica'
+        ]
+    );
+
+    Route::put(
+        '/pedidosproduccion/regresar-ventas/{id}',
+        [
+            PedidosProduccionController::class,
+            'regresarVentas'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/pedidosproduccion/enviar-logistica/{id}',
+        [
+            PedidosProduccionController::class,
+            'enviarLogistica'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/pedidosproduccion/pasar-autorizacion/{id}',
+        [
+            PedidosProduccionController::class,
+            'pasarAutorizacion'
+        ]
+    )->whereNumber('id');
+
+
+    /* =========================================================
+       RUTAS ESPECÍFICAS RESTANTES
+    ========================================================= */
+
+    Route::get(
+        '/pedidosproduccion/detalle/{id}',
+        [PedidosProduccionController::class, 'detalle']
+    )->whereNumber('id');
+
+    Route::post(
+        '/pedidosproduccion/{cotizacion}/detalle/guardar',
+        [PedidosProduccionController::class, 'guardarDetalle']
+    );
+
+    Route::put(
+        '/pedidosproduccion/desactivar/{id}',
+        [PedidosProduccionController::class, 'desactivar']
+    )->whereNumber('id');
+
+    Route::get(
+        '/pedidosproduccion/{id}/pdf',
+        [PedidosProduccionController::class, 'generarPdf']
+    )->whereNumber('id');
+
+    Route::put(
+        '/pedidosproduccion/activarfacturacion/{id}',
+        [PedidosProduccionController::class, 'activarFacturacion']
+    )->whereNumber('id');
+
+    Route::get(
+        '/pedidosproduccion/{id}/nota-envio',
+        [PedidosProduccionController::class, 'generarNotaEnvio']
+    )->whereNumber('id');
+
+    Route::put(
+        '/pedidosproduccion/rechazar/{id}',
+        [PedidosProduccionController::class, 'rechazar']
+    )->whereNumber('id');
+
+    Route::get(
+        '/pedidosproduccion/export/excel',
+        [PedidosProduccionController::class, 'exportExcel']
+    );
+
+    Route::get(
+        '/pedidosproduccion/detalle-cotizacion/{idcotizacion}',
+        [PedidosProduccionController::class, 'detalleCotizacion']
+    )->whereNumber('idcotizacion');
+
+    Route::get(
+        '/pedidosproduccion/{id}/areas',
+        [PedidosProduccionController::class, 'obtenerAreasPedido']
+    )->whereNumber('id');
+
+    Route::get(
+        '/pedidosproduccion/{id}/permisos',
+        [PedidosProduccionController::class, 'obtenerPermisos']
+    )->whereNumber('id');
+
+    Route::get(
+        '/pedidosproduccion/{id}/montajes',
+        [PedidosProduccionController::class, 'obtenerMontajes']
+    )->whereNumber('id');
+
+
+    /*
+     * IMPORTANTE:
+     * apiResource al final porque contiene
+     * GET /pedidosproduccion/{pedidosproduccion}
+     */
+    Route::apiResource(
+        '/pedidosproduccion',
+        PedidosProduccionController::class
+    );
 });
 
 // CUENTAS POR COBRAR
@@ -339,7 +494,212 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/logistica-produccion/board', [LogisticaProduccionController::class, 'board']);
     Route::get('/logistica-produccion/calendario', [LogisticaProduccionController::class, 'calendario']);
+    Route::get(
+    '/logistica-ventas/cronograma',
+    [
+        LogisticaVentasController::class,
+        'cronograma'
+    ]
+);
+
+Route::post(
+    '/logistica-ventas/cronograma/pedidos/{id}/asignar',
+    [
+        LogisticaVentasController::class,
+        'asignarPedidoCronograma'
+    ]
+)->whereNumber('id');
+
+Route::put(
+    '/logistica-ventas/cronograma/pedidos/{id}/mover',
+    [
+        LogisticaVentasController::class,
+        'moverPedidoSinRutaCronograma'
+    ]
+)->whereNumber('id');
     Route::get('/logistica-produccion/carga', [LogisticaProduccionController::class, 'cargaPorFecha']);
     Route::put('/logistica-produccion/{id}/fecha', [LogisticaProduccionController::class, 'cambiarFecha']);
     Route::put('/logistica-produccion/{id}/estado', [LogisticaProduccionController::class, 'cambiarEstado']);
+});
+
+// =========================================================
+// LOGÍSTICA DE VENTAS
+// =========================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get(
+        '/logistica-ventas/pedidos-pendientes',
+        [
+            LogisticaVentasController::class,
+            'pedidosPendientes'
+        ]
+    );
+
+    Route::get(
+        '/logistica-ventas/pilotos',
+        [
+            LogisticaVentasController::class,
+            'pilotos'
+        ]
+    );
+
+    Route::get(
+        '/logistica-ventas/vehiculos',
+        [
+            LogisticaVentasController::class,
+            'vehiculos'
+        ]
+    );
+
+    Route::get(
+        '/logistica-ventas/rutas',
+        [
+            LogisticaVentasController::class,
+            'rutas'
+        ]
+    );
+
+    Route::post(
+        '/logistica-ventas/programaciones',
+        [
+            LogisticaVentasController::class,
+            'programar'
+        ]
+    );
+
+    Route::get(
+        '/logistica-ventas/calendario',
+        [
+            LogisticaVentasController::class,
+            'calendario'
+        ]
+    );
+
+    Route::post(
+        '/logistica-ventas/pilotos',
+        [LogisticaVentasController::class, 'guardarPiloto']
+    );
+
+    Route::put(
+        '/logistica-ventas/pilotos/{id}',
+        [LogisticaVentasController::class, 'actualizarPiloto']
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/pilotos/{id}/desactivar',
+        [LogisticaVentasController::class, 'desactivarPiloto']
+    )->whereNumber('id');
+
+
+    Route::post(
+        '/logistica-ventas/vehiculos',
+        [LogisticaVentasController::class, 'guardarVehiculo']
+    );
+
+    Route::put(
+        '/logistica-ventas/vehiculos/{id}',
+        [LogisticaVentasController::class, 'actualizarVehiculo']
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/vehiculos/{id}/desactivar',
+        [LogisticaVentasController::class, 'desactivarVehiculo']
+    )->whereNumber('id');
+
+
+    Route::post(
+        '/logistica-ventas/rutas',
+        [LogisticaVentasController::class, 'guardarRuta']
+    );
+
+    Route::put(
+        '/logistica-ventas/rutas/{id}',
+        [LogisticaVentasController::class, 'actualizarRuta']
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/rutas/{id}/desactivar',
+        [LogisticaVentasController::class, 'desactivarRuta']
+    )->whereNumber('id');
+
+    Route::get(
+        '/logistica-ventas/programaciones/{id}',
+        [
+            LogisticaVentasController::class,
+            'detalleProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/programaciones/{id}/fecha',
+        [
+            LogisticaVentasController::class,
+            'cambiarFechaProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/programaciones/{id}',
+        [
+            LogisticaVentasController::class,
+            'actualizarProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/programaciones/{id}/pedidos',
+        [
+            LogisticaVentasController::class,
+            'actualizarPedidosProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/programaciones/{id}/estado',
+        [
+            LogisticaVentasController::class,
+            'cambiarEstadoProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::put(
+        '/logistica-ventas/programaciones/pedidos/{id}/estado',
+        [
+            LogisticaVentasController::class,
+            'cambiarEstadoPedidoProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::post(
+        '/logistica-ventas/programaciones/pedidos/{id}/reprogramar',
+        [
+            LogisticaVentasController::class,
+            'reprogramarPedido'
+        ]
+    )->whereNumber('id');
+
+    Route::post(
+        '/logistica-ventas/programaciones/{id}/pedidos',
+        [
+            LogisticaVentasController::class,
+            'agregarPedidosProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::post(
+        '/logistica-ventas/programaciones/{id}/pedidos',
+        [
+            LogisticaVentasController::class,
+            'agregarPedidosProgramacion'
+        ]
+    )->whereNumber('id');
+
+    Route::delete(
+        '/logistica-ventas/programaciones/pedidos/{id}',
+        [
+            LogisticaVentasController::class,
+            'quitarPedidoProgramacion'
+        ]
+    )->whereNumber('id');
 });

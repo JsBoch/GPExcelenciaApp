@@ -1,0 +1,820 @@
+/* =========================================================
+   MÁQUINAS DE PRODUCCIÓN
+   ========================================================= */
+
+.gp-machines-page {
+    width: 100%;
+}
+
+.gp-machines-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-machines-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        21px
+        23px
+        18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid #e6ecf1;
+}
+
+.gp-machines-heading {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+.gp-machines-heading-icon {
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid #d3e3ee;
+
+    border-radius:
+        10px;
+}
+
+.gp-machines-heading h1 {
+    margin:
+        4px
+        0
+        3px;
+
+    color: #172033;
+
+    font-size:
+        20px;
+
+    font-weight:
+        700;
+}
+
+.gp-machines-heading p {
+    max-width:
+        650px;
+
+    margin: 0;
+
+    color:
+        #728092;
+
+    font-size:
+        11.5px;
+
+    line-height:
+        1.45;
+}
+
+
+/* =========================================================
+   BOTÓN NUEVO
+   ========================================================= */
+
+.gp-machines-new {
+    min-height:
+        35px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap: 6px;
+
+    flex: 0 0 auto;
+
+    padding:
+        0
+        12px;
+
+    color: #fff;
+
+    background:
+        var(
+            --gp-green,
+            #39b54a
+        );
+
+    border:
+        1px solid
+        var(
+            --gp-green,
+            #39b54a
+        );
+
+    border-radius:
+        7px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    cursor:
+        pointer;
+}
+
+.gp-machines-new:hover {
+    background:
+        #2f9d3e;
+
+    border-color:
+        #2f9d3e;
+}
+
+
+/* =========================================================
+   BÚSQUEDA
+   ========================================================= */
+
+.gp-machines-search-section {
+    margin:
+        17px
+        23px
+        0;
+
+    padding:
+        12px;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px solid
+        #e2e8ed;
+
+    border-radius:
+        8px;
+}
+
+.gp-machines-search-heading {
+    display: flex;
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap: 12px;
+
+    margin-bottom:
+        8px;
+}
+
+.gp-machines-search-heading
+    > div {
+    display: flex;
+    flex-direction:
+        column;
+
+    gap: 1px;
+}
+
+.gp-machines-search-heading
+    strong {
+    color:
+        #475569;
+
+    font-size:
+        10.5px;
+}
+
+.gp-machines-search-heading
+    span {
+    color:
+        #8a97a4;
+
+    font-size:
+        8.5px;
+}
+
+.gp-machines-count {
+    padding:
+        3px
+        8px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        ) !important;
+
+    background:
+        #e7f0f7;
+
+    border-radius:
+        20px;
+
+    font-size:
+        9px !important;
+
+    font-weight:
+        700;
+}
+
+
+/* SEARCH CONTROL */
+
+.gp-machines-search {
+    width:
+        min(
+            520px,
+            100%
+        );
+
+    height:
+        36px;
+
+    display: flex;
+    align-items:
+        center;
+
+    gap: 7px;
+
+    padding:
+        0
+        9px;
+
+    background:
+        #fff;
+
+    border:
+        1px solid
+        #cbd5df;
+
+    border-radius:
+        7px;
+}
+
+.gp-machines-search:focus-within {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            14,
+            79,
+            132,
+            0.07
+        );
+}
+
+.gp-machines-search
+    > svg {
+    flex: 0 0 auto;
+
+    color:
+        #7c8996;
+}
+
+.gp-machines-search
+    input {
+    min-width: 0;
+
+    flex: 1;
+
+    height: 100%;
+
+    padding: 0;
+
+    color:
+        #334155;
+
+    background:
+        transparent;
+
+    border: 0;
+
+    outline: none;
+
+    font-size:
+        10.5px;
+}
+
+.gp-machines-search
+    button {
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex: 0 0 auto;
+
+    padding: 0;
+
+    color:
+        #64748b;
+
+    background:
+        transparent;
+
+    border: 0;
+
+    border-radius:
+        5px;
+
+    cursor:
+        pointer;
+}
+
+.gp-machines-search
+    button:hover {
+    background:
+        #eef2f5;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-machines-body {
+    padding:
+        18px
+        23px
+        23px;
+}
+
+.gp-machines-table-header {
+    margin-bottom:
+        9px;
+}
+
+.gp-machines-table-header
+    h2 {
+    margin:
+        0
+        0
+        2px;
+
+    color:
+        #334155;
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+}
+
+.gp-machines-table-header
+    p {
+    margin: 0;
+
+    color:
+        #8794a1;
+
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.gp-machines-table-wrapper {
+    overflow-x:
+        auto;
+
+    background:
+        #fff;
+
+    border:
+        1px solid
+        #dfe6ec;
+
+    border-radius:
+        8px;
+}
+
+.gp-machines-table {
+    width: 100%;
+
+    border-collapse:
+        collapse;
+
+    table-layout:
+        auto;
+}
+
+.gp-machines-table
+    thead
+    th {
+    padding:
+        8px
+        10px;
+
+    color:
+        #475569;
+
+    background:
+        #f3f6f9;
+
+    border-bottom:
+        1px solid
+        #dfe6ec;
+
+    font-size:
+        9px;
+
+    font-weight:
+        700;
+
+    text-align:
+        left;
+
+    white-space:
+        nowrap;
+}
+
+.gp-machines-table
+    tbody
+    td {
+    padding:
+        8px
+        10px;
+
+    color:
+        #334155;
+
+    border-bottom:
+        1px solid
+        #edf1f4;
+
+    font-size:
+        10px;
+
+    vertical-align:
+        middle;
+}
+
+.gp-machines-table
+    tbody
+    tr:last-child
+    td {
+    border-bottom:
+        0;
+}
+
+.gp-machines-table
+    tbody
+    tr:hover
+    td {
+    background:
+        #f7fafc;
+}
+
+
+/* COLUMNAS */
+
+.gp-machines-col-id {
+    width: 70px;
+}
+
+.gp-machines-col-actions {
+    width: 100px;
+}
+
+
+/* =========================================================
+   CONTENIDO TABLA
+   ========================================================= */
+
+.gp-machines-id {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    min-width:
+        28px;
+
+    height:
+        22px;
+
+    padding:
+        0
+        6px;
+
+    color:
+        #64748b;
+
+    background:
+        #f1f4f6;
+
+    border-radius:
+        5px;
+
+    font-size:
+        8.5px;
+
+    font-weight:
+        700;
+}
+
+.gp-machines-name {
+    color:
+        #26364a;
+
+    font-size:
+        10.5px;
+
+    font-weight:
+        700;
+}
+
+.gp-machines-code {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    padding:
+        3px
+        7px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border-radius:
+        5px;
+
+    font-size:
+        8.5px;
+
+    font-weight:
+        700;
+}
+
+.gp-machines-description {
+    color:
+        #667588;
+}
+
+.gp-machines-muted {
+    color:
+        #a5afb9;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.gp-machines-actions {
+    display: flex;
+    align-items:
+        center;
+
+    gap: 5px;
+}
+
+.gp-machines-action {
+    width: 29px;
+    height: 29px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding: 0;
+
+    border-radius:
+        6px;
+
+    cursor:
+        pointer;
+}
+
+.gp-machines-edit {
+    color:
+        #0e4f84;
+
+    background:
+        #eef5fa;
+
+    border:
+        1px solid
+        #d2e2ed;
+}
+
+.gp-machines-edit:hover {
+    background:
+        #dcebf5;
+}
+
+.gp-machines-delete {
+    color:
+        #b42318;
+
+    background:
+        #fff2f1;
+
+    border:
+        1px solid
+        #efd3d0;
+}
+
+.gp-machines-delete:hover {
+    background:
+        #fde3e1;
+}
+
+
+/* =========================================================
+   LOADING / EMPTY
+   ========================================================= */
+
+.gp-machines-loading {
+    padding:
+        36px
+        15px;
+
+    color:
+        #7b8794;
+
+    text-align:
+        center;
+
+    font-size:
+        10.5px;
+}
+
+.gp-machines-empty {
+    min-height:
+        180px;
+
+    display: flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex-direction:
+        column;
+
+    gap: 5px;
+
+    color:
+        #83909e;
+
+    background:
+        #fafbfc;
+
+    border:
+        1px dashed
+        #d6dee5;
+
+    border-radius:
+        8px;
+
+    text-align:
+        center;
+}
+
+.gp-machines-empty
+    svg {
+    margin-bottom:
+        3px;
+
+    color:
+        #a4b0bb;
+}
+
+.gp-machines-empty
+    strong {
+    color:
+        #526173;
+
+    font-size:
+        11px;
+}
+
+.gp-machines-empty
+    span {
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 720px) {
+    .gp-machines-header {
+        align-items:
+            stretch;
+
+        flex-direction:
+            column;
+
+        padding:
+            18px;
+    }
+
+    .gp-machines-new {
+        width: 100%;
+    }
+
+    .gp-machines-search-section {
+        margin:
+            15px
+            18px
+            0;
+    }
+
+    .gp-machines-body {
+        padding:
+            17px
+            18px
+            20px;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-machines-heading-icon {
+        display: none;
+    }
+
+    .gp-machines-search-heading {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+}

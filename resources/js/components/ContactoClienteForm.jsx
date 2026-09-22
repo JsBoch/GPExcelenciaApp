@@ -1,20 +1,32 @@
-import React, { useState, useEffect } from "react";
-//Axios es un cliente HTTP basado en promesas que facilita la realización de solicitudes HTTP desde el navegador o Node.js.
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css"; // Importa los estilos de Bootstrap
-import { Link, useParams, useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+
+import {
+    Link,
+    useParams,
+    useLocation,
+} from "react-router-dom";
+
 import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
-import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
-import Header from "./Header";
-import FormSection from "./FormSection"; // 3. Importa el componente FormSection
 
-// NO necesitas useParams aquí si el ID del contacto siempre viene de la URL (para edición)
-// o no existe (para creación). Si el modal SIEMPRE es para CREAR, entonces 'id' de useParams no se usa.
-// Si el modal puede ser para EDITAR un contacto existente, entonces sí lo necesitas.
-// Por simplicidad, asumimos que el modal desde ClienteRegistro es para CREAR un contacto.
-// const { id } = useParams(); // id del CONTACTO (si se edita desde una ruta de contacto)
+import {
+    Save,
+    Search,
+    Eraser,
+    X,
+    UserRound,
+    Phone,
+    Mail,
+    BriefcaseBusiness,
+    MessageSquareText,
+} from "lucide-react";
+
+import FormSection from "./FormSection";
+
+import "../../css/ContactoClienteForm.css";
 
 function ContactoClienteForm({
     clienteId,
@@ -22,186 +34,238 @@ function ContactoClienteForm({
     onContactCreated,
     contactoAEditarId,
 }) {
-    // Recibe clienteId como prop  // contactoAEditarId es opcional
-    // const { id } = useParams(); // Obtiene el id de la URL
-    // const { id: idContactoDesdeUrl } = useParams(); // Para edición de contacto si se accede por URL
-    // const idParaEditar = contactoAEditarId || idContactoDesdeUrl; // Prioriza prop si existe
-    // El formulario recibe clienteId (para asignar el contacto al cliente) y, opcionalmente, contactoAEditarId si se quiere editar un contacto específico
-    // Si estamos en una ruta de contactos, el :id de la URL es el ID DEL CONTACTO
-    // Si estamos en /clientes/editar/:id el :id es DEL CLIENTE => NO usarlo para editar contacto
     const { id: idFromUrl } = useParams();
-    const isContactPath = /\/contacto_cliente\/(editar|ver|detalle)\//i.test(
-        location.pathname
-    );
-    const idFromUrlIfContact = isContactPath ? idFromUrl : null;
+    const location = useLocation();
 
-    // Prioriza: prop explícita de edición > id de URL de rutas de contacto > null
-    const idParaEditar = contactoAEditarId ?? idFromUrlIfContact ?? null;
+    /*
+     * Si estamos en:
+     *
+     * /contacto_cliente/editar/:id
+     *
+     * el ID corresponde al CONTACTO.
+     *
+     * Si el componente está dentro de ClienteRegistro,
+     * clienteId corresponde al CLIENTE.
+     */
+    const isContactPath =
+        /\/contacto_cliente\/(editar|ver|detalle)\//i.test(
+            location.pathname
+        );
 
-    const navigate = useNavigate();
+    const idFromUrlIfContact =
+        isContactPath ? idFromUrl : null;
+
+    /*
+     * Prioridad:
+     *
+     * 1. contactoAEditarId recibido como prop
+     * 2. ID recibido desde ruta de contacto
+     * 3. null = nuevo contacto
+     */
+    const idParaEditar =
+        contactoAEditarId ??
+        idFromUrlIfContact ??
+        null;
+
     const [clientes, setClientes] = useState([]);
-    const [nombreClienteFijado, setNombreClienteFijado] = useState(""); // Para mostrar nombre si está deshabilitado
-    //const fechaActual = new Date().toISOString().split("T")[0];
-    //maneja el estado, en este caso un objeto con varios campos.
-    //este objeto representa los datos de un empleado y cada campo es una propiedad del empleado.
-    const [contactoCliente, setContactoCliente] = useState({
-        idcliente: 0,
-        nombre: "",
-        telefono: "",
-        correo: "",
-        puesto: "",
-        observaciones: "",
-    });
 
-    // Estado para saber si estamos en modo edición de un CONTACTO
-    const [isEditModeContacto, setIsEditModeContacto] = useState(false);
+    const [nombreClienteFijado, setNombreClienteFijado] =
+        useState("");
 
-    
+    const [isEditModeContacto, setIsEditModeContacto] =
+        useState(false);
+
+    const [loading, setLoading] = useState(false);
+
+    const [contactoCliente, setContactoCliente] =
+        useState({
+            idcliente: 0,
+            nombre: "",
+            telefono: "",
+            correo: "",
+            puesto: "",
+            observaciones: "",
+        });
+
+    /*
+     * =========================================================
+     * CARGA DE CLIENTES + CONTACTO
+     * =========================================================
+     */
+
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+        const cargarDatos = async () => {
+            const token =
+                localStorage.getItem("token");
 
-        axios
-            .get("/api/lista_clientes", { headers })
-            .then((res) => {
-                setClientes(res.data);
-                if (clienteId) {
-                    const c = res.data.find(
-                        (x) => String(x.idcliente) === String(clienteId)
+            const headers = {
+                Authorization: `Bearer ${token}`,
+            };
+
+            try {
+                setLoading(true);
+
+                /*
+                 * Cargar clientes.
+                 */
+                const resClientes =
+                    await axios.get(
+                        "/api/lista_clientes",
+                        {
+                            headers,
+                        }
                     );
-                    if (c) setNombreClienteFijado(c.nombre);
+
+                const listaClientes =
+                    resClientes.data || [];
+
+                setClientes(listaClientes);
+
+                /*
+                 * Si el formulario viene desde un cliente,
+                 * obtener el nombre para mostrarlo bloqueado.
+                 */
+                if (clienteId) {
+                    const cliente =
+                        listaClientes.find(
+                            (item) =>
+                                String(
+                                    item.idcliente
+                                ) ===
+                                String(clienteId)
+                        );
+
+                    if (cliente) {
+                        setNombreClienteFijado(
+                            cliente.nombre
+                        );
+                    }
                 }
-            })
-            .catch((error) =>
-                console.error("Error al cargar lista de clientes:", error)
-            );
 
-        if (idParaEditar) {
-            // MODO EDICIÓN — solo cuando hay id de contacto real
-            setIsEditModeContacto(true);
-            axios
-                .get(`/api/contacto_cliente/${idParaEditar}`, { headers })
-                .then((res) => {
-                    const data = res.data || {};
+                /*
+                 * MODO EDICIÓN
+                 */
+                if (idParaEditar) {
+                    setIsEditModeContacto(true);
+
+                    const resContacto =
+                        await axios.get(
+                            `/api/contacto_cliente/${idParaEditar}`,
+                            {
+                                headers,
+                            }
+                        );
+
+                    const data =
+                        resContacto.data || {};
+
                     setContactoCliente({
-                        idcliente: data.idcliente || clienteId || 0,
-                        nombre: data.nombre || "",
-                        telefono: data.telefono || "",
-                        correo: data.correo || "",
-                        puesto: data.puesto || "",
-                        observaciones: data.observaciones || "",
+                        idcliente:
+                            data.idcliente ||
+                            clienteId ||
+                            0,
+
+                        nombre:
+                            data.nombre || "",
+
+                        telefono:
+                            data.telefono || "",
+
+                        correo:
+                            data.correo || "",
+
+                        puesto:
+                            data.puesto || "",
+
+                        observaciones:
+                            data.observaciones ||
+                            "",
                     });
-                })
-                .catch((error) =>
-                    console.error(
-                        "Error al cargar el contacto para editar:",
-                        error
-                    )
+                } else {
+                    /*
+                     * MODO NUEVO
+                     */
+                    setIsEditModeContacto(false);
+
+                    setContactoCliente({
+                        idcliente:
+                            clienteId || 0,
+
+                        nombre: "",
+                        telefono: "",
+                        correo: "",
+                        puesto: "",
+                        observaciones: "",
+                    });
+                }
+            } catch (error) {
+                console.error(
+                    "Error cargando información del contacto:",
+                    error
                 );
-        } else {
-            // MODO NUEVO
-            setIsEditModeContacto(false);
-            setContactoCliente({
-                idcliente: clienteId || 0,
-                nombre: "",
-                telefono: "",
-                correo: "",
-                puesto: "",
-                observaciones: "",
-            });
-        }
-    }, [clienteId, idParaEditar, location.pathname]);
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
-        if (clienteId) {
-            setContactoCliente((prev) => ({ ...prev, idcliente: clienteId })); //Actualiza idcliente con el clienteId
-        }
+                alertify.error(
+                    "No fue posible cargar la información"
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        axios
-            .get("/api/lista_clientes", { headers })
-            .then((res) => setClientes(res.data));
-    }, [clienteId]);
+        cargarDatos();
+    }, [
+        clienteId,
+        idParaEditar,
+        location.pathname,
+    ]);
+
+    /*
+     * =========================================================
+     * CAMBIOS
+     * =========================================================
+     */
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setContactoCliente({
-            ...contactoCliente,
-            //[e.target.name]: e.target.value,
+
+        setContactoCliente((prev) => ({
+            ...prev,
+
             [name]:
-                name === "nombre" || name === "puesto"
+                name === "nombre" ||
+                name === "puesto"
                     ? value.toUpperCase()
-                    : value, // Convierte a mayúsculas solo para nombre y puesto
-        });
+                    : value,
+        }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // Detiene la propagación del evento submit
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+    /*
+     * =========================================================
+     * TELÉFONO
+     * =========================================================
+     */
 
-        // Validación de campos obligatorios
-        const camposObligatorios = [
-            { campo: contactoCliente.idcliente, nombre: "Cliente" },
-            { campo: contactoCliente.nombre, nombre: "Nombre" },
-            { campo: contactoCliente.telefono, nombre: "Teléfono" },
-            { campo: contactoCliente.puesto, nombre: "Puesto" },
-        ];
+    const handleTelefonoChange = (e) => {
+        const value =
+            e.target.value.replace(/\D/g, "");
 
-        const camposFaltantes = camposObligatorios.filter(
-            (c) =>
-                // Verifica si c.campo es null o undefined (usamos == null para cubrir ambos)
-                c.campo == null ||
-                // O si c.campo es una cadena Y (typeof verifica que sea string)
-                // la cadena está vacía después de quitar espacios (trim())
-                (typeof c.campo === "string" && c.campo.trim() === "")
-        );
-        if (camposFaltantes.length > 0) {
-            const nombres = camposFaltantes.map((c) => c.nombre).join(", ");
-            alertify.alert(
-                "DATOS OBLIGATORIOS",
-                `Por favor, complete los siguientes campos obligatorios: ${nombres}`
-            );
-            return;
+        if (value.length <= 8) {
+            setContactoCliente((prev) => ({
+                ...prev,
+                telefono: value,
+            }));
         }
-
-        //
-        if (isEditModeContacto && idParaEditar) {
-            // Editando un contacto
-            axios
-                .put(`/api/contacto_cliente/${idParaEditar}`, contactoCliente, {
-                    headers,
-                })
-                .then((res) => {
-                    alertify.success("Contacto actualizado correctamente");
-                    if (onContactCreated) onContactCreated(); // Callback general
-                    if (onClose) onClose(); // Cierra el modal
-                })
-                .catch((error) => {
-                    /* ... tu manejo de error ... */
-                });
-        } else {
-            // Creando un nuevo contacto
-            axios
-                .post("/api/contacto_cliente", contactoCliente, { headers })
-                .then((res) => {
-                    alertify.success("Contacto creado correctamente");
-                    if (onContactCreated) onContactCreated(); // Llama al callback
-                    if (onClose) onClose(); // Cierra el modal
-                })
-                .catch((error) => {
-                    /* ... tu manejo de error ... */
-                });
-        }
-
-        limpiarCampos(); // Limpia los campos después de guardar
     };
+
+    /*
+     * =========================================================
+     * LIMPIAR
+     * =========================================================
+     */
 
     const limpiarCampos = () => {
         setContactoCliente({
-            idcliente: clienteId || 0, // Mantiene el clienteId si vino como prop
+            idcliente: clienteId || 0,
             nombre: "",
             telefono: "",
             correo: "",
@@ -210,211 +274,567 @@ function ContactoClienteForm({
         });
     };
 
+    /*
+     * =========================================================
+     * GUARDAR / ACTUALIZAR
+     * =========================================================
+     */
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        /*
+         * Validaciones originales.
+         */
+        const camposObligatorios = [
+            {
+                campo:
+                    contactoCliente.idcliente,
+                nombre: "Cliente",
+            },
+            {
+                campo:
+                    contactoCliente.nombre,
+                nombre: "Nombre",
+            },
+            {
+                campo:
+                    contactoCliente.telefono,
+                nombre: "Teléfono",
+            },
+            {
+                campo:
+                    contactoCliente.puesto,
+                nombre: "Puesto",
+            },
+        ];
+
+        const camposFaltantes =
+            camposObligatorios.filter(
+                (item) =>
+                    item.campo == null ||
+                    (typeof item.campo ===
+                        "string" &&
+                        item.campo.trim() === "")
+            );
+
+        if (camposFaltantes.length > 0) {
+            const nombres =
+                camposFaltantes
+                    .map(
+                        (item) =>
+                            item.nombre
+                    )
+                    .join(", ");
+
+            alertify.alert(
+                "DATOS OBLIGATORIOS",
+                `Por favor, complete los siguientes campos obligatorios: ${nombres}`
+            );
+
+            return;
+        }
+
+        const token =
+            localStorage.getItem("token");
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
+
+        try {
+            setLoading(true);
+
+            /*
+             * EDICIÓN
+             */
+            if (
+                isEditModeContacto &&
+                idParaEditar
+            ) {
+                await axios.put(
+                    `/api/contacto_cliente/${idParaEditar}`,
+                    contactoCliente,
+                    {
+                        headers,
+                    }
+                );
+
+                alertify.success(
+                    "Contacto actualizado correctamente"
+                );
+            } else {
+                /*
+                 * CREACIÓN
+                 */
+                await axios.post(
+                    "/api/contacto_cliente",
+                    contactoCliente,
+                    {
+                        headers,
+                    }
+                );
+
+                alertify.success(
+                    "Contacto creado correctamente"
+                );
+            }
+
+            /*
+             * Callback utilizado desde ClienteRegistro/modal.
+             */
+            if (
+                typeof onContactCreated ===
+                "function"
+            ) {
+                onContactCreated();
+            }
+
+            /*
+             * Si está dentro de modal, cerrarlo.
+             */
+            if (
+                typeof onClose === "function"
+            ) {
+                onClose();
+            } else {
+                /*
+                 * Si es pantalla independiente,
+                 * limpiar después de guardar.
+                 */
+                limpiarCampos();
+            }
+        } catch (error) {
+            console.error(
+                "Error guardando contacto:",
+                error
+            );
+
+            alertify.error(
+                isEditModeContacto
+                    ? "Error actualizando el contacto"
+                    : "Error creando el contacto"
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /*
+     * =========================================================
+     * RENDER
+     * =========================================================
+     */
+
     return (
-        <div className="mt-4">
-            <Header
-                title={
-                    isEditModeContacto
-                        ? "Editar Contacto"
-                        : "Registrar Nuevo Contacto"
-                }
-            />
-            <div className="card shadow p-4">
-                {/* <div className="card-header bg-primary text-white">
-                    <h4 className="mb-0">Registro de contactos</h4>
-                </div> */}
-                <div className="card shadow p-3">
-                    {" "}
-                    {/* Menos padding si es modal */}
-                    <div className="card-body card-form">
-                        <form onSubmit={handleSubmit}>
-                            <div className="row g-2">
-                                <div className="col-md-12">
-                                    <label className="form-label">
+        <div
+            className={`gp-module-page contacto-form-page ${
+                typeof onClose === "function"
+                    ? "contacto-form-modal"
+                    : ""
+            }`}
+        >
+            <div className="gp-module-card">
+                <div className="contacto-form-body">
+
+                    {/* =========================
+                        CABECERA
+                       ========================= */}
+
+                    <div className="erp-meta-header contacto-meta-header">
+                        <div>
+                            <span className="erp-badge">
+                                Módulo · Clientes
+                            </span>
+
+                            <h2 className="contacto-page-title">
+                                {isEditModeContacto
+                                    ? "Editar contacto"
+                                    : "Nuevo contacto"}
+                            </h2>
+
+                            <span className="text-muted small d-block">
+                                {isEditModeContacto
+                                    ? "Actualice la información del contacto seleccionado."
+                                    : "Registre una nueva persona de contacto asociada a un cliente."}
+                            </span>
+                        </div>
+
+                        <div
+                            className={`contacto-mode-badge ${
+                                isEditModeContacto
+                                    ? "is-edit"
+                                    : "is-new"
+                            }`}
+                        >
+                            <UserRound
+                                size={15}
+                            />
+
+                            {isEditModeContacto
+                                ? "Editando"
+                                : "Nuevo"}
+                        </div>
+                    </div>
+
+                    <form
+                        onSubmit={
+                            handleSubmit
+                        }
+                    >
+                        {/* =========================
+                            CLIENTE
+                           ========================= */}
+
+                        <FormSection title="Cliente asociado">
+                            <div className="row g-3">
+                                <div className="col-12">
+                                    <label className="form-label contacto-label">
                                         Cliente
+                                        <span className="contacto-required">
+                                            *
+                                        </span>
                                     </label>
-                                    {/* <select name="idcliente" value={contactoCliente.idcliente} onChange={handleChange} className='form-control form-control-sm campo-obligatorio-fondo'>
-                                    <option value="">Seleccionar Cliente</option>
-                                    {clientes.map(cliente => (
-                                        <option key={cliente.idcliente} value={cliente.idcliente}>
-                                            {cliente.nombre}
-                                        </option>
-                                    ))}
-                                </select> */}
-                                    {clienteId && nombreClienteFijado ? (
-                                        <input
-                                            type="text"
-                                            value={`${nombreClienteFijado} (ID: ${clienteId})`}
-                                            className="form-control form-control-sm"
-                                            disabled
-                                        />
+
+                                    {clienteId &&
+                                    nombreClienteFijado ? (
+                                        <div className="contacto-fixed-client">
+                                            <div className="contacto-field-icon">
+                                                <UserRound
+                                                    size={
+                                                        17
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="contacto-fixed-client-info">
+                                                <span>
+                                                    Cliente
+                                                    seleccionado
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        nombreClienteFijado
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div className="contacto-client-id">
+                                                ID{" "}
+                                                {
+                                                    clienteId
+                                                }
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <select
-                                            name="idcliente"
-                                            value={contactoCliente.idcliente}
-                                            onChange={handleChange}
-                                            className="form-control form-control-sm campo-obligatorio-fondo"
-                                            // Deshabilitar si es para un clienteId específico Y NO estamos editando un contacto existente
-                                            // (si contactoAEditarId está presente, es edición y se debe poder cambiar si es necesario, aunque raro)
-                                            disabled={
-                                                !!clienteId &&
-                                                !contactoAEditarId
-                                            }
-                                        >
-                                            <option value="">
-                                                Seleccionar Cliente
-                                            </option>
-                                            {clientes.map((cliente) => (
-                                                <option
-                                                    key={cliente.idcliente}
-                                                    value={cliente.idcliente}
-                                                >
-                                                    {cliente.nombre}
+                                        <div className="contacto-input-wrapper">
+                                            <UserRound
+                                                size={
+                                                    17
+                                                }
+                                                className="contacto-input-icon"
+                                            />
+
+                                            <select
+                                                name="idcliente"
+                                                value={
+                                                    contactoCliente.idcliente
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                className="form-select form-select-sm contacto-control contacto-control-icon campo-obligatorio-fondo"
+                                                disabled={
+                                                    !!clienteId &&
+                                                    !contactoAEditarId
+                                                }
+                                            >
+                                                <option value="">
+                                                    Seleccionar
+                                                    cliente
                                                 </option>
-                                            ))}
-                                        </select>
+
+                                                {clientes.map(
+                                                    (
+                                                        cliente
+                                                    ) => (
+                                                        <option
+                                                            key={
+                                                                cliente.idcliente
+                                                            }
+                                                            value={
+                                                                cliente.idcliente
+                                                            }
+                                                        >
+                                                            {
+                                                                cliente.nombre
+                                                            }
+                                                        </option>
+                                                    )
+                                                )}
+                                            </select>
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                            <FormSection title={"Datos del contacto"}>
-                                <div className="row g-2">
-                                    <div className="col-md-4">
-                                        <label className="form-label">
-                                            Nombre
-                                        </label>
+                        </FormSection>
+
+                        {/* =========================
+                            DATOS DEL CONTACTO
+                           ========================= */}
+
+                        <FormSection title="Datos del contacto">
+                            <div className="row g-3">
+
+                                {/* NOMBRE */}
+
+                                <div className="col-lg-6 col-md-12">
+                                    <label className="form-label contacto-label">
+                                        Nombre
+                                        <span className="contacto-required">
+                                            *
+                                        </span>
+                                    </label>
+
+                                    <div className="contacto-input-wrapper">
+                                        <UserRound
+                                            size={17}
+                                            className="contacto-input-icon"
+                                        />
+
                                         <input
                                             type="text"
                                             name="nombre"
-                                            value={contactoCliente.nombre}
-                                            onChange={handleChange}
-                                            placeholder="Nombre"
-                                            className="form-control form-control-sm campo-obligatorio-fondo"
+                                            value={
+                                                contactoCliente.nombre
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            placeholder="Nombre completo del contacto"
+                                            className="form-control form-control-sm contacto-control contacto-control-icon campo-obligatorio-fondo"
                                         />
                                     </div>
                                 </div>
-                                <div className="row g-2">
-                                    <div className="col-md-4">
-                                        <label className="form-label">
-                                            Teléfono
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="telefono"
-                                            value={contactoCliente.telefono}
-                                            //onChange={handleChange}
-                                            onChange={(e) => {
-                                                const value =
-                                                    e.target.value.replace(
-                                                        /\D/g,
-                                                        ""
-                                                    ); // Solo números
-                                                if (value.length <= 8) {
-                                                    handleChange({
-                                                        target: {
-                                                            name: "telefono",
-                                                            value,
-                                                        },
-                                                    });
-                                                }
-                                            }}
-                                            placeholder="Teléfono"
-                                            className="form-control form-control-sm campo-obligatorio-fondo"
+
+                                {/* PUESTO */}
+
+                                <div className="col-lg-6 col-md-12">
+                                    <label className="form-label contacto-label">
+                                        Puesto
+                                        <span className="contacto-required">
+                                            *
+                                        </span>
+                                    </label>
+
+                                    <div className="contacto-input-wrapper">
+                                        <BriefcaseBusiness
+                                            size={17}
+                                            className="contacto-input-icon"
                                         />
-                                    </div>
-                                </div>
-                                <div className="row g-2">
-                                    <div className="col-md-4">
-                                        <label className="form-label">
-                                            Correo
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="correo"
-                                            value={contactoCliente.correo}
-                                            onChange={handleChange}
-                                            placeholder="Correo"
-                                            className="form-control form-control-sm"
-                                        />
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label className="form-label">
-                                            Puesto
-                                        </label>
+
                                         <input
                                             type="text"
                                             name="puesto"
-                                            value={contactoCliente.puesto}
-                                            onChange={handleChange}
-                                            placeholder="Puesto"
-                                            className="form-control form-control-sm campo-obligatorio-fondo"
+                                            value={
+                                                contactoCliente.puesto
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            placeholder="Ej. GERENTE DE COMPRAS"
+                                            className="form-control form-control-sm contacto-control contacto-control-icon campo-obligatorio-fondo"
                                         />
                                     </div>
                                 </div>
-                                <div className="row g-2">
-                                    <div className="col-md-10">
-                                        <label className="form-label">
-                                            Observaciones
-                                        </label>
+
+                                {/* TELÉFONO */}
+
+                                <div className="col-lg-6 col-md-12">
+                                    <label className="form-label contacto-label">
+                                        Teléfono
+                                        <span className="contacto-required">
+                                            *
+                                        </span>
+                                    </label>
+
+                                    <div className="contacto-input-wrapper">
+                                        <Phone
+                                            size={17}
+                                            className="contacto-input-icon"
+                                        />
+
                                         <input
                                             type="text"
+                                            inputMode="numeric"
+                                            name="telefono"
+                                            value={
+                                                contactoCliente.telefono
+                                            }
+                                            onChange={
+                                                handleTelefonoChange
+                                            }
+                                            placeholder="00000000"
+                                            maxLength={
+                                                8
+                                            }
+                                            className="form-control form-control-sm contacto-control contacto-control-icon campo-obligatorio-fondo"
+                                        />
+
+                                        <span className="contacto-phone-counter">
+                                            {
+                                                contactoCliente
+                                                    .telefono
+                                                    .length
+                                            }
+                                            /8
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* CORREO */}
+
+                                <div className="col-lg-6 col-md-12">
+                                    <label className="form-label contacto-label">
+                                        Correo
+                                    </label>
+
+                                    <div className="contacto-input-wrapper">
+                                        <Mail
+                                            size={17}
+                                            className="contacto-input-icon"
+                                        />
+
+                                        <input
+                                            type="email"
+                                            name="correo"
+                                            value={
+                                                contactoCliente.correo
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            placeholder="correo@empresa.com"
+                                            className="form-control form-control-sm contacto-control contacto-control-icon"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* OBSERVACIONES */}
+
+                                <div className="col-12">
+                                    <label className="form-label contacto-label">
+                                        Observaciones
+                                    </label>
+
+                                    <div className="contacto-textarea-wrapper">
+                                        <MessageSquareText
+                                            size={17}
+                                            className="contacto-textarea-icon"
+                                        />
+
+                                        <textarea
                                             name="observaciones"
                                             value={
                                                 contactoCliente.observaciones
                                             }
-                                            onChange={handleChange}
-                                            placeholder="Observaciones"
-                                            className="form-control form-contorl-lg"
+                                            onChange={
+                                                handleChange
+                                            }
+                                            placeholder="Información adicional sobre el contacto..."
+                                            rows={
+                                                3
+                                            }
+                                            className="form-control contacto-control contacto-observaciones"
                                         />
                                     </div>
                                 </div>
-                            </FormSection>
-                            <div
-                                className="mt-4 p-3 border rounded shadow-sm bg-light"
-                                style={{ borderColor: "#ddd" }}
-                            >
-                                <div className="d-flex flex-wrap gap-2 justify-content-between">
+                            </div>
+                        </FormSection>
+
+                        {/* =========================
+                            ACCIONES
+                           ========================= */}
+
+                        <div className="gp-action-footer contacto-actions">
+                            <div className="contacto-actions-secondary">
+                                <button
+                                    type="button"
+                                    className="gp-action-button gp-action-clean"
+                                    onClick={
+                                        limpiarCampos
+                                    }
+                                    disabled={
+                                        loading
+                                    }
+                                >
+                                    <Eraser
+                                        size={17}
+                                    />
+
+                                    Limpiar
+                                </button>
+
+                                {typeof onClose ===
+                                    "function" && (
                                     <button
-                                        type="submit"
-                                        className="btn btn-sm btn-guardar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                        style={{ minWidth: "150px" }}
+                                        type="button"
+                                        className="gp-action-button contacto-btn-cancel"
+                                        onClick={
+                                            onClose
+                                        }
+                                        disabled={
+                                            loading
+                                        }
                                     >
-                                        <FaSave />
-                                        {isEditModeContacto
-                                            ? "ACTUALIZAR"
-                                            : "GUARDAR"}
+                                        <X
+                                            size={
+                                                17
+                                            }
+                                        />
+
+                                        Cancelar
                                     </button>
-                                    <button
-                                        type="button" // Importante: no es un botón de submit
-                                        className="btn btn-sm btn-limpiar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                        style={{
-                                            minWidth: "150px",
-                                            color: "#000",
-                                            border: "1px solid #ccc",
-                                        }}
-                                        onClick={limpiarCampos} // Asocia la función al evento onClick
-                                    >
-                                        <FaBroom /> LIMPIAR
-                                    </button>
-                                    {typeof onClose === "function" && (
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary btn-sm d-flex align-items-center justify-content-center gap-2" // btn-sm
-                                            onClick={onClose}
-                                        >
-                                            CANCELAR
-                                        </button>
-                                    )}
+                                )}
+
+                                {typeof onClose !==
+                                    "function" && (
                                     <Link
                                         to="/contacto_cliente/lista"
-                                        className="btn btn-sm btn-consultar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                        style={{ minWidth: "150px" }}
+                                        className="gp-action-button gp-action-consult contacto-link-button"
                                     >
-                                        <FaSearch /> CONSULTAR
+                                        <Search
+                                            size={
+                                                17
+                                            }
+                                        />
+
+                                        Consultar
                                     </Link>
-                                </div>
+                                )}
                             </div>
-                        </form>
-                    </div>
+
+                            <button
+                                type="submit"
+                                className="gp-action-button gp-action-save contacto-save-button"
+                                disabled={
+                                    loading
+                                }
+                            >
+                                <Save
+                                    size={18}
+                                />
+
+                                {loading
+                                    ? "Guardando..."
+                                    : isEditModeContacto
+                                      ? "Actualizar contacto"
+                                      : "Guardar contacto"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

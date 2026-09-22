@@ -1,588 +1,1510 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import axios from "axios";
-import Header from "./Header";
+
 import {
     MaterialReactTable,
     useMaterialReactTable,
 } from "material-react-table";
+
 import {
-    Box,
-    Typography,
-    Paper,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Snackbar,
     Alert,
+    Box,
+    Button,
     Chip,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    InputAdornment,
+    Snackbar,
+    TextField,
     Tooltip,
+    Typography,
 } from "@mui/material";
-import CommentIcon from "@mui/icons-material/Comment";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import ReceiptIcon from "@mui/icons-material/Receipt";
+
+import {
+    ChatBubbleOutline,
+    CheckCircleOutline,
+    Comment,
+    Description,
+    ReceiptLong,
+    Search,
+    Visibility,
+} from "@mui/icons-material";
+
 import alertify from "alertifyjs";
+
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
 
-// Convierte "2025-08-13T06:00:00.000000Z" o "2025-08-13" -> "13/08/2025"
+import "../../css/cotizaciones-prefacturacion.css";
+
+
+/* =========================================================
+   FORMATO FECHA
+   ========================================================= */
+
 const fmtDMY = (value) => {
     if (!value) return "";
+
     const s = String(value).trim();
 
-    // Si viene como "YYYY-MM-DD..." (con o sin hora), uso los primeros 10 chars para evitar desfases por TZ
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    /*
+     * Si viene YYYY-MM-DD o con hora,
+     * evitamos desfases de zona horaria.
+     */
+    const m = s.match(
+        /^(\d{4})-(\d{2})-(\d{2})/
+    );
 
-    // Fallback: parseo con Date
-    const d = new Date(s.includes(" ") ? s.replace(" ", "T") : s);
+    if (m) {
+        return `${m[3]}/${m[2]}/${m[1]}`;
+    }
+
+    const d = new Date(
+        s.includes(" ")
+            ? s.replace(" ", "T")
+            : s
+    );
+
     if (!isNaN(d)) {
-        const dd = String(d.getDate()).padStart(2, "0");
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const yy = d.getFullYear();
+        const dd = String(
+            d.getDate()
+        ).padStart(2, "0");
+
+        const mm = String(
+            d.getMonth() + 1
+        ).padStart(2, "0");
+
+        const yy =
+            d.getFullYear();
+
         return `${dd}/${mm}/${yy}`;
     }
-    return s; // si todo falla, deja el valor tal cual
+
+    return s;
 };
 
-function CotizacionesPreFacturacion() {
-    const [cotizaciones, setCotizaciones] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    const [selectedCotizacion, setSelectedCotizacion] = useState(null);
-    const [comentario, setComentario] = useState("");
-    const [openModal, setOpenModal] = useState(false);
-    const [snackbar, setSnackbar] = useState({
+function CotizacionesPreFacturacion() {
+    /* =========================================================
+       ESTADOS
+       ========================================================= */
+
+    const [
+        cotizaciones,
+        setCotizaciones,
+    ] = useState([]);
+
+    const [
+        loading,
+        setLoading,
+    ] = useState(true);
+
+    const [
+        selectedCotizacion,
+        setSelectedCotizacion,
+    ] = useState(null);
+
+    const [
+        comentario,
+        setComentario,
+    ] = useState("");
+
+    const [
+        openModal,
+        setOpenModal,
+    ] = useState(false);
+
+    const [
+        snackbar,
+        setSnackbar,
+    ] = useState({
         open: false,
         message: "",
         severity: "success",
     });
-    const [openComentarios, setOpenComentarios] = useState(false);
-    const [comentarios, setComentarios] = useState([]);
-    //const [search, setSearch] = useState("");
-    const [filtroNo, setFiltroNo] = useState("");
-    const [comentariosPaginated, setComentariosPaginated] = useState(null);
-    const [page, setPage] = useState(1);
-    const [rowSelection, setRowSelection] = useState({});
 
-    // Filtra por No. Cotización (acepta "CT123" o "123")
-    const cotizacionesFiltradas = useMemo(() => {
-        if (!filtroNo.trim()) return cotizaciones;
+    const [
+        openComentarios,
+        setOpenComentarios,
+    ] = useState(false);
 
-        const needle = filtroNo.trim().toLowerCase();
-        const needleNum = needle.replace(/^ct/i, "").replace(/\D/g, ""); // solo dígitos
+    const [
+        filtroNo,
+        setFiltroNo,
+    ] = useState("");
 
-        return cotizaciones.filter((c) => {
-            const no = String(c.nocotizacion || "").toLowerCase(); // p.ej. "ct123"
-            const noNum = no.replace(/^ct/i, "").replace(/\D/g, "");
+    const [
+        comentariosPaginated,
+        setComentariosPaginated,
+    ] = useState(null);
 
-            return (
-                no.includes(needle) ||
-                (!!needleNum && noNum.includes(needleNum))
+    const [
+        page,
+        setPage,
+    ] = useState(1);
+
+    const [
+        rowSelection,
+        setRowSelection,
+    ] = useState({});
+
+
+    /* =========================================================
+       FILTRO
+       ========================================================= */
+
+    const cotizacionesFiltradas =
+        useMemo(() => {
+            if (!filtroNo.trim()) {
+                return cotizaciones;
+            }
+
+            const needle =
+                filtroNo
+                    .trim()
+                    .toLowerCase();
+
+            const needleNum =
+                needle
+                    .replace(/^ct/i, "")
+                    .replace(/\D/g, "");
+
+            return cotizaciones.filter(
+                (c) => {
+                    const no = String(
+                        c.nocotizacion || ""
+                    ).toLowerCase();
+
+                    const noNum =
+                        no
+                            .replace(
+                                /^ct/i,
+                                ""
+                            )
+                            .replace(
+                                /\D/g,
+                                ""
+                            );
+
+                    return (
+                        no.includes(
+                            needle
+                        ) ||
+                        (
+                            !!needleNum &&
+                            noNum.includes(
+                                needleNum
+                            )
+                        )
+                    );
+                }
             );
-        });
-    }, [cotizaciones, filtroNo]);
+        }, [
+            cotizaciones,
+            filtroNo,
+        ]);
 
-    const fetchCotizaciones = async () => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
 
-        try {
-            const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL}/cotizaciones-estado4`,
-                { headers }
-            );
-            setCotizaciones(data);
-            setLoading(false);
-        } catch (error) {
-            console.error("Error cargando cotizaciones:", error);
-            setLoading(false);
-        }
-    };
+    /* =========================================================
+       CARGAR COTIZACIONES
+       ========================================================= */
+
+    const fetchCotizaciones =
+        async () => {
+            const token =
+                localStorage.getItem(
+                    "token"
+                );
+
+            const headers = {
+                Authorization:
+                    `Bearer ${token}`,
+            };
+
+            try {
+                setLoading(true);
+
+                const { data } =
+                    await axios.get(
+                        `${
+                            import.meta.env
+                                .VITE_API_URL
+                        }/cotizaciones-estado4`,
+                        {
+                            headers,
+                        }
+                    );
+
+                setCotizaciones(
+                    data
+                );
+            } catch (error) {
+                console.error(
+                    "Error cargando cotizaciones:",
+                    error
+                );
+
+                alertify.error(
+                    "Error al cargar las cotizaciones."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
 
     useEffect(() => {
         fetchCotizaciones();
     }, []);
 
-    const columns = [
-        {
-            accessorKey: "nocotizacion",
-            header: "No. Cotización",
-            size: 120,
-        },
-        {
-            accessorKey: "fecha_prefacturacion",
-            header: "Fecha",
-            size: 110,
-            Cell: ({ cell }) => fmtDMY(cell.getValue()),
-            // (opcional) para ordenar por fecha real aunque muestres texto:
-            sortingFn: (rowA, rowB, columnId) => {
-                const a = rowA.getValue(columnId);
-                const b = rowB.getValue(columnId);
-                const da = new Date(a);
-                const db = new Date(b);
-                return da - db;
-            },
-        },
-        // {
-        //   accessorKey: "estado",
-        //   header: "Estado",
-        //   size: 80,
-        // },
-        {
-            accessorKey: "cliente",
-            header: "Cliente",
-        },
-        // {
-        //     accessorKey: "tipo_pago",
-        //     header: "Tipo de Pago",
-        //     size: 150,
-        // },
-        {
-            accessorKey: "total",
-            header: "Total",
-            size: 100,
-            Cell: ({ cell }) =>
-                parseFloat(cell.getValue()).toLocaleString("es-GT", {
-                    style: "currency",
-                    currency: "GTQ",
-                }),
-        },
-        // {
-        //     accessorKey: "direccion_entrega",
-        //     header: "Dirección Entrega",
-        //     size: 250,
-        // },
-        // {
-        //     accessorKey: "observaciones_cliente",
-        //     header: "Observaciones",
-        //     size: 250,
-        // },
-        // {
-        //     accessorKey: "estado_texto",
-        //     header: "Estado",
-        //     size: 100,
-        // },
-        {
-            accessorKey: "comentarios_count",
-            header: "💬",
-            size: 60,
-            enableSorting: false,
-            enableColumnFilter: false,
-            Cell: ({ cell, row }) => {
-                const cnt = Number(cell.getValue() || 0);
-                if (!cnt) return null; // deja vacío cuando no hay mensajes
-                return (
-                    <Tooltip title="Ver comentarios">
-                        <Chip
-                            size="small"
-                            color="info"
-                            label={cnt}
-                            sx={{ cursor: "pointer" }}
-                            onClick={() => {
-                                // permite abrir directo el modal de comentarios desde el chip
-                                setSelectedCotizacion(row.original);
-                                obtenerComentarios(1, "");
-                            }}
-                        />
-                    </Tooltip>
+
+    /* =========================================================
+       COMENTARIOS
+       ========================================================= */
+
+    const guardarComentario =
+        async () => {
+            if (
+                !selectedCotizacion
+            ) {
+                return;
+            }
+
+            const token =
+                localStorage.getItem(
+                    "token"
                 );
+
+            const headers = {
+                Authorization:
+                    `Bearer ${token}`,
+            };
+
+            try {
+                await axios.post(
+                    `${
+                        import.meta.env
+                            .VITE_API_URL
+                    }/cotizaciones-estado4/agregar-comentario`,
+                    {
+                        idcotizacion:
+                            selectedCotizacion
+                                .idcotizacion,
+
+                        comentario,
+                    },
+                    {
+                        headers,
+                    }
+                );
+
+                setSnackbar({
+                    open: true,
+                    message:
+                        "Comentario guardado",
+                    severity:
+                        "success",
+                });
+
+                setComentario("");
+                setOpenModal(false);
+
+                /*
+                 * No cambia el proceso:
+                 * solo actualiza visualmente el contador.
+                 */
+                setCotizaciones(
+                    (prev) =>
+                        prev.map(
+                            (cot) =>
+                                Number(
+                                    cot.idcotizacion
+                                ) ===
+                                Number(
+                                    selectedCotizacion
+                                        .idcotizacion
+                                )
+                                    ? {
+                                          ...cot,
+                                          comentarios_count:
+                                              Number(
+                                                  cot.comentarios_count ||
+                                                      0
+                                              ) +
+                                              1,
+                                      }
+                                    : cot
+                        )
+                );
+            } catch (error) {
+                console.error(
+                    "Error al guardar comentario:",
+                    error
+                );
+
+                setSnackbar({
+                    open: true,
+                    message:
+                        "Error al guardar",
+                    severity:
+                        "error",
+                });
+            }
+        };
+
+
+    /*
+     * cotizacionParam permite abrir comentarios directamente
+     * desde el chip sin depender de que setState haya terminado.
+     */
+    const obtenerComentarios =
+        async (
+            pageParam = 1,
+            cotizacionParam = null
+        ) => {
+            const cotizacion =
+                cotizacionParam ||
+                selectedCotizacion;
+
+            if (!cotizacion) {
+                return;
+            }
+
+            const token =
+                localStorage.getItem(
+                    "token"
+                );
+
+            const headers = {
+                Authorization:
+                    `Bearer ${token}`,
+            };
+
+            try {
+                const { data } =
+                    await axios.get(
+                        `${
+                            import.meta.env
+                                .VITE_API_URL
+                        }/cotizaciones-estado4/${
+                            cotizacion.idcotizacion
+                        }/comentarios`,
+                        {
+                            headers,
+                            params: {
+                                page:
+                                    pageParam,
+                            },
+                        }
+                    );
+
+                setSelectedCotizacion(
+                    cotizacion
+                );
+
+                setComentariosPaginated(
+                    data
+                );
+
+                setPage(
+                    pageParam
+                );
+
+                setOpenComentarios(
+                    true
+                );
+            } catch (error) {
+                console.error(
+                    "Error al obtener comentarios:",
+                    error
+                );
+
+                setSnackbar({
+                    open: true,
+                    message:
+                        "Error al obtener comentarios",
+                    severity:
+                        "error",
+                });
+            }
+        };
+
+
+    /* =========================================================
+       COLUMNAS
+       ========================================================= */
+
+    const columns = useMemo(
+        () => [
+            {
+                accessorKey:
+                    "nocotizacion",
+
+                header:
+                    "No. Cotización",
+
+                size: 130,
+
+                Cell: ({ cell }) => (
+                    <strong className="gp-prefact-no">
+                        {cell.getValue()}
+                    </strong>
+                ),
             },
-        },
-    ];
 
-    // const table = useMaterialReactTable({
-    //     columns,
-    //     data: cotizaciones,
-    //     enableRowSelection: true,
-    //     enableColumnFilters: true,
-    //     enableGlobalFilter: true,
-    //     enablePagination: true,
-    //     muiTableContainerProps: { sx: { maxHeight: 600 } },
-    //     state: { isLoading: loading, rowSelection }, // 👈 importante
-    //     onRowSelectionChange: setRowSelection, // 👈 asignas directamente
-    // });
-    const table = useMaterialReactTable({
-        columns,
-        data: cotizacionesFiltradas,
-        enableRowSelection: true,
-        enableColumnFilters: false,
-        enableGlobalFilter: false,
-        enablePagination: true,
-        muiTableContainerProps: { sx: { maxHeight: 600 } },
-        state: { isLoading: loading, rowSelection },
-        onRowSelectionChange: setRowSelection,
-    });
+            {
+                accessorKey:
+                    "fecha_prefacturacion",
 
-    <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-    >
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-    </Snackbar>;
+                header:
+                    "Fecha",
 
-    const guardarComentario = async () => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+                size: 110,
 
-        try {
-            await axios.post(
-                `${
-                    import.meta.env.VITE_API_URL
-                }/cotizaciones-estado4/agregar-comentario`,
-                {
-                    idcotizacion: selectedCotizacion.idcotizacion,
-                    comentario,
+                Cell: ({ cell }) =>
+                    fmtDMY(
+                        cell.getValue()
+                    ),
+
+                sortingFn: (
+                    rowA,
+                    rowB,
+                    columnId
+                ) => {
+                    const a =
+                        rowA.getValue(
+                            columnId
+                        );
+
+                    const b =
+                        rowB.getValue(
+                            columnId
+                        );
+
+                    const da =
+                        new Date(a);
+
+                    const db =
+                        new Date(b);
+
+                    return da - db;
                 },
-                { headers }
-            );
+            },
 
-            setSnackbar({
-                open: true,
-                message: "Comentario guardado",
-                severity: "success",
-            });
-            setComentario("");
-            setOpenModal(false);
-        } catch (error) {
-            console.error("Error al guardar comentario:", error);
-            setSnackbar({
-                open: true,
-                message: "Error al guardar",
-                severity: "error",
-            });
-        }
-    };
+            {
+                accessorKey:
+                    "cliente",
 
-    const obtenerComentarios = async (pageParam = 1) => {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+                header:
+                    "Cliente",
 
-        try {
-            const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL}/cotizaciones-estado4/${
-                    selectedCotizacion.idcotizacion
-                }/comentarios`,
-                {
-                    headers,
-                    params: { page: pageParam},
-                }
-            );
-            setComentariosPaginated(data);
-            setPage(pageParam);
-            setOpenComentarios(true);
-        } catch (error) {
-            console.error("Error al obtener comentarios:", error);
-            setSnackbar({
-                open: true,
-                message: "Error al obtener comentarios",
-                severity: "error",
-            });
-        }
-    };
+                minSize: 240,
+            },
 
-    // useEffect(() => {
-    //     if (selectedCotizacion) obtenerComentarios(1, search);
-    // }, [search]);
+            {
+                accessorKey:
+                    "total",
 
-    <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
-        <Button
-            disabled={!comentariosPaginated?.prev_page_url}
-            onClick={() => obtenerComentarios(page - 1)}
-        >
-            Anterior
-        </Button>
-        <Button
-            disabled={!comentariosPaginated?.next_page_url}
-            onClick={() => obtenerComentarios(page + 1)}
-        >
-            Siguiente
-        </Button>
-    </Box>;
+                header:
+                    "Total",
+
+                size: 125,
+
+                muiTableHeadCellProps: {
+                    align: "right",
+                },
+
+                muiTableBodyCellProps: {
+                    align: "right",
+                },
+
+                Cell: ({ cell }) => {
+                    const value =
+                        parseFloat(
+                            cell.getValue()
+                        );
+
+                    if (
+                        !Number.isFinite(
+                            value
+                        )
+                    ) {
+                        return "";
+                    }
+
+                    return value.toLocaleString(
+                        "es-GT",
+                        {
+                            style:
+                                "currency",
+
+                            currency:
+                                "GTQ",
+                        }
+                    );
+                },
+            },
+
+            {
+                accessorKey:
+                    "comentarios_count",
+
+                header: "Comentarios",
+
+                size: 95,
+
+                enableSorting:
+                    false,
+
+                enableColumnFilter:
+                    false,
+
+                muiTableHeadCellProps: {
+                    align: "center",
+                },
+
+                muiTableBodyCellProps: {
+                    align: "center",
+                },
+
+                Cell: ({
+                    cell,
+                    row,
+                }) => {
+                    const cnt =
+                        Number(
+                            cell.getValue() ||
+                                0
+                        );
+
+                    if (!cnt) {
+                        return (
+                            <span className="gp-prefact-no-comments">
+                                —
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <Tooltip
+                            title="Ver comentarios"
+                        >
+                            <Chip
+                                size="small"
+                                icon={
+                                    <ChatBubbleOutline />
+                                }
+                                label={cnt}
+                                className="gp-prefact-comment-chip"
+                                onClick={(
+                                    e
+                                ) => {
+                                    e.stopPropagation();
+
+                                    obtenerComentarios(
+                                        1,
+                                        row.original
+                                    );
+                                }}
+                            />
+                        </Tooltip>
+                    );
+                },
+            },
+        ],
+        []
+    );
+
+
+    /* =========================================================
+       TABLA
+       ========================================================= */
+
+    const table =
+        useMaterialReactTable({
+            columns,
+
+            data:
+                cotizacionesFiltradas,
+
+            enableRowSelection:
+                true,
+
+            enableMultiRowSelection:
+                true,
+
+            enableColumnFilters:
+                false,
+
+            enableGlobalFilter:
+                false,
+
+            enablePagination:
+                true,
+
+            enableDensityToggle:
+                false,
+
+            enableFullScreenToggle:
+                true,
+
+            enableHiding:
+                false,
+
+            enableColumnActions:
+                false,
+
+            positionToolbarAlertBanner:
+                "none",
+
+            muiTableContainerProps: {
+                sx: {
+                    maxHeight:
+                        600,
+                },
+            },
+
+            muiTablePaperProps: {
+                elevation: 0,
+
+                sx: {
+                    border:
+                        "none",
+
+                    boxShadow:
+                        "none",
+                },
+            },
+
+            muiTableHeadCellProps: {
+                sx: {
+                    backgroundColor:
+                        "#f3f6f9",
+
+                    color:
+                        "#475569",
+
+                    fontSize:
+                        "11px",
+
+                    fontWeight:
+                        700,
+
+                    borderBottom:
+                        "1px solid #dfe6ec",
+                },
+            },
+
+            muiTableBodyCellProps: {
+                sx: {
+                    fontSize:
+                        "11.5px",
+
+                    color:
+                        "#334155",
+
+                    borderBottom:
+                        "1px solid #edf1f4",
+                },
+            },
+
+            muiTableBodyRowProps: ({
+                row,
+            }) => ({
+                onClick: () => {
+                    /*
+                     * Click en fila selecciona exclusivamente
+                     * esa cotización para comentarios.
+                     * Los checkboxes continúan controlando
+                     * la selección múltiple para facturación.
+                     */
+                    setSelectedCotizacion(
+                        row.original
+                    );
+                },
+
+                sx: {
+                    cursor:
+                        "pointer",
+
+                    "&:hover td":
+                        {
+                            backgroundColor:
+                                "#f5f9fb",
+                        },
+
+                    "&[data-selected='true'] td":
+                        {
+                            backgroundColor:
+                                "#c9e2f3",
+                        },
+                },
+            }),
+
+            initialState: {
+                density:
+                    "compact",
+
+                pagination: {
+                    pageIndex: 0,
+                    pageSize: 10,
+                },
+            },
+
+            state: {
+                isLoading:
+                    loading,
+
+                rowSelection,
+            },
+
+            onRowSelectionChange:
+                setRowSelection,
+        });
+
+
+    /* =========================================================
+       SINCRONIZAR FILA PRINCIPAL SELECCIONADA
+       ========================================================= */
 
     useEffect(() => {
-        const rows = table.getSelectedRowModel().flatRows;
-        setSelectedCotizacion(rows.length ? rows[0].original : null);
-    }, [rowSelection, table]);
+        const rows =
+            table
+                .getSelectedRowModel()
+                .flatRows;
 
-    const handleCambiarEstado = (cotizacion, estado) => {
-        // if (!cotizacion) {
-        //     alertify.alert(
-        //         "Error",
-        //         "No se encontró la cotización seleccionada."
-        //     );
-        //     return;
-        // }
-        const id = cotizacion?.idcotizacion;
-        if (!cotizacion || !id) {
+        /*
+         * Conservamos el comportamiento original:
+         * la primera selección se considera la
+         * cotización principal para comentarios.
+         */
+        setSelectedCotizacion(
+            rows.length
+                ? rows[0].original
+                : null
+        );
+    }, [
+        rowSelection,
+        table,
+    ]);
+
+
+    /* =========================================================
+       CAMBIAR ESTADO INDIVIDUAL
+       Se conserva aunque actualmente no tenga botón visible.
+       ========================================================= */
+
+    const handleCambiarEstado = (
+        cotizacion,
+        estado
+    ) => {
+        const id =
+            cotizacion?.idcotizacion;
+
+        if (
+            !cotizacion ||
+            !id
+        ) {
             alertify.alert(
                 "Error",
                 "No se encontró la cotización seleccionada."
             );
+
             return;
         }
 
-        const token = localStorage.getItem("token");
+        const token =
+            localStorage.getItem(
+                "token"
+            );
+
         if (token) {
             axios
                 .put(
                     `/api/cotizaciones/activarfacturacion/${id}`,
                     {
-                        estado: estado,
+                        estado:
+                            estado,
                     },
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
+                            Authorization:
+                                `Bearer ${token}`,
                         },
                     }
                 )
-                .then((response) => {
-                    alertify.success(response.data.message);
-                    fetchCotizaciones();
-                })
-                .catch((error) => {
-                    console.error("Error al cambiar estado:", error);
-                    error.response?.data?.message ||
-                        "Ocurrió un error al actualizar la cotización.";
-                });
+                .then(
+                    (response) => {
+                        alertify.success(
+                            response
+                                .data
+                                .message
+                        );
+
+                        fetchCotizaciones();
+                    }
+                )
+                .catch(
+                    (error) => {
+                        console.error(
+                            "Error al cambiar estado:",
+                            error
+                        );
+                    }
+                );
         }
     };
 
-    const handleCambiarEstadoMasivo = async (estado) => {
-        const ids = table
+
+    /* =========================================================
+       FACTURACIÓN MASIVA
+       ========================================================= */
+
+    const handleCambiarEstadoMasivo =
+        async (estado) => {
+            const ids =
+                table
+                    .getSelectedRowModel()
+                    .flatRows
+                    .map(
+                        (r) =>
+                            r.original
+                                ?.idcotizacion
+                    )
+                    .filter((v) =>
+                        Number.isInteger(
+                            Number(v)
+                        )
+                    )
+                    .map((v) =>
+                        Number(v)
+                    );
+
+            if (!ids.length) {
+                alertify.alert(
+                    "Atención",
+                    "No hay filas válidas seleccionadas."
+                );
+
+                return;
+            }
+
+            alertify.confirm(
+                "Confirmar",
+                `¿Enviar ${ids.length} cotización(es) a estado ${estado} (PARA FACTURAR)?`,
+
+                async () => {
+                    try {
+                        const token =
+                            localStorage.getItem(
+                                "token"
+                            );
+
+                        const { data } =
+                            await axios.put(
+                                `${
+                                    import
+                                        .meta
+                                        .env
+                                        .VITE_API_URL
+                                }/cotizaciones/activarfacturacion/masivo`,
+
+                                {
+                                    ids,
+                                    estado,
+                                },
+
+                                {
+                                    headers:
+                                        {
+                                            Authorization:
+                                                `Bearer ${token}`,
+                                        },
+                                }
+                            );
+
+                        const {
+                            total,
+                            actualizadas,
+                            ignoradas,
+                            no_encontradas,
+                        } = data;
+
+                        alertify.success(
+                            `Procesadas: ${total}. Actualizadas: ${actualizadas}. Omitidas: ${ignoradas}.` +
+                                (
+                                    no_encontradas?.length
+                                        ? ` No encontradas: ${no_encontradas.join(
+                                              ", "
+                                          )}`
+                                        : ""
+                                )
+                        );
+
+                        setRowSelection(
+                            {}
+                        );
+
+                        await fetchCotizaciones();
+                    } catch (err) {
+                        console.error(
+                            err
+                        );
+
+                        alertify.error(
+                            err.response
+                                ?.data
+                                ?.message ||
+                                "Error al actualizar en lote."
+                        );
+                    }
+                },
+
+                () => {}
+            );
+        };
+
+
+    const seleccionadas =
+        table
             .getSelectedRowModel()
-            .flatRows.map((r) => r.original?.idcotizacion)
-            .filter((v) => Number.isInteger(Number(v)))
-            .map((v) => Number(v));
+            .rows.length;
 
-        if (!ids.length) {
-            alertify.alert("Atención", "No hay filas válidas seleccionadas.");
-            return;
-        }
 
-        alertify.confirm(
-            "Confirmar",
-            `¿Enviar ${ids.length} cotización(es) a estado ${estado} (PARA FACTURAR)?`,
-            async () => {
-                try {
-                    const token = localStorage.getItem("token");
-                    const { data } = await axios.put(
-                        `${
-                            import.meta.env.VITE_API_URL
-                        }/cotizaciones/activarfacturacion/masivo`,
-                        { ids, estado },
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    const { total, actualizadas, ignoradas, no_encontradas } =
-                        data;
-                    alertify.success(
-                        `Procesadas: ${total}. Actualizadas: ${actualizadas}. Omitidas: ${ignoradas}.` +
-                            (no_encontradas?.length
-                                ? ` No encontradas: ${no_encontradas.join(
-                                      ", "
-                                  )}`
-                                : "")
-                    );
-                    setRowSelection({});
-                    await fetchCotizaciones();
-                } catch (err) {
-                    console.error(err);
-                    alertify.error(
-                        err.response?.data?.message ||
-                            "Error al actualizar en lote."
-                    );
-                }
-            },
-            () => {}
-        );
-    };
+    /* =========================================================
+       RENDER
+       ========================================================= */
 
     return (
-        <Box sx={{ p: 2 }}>
-            <Header title="Cotizaciones Aprobadas" />
-            <Paper elevation={3} sx={{ mt: 2, p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                    Lista de Cotizaciones en Pre-Facturación
-                </Typography>
+        <div className="gp-module-page gp-prefact-page">
+            <div className="gp-module-card gp-prefact-card">
 
-                <Box
-                    sx={{
-                        mb: 2,
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2,
-                    }}
-                >
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        disabled={!selectedCotizacion}
-                        onClick={() => setOpenModal(true)}
-                        startIcon={<CommentIcon />}
+                {/* HEADER */}
+
+                <div className="gp-prefact-header">
+                    <div>
+                        <div className="gp-module-meta">
+                            MÓDULO · FACTURACIÓN
+                        </div>
+
+                        <h1 className="gp-prefact-title">
+                            Cotizaciones en
+                            pre-facturación
+                        </h1>
+
+                        <p className="gp-prefact-description">
+                            Revisa las cotizaciones aprobadas,
+                            agrega observaciones y selecciona
+                            las que están listas para pasar al
+                            proceso de facturación.
+                        </p>
+                    </div>
+
+                    <div className="gp-prefact-header-icon">
+                        <Description />
+                    </div>
+                </div>
+
+
+                {/* RESUMEN */}
+
+                <div className="gp-prefact-summary">
+                    <div className="gp-prefact-summary-item">
+                        <div className="gp-prefact-summary-icon">
+                            <Description fontSize="small" />
+                        </div>
+
+                        <div>
+                            <span>
+                                En pre-facturación
+                            </span>
+
+                            <strong>
+                                {cotizaciones.length}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div
+                        className={`gp-prefact-summary-item ${
+                            seleccionadas
+                                ? "is-active"
+                                : ""
+                        }`}
                     >
-                        Agregar Comentario
-                    </Button>
+                        <div className="gp-prefact-summary-icon">
+                            <CheckCircleOutline fontSize="small" />
+                        </div>
 
-                    <Button
-                        variant="outlined"
-                        color="secondary"
-                        disabled={!selectedCotizacion}
-                        onClick={() => obtenerComentarios()}
-                        startIcon={<VisibilityIcon />}
-                    >
-                        Ver Comentarios
-                    </Button>
+                        <div>
+                            <span>
+                                Seleccionadas
+                            </span>
 
-                    {/* <Button
-                        variant="outlined"
-                        color="success"
-                        disabled={!selectedCotizacion}
-                        onClick={() =>
-                            handleCambiarEstado(selectedCotizacion, 5)
+                            <strong>
+                                {seleccionadas}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+
+                {/* BUSCADOR */}
+
+                <div className="gp-prefact-controls">
+                    <TextField
+                        value={filtroNo}
+                        onChange={(e) =>
+                            setFiltroNo(
+                                e.target.value
+                            )
                         }
-                        startIcon={<ReceiptIcon />}
-                    >
-                        Facturar
-                    </Button> */}
-                    <Button
-                        variant="contained"
-                        color="success"
-                        disabled={table.getSelectedRowModel().rows.length === 0}
-                        onClick={() => handleCambiarEstadoMasivo(5)}
-                        startIcon={<ReceiptIcon />}
-                    >
-                        Facturar seleccionadas
-                    </Button>
-                </Box>
+                        placeholder="Buscar CT123 o 123..."
+                        size="small"
+                        className="gp-prefact-search"
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
 
-                <TextField
-                    fullWidth
-                    variant="outlined"
-                    label="Buscar por No. Cotización (CT123 o 123)"
-                    value={filtroNo}
-                    onChange={(e) => setFiltroNo(e.target.value)}
-                    sx={{ mb: 2 }}
-                />
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                    Seleccionadas: {table.getSelectedRowModel().rows.length}
-                </Typography>
-                <MaterialReactTable table={table} />
-            </Paper>
+                    {filtroNo && (
+                        <span className="gp-prefact-filter-count">
+                            {
+                                cotizacionesFiltradas.length
+                            }{" "}
+                            resultado
+                            {cotizacionesFiltradas.length !==
+                            1
+                                ? "s"
+                                : ""}
+                        </span>
+                    )}
+                </div>
+
+
+                {/* ACCIONES */}
+
+                <div className="gp-prefact-toolbar">
+                    <div className="gp-prefact-toolbar-left">
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            disabled={
+                                !selectedCotizacion
+                            }
+                            onClick={() =>
+                                setOpenModal(
+                                    true
+                                )
+                            }
+                            startIcon={
+                                <Comment />
+                            }
+                        >
+                            Agregar comentario
+                        </Button>
+
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            disabled={
+                                !selectedCotizacion
+                            }
+                            onClick={() =>
+                                obtenerComentarios()
+                            }
+                            startIcon={
+                                <Visibility />
+                            }
+                        >
+                            Ver comentarios
+                        </Button>
+                    </div>
+
+                    <div className="gp-prefact-toolbar-right">
+                        <div className="gp-prefact-selection-status">
+                            {seleccionadas >
+                            0 ? (
+                                <>
+                                    <CheckCircleOutline fontSize="small" />
+
+                                    <strong>
+                                        {
+                                            seleccionadas
+                                        }
+                                    </strong>
+
+                                    <span>
+                                        seleccionada
+                                        {seleccionadas >
+                                        1
+                                            ? "s"
+                                            : ""}
+                                    </span>
+                                </>
+                            ) : (
+                                <span>
+                                    Selecciona una o
+                                    varias cotizaciones
+                                    para facturar.
+                                </span>
+                            )}
+                        </div>
+
+                        <Button
+                            variant="contained"
+                            size="small"
+                            disabled={
+                                seleccionadas ===
+                                0
+                            }
+                            onClick={() =>
+                                handleCambiarEstadoMasivo(
+                                    5
+                                )
+                            }
+                            startIcon={
+                                <ReceiptLong />
+                            }
+                            className="gp-prefact-bill-button"
+                        >
+                            Facturar seleccionadas
+                        </Button>
+                    </div>
+                </div>
+
+
+                {/* TABLA */}
+
+                <div className="gp-module-body gp-prefact-body">
+                    <div className="gp-prefact-table-heading">
+                        <div>
+                            <h2>
+                                Cotizaciones aprobadas
+                            </h2>
+
+                            <p>
+                                Marca las casillas de
+                                las cotizaciones que
+                                deseas enviar a
+                                facturación.
+                            </p>
+                        </div>
+
+                        <span>
+                            {
+                                cotizacionesFiltradas.length
+                            }{" "}
+                            registros
+                        </span>
+                    </div>
+
+                    <div className="gp-prefact-table-wrapper">
+                        <MaterialReactTable
+                            table={table}
+                        />
+                    </div>
+                </div>
+            </div>
+
+
+            {/* =================================================
+                AGREGAR COMENTARIO
+               ================================================= */}
+
             <Dialog
                 open={openModal}
-                onClose={() => setOpenModal(false)}
+                onClose={() =>
+                    setOpenModal(false)
+                }
                 fullWidth
-                maxWidth="md"
+                maxWidth="sm"
+                className="gp-prefact-dialog"
             >
-                <DialogTitle>Agregar Comentario</DialogTitle>
+                <DialogTitle>
+                    <div className="gp-prefact-dialog-title">
+                        <div className="gp-prefact-dialog-icon">
+                            <Comment fontSize="small" />
+                        </div>
+
+                        <div>
+                            <strong>
+                                Agregar comentario
+                            </strong>
+
+                            <span>
+                                Cotización{" "}
+                                {selectedCotizacion
+                                    ?.nocotizacion ||
+                                    ""}
+                            </span>
+                        </div>
+                    </div>
+                </DialogTitle>
+
                 <DialogContent>
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                        Cotización: {selectedCotizacion?.nocotizacion}
-                    </Typography>
                     <TextField
                         fullWidth
                         multiline
                         rows={4}
-                        label="Comentario"
-                        value={comentario}
-                        onChange={(e) => setComentario(e.target.value)}
+                        value={
+                            comentario
+                        }
+                        onChange={(e) =>
+                            setComentario(
+                                e.target.value
+                            )
+                        }
+                        placeholder="Escribe el comentario..."
+                        sx={{
+                            mt: 1,
+                        }}
                     />
                 </DialogContent>
+
                 <DialogActions>
-                    <Button onClick={() => setOpenModal(false)}>
+                    <Button
+                        onClick={() =>
+                            setOpenModal(
+                                false
+                            )
+                        }
+                    >
                         Cancelar
                     </Button>
+
                     <Button
                         variant="contained"
-                        onClick={() => guardarComentario()}
-                        disabled={!comentario.trim()}
+                        onClick={
+                            guardarComentario
+                        }
+                        disabled={
+                            !comentario.trim()
+                        }
                     >
                         Guardar
                     </Button>
                 </DialogActions>
             </Dialog>
+
+
+            {/* =================================================
+                COMENTARIOS
+               ================================================= */}
+
             <Dialog
-                open={openComentarios}
-                onClose={() => setOpenComentarios(false)}
+                open={
+                    openComentarios
+                }
+                onClose={() =>
+                    setOpenComentarios(
+                        false
+                    )
+                }
                 fullWidth
+                maxWidth="md"
+                className="gp-prefact-dialog"
             >
                 <DialogTitle>
-                    Comentarios - Cotización {selectedCotizacion?.nocotizacion}
+                    <div className="gp-prefact-dialog-title">
+                        <div className="gp-prefact-dialog-icon">
+                            <ChatBubbleOutline fontSize="small" />
+                        </div>
+
+                        <div>
+                            <strong>
+                                Comentarios
+                            </strong>
+
+                            <span>
+                                Cotización{" "}
+                                {selectedCotizacion
+                                    ?.nocotizacion ||
+                                    ""}
+                            </span>
+                        </div>
+                    </div>
                 </DialogTitle>
+
                 <DialogContent dividers>
-                    {comentariosPaginated?.data?.length > 0 ? (
+                    {comentariosPaginated
+                        ?.data
+                        ?.length >
+                    0 ? (
                         <>
-                            {comentariosPaginated.data.map((coment, index) => (
-                                <Box
-                                    key={index}
-                                    sx={{
-                                        mb: 2,
-                                        p: 2,
-                                        border: "1px solid #ddd",
-                                        borderRadius: 1,
-                                    }}
-                                >
-                                    <Typography variant="body1" sx={{ mb: 1 }}>
-                                        {coment.comentario}
-                                    </Typography>
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                    >
-                                        Usuario: {coment.nombre_usuario} <br />
-                                        Fecha:{" "}
-                                        {new Date(
-                                            coment.fecha_registro
-                                        ).toLocaleString()}{" "}
-                                        — Estado: {coment.estado}
-                                    </Typography>
-                                </Box>
-                            ))}
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    mt: 2,
-                                }}
-                            >
+                            <div className="gp-prefact-comments-list">
+                                {comentariosPaginated.data.map(
+                                    (
+                                        coment,
+                                        index
+                                    ) => (
+                                        <div
+                                            key={
+                                                index
+                                            }
+                                            className="gp-prefact-comment-card"
+                                        >
+                                            <div className="gp-prefact-comment-text">
+                                                {
+                                                    coment.comentario
+                                                }
+                                            </div>
+
+                                            <div className="gp-prefact-comment-meta">
+                                                <span>
+                                                    Usuario:{" "}
+                                                    <strong>
+                                                        {coment.nombre_usuario ||
+                                                            "—"}
+                                                    </strong>
+                                                </span>
+
+                                                <span>
+                                                    {new Date(
+                                                        coment.fecha_registro
+                                                    ).toLocaleString()}
+                                                </span>
+
+                                                <Chip
+                                                    size="small"
+                                                    label={`Estado ${coment.estado}`}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+
+                            <div className="gp-prefact-comments-pagination">
                                 <Button
+                                    variant="outlined"
+                                    size="small"
                                     disabled={
-                                        !comentariosPaginated.prev_page_url
+                                        !comentariosPaginated
+                                            .prev_page_url
                                     }
                                     onClick={() =>
-                                        obtenerComentarios(page - 1)
+                                        obtenerComentarios(
+                                            page -
+                                                1
+                                        )
                                     }
                                 >
                                     Anterior
                                 </Button>
+
+                                <span>
+                                    Página{" "}
+                                    {page}
+                                </span>
+
                                 <Button
+                                    variant="outlined"
+                                    size="small"
                                     disabled={
-                                        !comentariosPaginated.next_page_url
+                                        !comentariosPaginated
+                                            .next_page_url
                                     }
                                     onClick={() =>
-                                        obtenerComentarios(page + 1)
+                                        obtenerComentarios(
+                                            page +
+                                                1
+                                        )
                                     }
                                 >
                                     Siguiente
                                 </Button>
-                            </Box>
+                            </div>
                         </>
                     ) : (
-                        <Typography variant="body2">
-                            No hay comentarios registrados.
-                        </Typography>
+                        <div className="gp-prefact-empty-comments">
+                            <ChatBubbleOutline />
+
+                            <strong>
+                                Sin comentarios
+                            </strong>
+
+                            <span>
+                                Esta cotización
+                                todavía no tiene
+                                comentarios
+                                registrados.
+                            </span>
+                        </div>
                     )}
                 </DialogContent>
+
                 <DialogActions>
-                    <Button onClick={() => setOpenComentarios(false)}>
+                    <Button
+                        onClick={() =>
+                            setOpenComentarios(
+                                false
+                            )
+                        }
+                    >
                         Cerrar
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+
+
+            {/* =================================================
+                SNACKBAR
+               ================================================= */}
+
+            <Snackbar
+                open={
+                    snackbar.open
+                }
+                autoHideDuration={
+                    3000
+                }
+                onClose={() =>
+                    setSnackbar(
+                        (prev) => ({
+                            ...prev,
+                            open: false,
+                        })
+                    )
+                }
+                anchorOrigin={{
+                    vertical:
+                        "bottom",
+                    horizontal:
+                        "right",
+                }}
+            >
+                <Alert
+                    severity={
+                        snackbar.severity
+                    }
+                    variant="filled"
+                    onClose={() =>
+                        setSnackbar(
+                            (prev) => ({
+                                ...prev,
+                                open: false,
+                            })
+                        )
+                    }
+                >
+                    {
+                        snackbar.message
+                    }
+                </Alert>
+            </Snackbar>
+        </div>
     );
 }
 

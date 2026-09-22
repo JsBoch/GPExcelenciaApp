@@ -1,0 +1,993 @@
+/* =========================================================
+   COSTEO DE COTIZACIÓN
+   ========================================================= */
+
+.gp-costeo-form-page {
+    width: 100%;
+}
+
+.gp-costeo-form-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-costeo-form-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 22px 24px 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #ffffff;
+
+    border-bottom: 1px solid #e7edf3;
+}
+
+.gp-costeo-form-title {
+    margin: 5px 0 4px;
+
+    color: #0f172a;
+
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.gp-costeo-form-description {
+    max-width: 760px;
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.gp-costeo-form-header-icon {
+    flex: 0 0 auto;
+
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.08);
+
+    border: 1px solid rgba(14, 79, 132, 0.12);
+    border-radius: 12px;
+}
+
+
+/* =========================================================
+   RESUMEN
+   ========================================================= */
+
+.gp-costeo-form-summary {
+    min-height: 58px;
+
+    display: flex;
+    align-items: center;
+
+    margin: 18px 24px 0;
+
+    padding: 9px 14px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e1e8ee;
+    border-radius: 10px;
+}
+
+.gp-costeo-form-summary-item {
+    min-width: 130px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.gp-costeo-form-summary-item span {
+    color: #64748b;
+
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.035em;
+}
+
+.gp-costeo-form-summary-item strong {
+    overflow: hidden;
+
+    color: #1e293b;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.gp-costeo-form-summary-client {
+    flex: 1;
+
+    min-width: 180px;
+}
+
+.gp-costeo-form-summary-divider {
+    width: 1px;
+    height: 30px;
+
+    margin: 0 18px;
+
+    background: #dce3e9;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-costeo-form-body {
+    padding: 20px 24px 24px;
+}
+
+
+/* =========================================================
+   SECCIONES
+   ========================================================= */
+
+.gp-costeo-section {
+    margin-bottom: 18px;
+
+    padding: 16px;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8ee;
+    border-radius: 10px;
+}
+
+.gp-costeo-section:last-child {
+    margin-bottom: 0;
+}
+
+.gp-costeo-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 14px;
+}
+
+.gp-costeo-section-title-between {
+    justify-content: space-between;
+}
+
+.gp-costeo-section-title-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gp-costeo-section-title-icon {
+    flex: 0 0 auto;
+
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.075);
+
+    border-radius: 7px;
+}
+
+.gp-costeo-section-title h2 {
+    margin: 0 0 1px;
+
+    color: #1e293b;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gp-costeo-section-title p {
+    margin: 0;
+
+    color: #7c8b9c;
+
+    font-size: 10.5px;
+}
+
+
+/* =========================================================
+   CAMPOS
+   ========================================================= */
+
+.gp-costeo-form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.gp-costeo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gp-costeo-field label {
+    margin: 0;
+
+    color: #475569;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-costeo-label-note {
+    display: inline-flex;
+
+    margin-left: 5px;
+    padding: 2px 5px;
+
+    color: #64748b;
+
+    background: #eef2f5;
+
+    border-radius: 4px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.gp-costeo-field input,
+.gp-costeo-field textarea {
+    width: 100%;
+
+    color: #1e293b;
+
+    background: #ffffff;
+
+    border: 1px solid #ccd6df;
+    border-radius: 7px;
+
+    box-sizing: border-box;
+
+    font-size: 12px;
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.gp-costeo-field input {
+    height: 36px;
+
+    padding: 5px 9px;
+}
+
+.gp-costeo-field textarea {
+    min-height: 74px;
+
+    padding: 8px 9px;
+
+    line-height: 1.45;
+
+    resize: vertical;
+}
+
+.gp-costeo-field input:focus,
+.gp-costeo-field textarea:focus {
+    border-color: var(--gp-blue, #0e4f84);
+
+    box-shadow:
+        0 0 0 3px rgba(14, 79, 132, 0.08);
+}
+
+.gp-costeo-field textarea::placeholder,
+.gp-costeo-field input::placeholder {
+    color: #a6b1bd;
+}
+
+
+/* =========================================================
+   PRODUCTO SELECCIONADO
+   ========================================================= */
+
+.gp-costeo-selected-product {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-bottom: 12px;
+    padding: 9px 11px;
+
+    background: #eef6fb;
+
+    border-left: 4px solid var(--gp-blue, #0e4f84);
+    border-radius: 6px;
+}
+
+.gp-costeo-selected-product > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-costeo-selected-product span:first-child {
+    color: #64748b;
+
+    font-size: 9.5px;
+    font-weight: 600;
+}
+
+.gp-costeo-selected-product strong {
+    overflow: hidden;
+
+    color: #174f78;
+
+    font-size: 11.5px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.gp-costeo-selected-badge {
+    flex: 0 0 auto;
+
+    padding: 4px 8px;
+
+    color: #0e4f84 !important;
+
+    background: #dbeaf4;
+
+    border-radius: 20px;
+
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+}
+
+
+/* =========================================================
+   PRECIO
+   ========================================================= */
+
+.gp-costeo-price-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.gp-costeo-price-field {
+    width: 220px;
+}
+
+.gp-costeo-price-input {
+    height: 36px;
+
+    display: flex;
+    align-items: stretch;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #ccd6df;
+    border-radius: 7px;
+}
+
+.gp-costeo-price-input:focus-within {
+    border-color: var(--gp-blue, #0e4f84);
+
+    box-shadow:
+        0 0 0 3px rgba(14, 79, 132, 0.08);
+}
+
+.gp-costeo-price-input span {
+    width: 35px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #526273;
+
+    background: #f3f6f8;
+
+    border-right: 1px solid #d9e1e7;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-costeo-price-input input {
+    flex: 1;
+
+    height: 34px;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+}
+
+.gp-costeo-assign-button {
+    height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 0 13px;
+
+    border: 0;
+    border-radius: 7px;
+
+    color: #ffffff;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-costeo-assign-new {
+    background: var(--gp-green, #39b54a);
+}
+
+.gp-costeo-assign-new:hover {
+    background: #2fa13f;
+}
+
+.gp-costeo-assign-edit {
+    background: var(--gp-blue, #0e4f84);
+}
+
+.gp-costeo-assign-edit:hover {
+    background: var(--gp-blue-light, #1769aa);
+}
+
+
+/* =========================================================
+   CONTADOR PRODUCTOS
+   ========================================================= */
+
+.gp-costeo-products-count {
+    flex: 0 0 auto;
+
+    padding: 4px 8px;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: #edf4f8;
+
+    border-radius: 20px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   TABLA DETALLE
+   ========================================================= */
+
+.gp-costeo-details-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    border: 1px solid #dfe6ec;
+    border-radius: 8px;
+
+    background: #ffffff;
+}
+
+.gp-costeo-details-table-wrapper .dt-container {
+    padding: 0;
+}
+
+.gp-costeo-details-table {
+    width: 100% !important;
+
+    margin: 0 !important;
+
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+
+    font-size: 11px;
+}
+
+.gp-costeo-details-table > thead > tr > th {
+    height: 37px;
+
+    padding: 7px 8px !important;
+
+    vertical-align: middle;
+
+    color: #475569 !important;
+
+    background: #f2f6f9 !important;
+
+    border-top: 0 !important;
+    border-bottom: 1px solid #dce4eb !important;
+
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+
+    white-space: nowrap;
+}
+
+.gp-costeo-details-table > tbody > tr > td {
+    padding: 6px 8px !important;
+
+    vertical-align: middle;
+
+    color: #334155;
+
+    background: #ffffff;
+
+    border-color: #edf1f4 !important;
+
+    font-size: 11px;
+}
+
+.gp-costeo-details-table > tbody > tr {
+    cursor: pointer;
+}
+
+.gp-costeo-details-table > tbody > tr:hover > td {
+    background: #edf5fa !important;
+}
+
+.gp-costeo-cell-click {
+    min-height: 25px;
+
+    display: flex;
+    align-items: center;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   EXCEL
+   ========================================================= */
+
+.gp-costeo-excel-actions {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.gp-costeo-excel-download {
+    min-height: 64px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 11px 13px;
+
+    text-align: left;
+
+    color: #176b34;
+
+    background: #edf8f0;
+
+    border: 1px solid #d1ecd8;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gp-costeo-excel-download:hover {
+    background: #e4f4e8;
+
+    border-color: #bce1c6;
+}
+
+.gp-costeo-excel-download > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-costeo-excel-download strong {
+    color: #176b34;
+
+    font-size: 11px;
+}
+
+.gp-costeo-excel-download span {
+    color: #62826b;
+
+    font-size: 9.5px;
+}
+
+.gp-costeo-upload-box {
+    min-height: 64px;
+
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    padding: 9px 12px;
+
+    background: #f8fafc;
+
+    border: 1px dashed #bdc9d4;
+    border-radius: 8px;
+}
+
+.gp-costeo-upload-icon {
+    flex: 0 0 auto;
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: #e9f1f7;
+
+    border-radius: 7px;
+}
+
+.gp-costeo-upload-content {
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gp-costeo-upload-content label {
+    color: #334155;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-costeo-upload-content span {
+    color: #8492a1;
+
+    font-size: 9px;
+}
+
+.gp-costeo-upload-content input {
+    width: 100%;
+
+    margin-top: 3px;
+
+    color: #526273;
+
+    font-size: 10px;
+}
+
+.gp-costeo-upload-content input::file-selector-button {
+    margin-right: 8px;
+    padding: 4px 8px;
+
+    color: #34495e;
+
+    background: #e9eef2;
+
+    border: 0;
+    border-radius: 5px;
+
+    font-size: 9.5px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.gp-costeo-file-selected {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-top: 8px;
+    padding: 6px 9px;
+
+    color: #476172;
+
+    background: #f2f7fa;
+
+    border-radius: 6px;
+
+    font-size: 9.5px;
+}
+
+.gp-costeo-file-selected svg {
+    color: #218943;
+}
+
+.gp-costeo-file-selected strong {
+    color: #176b34;
+}
+
+
+/* =========================================================
+   OBSERVACIONES VENDEDOR
+   ========================================================= */
+
+.gp-costeo-vendor-observation {
+    max-width: 700px;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.gp-costeo-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    padding: 13px 24px;
+
+    background: #f8fafc;
+
+    border-top: 1px solid #e2e8ee;
+}
+
+.gp-costeo-footer-consult,
+.gp-costeo-footer-save {
+    min-width: 135px;
+    min-height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    text-decoration: none;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   MODAL IMAGEN
+   ========================================================= */
+
+.gp-costeo-image-modal-content {
+    overflow: hidden;
+
+    border: 0 !important;
+    border-radius: 12px !important;
+
+    box-shadow:
+        0 20px 55px rgba(15, 23, 42, 0.22);
+}
+
+.gp-costeo-image-modal-header {
+    padding: 12px 15px !important;
+
+    border-bottom: 1px solid #e4e9ee !important;
+}
+
+.gp-costeo-image-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gp-costeo-image-title svg {
+    color: var(--gp-blue, #0e4f84);
+}
+
+.gp-costeo-image-title > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-costeo-image-title span {
+    color: var(--gp-blue, #0e4f84);
+
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.gp-costeo-image-title strong {
+    color: #1e293b;
+
+    font-size: 13px;
+}
+
+.gp-costeo-image-modal-body {
+    min-height: 300px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 14px !important;
+
+    background: #f5f7f9;
+}
+
+.gp-costeo-detail-image {
+    display: block;
+
+    max-width: 100%;
+    max-height: 65vh;
+
+    object-fit: contain;
+
+    background: #ffffff;
+
+    border-radius: 7px;
+
+    box-shadow:
+        0 3px 12px rgba(15, 23, 42, 0.08);
+}
+
+.gp-costeo-no-image {
+    min-height: 280px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+.gp-costeo-image-modal-footer {
+    padding: 9px 14px !important;
+
+    border-top: 1px solid #e4e9ee !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+    .gp-costeo-form-header {
+        padding: 18px;
+    }
+
+    .gp-costeo-form-title {
+        font-size: 19px;
+    }
+
+    .gp-costeo-form-header-icon {
+        display: none;
+    }
+
+    .gp-costeo-form-summary {
+        margin: 15px 18px 0;
+
+        overflow-x: auto;
+    }
+
+    .gp-costeo-form-summary-item {
+        min-width: 120px;
+    }
+
+    .gp-costeo-form-body {
+        padding: 17px 18px 20px;
+    }
+
+    .gp-costeo-form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-costeo-excel-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-costeo-price-row {
+        flex-wrap: wrap;
+    }
+
+    .gp-costeo-price-field {
+        flex: 1;
+
+        width: auto;
+        min-width: 180px;
+    }
+
+    .gp-costeo-section-title-between {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gp-costeo-footer {
+        padding: 12px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gp-costeo-form-header {
+        padding: 16px;
+    }
+
+    .gp-costeo-form-summary {
+        margin: 14px 16px 0;
+    }
+
+    .gp-costeo-form-summary-divider {
+        margin: 0 12px;
+    }
+
+    .gp-costeo-form-body {
+        padding: 16px;
+    }
+
+    .gp-costeo-section {
+        padding: 13px;
+    }
+
+    .gp-costeo-price-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gp-costeo-price-field {
+        width: 100%;
+    }
+
+    .gp-costeo-assign-button {
+        width: 100%;
+    }
+
+    .gp-costeo-footer {
+        flex-direction: column-reverse;
+
+        padding: 12px 16px;
+    }
+
+    .gp-costeo-footer-consult,
+    .gp-costeo-footer-save {
+        width: 100%;
+    }
+}

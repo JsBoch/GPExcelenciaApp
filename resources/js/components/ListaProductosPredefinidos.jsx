@@ -1,405 +1,573 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import DataTable from 'datatables.net-react';
-import DT from 'datatables.net-bs5';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de Bootstrap 5
-import { Link, useNavigate } from 'react-router-dom';
-import '../../css/ListaEmpleados.css';
-import alertify from 'alertifyjs';
-import 'alertifyjs/build/css/alertify.min.css';
-import 'alertifyjs/build/css/themes/default.min.css';
-import '../../css/tableFormat.css';
-import { FaRegFileAlt } from "react-icons/fa";
-import Header from './Header';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-bs5";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { Link, useNavigate } from "react-router-dom";
+import alertify from "alertifyjs";
+import "alertifyjs/build/css/alertify.min.css";
+import "alertifyjs/build/css/themes/default.min.css";
+
+import {
+    Layers3,
+    Package,
+    Plus,
+} from "lucide-react";
+
+import "../../css/tableFormat.css";
+import "../../css/lista-productos-predefinidos.css";
 
 DataTable.use(DT);
 
 function ListaProductosPredefinidos() {
-    const [productosPredefinidos, setProductosPredefinidos] = useState([]);
+    const [productosPredefinidos, setProductosPredefinidos] =
+        useState([]);
+
     const [loading, setLoading] = useState(true);
-    const [spanishTranslation, setSpanishTranslation] = useState(null);
+
+    const [spanishTranslation, setSpanishTranslation] =
+        useState(null);
+
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetch('/i18n/Spanish.json')
-            .then(response => response.json())
-            .then(data => setSpanishTranslation(data))
-            .catch(error => console.error('Error al cargar la traducción:', error));
-    }, []);
+    /* =========================================================
+       TRADUCCIÓN DATATABLE
+       ========================================================= */
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.get('/api/productopredefinido', {
+        fetch("/i18n/Spanish.json")
+            .then((response) => response.json())
+            .then((data) =>
+                setSpanishTranslation(data)
+            )
+            .catch((error) =>
+                console.error(
+                    "Error al cargar la traducción:",
+                    error
+                )
+            );
+    }, []);
+
+    /* =========================================================
+       CARGAR PRODUCTOS
+       ========================================================= */
+
+    useEffect(() => {
+        const token =
+            localStorage.getItem("token");
+
+        if (!token) {
+            console.error(
+                "Token de autenticación no encontrado"
+            );
+
+            setLoading(false);
+
+            return;
+        }
+
+        axios
+            .get("/api/productopredefinido", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             })
-                .then(response => {
-                    setProductosPredefinidos(response.data);
-                    setLoading(false);
-                })
-                .catch(error => {
-                    console.error('Error al obtener los productos predefinidos:', error);
-                    setLoading(false);
-                });
-        } else {
-            console.error('Token de autenticación no encontrado');
-            setLoading(false);
-        }
+            .then((response) => {
+                setProductosPredefinidos(
+                    response.data
+                );
+
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error(
+                    "Error al obtener los productos predefinidos:",
+                    error
+                );
+
+                setLoading(false);
+            });
     }, []);
+
+    /* =========================================================
+       FORMATEADORES
+       ========================================================= */
+
+    const formatCantidad = (data) => {
+        if (
+            data === null ||
+            data === undefined ||
+            data === ""
+        ) {
+            return "";
+        }
+
+        return Number(data).toLocaleString(
+            "es-GT",
+            {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }
+        );
+    };
+
+    const formatPrecio = (data) => {
+        if (
+            data === null ||
+            data === undefined ||
+            data === ""
+        ) {
+            return "";
+        }
+
+        try {
+            return Number(data).toLocaleString(
+                "es-GT",
+                {
+                    style: "currency",
+                    currency: "GTQ",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }
+            );
+        } catch (error) {
+            console.error(
+                "Error al formatear la moneda:",
+                error
+            );
+
+            return data;
+        }
+    };
+
+    /* =========================================================
+       COLUMNAS
+       ========================================================= */
 
     const columns = [
         {
-            data: 'idproductopredefinido',
-            title: 'Acciones',
+            data: "idproductopredefinido",
+            title: "Acciones",
+            orderable: false,
+            searchable: false,
+            className:
+                "gp-predef-list-actions-cell",
+
             render: (data) => {
                 return `
-                    <div class="d-flex gap-1 justify-content-center align-items-center">
-                        <button class="btn btn-primary btn-sm editar-btn" data-id="${data}" title="Editar">
-                            <i class="fas fa-edit"></i>
+                    <div class="gp-predef-list-actions">
+                        <button
+                            type="button"
+                            class="gp-predef-list-action gp-predef-list-edit editar-btn"
+                            data-id="${data}"
+                            title="Editar producto"
+                        >
+                            <i class="fa-solid fa-pen"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm desactivar-btn" data-id="${data}" title="Desactivar">
-                            <i class="fas fa-trash"></i>
+
+                        <button
+                            type="button"
+                            class="gp-predef-list-action gp-predef-list-delete desactivar-btn"
+                            data-id="${data}"
+                            title="Eliminar producto"
+                        >
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
                 `;
-            }
+            },
         },
-        { data: 'titulo', title: 'Tipo' },
+
         {
-            data: 'descripcion',
-            title: 'Descripción',
-            // className: 'col-descripcion',
-            // render: function (data) {
-            //     return `<div title="${data}">${data}</div>`;
-            // },
+            data: "titulo",
+            title: "Tipo",
+            className:
+                "gp-predef-list-title-cell",
+        },
+
+        {
+            data: "descripcion",
+            title: "Descripción",
             visible: false,
         },
-        { data: 'unidad_medida', title: 'Unidad Medida' },
-        { data: 'variacion', title: 'Variación' },
-        { data: 'ancho', title: 'Ancho' },
-        { data: 'alto', title: 'Alto' },
-        { data: 'profundidad', title: 'Profundidad' },
+
         {
-            data: 'cantidad',
-            title: 'Catidad',
+            data: "unidad_medida",
+            title: "Unidad Medida",
+            className:
+                "gp-predef-list-unit-cell",
+        },
+
+        {
+            data: "variacion",
+            title: "Variación",
+            className:
+                "gp-predef-list-variation-cell",
+
             render: (data) => {
-                if (data !== null && data !== undefined) {
-                    return Number(data).toLocaleString('es-GT', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    });
+                const tieneVariacion =
+                    data === 1 ||
+                    data === "1" ||
+                    data === true ||
+                    String(data).toUpperCase() ===
+                        "S";
+
+                if (tieneVariacion) {
+                    return `
+                        <span class="gp-predef-list-badge gp-predef-list-badge-variation">
+                            <i class="fa-solid fa-layer-group"></i>
+                            Sí
+                        </span>
+                    `;
                 }
-                return '';
+
+                return `
+                    <span class="gp-predef-list-badge gp-predef-list-badge-simple">
+                        No
+                    </span>
+                `;
             },
         },
+
         {
-            data: 'precio',
-            title: 'Precio',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString('es-GT', {
-                            style: 'currency',
-                            currency: 'GTQ',
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ''; // O algún otro valor por defecto si el total es nulo o undefined
-            },
+            data: "ancho",
+            title: "Ancho",
+            className:
+                "gp-predef-list-number-cell",
         },
+
         {
-            data: 'cantidad_uno',
-            title: 'Cantidad Uno',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    return Number(data).toLocaleString('es-GT', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    });
-                }
-                return '';
-            },
+            data: "alto",
+            title: "Alto",
+            className:
+                "gp-predef-list-number-cell",
         },
+
         {
-            data: 'precio_uno',
-            title: 'Precio Uno',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString('es-GT', {
-                            style: 'currency',
-                            currency: 'GTQ',
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ''; // O algún otro valor por defecto si el total es nulo o undefined
-            },
+            data: "profundidad",
+            title: "Profundidad",
+            className:
+                "gp-predef-list-number-cell",
         },
+
         {
-            data: 'cantidad_dos',
-            title: 'Cantidad Dos',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    return Number(data).toLocaleString('es-GT', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    });
-                }
-                return '';
-            },
+            data: "cantidad",
+            title: "Cantidad",
+            className:
+                "gp-predef-list-number-cell",
+            render: formatCantidad,
         },
+
         {
-            data: 'precio_dos',
-            title: 'Precio Dos',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString('es-GT', {
-                            style: 'currency',
-                            currency: 'GTQ',
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ''; // O algún otro valor por defecto si el total es nulo o undefined
-            },
+            data: "precio",
+            title: "Precio",
+            className:
+                "gp-predef-list-price-cell",
+            render: formatPrecio,
         },
+
         {
-            data: 'cantidad_tres',
-            title: 'Cantidad Tres',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    return Number(data).toLocaleString('es-GT', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    });
-                }
-                return '';
-            },
+            data: "cantidad_uno",
+            title: "Cantidad 1",
+            className:
+                "gp-predef-list-number-cell",
+            render: formatCantidad,
         },
+
         {
-            data: 'precio_tres',
-            title: 'Precio Tres',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString('es-GT', {
-                            style: 'currency',
-                            currency: 'GTQ',
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ''; // O algún otro valor por defecto si el total es nulo o undefined
-            },
+            data: "precio_uno",
+            title: "Precio 1",
+            className:
+                "gp-predef-list-price-cell",
+            render: formatPrecio,
         },
+
         {
-            data: 'cantidad_cuatro',
-            title: 'Cantidad Cuatro',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    return Number(data).toLocaleString('es-GT', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    });
-                }
-                return '';
-            },
+            data: "cantidad_dos",
+            title: "Cantidad 2",
+            className:
+                "gp-predef-list-number-cell",
+            render: formatCantidad,
         },
+
         {
-            data: 'precio_cuatro',
-            title: 'Precio Cuatro',
-            render: (data) => {
-                if (data !== null && data !== undefined) {
-                    try {
-                        // Formatea el número como moneda (Quetzales en Guatemala)
-                        return Number(data).toLocaleString('es-GT', {
-                            style: 'currency',
-                            currency: 'GTQ',
-                            minimumFractionDigits: 2, // Asegura que se muestren dos decimales
-                            maximumFractionDigits: 2,
-                        });
-                        // Para otro país o moneda, cambia 'es-GT' y 'GTQ'
-                        // Ejemplo para dólares estadounidenses:
-                        // return Number(data).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-                    } catch (error) {
-                        console.error("Error al formatear la moneda:", error);
-                        return data; // Muestra el valor sin formato en caso de error
-                    }
-                }
-                return ''; // O algún otro valor por defecto si el total es nulo o undefined
-            },
+            data: "precio_dos",
+            title: "Precio 2",
+            className:
+                "gp-predef-list-price-cell",
+            render: formatPrecio,
         },
+
         {
-            data: 'observaciones',
-            title: 'Observaciones',
-            className: 'col-descripcion',
-            render: function (data) {
-                return `<div title="${data}">${data}</div>`;
-            },
+            data: "cantidad_tres",
+            title: "Cantidad 3",
+            className:
+                "gp-predef-list-number-cell",
+            render: formatCantidad,
+        },
+
+        {
+            data: "precio_tres",
+            title: "Precio 3",
+            className:
+                "gp-predef-list-price-cell",
+            render: formatPrecio,
+        },
+
+        {
+            data: "cantidad_cuatro",
+            title: "Cantidad 4",
+            className:
+                "gp-predef-list-number-cell",
+            render: formatCantidad,
+        },
+
+        {
+            data: "precio_cuatro",
+            title: "Precio 4",
+            className:
+                "gp-predef-list-price-cell",
+            render: formatPrecio,
+        },
+
+        {
+            data: "observaciones",
+            title: "Observaciones",
             visible: false,
         },
     ];
 
+    /* =========================================================
+       EVENTOS BOTONES DATATABLE
+       ========================================================= */
+
     useEffect(() => {
-        const handleButtonClick = async (event) => {
-            const button = event.target.closest('button');
-            if (!button) return; // Salir si no se hizo clic en un botón
+        const handleButtonClick = (event) => {
+            const button =
+                event.target.closest("button");
 
-            const id = button.getAttribute('data-id');
-            const token = localStorage.getItem('token'); // Recupera el token del localStorage
+            if (!button) return;
 
-            if (button.classList.contains('editar-btn')) {
-                navigate(`/productospredefinidos/editar/${id}`);
-            } else if (button.classList.contains('desactivar-btn')) {
-                // Mostrar el mensaje de confirmación antes de eliminar
+            const id =
+                button.getAttribute("data-id");
+
+            if (!id) return;
+
+            if (
+                button.classList.contains(
+                    "editar-btn"
+                )
+            ) {
+                navigate(
+                    `/productospredefinidos/editar/${id}`
+                );
+
+                return;
+            }
+
+            if (
+                button.classList.contains(
+                    "desactivar-btn"
+                )
+            ) {
                 alertify.confirm(
                     "Confirmar Eliminación",
                     "¿Estás seguro de que deseas eliminar este registro?",
-                    () => { // Función para "Sí"
-                        handleDesactivar(id); // Llamar a la función de eliminación
+                    () => {
+                        handleDesactivar(id);
                     },
-                    () => { // Función para "No"
-                        alertify.error("Eliminación cancelada");
+                    () => {
+                        alertify.error(
+                            "Eliminación cancelada"
+                        );
                     }
                 );
             }
         };
 
-        // Agregar el evento al documento
-        document.addEventListener('click', handleButtonClick);
+        document.addEventListener(
+            "click",
+            handleButtonClick
+        );
 
-        // Limpiar el evento cuando el componente se desmonte
         return () => {
-            document.removeEventListener('click', handleButtonClick);
+            document.removeEventListener(
+                "click",
+                handleButtonClick
+            );
         };
-    }, [navigate]); // Dependencia 'navigate' para evitar problemas con la navegación
+    }, [navigate]);
 
-    const options = {
-        autoWidth: false, // Desactiva el autoajuste        
-        language: spanishTranslation,
-    };
-
-    const handleEditar = (id) => {
-        navigate(`/productospredefinidos/editar/${id}`);
-    };
+    /* =========================================================
+       DESACTIVAR
+       ========================================================= */
 
     const handleDesactivar = (id) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.put(`/api/productopredefinido/desactivar/${id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+        const token =
+            localStorage.getItem("token");
+
+        if (!token) return;
+
+        axios
+            .put(
+                `/api/productopredefinido/desactivar/${id}`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+            .then(() => {
+                setProductosPredefinidos(
+                    (prevProductos) =>
+                        prevProductos.filter(
+                            (producto) =>
+                                Number(
+                                    producto.idproductopredefinido
+                                ) !==
+                                Number(id)
+                        )
+                );
+
+                alertify.success(
+                    "Registro eliminado correctamente"
+                );
             })
-                .then(() => {
-                    setProductosPredefinidos(prevProductosPredefinidos => {
-                        return prevProductosPredefinidos.filter(prevProductoPredefinido => Number(prevProductoPredefinido.idproductopredefinido) !== Number(id)); //convertimos a numero
-                    });
-                    alertify.success("Registro eliminado correctamente");
-                })
-                .catch((error) => {
-                    console.error('Error al desactivar el producto predefinido:', error);
-                    alertify.error("Error al eliminar el registro");
-                });
-        }
+            .catch((error) => {
+                console.error(
+                    "Error al desactivar el producto predefinido:",
+                    error
+                );
+
+                alertify.error(
+                    "Error al eliminar el registro"
+                );
+            });
+    };
+
+    /* =========================================================
+       DATATABLE
+       ========================================================= */
+
+    const options = {
+        autoWidth: false,
+        language: spanishTranslation,
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [],
     };
 
     return (
-        <div className="mt-4 px-3 px-md-4">
-            <div className="card">
-                {/* <div className="card-header bg-primary text-white">
-                    <h2 className="text-center mb-0">Lista de Productos Predefinidos</h2>
-                </div> */}
-                <Header title="Lista de Productos Predefinidos" />
-                <div className="card-body">
-                    {loading || !spanishTranslation ? (
-                        <p className="text-center">Cargando registros predefinidos...</p>
+        <div className="gp-module-page gp-predef-list-page">
+            <div className="gp-module-card gp-predef-list-card">
+
+                {/* =================================================
+                    HEADER
+                   ================================================= */}
+
+                <div className="gp-predef-list-header">
+                    <div>
+                        <div className="gp-module-meta">
+                            MÓDULO · COTIZACIONES
+                        </div>
+
+                        <h1 className="gp-predef-list-title">
+                            Productos predefinidos
+                        </h1>
+
+                        <p className="gp-predef-list-description">
+                            Consulta y administra los productos
+                            utilizados como base para la creación
+                            de cotizaciones.
+                        </p>
+                    </div>
+
+                    <div className="gp-predef-list-header-icon">
+                        <Package size={25} />
+                    </div>
+                </div>
+
+                {/* =================================================
+                    RESUMEN / TOOLBAR
+                   ================================================= */}
+
+                <div className="gp-predef-list-toolbar">
+                    <div className="gp-predef-list-summary">
+                        <div className="gp-predef-list-summary-icon">
+                            <Layers3 size={18} />
+                        </div>
+
+                        <div>
+                            <span>
+                                Registros disponibles
+                            </span>
+
+                            <strong>
+                                {loading
+                                    ? "—"
+                                    : productosPredefinidos.length}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <Link
+                        to="/productospredefinidos/crear"
+                        className="gp-action-button gp-action-save gp-predef-list-new"
+                    >
+                        <Plus size={16} />
+                        Nuevo producto
+                    </Link>
+                </div>
+
+                {/* =================================================
+                    TABLA
+                   ================================================= */}
+
+                <div className="gp-module-body gp-predef-list-body">
+                    <div className="gp-predef-list-section-heading">
+                        <div>
+                            <h2>
+                                Productos registrados
+                            </h2>
+
+                            <p>
+                                Utiliza el buscador para
+                                localizar un producto o las
+                                acciones de cada fila para
+                                editarlo o eliminarlo.
+                            </p>
+                        </div>
+                    </div>
+
+                    {loading ||
+                    !spanishTranslation ? (
+                        <div className="gp-predef-list-loading">
+                            <div className="gp-predef-list-spinner" />
+
+                            <div>
+                                <strong>
+                                    Cargando registros
+                                </strong>
+
+                                <span>
+                                    Obteniendo productos
+                                    predefinidos...
+                                </span>
+                            </div>
+                        </div>
                     ) : (
-                        <div className="table-responsive">
+                        <div className="gp-predef-list-table-wrapper">
                             <DataTable
-                                data={productosPredefinidos}
+                                data={
+                                    productosPredefinidos
+                                }
                                 columns={columns}
-                                options={{ ...options, language: spanishTranslation }}
-                                className="table table-striped table-bordered table-hover table-sm"
-                            >
-                                <thead>
-                                    <tr>
-                                        {/* <th>Id producto predefinidos</th> */}
-                                        <th>Acciones</th>
-                                        <th>Título</th>
-                                        {/* <th>Descripción</th> */}
-                                        <th>Ancho</th>
-                                        <th>Alto</th>
-                                        <th>Profundidad</th>
-                                        <th>Precio</th>
-                                        <th>Cantidad 1</th>
-                                        <th>Precio 1</th>
-                                        <th>Cantidad 2</th>
-                                        <th>Precio 2</th>
-                                        <th>Cantidad 3</th>
-                                        <th>Precio 3</th>
-                                        <th>Cantidad 4</th>
-                                        <th>Precio 4</th>
-                                        <th>Unidad medida</th>
-                                        <th>Variación</th>
-                                        <th>Observaciones</th>
-                                        
-                                    </tr>
-                                </thead>
-                            </DataTable>
+                                options={options}
+                                className="table gp-predef-list-table"
+                            />
                         </div>
                     )}
-                </div>
-                <div
-                    className="mt-4 p-3 border rounded shadow-sm bg-light"
-                    style={{ borderColor: "#ddd" }}
-                >
-                    <div className="d-flex flex-wrap gap-2 justify-content-between">
-                        <Link
-                            to="/productospredefinidos/crear"
-                            className="btn btn-success d-flex align-items-end justify-content-center gap-2 flex-fill"
-                            style={{ minWidth: "150px" }}
-                        >
-                            <FaRegFileAlt /> Registro de Productos Predefinidos
-                        </Link>
-                    </div>
                 </div>
             </div>
         </div>

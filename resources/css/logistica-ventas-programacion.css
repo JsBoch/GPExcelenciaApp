@@ -1,0 +1,661 @@
+.gp-logventas-page {
+    --gp-blue: #0e4f84;
+    --gp-green: #39b54a;
+    --gp-red: #b42318;
+    --gp-yellow: #fdb515;
+}
+
+.gp-logventas-card {
+    overflow: hidden;
+}
+
+.gp-logventas-header {
+    padding: 21px 23px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom: 1px solid #e6ecf1;
+}
+
+.gp-logventas-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.gp-logventas-heading-icon {
+    width: 43px;
+    height: 43px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    color: var(--gp-blue);
+
+    background: #e8f1f7;
+
+    border: 1px solid #d3e3ee;
+    border-radius: 10px;
+}
+
+.gp-logventas-heading h1 {
+    margin: 2px 0 3px;
+
+    color: #172033;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.gp-logventas-heading p {
+    margin: 0;
+
+    color: #728092;
+
+    font-size: 11.5px;
+}
+
+.gp-logventas-section {
+    margin: 13px;
+
+    overflow: hidden;
+
+    background: #fff;
+
+    border: 1px solid #e0e6eb;
+    border-radius: 9px;
+}
+
+.gp-logventas-section + .gp-logventas-section {
+    margin-top: 0;
+}
+
+.gp-logventas-section-header {
+    min-height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    padding: 8px 12px;
+
+    background: #fafbfc;
+
+    border-bottom: 1px solid #e7ecef;
+}
+
+.gp-logventas-section-header > div {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gp-logventas-section-header svg {
+    color: var(--gp-blue);
+}
+
+.gp-logventas-section-header strong {
+    display: block;
+
+    color: #253347;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.gp-logventas-section-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7b8796;
+
+    font-size: 8.5px;
+}
+
+.gp-logventas-count {
+    padding: 4px 8px;
+
+    color: #536274 !important;
+
+    background: #f0f3f6;
+
+    border: 1px solid #dbe2e8;
+    border-radius: 20px;
+
+    font-size: 8.5px !important;
+    font-weight: 700;
+}
+
+.gp-logventas-search-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    padding: 10px 12px;
+}
+
+.gp-logventas-search {
+    width: min(560px, 100%);
+    height: 35px;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 0 9px;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    background: #fff;
+}
+
+.gp-logventas-search:focus-within {
+    border-color: var(--gp-blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-logventas-search svg {
+    color: #718092;
+}
+
+.gp-logventas-search input {
+    width: 100%;
+    height: 100%;
+
+    padding: 0;
+
+    border: 0;
+    outline: 0;
+
+    color: #27364a;
+    background: transparent;
+
+    font-size: 9.5px;
+}
+
+.gp-logventas-search button {
+    width: 24px;
+    height: 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #657486;
+    background: transparent;
+
+    border: 0;
+
+    cursor: pointer;
+}
+
+.gp-logventas-search-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.gp-logventas-btn-secondary {
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 0 10px;
+
+    color: #526173;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logventas-btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.gp-logventas-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    border-top: 1px solid #edf1f4;
+}
+
+.gp-logventas-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.gp-logventas-table th {
+    padding: 7px 8px;
+
+    color: #475569;
+    background: #f3f6f9;
+
+    border-bottom: 1px solid #dfe6ec;
+
+    text-align: left;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.gp-logventas-table td {
+    padding: 7px 8px;
+
+    color: #344256;
+
+    border-bottom: 1px solid #edf1f4;
+
+    font-size: 8.7px;
+    vertical-align: middle;
+}
+
+.gp-logventas-table tbody tr {
+    cursor: pointer;
+}
+
+.gp-logventas-table tbody tr:hover {
+    background: #f7fafc;
+}
+
+.gp-logventas-table tbody tr.selected {
+    background: #c9e2f3;
+
+    box-shadow:
+        inset 5px 0 0 #0e4f84;
+}
+
+.gp-logventas-check-cell {
+    width: 38px;
+    text-align: center !important;
+}
+
+.gp-logventas-order {
+    color: var(--gp-blue) !important;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.gp-logventas-address {
+    max-width: 320px;
+}
+
+.gp-logventas-message {
+    padding: 27px 12px !important;
+
+    color: #7b8796 !important;
+
+    text-align: center !important;
+}
+
+.gp-logventas-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    padding: 12px;
+}
+
+.gp-logventas-field {
+    min-width: 0;
+}
+
+.gp-logventas-field-full {
+    grid-column: 1 / -1;
+}
+
+.gp-logventas-field label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #526173;
+
+    font-size: 8.5px;
+    font-weight: 700;
+}
+
+.gp-logventas-field label span {
+    margin-left: 3px;
+
+    color: #c48a00;
+}
+
+.gp-logventas-field input,
+.gp-logventas-field select,
+.gp-logventas-field textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    color: #27364a;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 6px;
+
+    outline: none;
+
+    font-size: 9.5px;
+}
+
+.gp-logventas-field input,
+.gp-logventas-field select {
+    height: 35px;
+
+    padding: 0 8px;
+}
+
+.gp-logventas-field textarea {
+    padding: 8px;
+
+    resize: vertical;
+}
+
+.gp-logventas-field input:focus,
+.gp-logventas-field select:focus,
+.gp-logventas-field textarea:focus {
+    border-color: var(--gp-blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07);
+}
+
+.gp-logventas-input-icon {
+    position: relative;
+}
+
+.gp-logventas-input-icon > svg {
+    position: absolute;
+
+    left: 9px;
+    top: 50%;
+
+    z-index: 2;
+
+    transform: translateY(-50%);
+
+    pointer-events: none;
+
+    color: #718092;
+}
+
+.gp-logventas-input-icon input,
+.gp-logventas-input-icon select {
+    padding-left: 29px;
+}
+
+.gp-logventas-selected-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    padding: 9px 12px;
+
+    background: #fbfcfd;
+
+    border-top: 1px solid #e7ecef;
+}
+
+.gp-logventas-selected-header strong {
+    display: block;
+
+    color: #28384b;
+
+    font-size: 9.5px;
+}
+
+.gp-logventas-selected-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #7c8998;
+
+    font-size: 8px;
+}
+
+.gp-logventas-order-badge {
+    min-width: 23px;
+    height: 23px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+    background: var(--gp-blue);
+
+    border-radius: 50%;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.gp-logventas-inline-input {
+    width: 110px;
+    height: 30px;
+
+    padding: 0 6px;
+
+    color: #344256;
+    background: #fff;
+
+    border: 1px solid #cad4de;
+    border-radius: 5px;
+
+    outline: 0;
+
+    font-size: 8.5px;
+}
+
+.gp-logventas-inline-wide {
+    width: min(310px, 100%);
+}
+
+.gp-logventas-actions-cell {
+    width: 115px;
+    text-align: center !important;
+}
+
+.gp-logventas-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.gp-logventas-row-actions button {
+    width: 27px;
+    height: 27px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: #506174;
+    background: #fff;
+
+    border: 1px solid #ccd5dd;
+    border-radius: 5px;
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+.gp-logventas-row-actions button.danger {
+    color: #a52b22;
+
+    border-color: #dfb5b1;
+}
+
+.gp-logventas-row-actions button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.gp-logventas-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    padding: 10px 12px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #e2e8ed;
+}
+
+.gp-logventas-footer strong {
+    color: #29394b;
+
+    font-size: 9.5px;
+}
+
+.gp-logventas-footer span {
+    margin-left: 4px;
+
+    color: #788596;
+
+    font-size: 8.5px;
+}
+
+.gp-logventas-save {
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 0 14px;
+
+    color: #fff;
+    background: var(--gp-green);
+
+    border: 1px solid var(--gp-green);
+    border-radius: 6px;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.gp-logventas-save:hover:not(:disabled) {
+    background: #2e973d;
+}
+
+.gp-logventas-save:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+    .gp-logventas-form-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .gp-logventas-search-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 650px) {
+    .gp-logventas-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gp-logventas-search-actions {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .gp-logventas-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-logventas-save {
+        width: 100%;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-logventas-heading-icon {
+        display: none;
+    }
+
+    .gp-logventas-search-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   SCROLL VERTICAL DEL MÓDULO
+========================================================= */
+
+.gp-logventas-page {
+    min-height: 100%;
+    height: auto;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding-bottom: 30px;
+}
+
+.gp-logventas-card {
+    min-height: auto;
+    height: auto;
+
+    overflow: visible;
+}

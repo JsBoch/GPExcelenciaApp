@@ -1,0 +1,928 @@
+/* =========================================================
+   LISTA COTIZACIONES COSTEO
+   ========================================================= */
+
+.gp-costeo-page {
+    width: 100%;
+}
+
+.gp-costeo-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-costeo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+
+    padding: 22px 24px 20px;
+
+    border-bottom: 1px solid #e7edf3;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            rgba(255, 255, 255, 0) 55%
+        ),
+        #ffffff;
+}
+
+.gp-costeo-title {
+    margin: 5px 0 4px;
+
+    color: #0f172a;
+
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.gp-costeo-description {
+    max-width: 720px;
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.gp-costeo-header-icon {
+    flex: 0 0 auto;
+
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.09);
+    border: 1px solid rgba(14, 79, 132, 0.12);
+}
+
+
+/* =========================================================
+   RESUMEN
+   ========================================================= */
+
+.gp-costeo-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin: 18px 24px 0;
+    padding: 11px 14px;
+
+    width: fit-content;
+    min-width: 210px;
+
+    background: #f8fafc;
+    border: 1px solid #e5eaf0;
+    border-radius: 10px;
+}
+
+.gp-costeo-summary-icon {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.08);
+
+    border-radius: 8px;
+}
+
+.gp-costeo-summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.gp-costeo-summary-content span {
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.gp-costeo-summary-content strong {
+    color: #0f172a;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-costeo-body {
+    padding: 20px 24px 24px;
+}
+
+.gp-costeo-section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+
+    margin-bottom: 14px;
+}
+
+.gp-costeo-section-heading h2 {
+    margin: 0 0 3px;
+
+    color: #1e293b;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.gp-costeo-section-heading p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+.gp-costeo-record-count {
+    flex: 0 0 auto;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    background: #eef4f8;
+
+    color: var(--gp-blue, #0e4f84);
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.gp-costeo-loading {
+    min-height: 190px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+
+    border: 1px dashed #d9e1e8;
+    border-radius: 10px;
+
+    background: #fafcfd;
+}
+
+.gp-costeo-loading > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gp-costeo-loading strong {
+    color: #334155;
+
+    font-size: 13px;
+}
+
+.gp-costeo-loading span {
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+.gp-costeo-spinner {
+    width: 27px;
+    height: 27px;
+
+    border: 3px solid #dce7ef;
+    border-top-color: var(--gp-blue, #0e4f84);
+    border-radius: 50%;
+
+    animation: gpCosteoSpin 0.75s linear infinite;
+}
+
+@keyframes gpCosteoSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================================
+   DATATABLE
+   ========================================================= */
+
+.gp-costeo-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    border: 1px solid #dfe6ec;
+    border-radius: 10px;
+
+    background: #ffffff;
+}
+
+
+/* contenedor generado por DataTables */
+
+.gp-costeo-table-wrapper .dt-container {
+    width: 100%;
+
+    padding: 0;
+}
+
+
+/* =========================================================
+   CONTROLES SUPERIORES
+   ========================================================= */
+
+.gp-costeo-table-wrapper .dt-layout-row:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 12px 14px;
+
+    margin: 0;
+
+    border-bottom: 1px solid #e8edf2;
+
+    background: #f8fafc;
+}
+
+.gp-costeo-table-wrapper .dt-layout-cell {
+    padding: 0;
+}
+
+.gp-costeo-table-wrapper .dt-length {
+    display: flex;
+    align-items: center;
+}
+
+.gp-costeo-table-wrapper .dt-length label {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.gp-costeo-table-wrapper .dt-length select {
+    height: 34px;
+
+    margin: 0 5px;
+
+    padding: 3px 28px 3px 9px;
+
+    border: 1px solid #ced8e1;
+    border-radius: 6px;
+
+    background-color: #ffffff;
+
+    color: #334155;
+
+    font-size: 12px;
+
+    outline: none;
+}
+
+.gp-costeo-table-wrapper .dt-length select:focus {
+    border-color: var(--gp-blue, #0e4f84);
+
+    box-shadow: 0 0 0 2px rgba(14, 79, 132, 0.08);
+}
+
+
+/* =========================================================
+   BUSCADOR DATATABLE
+   ========================================================= */
+
+.gp-costeo-table-wrapper .dt-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gp-costeo-table-wrapper .dt-search label {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.gp-costeo-table-wrapper .dt-search input {
+    width: 260px !important;
+    height: 34px !important;
+
+    min-height: 34px !important;
+
+    margin: 0 !important;
+
+    padding: 5px 10px !important;
+
+    border: 1px solid #cbd5df !important;
+    border-radius: 7px !important;
+
+    background: #ffffff !important;
+
+    color: #1e293b !important;
+
+    font-size: 12px !important;
+    line-height: 22px !important;
+
+    box-sizing: border-box !important;
+
+    outline: none !important;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.gp-costeo-table-wrapper .dt-search input:focus {
+    border-color: var(--gp-blue, #0e4f84) !important;
+
+    box-shadow:
+        0 0 0 3px rgba(14, 79, 132, 0.09) !important;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.gp-costeo-table {
+    width: 100% !important;
+
+    margin: 0 !important;
+
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+
+    font-size: 12px;
+}
+
+.gp-costeo-table > thead > tr > th {
+    height: 39px;
+
+    padding: 8px 10px !important;
+
+    vertical-align: middle;
+
+    background: #f2f6f9 !important;
+
+    color: #475569 !important;
+
+    border-top: 0 !important;
+    border-bottom: 1px solid #dce4eb !important;
+
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+}
+
+.gp-costeo-table > tbody > tr > td {
+    padding: 8px 10px !important;
+
+    vertical-align: middle;
+
+    color: #334155;
+
+    background: #ffffff;
+
+    border-color: #edf1f4 !important;
+
+    font-size: 12px;
+
+    transition: background-color 0.12s ease;
+}
+
+.gp-costeo-table > tbody > tr:hover > td {
+    background: #f6f9fb !important;
+}
+
+.gp-costeo-table > tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+
+/* evita el estilo stripe fuerte de Bootstrap */
+
+.gp-costeo-table.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: transparent;
+}
+
+
+/* =========================================================
+   CELDAS
+   ========================================================= */
+
+.gp-costeo-number-cell {
+    color: var(--gp-blue, #0e4f84) !important;
+
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.gp-costeo-total-cell {
+    color: #0f172a !important;
+
+    font-weight: 700;
+
+    text-align: right !important;
+    white-space: nowrap;
+}
+
+.gp-costeo-client-cell {
+    min-width: 180px;
+
+    font-weight: 600;
+}
+
+.gp-costeo-observation-cell {
+    min-width: 210px;
+    max-width: 340px;
+
+    color: #64748b !important;
+}
+
+.gp-costeo-observation-cell > span:not(.gp-costeo-empty) {
+    display: block;
+
+    max-width: 320px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gp-costeo-empty {
+    color: #a3afbd;
+
+    font-size: 11px;
+    font-style: italic;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.gp-costeo-actions-cell {
+    min-width: 130px;
+
+    text-align: center !important;
+}
+
+.gp-costeo-row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.gp-costeo-action,
+.gp-costeo-icon-action {
+    border: 0;
+
+    outline: none;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.1s ease;
+}
+
+.gp-costeo-action:active,
+.gp-costeo-icon-action:active {
+    transform: translateY(1px);
+}
+
+.gp-costeo-action-main {
+    min-height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 5px 9px;
+
+    border-radius: 6px;
+
+    color: #ffffff;
+
+    background: var(--gp-blue, #0e4f84);
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-costeo-action-main:hover {
+    background: var(--gp-blue-light, #1769aa);
+}
+
+.gp-costeo-icon-action {
+    width: 30px;
+    height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 6px;
+}
+
+.gp-costeo-pdf {
+    color: #15803d;
+
+    background: #eaf7ed;
+
+    border: 1px solid #d1edd7;
+}
+
+.gp-costeo-pdf:hover {
+    color: #116c32;
+
+    background: #def2e4;
+}
+
+
+/* =========================================================
+   FOOTER DATATABLE
+   ========================================================= */
+
+.gp-costeo-table-wrapper .dt-layout-row:last-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 11px 14px;
+
+    margin: 0;
+
+    border-top: 1px solid #e8edf2;
+
+    background: #fafbfc;
+}
+
+.gp-costeo-table-wrapper .dt-info {
+    padding: 0 !important;
+
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+.gp-costeo-table-wrapper .dt-paging {
+    display: flex;
+    align-items: center;
+}
+
+.gp-costeo-table-wrapper .dt-paging .dt-paging-button {
+    min-width: 30px !important;
+    height: 30px !important;
+
+    margin: 0 2px !important;
+
+    padding: 3px 8px !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #dde4ea !important;
+    border-radius: 6px !important;
+
+    background: #ffffff !important;
+
+    color: #475569 !important;
+
+    font-size: 11px !important;
+
+    box-shadow: none !important;
+}
+
+.gp-costeo-table-wrapper .dt-paging .dt-paging-button:hover {
+    border-color: #b9cad8 !important;
+
+    background: #f1f6f9 !important;
+
+    color: var(--gp-blue, #0e4f84) !important;
+}
+
+.gp-costeo-table-wrapper .dt-paging .dt-paging-button.current {
+    border-color: var(--gp-blue, #0e4f84) !important;
+
+    background: var(--gp-blue, #0e4f84) !important;
+
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   EMPTY TABLE
+   ========================================================= */
+
+.gp-costeo-table .dt-empty {
+    height: 120px;
+
+    vertical-align: middle !important;
+
+    color: #94a3b8 !important;
+
+    text-align: center !important;
+}
+
+
+/* =========================================================
+   VISOR PDF
+   ========================================================= */
+
+.gp-costeo-pdf-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1500;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.58);
+
+    backdrop-filter: blur(2px);
+}
+
+.gp-costeo-pdf-modal {
+    width: min(1120px, 94vw);
+    height: min(860px, 92vh);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border-radius: 13px;
+
+    box-shadow:
+        0 24px 65px rgba(15, 23, 42, 0.28);
+}
+
+.gp-costeo-pdf-header {
+    flex: 0 0 auto;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 13px 16px;
+
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.gp-costeo-pdf-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.gp-costeo-pdf-icon {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    color: var(--gp-blue, #0e4f84);
+
+    background: rgba(14, 79, 132, 0.08);
+}
+
+.gp-costeo-pdf-eyebrow {
+    display: block;
+
+    margin-bottom: 1px;
+
+    color: var(--gp-blue, #0e4f84);
+
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.gp-costeo-pdf-heading h2 {
+    margin: 0;
+
+    color: #0f172a;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.gp-costeo-pdf-close {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #64748b;
+
+    cursor: pointer;
+}
+
+.gp-costeo-pdf-close:hover {
+    background: #f1f5f9;
+
+    color: #dc2626;
+}
+
+.gp-costeo-pdf-body {
+    flex: 1;
+
+    min-height: 0;
+
+    padding: 10px;
+
+    background: #eef2f5;
+}
+
+.gp-costeo-pdf-body iframe {
+    border: 0;
+    border-radius: 4px;
+}
+
+.gp-costeo-pdf-footer {
+    flex: 0 0 auto;
+
+    display: flex;
+    justify-content: flex-end;
+
+    padding: 10px 16px;
+
+    border-top: 1px solid #e5eaf0;
+
+    background: #ffffff;
+}
+
+.gp-costeo-pdf-footer .gp-btn-danger {
+    min-height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+    .gp-costeo-header {
+        padding: 18px;
+    }
+
+    .gp-costeo-title {
+        font-size: 19px;
+    }
+
+    .gp-costeo-header-icon {
+        display: none;
+    }
+
+    .gp-costeo-summary {
+        margin: 15px 18px 0;
+    }
+
+    .gp-costeo-body {
+        padding: 17px 18px 20px;
+    }
+
+    .gp-costeo-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 8px;
+    }
+
+    .gp-costeo-table-wrapper .dt-layout-row:first-child,
+    .gp-costeo-table-wrapper .dt-layout-row:last-child {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gp-costeo-table-wrapper .dt-search {
+        width: 100%;
+    }
+
+    .gp-costeo-table-wrapper .dt-search label {
+        display: none;
+    }
+
+    .gp-costeo-table-wrapper .dt-search input {
+        width: 100% !important;
+    }
+
+    .gp-costeo-table-wrapper .dt-info {
+        text-align: center;
+    }
+
+    .gp-costeo-table-wrapper .dt-paging {
+        justify-content: center;
+    }
+
+    .gp-costeo-pdf-overlay {
+        padding: 8px;
+    }
+
+    .gp-costeo-pdf-modal {
+        width: 100%;
+        height: 95vh;
+
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gp-costeo-header {
+        padding: 16px;
+    }
+
+    .gp-costeo-summary {
+        width: calc(100% - 32px);
+        margin: 14px 16px 0;
+    }
+
+    .gp-costeo-body {
+        padding: 16px;
+    }
+
+    .gp-costeo-action-main span {
+        display: none;
+    }
+
+    .gp-costeo-action-main {
+        width: 30px;
+        min-width: 30px;
+
+        padding: 0;
+    }
+}

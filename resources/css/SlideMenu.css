@@ -1,97 +1,972 @@
-body.bm-menu-open {
-  overflow: hidden;
+/* =========================================================
+   GP EXCELENCIA
+   SIDEBAR
+========================================================= */
+
+:root {
+    --gp-blue: #0e4f84;
+    --gp-blue-light: #1769aa;
+    --gp-green: #39b54a;
+    --gp-yellow: #fdb515;
+
+    --gp-sidebar-bg: #0b1423;
+    --gp-sidebar-bg-2: #101c30;
 }
+
+
+/* =========================================================
+   REACT BURGER MENU
+========================================================= */
+
+.bm-burger-button {
+    display: none !important;
+}
+
+.bm-cross-button {
+    display: none !important;
+}
+
+
+/* CONTENEDOR EXTERIOR */
+
+.bm-menu-wrap {
+    position: fixed !important;
+
+    top: 0 !important;
+    left: 0 !important;
+
+    height: 100vh !important;
+
+    z-index: 1100 !important;
+
+    overflow: hidden !important;
+}
+
+
+/* CONTENEDOR DEL MENÚ */
 
 .bm-menu {
-  background: white !important;
-  height: 100vh;
-  overflow: hidden;
-  padding: 1rem 0;
-  font-size: 0.875em;
-  color: black;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  border-right: 1px solid #ddd;  
-  display: flex;
-  flex-direction: column;
+    width: 100% !important;
+    height: 100% !important;
+
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    background: var(--gp-sidebar-bg);
 }
 
-.menu-scroll {  
-  overflow-y: auto;
-  flex-grow: 1;
-  /* padding: 0 1rem; */
+
+/* CONTENEDOR QUE CREA REACT-BURGER-MENU */
+
+.bm-item-list {
+    width: 100% !important;
+    height: 100% !important;
+
+    min-height: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    color: inherit;
 }
 
-.menu-item-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
+
+/*
+   IMPORTANTE:
+   gp-sidebar recibe también la clase bm-item.
+   Debemos obligarlo a ocupar todo el alto disponible.
+*/
+
+.bm-item {
+    width: 100% !important;
+    height: 100% !important;
+
+    min-height: 0 !important;
+
+    outline: none !important;
 }
 
-.menu-item-parent {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 10px;
-  font-weight: normal;
-  cursor: pointer;
-  color: #333;
-  border-radius: 5px;
-  transition: background 0.2s;
+
+/* OVERLAY */
+
+.bm-overlay {
+    position: fixed !important;
+
+    top: 0 !important;
+    left: 0 !important;
+
+    width: 100% !important;
+    height: 100vh !important;
+
+    z-index: 1090 !important;
+
+    background:
+        rgba(2, 6, 23, 0.55) !important;
+
+    backdrop-filter: blur(2px);
 }
 
-.menu-item-parent:hover {
-  background-color: #f0f0f0;
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.gp-sidebar {
+    width: 100% !important;
+    height: 100% !important;
+
+    min-height: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    overflow: hidden !important;
+
+    color: #ffffff;
+
+    background:
+        radial-gradient(
+            circle at 10% 5%,
+            rgba(14, 79, 132, 0.22),
+            transparent 27%
+        ),
+        linear-gradient(
+            180deg,
+            #0a1424 0%,
+            #0d192b 100%
+        );
 }
 
-.menu-item-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+
+/* =========================================================
+   HEADER
+   SIEMPRE FIJO
+========================================================= */
+
+.gp-sidebar-header {
+    width: 100%;
+    height: 88px;
+
+    flex: 0 0 88px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+
+    border-bottom:
+        1px solid
+        rgba(255, 255, 255, 0.055);
 }
 
-.menu-icon {
-  font-size: 1.1rem;
+
+.gp-sidebar-brand {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
 }
 
-.submenu {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-  margin-left: 10px;
+
+.gp-sidebar-logo {
+    width: 51px;
+    height: 51px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px;
+
+    border-radius: 11px;
+
+    background:
+        rgba(255, 255, 255, 0.97);
+
+    box-shadow:
+        0 7px 20px
+        rgba(0, 0, 0, 0.16);
 }
 
-.submenu.open {
-  max-height: 500px;
+
+.gp-sidebar-logo img {
+    width: 100%;
+    height: auto;
+
+    display: block;
+
+    border-radius: 6px;
 }
 
-.submenu-item {
-  padding: 10px 20px;
-  font-size: 0.9rem;
-  color: #555;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
+
+.gp-sidebar-brand-text {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
 }
 
-.submenu-item:hover {
-  background-color: #eee;
+
+.gp-sidebar-brand-text strong {
+    overflow: hidden;
+
+    color: #f8fafc;
+
+    font-size: 14px;
+
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
 }
 
-.logout-button {
-  color: #333 !important;       /* Asegura texto visible */
-  background: transparent;
-  border: none;
-  padding: 10px 20px;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  font-size: 1em;
-  margin-bottom: 20px;
+
+.gp-sidebar-brand-text span {
+    color: #64748b;
+
+    font-size: 9px;
+
+    letter-spacing: 0.025em;
 }
 
-.logout-button:hover {
-  background-color: #f0f0f0;
+
+/* =========================================================
+   BOTÓN CERRAR
+========================================================= */
+
+.gp-sidebar-close {
+    width: 34px;
+    height: 34px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background:
+        rgba(255, 255, 255, 0.05);
+
+    color: #94a3b8;
+
+    font-size: 19px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease;
+}
+
+
+.gp-sidebar-close:hover {
+    background:
+        rgba(255, 255, 255, 0.09);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   ÁREA CENTRAL CON SCROLL
+========================================================= */
+
+.gp-sidebar-scroll {
+    width: 100%;
+
+    flex: 1 1 0 !important;
+
+    min-height: 0 !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    overscroll-behavior: contain;
+
+    padding:
+        15px
+        12px
+        22px;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        rgba(148, 163, 184, 0.42)
+        transparent;
+}
+
+
+/* CHROME / EDGE */
+
+.gp-sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+
+.gp-sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+.gp-sidebar-scroll::-webkit-scrollbar-thumb {
+    background:
+        rgba(148, 163, 184, 0.38);
+
+    border-radius: 20px;
+}
+
+
+.gp-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background:
+        rgba(148, 163, 184, 0.62);
+}
+
+
+/* =========================================================
+   INICIO
+========================================================= */
+
+.gp-sidebar-home-wrapper {
+    padding-bottom: 13px;
+
+    margin-bottom: 10px;
+
+    border-bottom:
+        1px solid
+        rgba(255, 255, 255, 0.05);
+}
+
+
+.gp-sidebar-home {
+    height: 43px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 0 13px;
+
+    border-radius: 9px;
+
+    background:
+        rgba(14, 79, 132, 0.16);
+
+    color: #e2e8f0;
+
+    text-decoration: none;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease;
+}
+
+
+.gp-sidebar-home svg {
+    width: 17px;
+    height: 17px;
+
+    color: #60a5fa;
+}
+
+
+.gp-sidebar-home:hover {
+    background:
+        rgba(14, 79, 132, 0.25);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   SECCIONES
+========================================================= */
+
+.gp-menu-section {
+    margin-top: 19px;
+}
+
+
+.gp-menu-section-title {
+    padding:
+        0
+        13px
+        8px;
+
+    color: #64748b;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.17em;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   MENÚ PADRE
+========================================================= */
+
+.gp-menu-group {
+    margin-bottom: 3px;
+}
+
+
+.gp-menu-parent {
+    width: 100%;
+    min-height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 11px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: transparent;
+
+    color: #cbd5e1;
+
+    font-family: inherit;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease;
+}
+
+
+.gp-menu-parent:hover,
+.gp-menu-parent.open {
+    color: #ffffff;
+
+    background:
+        rgba(255, 255, 255, 0.055);
+}
+
+
+.gp-menu-parent-left {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+
+.gp-menu-icon {
+    width: 29px;
+    height: 29px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background:
+        rgba(255, 255, 255, 0.045);
+
+    color: #94a3b8;
+
+    font-size: 14px;
+
+    transition:
+        color 0.18s ease,
+        background-color 0.18s ease;
+}
+
+
+.gp-menu-parent:hover .gp-menu-icon,
+.gp-menu-parent.open .gp-menu-icon {
+    color: #60a5fa;
+
+    background:
+        rgba(14, 79, 132, 0.15);
+}
+
+
+.gp-menu-chevron {
+    flex-shrink: 0;
+
+    display: flex;
+
+    color: #64748b;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   SUBMENÚ
+========================================================= */
+
+.gp-submenu {
+    max-height: 0;
+
+    overflow: hidden;
+
+    opacity: 0;
+
+    transition:
+        max-height 0.28s ease,
+        opacity 0.22s ease,
+        padding 0.22s ease;
+}
+
+
+.gp-submenu.open {
+    max-height: 900px;
+
+    opacity: 1;
+
+    padding:
+        4px
+        0
+        7px;
+}
+
+
+.gp-submenu-item {
+    min-height: 37px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin-left: 24px;
+
+    padding:
+        7px
+        11px
+        7px
+        17px;
+
+    border-radius: 8px;
+
+    color: #94a3b8;
+
+    text-decoration: none;
+
+    font-size: 11px;
+
+    line-height: 1.35;
+
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease;
+}
+
+
+.gp-submenu-item::before {
+    content: "";
+
+    width: 4px;
+    height: 4px;
+
+    position: absolute;
+
+    left: 3px;
+
+    border-radius: 50%;
+
+    background: #475569;
+
+    transition:
+        background-color 0.18s ease;
+}
+
+
+.gp-submenu-item:hover {
+    color: #f8fafc;
+
+    background:
+        rgba(255, 255, 255, 0.045);
+}
+
+
+.gp-submenu-item:hover::before {
+    background: var(--gp-green);
+}
+
+
+.gp-submenu-icon {
+    display: flex;
+
+    flex-shrink: 0;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+.gp-submenu-item:hover .gp-submenu-icon {
+    color: #93c5fd;
+}
+
+
+/* =========================================================
+   FOOTER
+   SIEMPRE FIJO ABAJO
+========================================================= */
+
+.gp-sidebar-footer {
+    width: 100%;
+
+    flex: 0 0 auto;
+
+    position: relative;
+
+    z-index: 10;
+
+    padding:
+        12px
+        16px
+        14px;
+
+    border-top:
+        1px solid
+        rgba(255, 255, 255, 0.065);
+
+    background:
+        #091321;
+}
+
+
+/* =========================================================
+   USUARIO
+========================================================= */
+
+.gp-sidebar-user {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding:
+        3px
+        2px
+        10px;
+}
+
+
+.gp-sidebar-avatar {
+    width: 36px;
+    height: 36px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gp-blue),
+            var(--gp-blue-light)
+        );
+
+    color: #ffffff;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    box-shadow:
+        0 6px 15px
+        rgba(14, 79, 132, 0.18);
+}
+
+
+.gp-sidebar-user-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+
+.gp-sidebar-user-info span {
+    color: #64748b;
+
+    font-size: 9px;
+}
+
+
+.gp-sidebar-user-info strong {
+    max-width: 180px;
+
+    overflow: hidden;
+
+    color: #cbd5e1;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   CERRAR SESIÓN
+========================================================= */
+
+.gp-sidebar-logout {
+    width: 100%;
+    height: 37px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 12px;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.055);
+
+    border-radius: 9px;
+
+    background:
+        rgba(255, 255, 255, 0.025);
+
+    color: #94a3b8;
+
+    font-family: inherit;
+
+    font-size: 11px;
+
+    cursor: pointer;
+
+    transition:
+        color 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease;
+}
+
+
+.gp-sidebar-logout svg {
+    width: 15px;
+    height: 15px;
+}
+
+
+.gp-sidebar-logout:hover {
+    color: #fca5a5;
+
+    background:
+        rgba(239, 68, 68, 0.07);
+
+    border-color:
+        rgba(239, 68, 68, 0.1);
+}
+
+
+/* =========================================================
+   LÍNEA MARCA
+========================================================= */
+
+.gp-sidebar-brand-stripe {
+    width: 90px;
+    height: 3px;
+
+    display: flex;
+
+    overflow: hidden;
+
+    margin-top: 11px;
+
+    border-radius: 20px;
+}
+
+
+.gp-sidebar-brand-stripe span:nth-child(1) {
+    width: 42%;
+
+    background:
+        var(--gp-blue-light);
+}
+
+
+.gp-sidebar-brand-stripe span:nth-child(2) {
+    width: 32%;
+
+    background:
+        var(--gp-green);
+}
+
+
+.gp-sidebar-brand-stripe span:nth-child(3) {
+    flex: 1;
+
+    background:
+        var(--gp-yellow);
+}
+
+
+/* =========================================================
+   PANTALLAS DE POCA ALTURA
+========================================================= */
+
+@media (max-height: 700px) {
+
+    .gp-sidebar-header {
+        height: 74px;
+
+        flex-basis: 74px;
+    }
+
+
+    .gp-sidebar-logo {
+        width: 44px;
+        height: 44px;
+    }
+
+
+    .gp-menu-section {
+        margin-top: 14px;
+    }
+
+
+    .gp-menu-parent {
+        min-height: 39px;
+    }
+
+
+    .gp-sidebar-footer {
+        padding:
+            9px
+            14px
+            10px;
+    }
+
+
+    .gp-sidebar-user {
+        padding-bottom: 7px;
+    }
+
+
+    .gp-sidebar-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+}
+
+
+/* =========================================================
+   MÓVIL
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .bm-menu-wrap {
+        width: 88% !important;
+
+        max-width: 310px !important;
+    }
+
+}
+
+/* =========================================================
+   ESTADOS ACTIVOS
+========================================================= */
+
+.gp-sidebar-home.active {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(14, 79, 132, 0.34),
+            rgba(14, 79, 132, 0.17)
+        );
+
+    color: #ffffff;
+}
+
+.gp-sidebar-home.active svg {
+    color: #60a5fa;
+}
+
+
+.gp-menu-parent.active {
+    background:
+        rgba(255, 255, 255, 0.055);
+
+    color: #ffffff;
+}
+
+.gp-menu-parent.active .gp-menu-icon {
+    background:
+        rgba(14, 79, 132, 0.18);
+
+    color: #60a5fa;
+}
+
+
+.gp-submenu-item.active {
+    color: #ffffff;
+
+    background:
+        rgba(14, 79, 132, 0.16);
+}
+
+.gp-submenu-item.active::before {
+    background:
+        var(--gp-green);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(57, 181, 74, 0.10);
+}
+
+.gp-submenu-item.active
+.gp-submenu-icon {
+    color: #93c5fd;
 }

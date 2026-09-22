@@ -1,0 +1,664 @@
+/* =========================================================
+   LISTA ÁREAS DE TRABAJO
+   ========================================================= */
+
+.gp-area-list-page {
+    width: 100%;
+}
+
+.gp-area-list-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-area-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        21px
+        23px
+        18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #fff;
+
+    border-bottom:
+        1px solid #e6ecf1;
+}
+
+.gp-area-list-heading {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+.gp-area-list-heading-icon {
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e8f1f7;
+
+    border:
+        1px solid #d3e3ee;
+
+    border-radius:
+        10px;
+}
+
+.gp-area-list-heading h1 {
+    margin:
+        4px
+        0
+        3px;
+
+    color: #172033;
+
+    font-size:
+        20px;
+
+    font-weight:
+        700;
+}
+
+.gp-area-list-heading p {
+    max-width:
+        650px;
+
+    margin: 0;
+
+    color: #728092;
+
+    font-size:
+        11.5px;
+
+    line-height:
+        1.45;
+}
+
+
+/* NUEVO */
+
+.gp-area-list-new {
+    min-height:
+        35px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap: 6px;
+
+    flex: 0 0 auto;
+
+    padding:
+        0
+        12px;
+
+    color: #fff;
+
+    background:
+        var(
+            --gp-green,
+            #39b54a
+        );
+
+    border:
+        1px solid
+        var(
+            --gp-green,
+            #39b54a
+        );
+
+    border-radius:
+        7px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    cursor:
+        pointer;
+}
+
+.gp-area-list-new:hover {
+    background:
+        #2f9d3e;
+
+    border-color:
+        #2f9d3e;
+}
+
+
+/* =========================================================
+   BÚSQUEDA
+   ========================================================= */
+
+.gp-area-list-search-section {
+    margin:
+        17px
+        23px
+        0;
+
+    padding:
+        12px;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px solid #e2e8ed;
+
+    border-radius:
+        8px;
+}
+
+.gp-area-list-search-heading {
+    display: flex;
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap: 12px;
+
+    margin-bottom:
+        8px;
+}
+
+.gp-area-list-search-heading
+    > div:first-child {
+    display: flex;
+    flex-direction:
+        column;
+
+    gap: 1px;
+}
+
+.gp-area-list-search-heading
+    strong {
+    color:
+        #475569;
+
+    font-size:
+        10.5px;
+}
+
+.gp-area-list-search-heading
+    span {
+    color:
+        #8a97a4;
+
+    font-size:
+        8.5px;
+}
+
+.gp-area-list-count {
+    padding:
+        3px
+        8px;
+
+    color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    background:
+        #e7f0f7;
+
+    border-radius:
+        20px;
+
+    font-size:
+        9px;
+
+    font-weight:
+        700;
+}
+
+
+/* CONTROL */
+
+.gp-area-list-search {
+    width:
+        min(
+            520px,
+            100%
+        );
+
+    height:
+        36px;
+
+    display: flex;
+    align-items:
+        center;
+
+    gap: 7px;
+
+    padding:
+        0
+        9px;
+
+    background:
+        #fff;
+
+    border:
+        1px solid #cbd5df;
+
+    border-radius:
+        7px;
+}
+
+.gp-area-list-search:focus-within {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        );
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            14,
+            79,
+            132,
+            0.07
+        );
+}
+
+.gp-area-list-search
+    > svg {
+    flex: 0 0 auto;
+
+    color:
+        #7c8996;
+}
+
+.gp-area-list-search
+    input {
+    min-width: 0;
+
+    flex: 1;
+
+    height: 100%;
+
+    padding: 0;
+
+    color:
+        #334155;
+
+    background:
+        transparent;
+
+    border: 0;
+
+    outline: none;
+
+    font-size:
+        10.5px;
+}
+
+.gp-area-list-search
+    button {
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex: 0 0 auto;
+
+    padding: 0;
+
+    color:
+        #64748b;
+
+    background:
+        transparent;
+
+    border: 0;
+
+    border-radius:
+        5px;
+
+    cursor:
+        pointer;
+}
+
+.gp-area-list-search
+    button:hover {
+    background:
+        #eef2f5;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-area-list-body {
+    padding:
+        18px
+        23px
+        23px;
+}
+
+.gp-area-list-table-header {
+    display: flex;
+    align-items:
+        flex-end;
+
+    justify-content:
+        space-between;
+
+    margin-bottom:
+        9px;
+}
+
+.gp-area-list-table-header
+    h2 {
+    margin:
+        0
+        0
+        2px;
+
+    color:
+        #334155;
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+}
+
+.gp-area-list-table-header
+    p {
+    margin: 0;
+
+    color:
+        #8794a1;
+
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.gp-area-list-table-wrapper {
+    overflow:
+        hidden;
+
+    background:
+        #fff;
+
+    border:
+        1px solid #dfe6ec;
+
+    border-radius:
+        8px;
+}
+
+
+/* =========================================================
+   ACCIONES TABLA
+   ========================================================= */
+
+.gp-area-table-edit {
+    color:
+        #0e4f84 !important;
+
+    background:
+        #eef5fa !important;
+
+    border:
+        1px solid
+        #d2e2ed !important;
+
+    border-radius:
+        6px !important;
+}
+
+.gp-area-table-edit:hover {
+    background:
+        #dcebf5 !important;
+}
+
+.gp-area-table-delete {
+    color:
+        #b42318 !important;
+
+    background:
+        #fff2f1 !important;
+
+    border:
+        1px solid
+        #efd3d0 !important;
+
+    border-radius:
+        6px !important;
+}
+
+.gp-area-table-delete:hover {
+    background:
+        #fde3e1 !important;
+}
+
+
+/* =========================================================
+   LOADING / VACÍO
+   ========================================================= */
+
+.gp-area-list-loading {
+    padding:
+        36px
+        15px;
+
+    color:
+        #7b8794;
+
+    text-align:
+        center;
+
+    font-size:
+        10.5px;
+}
+
+.gp-area-list-empty {
+    min-height:
+        180px;
+
+    display: flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex-direction:
+        column;
+
+    gap: 5px;
+
+    color:
+        #83909e;
+
+    background:
+        #fafbfc;
+
+    border:
+        1px dashed
+        #d6dee5;
+
+    border-radius:
+        8px;
+
+    text-align:
+        center;
+}
+
+.gp-area-list-empty
+    svg {
+    margin-bottom:
+        3px;
+
+    color:
+        #a4b0bb;
+}
+
+.gp-area-list-empty
+    strong {
+    color:
+        #526173;
+
+    font-size:
+        11px;
+}
+
+.gp-area-list-empty
+    span {
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   MATERIAL REACT TABLE
+   ========================================================= */
+
+.gp-area-list-table-wrapper
+    .MuiTableCell-root {
+    font-family:
+        inherit !important;
+}
+
+.gp-area-list-table-wrapper
+    .MuiTablePagination-root {
+    font-size:
+        9px !important;
+}
+
+.gp-area-list-table-wrapper
+    .MuiTablePagination-selectLabel,
+.gp-area-list-table-wrapper
+    .MuiTablePagination-displayedRows {
+    margin: 0 !important;
+
+    font-size:
+        9px !important;
+}
+
+
+/* INPUTS FILTROS COLUMNAS */
+
+.gp-area-list-table-wrapper
+    .MuiInputBase-root {
+    min-height:
+        32px;
+}
+
+.gp-area-list-table-wrapper
+    .MuiInputBase-input {
+    padding:
+        6px
+        8px !important;
+
+    font-size:
+        9.5px !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 720px) {
+    .gp-area-list-header {
+        align-items:
+            stretch;
+
+        flex-direction:
+            column;
+
+        padding:
+            18px;
+    }
+
+    .gp-area-list-new {
+        width: 100%;
+    }
+
+    .gp-area-list-search-section {
+        margin:
+            15px
+            18px
+            0;
+    }
+
+    .gp-area-list-body {
+        padding:
+            17px
+            18px
+            20px;
+    }
+}
+
+@media (max-width: 460px) {
+    .gp-area-list-heading-icon {
+        display:
+            none;
+    }
+
+    .gp-area-list-search-heading {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+}

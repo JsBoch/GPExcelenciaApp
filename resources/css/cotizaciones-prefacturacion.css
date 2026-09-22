@@ -1,0 +1,782 @@
+/* =========================================================
+   COTIZACIONES PRE-FACTURACIÓN
+   ========================================================= */
+
+.gp-prefact-page {
+    width: 100%;
+}
+
+.gp-prefact-card {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.gp-prefact-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 22px 24px 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 79, 132, 0.045),
+            transparent 55%
+        ),
+        #ffffff;
+
+    border-bottom:
+        1px solid #e7edf3;
+}
+
+.gp-prefact-title {
+    margin: 5px 0 4px;
+
+    color: #0f172a;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.gp-prefact-description {
+    max-width: 760px;
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.gp-prefact-header-icon {
+    width: 46px;
+    height: 46px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background:
+        rgba(14, 79, 132, 0.08);
+
+    border:
+        1px solid
+        rgba(14, 79, 132, 0.12);
+
+    border-radius: 12px;
+}
+
+
+/* =========================================================
+   RESUMEN
+   ========================================================= */
+
+.gp-prefact-summary {
+    display: flex;
+    gap: 10px;
+
+    margin:
+        18px
+        24px
+        0;
+}
+
+.gp-prefact-summary-item {
+    min-width: 180px;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 9px 11px;
+
+    background: #f8fafc;
+
+    border:
+        1px solid #e2e8ee;
+
+    border-radius: 9px;
+}
+
+.gp-prefact-summary-item.is-active {
+    background: #edf8ef;
+
+    border-color: #cce8d1;
+}
+
+.gp-prefact-summary-icon {
+    width: 32px;
+    height: 32px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 7px;
+}
+
+.gp-prefact-summary-item.is-active
+    .gp-prefact-summary-icon {
+    color: #267a35;
+
+    background: #dff2e3;
+}
+
+.gp-prefact-summary-item
+    > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.gp-prefact-summary-item span {
+    color: #64748b;
+
+    font-size: 9.5px;
+    font-weight: 600;
+}
+
+.gp-prefact-summary-item strong {
+    color: #1e293b;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   BUSCADOR
+   ========================================================= */
+
+.gp-prefact-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin:
+        14px
+        24px
+        0;
+}
+
+.gp-prefact-search {
+    width: min(
+        420px,
+        100%
+    );
+}
+
+.gp-prefact-search
+    .MuiOutlinedInput-root {
+    min-height: 36px;
+
+    border-radius: 7px;
+
+    background: #ffffff;
+
+    font-size: 11.5px;
+}
+
+.gp-prefact-search
+    .MuiOutlinedInput-input {
+    padding:
+        8px
+        10px;
+}
+
+.gp-prefact-search
+    .MuiSvgIcon-root {
+    color: #7c8997;
+
+    font-size: 18px;
+}
+
+.gp-prefact-filter-count {
+    padding: 4px 8px;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 20px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.gp-prefact-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin:
+        14px
+        24px
+        0;
+
+    padding: 9px 11px;
+
+    background: #f8fafc;
+
+    border:
+        1px solid #e2e8ed;
+
+    border-radius: 9px;
+}
+
+.gp-prefact-toolbar-left,
+.gp-prefact-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.gp-prefact-toolbar
+    .MuiButton-root {
+    min-height: 32px;
+
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: none;
+}
+
+.gp-prefact-selection-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    color: #64748b;
+
+    font-size: 9.5px;
+}
+
+.gp-prefact-selection-status
+    svg {
+    color:
+        var(--gp-green, #39b54a);
+}
+
+.gp-prefact-selection-status
+    strong {
+    color: #1e293b;
+
+    font-size: 11px;
+}
+
+.gp-prefact-bill-button {
+    background-color:
+        var(
+            --gp-green,
+            #39b54a
+        ) !important;
+}
+
+.gp-prefact-bill-button:hover {
+    background-color:
+        #2f9d3e !important;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gp-prefact-body {
+    padding:
+        18px
+        24px
+        24px;
+}
+
+.gp-prefact-table-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+
+    margin-bottom: 10px;
+}
+
+.gp-prefact-table-heading h2 {
+    margin: 0 0 2px;
+
+    color: #1e293b;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.gp-prefact-table-heading p {
+    margin: 0;
+
+    color: #718096;
+
+    font-size: 10.5px;
+}
+
+.gp-prefact-table-heading
+    > span {
+    padding: 4px 8px;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 20px;
+
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   MATERIAL REACT TABLE
+   ========================================================= */
+
+.gp-prefact-table-wrapper {
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border:
+        1px solid #dfe6ec;
+
+    border-radius: 9px;
+}
+
+.gp-prefact-table-wrapper
+    .MuiPaper-root {
+    border-radius: 0 !important;
+
+    box-shadow:
+        none !important;
+}
+
+.gp-prefact-table-wrapper
+    .MuiToolbar-root {
+    min-height: 40px;
+
+    padding:
+        4px
+        8px;
+
+    background: #fafbfc;
+
+    border-bottom:
+        1px solid #e7ecf0;
+}
+
+.gp-prefact-table-wrapper
+    .MuiIconButton-root {
+    width: 30px;
+    height: 30px;
+}
+
+.gp-prefact-table-wrapper
+    .MuiTableCell-root {
+    padding:
+        7px
+        9px;
+}
+
+.gp-prefact-table-wrapper
+    .MuiTableHead-root
+    .MuiTableCell-root {
+    color: #475569;
+
+    background: #f3f6f9;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.gp-prefact-table-wrapper
+    .MuiTableBody-root
+    .MuiTableRow-root:hover
+    .MuiTableCell-root {
+    background:
+        #f5f9fb;
+}
+
+.gp-prefact-table-wrapper
+    .MuiTablePagination-root {
+    min-height: 44px;
+
+    background: #fafbfc;
+
+    border-top:
+        1px solid #e7ecf0;
+}
+
+.gp-prefact-table-wrapper
+    .MuiTablePagination-root
+    * {
+    font-size: 10.5px;
+}
+
+
+/* =========================================================
+   CELDAS
+   ========================================================= */
+
+.gp-prefact-no {
+    color:
+        var(--gp-blue, #0e4f84);
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gp-prefact-no-comments {
+    color: #a0acb8;
+}
+
+.gp-prefact-comment-chip {
+    height: 23px !important;
+
+    color: #1769aa !important;
+
+    background:
+        #e5f2fa !important;
+
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer;
+}
+
+.gp-prefact-comment-chip
+    .MuiChip-icon {
+    color:
+        #1769aa !important;
+
+    font-size:
+        14px !important;
+}
+
+
+/* =========================================================
+   DIÁLOGOS
+   ========================================================= */
+
+.gp-prefact-dialog
+    .MuiDialog-paper {
+    border-radius: 11px;
+
+    box-shadow:
+        0 20px 55px
+        rgba(
+            15,
+            23,
+            42,
+            0.2
+        );
+}
+
+.gp-prefact-dialog
+    .MuiDialogTitle-root {
+    padding:
+        13px
+        16px;
+
+    background: #fafbfc;
+
+    border-bottom:
+        1px solid #e4e9ee;
+}
+
+.gp-prefact-dialog
+    .MuiDialogContent-root {
+    padding:
+        16px;
+}
+
+.gp-prefact-dialog
+    .MuiDialogActions-root {
+    padding:
+        9px
+        14px;
+
+    background: #fafbfc;
+
+    border-top:
+        1px solid #e4e9ee;
+}
+
+.gp-prefact-dialog
+    .MuiButton-root {
+    min-height: 32px;
+
+    font-size: 10.5px;
+    font-weight: 700;
+
+    text-transform: none;
+}
+
+.gp-prefact-dialog-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gp-prefact-dialog-icon {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+        var(--gp-blue, #0e4f84);
+
+    background: #e7f0f7;
+
+    border-radius: 8px;
+}
+
+.gp-prefact-dialog-title
+    > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.gp-prefact-dialog-title
+    strong {
+    color: #1e293b;
+
+    font-size: 13px;
+}
+
+.gp-prefact-dialog-title
+    span {
+    color: #718096;
+
+    font-size: 9.5px;
+}
+
+
+/* =========================================================
+   COMENTARIOS
+   ========================================================= */
+
+.gp-prefact-comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gp-prefact-comment-card {
+    padding: 10px 11px;
+
+    background: #ffffff;
+
+    border:
+        1px solid #e1e7ec;
+
+    border-radius: 8px;
+}
+
+.gp-prefact-comment-text {
+    margin-bottom: 8px;
+
+    color: #334155;
+
+    font-size: 11.5px;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+}
+
+.gp-prefact-comment-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+
+    color: #8492a1;
+
+    font-size: 9.5px;
+}
+
+.gp-prefact-comment-meta
+    .MuiChip-root {
+    height: 20px;
+
+    font-size: 8.5px;
+}
+
+.gp-prefact-comments-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: 13px;
+    padding-top: 10px;
+
+    border-top:
+        1px solid #e8edf1;
+}
+
+.gp-prefact-comments-pagination
+    > span {
+    color: #718096;
+
+    font-size: 9.5px;
+}
+
+.gp-prefact-empty-comments {
+    min-height: 180px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    color: #8492a1;
+
+    text-align: center;
+}
+
+.gp-prefact-empty-comments
+    > svg {
+    margin-bottom: 6px;
+
+    color: #a2aebb;
+
+    font-size: 30px;
+}
+
+.gp-prefact-empty-comments
+    strong {
+    margin-bottom: 2px;
+
+    color: #475569;
+
+    font-size: 12px;
+}
+
+.gp-prefact-empty-comments
+    span {
+    max-width: 260px;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .gp-prefact-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gp-prefact-toolbar-right {
+        width: 100%;
+
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 768px) {
+    .gp-prefact-header {
+        padding: 18px;
+    }
+
+    .gp-prefact-title {
+        font-size: 19px;
+    }
+
+    .gp-prefact-header-icon {
+        display: none;
+    }
+
+    .gp-prefact-summary,
+    .gp-prefact-controls,
+    .gp-prefact-toolbar {
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+
+    .gp-prefact-body {
+        padding:
+            17px
+            18px
+            20px;
+    }
+
+    .gp-prefact-summary {
+        flex-direction: column;
+    }
+
+    .gp-prefact-summary-item {
+        width: 100%;
+    }
+
+    .gp-prefact-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-prefact-search {
+        width: 100%;
+    }
+
+    .gp-prefact-toolbar-left,
+    .gp-prefact-toolbar-right {
+        width: 100%;
+
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .gp-prefact-toolbar
+        .MuiButton-root {
+        width: 100%;
+    }
+
+    .gp-prefact-selection-status {
+        justify-content: center;
+    }
+
+    .gp-prefact-table-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

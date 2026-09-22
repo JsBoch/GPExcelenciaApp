@@ -1,0 +1,429 @@
+:root {
+    --gp-blue: #0e4f84;
+    --gp-blue-light: #1769aa;
+    --gp-green: #39b54a;
+    --gp-yellow: #fdb515;
+
+    --gp-dark: #0f172a;
+
+    --gp-bg: #f5f7fa;
+    --gp-white: #ffffff;
+
+    --gp-border: #e5e7eb;
+    --gp-muted: #64748b;
+}
+
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.gp-layout-page {
+    width: 100%;
+    height: 100vh;
+
+    overflow: hidden;
+
+    background:
+        var(--gp-bg);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+}
+
+
+.gp-layout-shell {
+    width: 100%;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.gp-layout-topbar {
+    width: 100%;
+    height: 70px;
+
+    flex: 0 0 70px;
+
+    position: relative;
+
+    z-index: 100;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+        0
+        30px;
+
+    background:
+        rgba(255,255,255,.96);
+
+    border-bottom:
+        1px solid
+        #e7ecf2;
+
+    box-shadow:
+        0 2px 8px
+        rgba(15,23,42,.025);
+
+    backdrop-filter:
+        blur(12px);
+}
+
+
+.gp-layout-topbar::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: -1px;
+
+    width: 135px;
+    height: 2px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gp-blue) 0%,
+            var(--gp-blue) 55%,
+            var(--gp-green) 55%,
+            var(--gp-green) 80%,
+            var(--gp-yellow) 80%
+        );
+}
+
+
+.gp-layout-topbar-left {
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+}
+
+
+/* =========================================================
+   HAMBURGUESA
+========================================================= */
+
+.gp-layout-menu-button {
+    width: 41px;
+    height: 41px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border:
+        1px solid
+        #e1e7ed;
+
+    border-radius: 10px;
+
+    background:
+        #ffffff;
+
+    color:
+        #334155;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    transition:
+        .18s ease;
+}
+
+
+.gp-layout-menu-button:hover {
+    color:
+        var(--gp-blue);
+
+    background:
+        rgba(14,79,132,.04);
+
+    border-color:
+        rgba(14,79,132,.22);
+}
+
+
+/* =========================================================
+   TÍTULO
+========================================================= */
+
+.gp-layout-title {
+    display: flex;
+    flex-direction: column;
+
+    gap: 1px;
+}
+
+
+.gp-layout-title span {
+    color:
+        #94a3b8;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing:
+        .08em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.gp-layout-title strong {
+    color:
+        #0f172a;
+
+    font-size: 15px;
+
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   USUARIO
+========================================================= */
+
+.gp-layout-user {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.gp-layout-avatar {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gp-blue),
+            var(--gp-blue-light)
+        );
+
+    color:
+        #ffffff;
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+
+.gp-layout-user-info {
+    min-width: 90px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.gp-layout-user-info span {
+    color:
+        #94a3b8;
+
+    font-size: 9px;
+}
+
+
+.gp-layout-user-info strong {
+    max-width: 170px;
+
+    overflow: hidden;
+
+    color:
+        #334155;
+
+    font-size: 12px;
+
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   CONTENIDO
+========================================================= */
+
+.gp-layout-content {
+    width: 100%;
+
+    flex: 1 1 0;
+
+    min-height: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    background:
+        #f5f7fa;
+
+    scrollbar-width:
+        thin;
+
+    scrollbar-color:
+        #cbd5e1
+        transparent;
+}
+
+
+.gp-layout-content::-webkit-scrollbar {
+    width: 7px;
+}
+
+
+.gp-layout-content::-webkit-scrollbar-track {
+    background:
+        transparent;
+}
+
+
+.gp-layout-content::-webkit-scrollbar-thumb {
+    background:
+        #cbd5e1;
+
+    border-radius:
+        20px;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.gp-layout-loading {
+    width: 100%;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 15px;
+
+    background:
+        #f8fafc;
+
+    color:
+        #64748b;
+
+    font-size: 11px;
+}
+
+
+.gp-layout-loading img {
+    width: 80px;
+
+    padding: 5px;
+
+    border-radius: 12px;
+
+    background:
+        #ffffff;
+
+    box-shadow:
+        0 8px 25px
+        rgba(15,23,42,.08);
+}
+
+
+.gp-layout-spinner {
+    width: 25px;
+    height: 25px;
+
+    border:
+        3px solid
+        #e2e8f0;
+
+    border-top-color:
+        var(--gp-blue);
+
+    border-radius:
+        50%;
+
+    animation:
+        gpLayoutSpin
+        .8s linear infinite;
+}
+
+
+@keyframes gpLayoutSpin {
+
+    to {
+        transform:
+            rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   MÓVIL
+========================================================= */
+
+@media (max-width: 720px) {
+
+    .gp-layout-topbar {
+        height: 62px;
+
+        flex-basis: 62px;
+
+        padding:
+            0
+            16px;
+    }
+
+
+    .gp-layout-title span {
+        display: none;
+    }
+
+
+    .gp-layout-user-info {
+        display: none;
+    }
+
+
+    .gp-layout-avatar {
+        width: 35px;
+        height: 35px;
+    }
+
+}

@@ -1,0 +1,985 @@
+/* ============================================================
+   NOTA DE ENVÍO
+   ============================================================ */
+
+.nota-envio-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1300;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 22px;
+
+    background: rgba(15, 23, 42, 0.56);
+
+    backdrop-filter: blur(2px);
+}
+
+.nota-envio-dialog {
+    width: min(1180px, 96vw);
+
+    max-width: 1180px;
+
+    margin: 0;
+}
+
+.nota-envio-content {
+    max-height: 92vh;
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 25px 65px rgba(15, 23, 42, 0.22);
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.nota-envio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    flex-shrink: 0;
+
+    padding: 17px 21px;
+
+    border-bottom: 1px solid #e5eaf0;
+
+    background: #ffffff;
+}
+
+.nota-envio-header-main {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.nota-envio-header-icon {
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #e7f2f8;
+
+    color: #0e4f84;
+}
+
+.nota-envio-eyebrow {
+    display: block;
+
+    margin-bottom: 1px;
+
+    color: #0e4f84;
+
+    font-size: 0.66rem;
+    font-weight: 700;
+
+    letter-spacing: 0.06em;
+
+    text-transform: uppercase;
+}
+
+.nota-envio-header h2 {
+    margin: 0;
+
+    color: #0f172a;
+
+    font-size: 1.08rem;
+    font-weight: 700;
+}
+
+.nota-envio-header p {
+    margin: 2px 0 0;
+
+    color: #64748b;
+
+    font-size: 0.72rem;
+}
+
+.nota-envio-header-right {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.nota-envio-number {
+    display: flex;
+    flex-direction: column;
+
+    padding: 6px 11px;
+
+    border: 1px solid #d7e3eb;
+    border-radius: 8px;
+
+    background: #f7fafc;
+
+    text-align: right;
+}
+
+.nota-envio-number span {
+    color: #64748b;
+
+    font-size: 0.61rem;
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+.nota-envio-number strong {
+    color: #0e4f84;
+
+    font-size: 0.83rem;
+}
+
+.nota-envio-close {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #64748b;
+
+    cursor: pointer;
+}
+
+.nota-envio-close:hover {
+    background: #f1f5f9;
+
+    color: #dc2626;
+}
+
+
+/* ============================================================
+   BODY
+   ============================================================ */
+
+.nota-envio-body {
+    overflow-y: auto;
+
+    padding: 18px 21px;
+}
+
+
+/* ============================================================
+   RESUMEN
+   ============================================================ */
+
+.nota-envio-summary {
+    display: flex;
+    align-items: center;
+
+    width: fit-content;
+
+    margin-bottom: 21px;
+
+    overflow: hidden;
+
+    border: 1px solid #e1e7ed;
+    border-radius: 9px;
+
+    background: #f8fafc;
+}
+
+.nota-envio-summary-item {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 8px 13px;
+
+    color: #0e4f84;
+}
+
+.nota-envio-summary-item > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.nota-envio-summary-item span {
+    color: #64748b;
+
+    font-size: 0.62rem;
+
+    text-transform: uppercase;
+}
+
+.nota-envio-summary-item strong {
+    color: #1e293b;
+
+    font-size: 0.81rem;
+}
+
+.nota-envio-summary-divider {
+    width: 1px;
+    height: 29px;
+
+    background: #dfe6ec;
+}
+
+
+/* ============================================================
+   SECCIONES
+   ============================================================ */
+
+.nota-envio-section {
+    margin-bottom: 25px;
+}
+
+.nota-envio-section:last-child {
+    margin-bottom: 0;
+}
+
+.nota-envio-section-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 10px;
+}
+
+.nota-envio-section-icon {
+    width: 35px;
+    height: 35px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #e8f2f8;
+
+    color: #0e4f84;
+}
+
+.nota-envio-section-icon.green {
+    background: #eaf7ec;
+
+    color: #288239;
+}
+
+.nota-envio-section-icon.yellow {
+    background: #fff5dc;
+
+    color: #a87100;
+}
+
+.nota-envio-section-icon.gray {
+    background: #edf1f5;
+
+    color: #475569;
+}
+
+.nota-envio-section-heading h3 {
+    margin: 0;
+
+    color: #1e293b;
+
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.nota-envio-section-heading p {
+    margin: 2px 0 0;
+
+    color: #64748b;
+
+    font-size: 0.7rem;
+}
+
+
+/* ============================================================
+   TABLA
+   ============================================================ */
+
+.nota-envio-table-wrapper {
+    overflow-x: auto;
+
+    border: 1px solid #e1e7ed;
+    border-radius: 10px;
+
+    background: #ffffff;
+}
+
+.nota-envio-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.nota-envio-table th {
+    padding: 9px 10px;
+
+    border-bottom: 1px solid #dce4eb;
+
+    background: #f8fafc;
+
+    color: #334155;
+
+    font-size: 0.69rem;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.nota-envio-table td {
+    padding: 8px 10px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    color: #334155;
+
+    font-size: 0.74rem;
+
+    vertical-align: middle;
+}
+
+.nota-envio-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.nota-envio-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.nota-envio-table tbody tr:hover {
+    background: #f8fbfd;
+}
+
+.nota-envio-row-selected {
+    background: #eef7fc !important;
+}
+
+.nota-envio-row-selected td:first-child {
+    box-shadow:
+        inset 4px 0 0 #0e4f84;
+}
+
+.nota-envio-row-disabled {
+    background: #fafafa;
+
+    opacity: 0.67;
+}
+
+.nota-envio-check-column {
+    width: 70px;
+
+    text-align: center !important;
+}
+
+.nota-envio-check-cell {
+    text-align: center;
+}
+
+.nota-envio-checkbox {
+    cursor: pointer;
+}
+
+.nota-envio-checkbox:checked {
+    background-color: #0e4f84;
+
+    border-color: #0e4f84;
+}
+
+.nota-envio-product-description {
+    min-width: 260px;
+
+    color: #1e293b;
+
+    font-weight: 500;
+}
+
+.nota-envio-qty-column {
+    width: 120px;
+}
+
+.nota-envio-money-column {
+    width: 130px;
+
+    text-align: right !important;
+}
+
+.nota-envio-status-column {
+    width: 120px;
+}
+
+.nota-envio-money {
+    text-align: right;
+
+    color: #1e293b !important;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   CANTIDAD
+   ============================================================ */
+
+.nota-envio-qty-input-wrapper {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+}
+
+.nota-envio-qty-input {
+    width: 82px;
+    height: 31px;
+
+    padding: 0 30px 0 8px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+
+    outline: none;
+
+    background: #fffdf5;
+
+    color: #1e293b;
+
+    font-size: 0.74rem;
+
+    text-align: right;
+}
+
+.nota-envio-qty-input:focus {
+    border-color: #f0b429;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 2px rgba(253, 181, 21, 0.12);
+}
+
+.nota-envio-qty-input-wrapper > span {
+    position: absolute;
+
+    right: 7px;
+
+    color: #94a3b8;
+
+    font-size: 0.62rem;
+}
+
+.nota-envio-pending-qty {
+    color: #475569;
+
+    font-weight: 600;
+}
+
+.nota-envio-no-qty {
+    color: #94a3b8;
+}
+
+
+/* ============================================================
+   ESTADOS
+   ============================================================ */
+
+.nota-envio-status {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 7px;
+
+    border-radius: 999px;
+
+    font-size: 0.63rem;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.nota-envio-status.available {
+    border: 1px solid #b9dfc0;
+
+    background: #edf8ef;
+
+    color: #257a34;
+}
+
+.nota-envio-status.previous {
+    border: 1px solid #d2dbe4;
+
+    background: #f1f5f9;
+
+    color: #475569;
+}
+
+
+/* ============================================================
+   VACÍO
+   ============================================================ */
+
+.nota-envio-empty-row {
+    height: 90px;
+
+    color: #64748b !important;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   ENTREGA
+   ============================================================ */
+
+.nota-envio-delivery-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(250px, 0.8fr)
+        minmax(350px, 1.2fr);
+
+    gap: 13px;
+}
+
+.nota-envio-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.nota-envio-field label {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    margin-bottom: 5px;
+
+    color: #475569;
+
+    font-size: 0.71rem;
+    font-weight: 700;
+}
+
+.nota-envio-required {
+    color: #dc2626;
+}
+
+.nota-envio-control {
+    width: 100%;
+
+    min-height: 36px;
+
+    padding: 0 9px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+
+    outline: none;
+
+    background: #ffffff;
+
+    color: #1e293b;
+
+    font-family: inherit;
+    font-size: 0.77rem;
+
+    box-sizing: border-box;
+}
+
+.nota-envio-control:focus {
+    border-color: #1769aa;
+
+    box-shadow:
+        0 0 0 3px rgba(23, 105, 170, 0.09);
+}
+
+.nota-envio-address {
+    min-height: 79px;
+
+    padding: 8px 10px;
+
+    resize: vertical;
+
+    line-height: 1.4;
+}
+
+
+/* ============================================================
+   IMPRESIÓN
+   ============================================================ */
+
+.nota-envio-print-options {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(220px, 1fr));
+
+    gap: 10px;
+}
+
+.nota-envio-print-option {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-height: 68px;
+
+    padding: 11px 13px;
+
+    border: 1px solid #dce3e9;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.nota-envio-print-option:hover {
+    border-color: #9fc2da;
+
+    background: #f8fbfd;
+}
+
+.nota-envio-print-option.selected {
+    border-color: #0e4f84;
+
+    background: #f1f7fb;
+
+    box-shadow:
+        0 0 0 2px rgba(14, 79, 132, 0.07);
+}
+
+.nota-envio-print-option input {
+    position: absolute;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+.nota-envio-print-icon {
+    width: 37px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #d5e0e8;
+    border-radius: 5px;
+
+    background: #ffffff;
+
+    color: #0e4f84;
+}
+
+.nota-envio-print-option > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.nota-envio-print-option strong {
+    color: #1e293b;
+
+    font-size: 0.77rem;
+}
+
+.nota-envio-print-option span {
+    margin-top: 2px;
+
+    color: #64748b;
+
+    font-size: 0.67rem;
+}
+
+.nota-envio-print-note {
+    margin-top: 7px;
+
+    color: #94a3b8;
+
+    font-size: 0.65rem;
+}
+
+
+/* ============================================================
+   HISTORIAL / REIMPRESIÓN
+   ============================================================ */
+
+.nota-envio-history-section {
+    padding: 14px;
+
+    border: 1px solid #e1e7ed;
+    border-radius: 10px;
+
+    background: #fafcfd;
+}
+
+.nota-envio-history-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(220px, 1fr)
+        auto
+        auto;
+
+    gap: 9px;
+
+    align-items: end;
+}
+
+.nota-envio-secondary-button {
+    min-height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    padding: 6px 11px;
+
+    border-radius: 7px;
+
+    background: #ffffff;
+
+    font-family: inherit;
+    font-size: 0.71rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.nota-envio-secondary-button.edit {
+    border: 1px solid #abd3b3;
+
+    color: #267d35;
+}
+
+.nota-envio-secondary-button.edit:hover {
+    background: #edf8ef;
+}
+
+.nota-envio-secondary-button.print {
+    border: 1px solid #aecbdf;
+
+    color: #0e4f84;
+}
+
+.nota-envio-secondary-button.print:hover {
+    background: #eef6fb;
+}
+
+.nota-envio-secondary-button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.nota-envio-footer {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 12px 21px;
+
+    border-top: 1px solid #e5eaf0;
+
+    background: #fafcfd;
+}
+
+.nota-envio-footer-info {
+    color: #64748b;
+
+    font-size: 0.69rem;
+}
+
+.nota-envio-footer-info strong {
+    color: #0e4f84;
+}
+
+.nota-envio-footer-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.nota-envio-cancel-button,
+.nota-envio-generate-button {
+    min-height: 35px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 6px 13px;
+
+    border-radius: 7px;
+
+    font-family: inherit;
+    font-size: 0.73rem;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.nota-envio-cancel-button {
+    border: 1px solid #cbd5e1;
+
+    background: #ffffff;
+
+    color: #475569;
+}
+
+.nota-envio-cancel-button:hover {
+    background: #f1f5f9;
+}
+
+.nota-envio-generate-button {
+    border: 1px solid #0e4f84;
+
+    background: #0e4f84;
+
+    color: #ffffff;
+}
+
+.nota-envio-generate-button:hover {
+    background: #0b436f;
+}
+
+.nota-envio-generate-button:disabled,
+.nota-envio-cancel-button:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 850px) {
+
+    .nota-envio-overlay {
+        padding: 10px;
+    }
+
+    .nota-envio-dialog {
+        width: 100%;
+    }
+
+    .nota-envio-content {
+        max-height: 96vh;
+    }
+
+    .nota-envio-delivery-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nota-envio-history-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nota-envio-secondary-button {
+        width: 100%;
+    }
+}
+
+
+@media (max-width: 650px) {
+
+    .nota-envio-header {
+        align-items: flex-start;
+    }
+
+    .nota-envio-header p {
+        display: none;
+    }
+
+    .nota-envio-number {
+        display: none;
+    }
+
+    .nota-envio-summary {
+        width: 100%;
+
+        overflow-x: auto;
+    }
+
+    .nota-envio-print-options {
+        grid-template-columns: 1fr;
+    }
+
+    .nota-envio-footer {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .nota-envio-footer-actions {
+        width: 100%;
+    }
+
+    .nota-envio-footer-actions button {
+        flex: 1;
+    }
+}

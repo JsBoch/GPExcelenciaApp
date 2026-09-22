@@ -5,9 +5,18 @@ import alertify from "alertifyjs";
 import "alertifyjs/build/css/alertify.min.css";
 import "alertifyjs/build/css/themes/default.min.css";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { FaSave, FaSearch, FaHome, FaBroom } from "react-icons/fa";
-import Header from "./Header";
-import FormSection from "./FormSection";
+import {
+    BriefcaseBusiness,
+    CalendarDays,
+    ContactRound,
+    Eraser,
+    HeartPulse,
+    Save,
+    Search,
+    UserRound,
+} from "lucide-react";
+
+import "../../css/empleado-form.css";
 
 function EmpleadoForm() {
     // Obtener fecha actual en formato YYYY-MM-DD
@@ -63,6 +72,18 @@ function EmpleadoForm() {
                 setFechaActual(localDate); // fallback
             });
     }, []);
+
+    useEffect(() => {
+    if (!id && fechaActual) {
+        setEmpleado((prev) => ({
+            ...prev,
+            fecha_nacimiento:
+                prev.fecha_nacimiento || fechaActual,
+            fecha_ingreso:
+                prev.fecha_ingreso || fechaActual,
+        }));
+    }
+}, [fechaActual, id]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -148,29 +169,34 @@ function EmpleadoForm() {
     }, [id, departamentoId]);
 
     const handleDepartamentoChange = (e) => {
-        setDepartamentoId(e.target.value); // Actualizar el estado con el id del departamento seleccionado
-        setEmpleado({
-            ...empleado,
-            id_departamento: e.target.value,
-            id_puesto: "",
-        }); // Actualizar el estado del empleado
-    };
+    const value = e.target.value;
+
+    setDepartamentoId(value);
+
+    setEmpleado((prev) => ({
+        ...prev,
+        id_departamento: value,
+        id_puesto: "",
+    }));
+};
     //maneja los cambios en los campos del formulario
     //...empleado, utiliza el operador de propagación para hacer una copia del objeto empleado
     //y luego actualiza el valor del campo correspondiente
     //e.target.name obtiene el valor del atributo name del elemento del formulario que ha desencadenado el evento
     //e.target.value obtiene el valor del elemento del formulario que ha desencadenado el evento
     const handleChange = (e) => {
-        //setEmpleado({ ...empleado, [e.target.name]: e.target.value });
-        const { name, value } = e.target;
-        setEmpleado({
-            ...empleado,
-            [name]:
-                name === "nombre" || name === "contacto_emergencia"
-                    ? value.toUpperCase()
-                    : value, //esto pasa nombre a mayúsculas en tiempo real
-        });
-    };
+    const { name, value } = e.target;
+
+    setEmpleado((prev) => ({
+        ...prev,
+
+        [name]:
+            name === "nombre" ||
+            name === "contacto_emergencia"
+                ? value.toUpperCase()
+                : value,
+    }));
+};
 
     //maneja el envío del formulario
     //e.preventDefault() evita que el formulario se envíe de forma predeterminada
@@ -284,312 +310,530 @@ function EmpleadoForm() {
 
     //return JSX que representa el formulario, se utiliza para devolver elementos HTML o mejor dicho elementos de React desde un componente funcional
     return (
-        <div className="mt-4">
-            <Header title="Registro de Empleados" />
-            <div className="card shadow p-4">
-                {/* <div className="card-header bg-primary text-white">
-                    <h4 className="mb-0">Registro de Empleado</h4>
-                </div> */}
-                <div className="card-body card-form">
-                    <form onSubmit={handleSubmit}>
-                        <FormSection title="Datos personales">
-                            <div className="row g-2">
-                                {/* <div className='col-md-2'>
-                                <label className="form-label">Código</label>
-                                <input type="text" name="codigo" value={empleado.codigo} onChange={handleChange} placeholder="Código" className='form-control form-control-sm' />
-                            </div> */}
-                                <div className="col-md-6">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Nombre
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="nombre"
-                                        value={empleado.nombre}
-                                        onChange={handleChange}
-                                        placeholder="Nombre"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                        required
-                                    />
+    <div className="gp-module-page gp-employee-page">
+        <div className="gp-module-card gp-employee-card">
+
+            {/* =================================================
+                HEADER
+               ================================================= */}
+
+            <div className="gp-employee-header">
+                <div className="gp-employee-heading">
+                    <div className="gp-employee-heading-icon">
+                        <UserRound size={22} />
+                    </div>
+
+                    <div>
+                        <div className="gp-module-meta">
+                            ADMINISTRACIÓN · PERSONAL
+                        </div>
+
+                        <h1>
+                            {id
+                                ? "Editar empleado"
+                                : "Registro de empleado"}
+                        </h1>
+
+                        <p>
+                            Registra la información personal,
+                            laboral y de contacto del empleado.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="gp-employee-mode">
+                    <span />
+                    {id
+                        ? "Editando registro"
+                        : "Nuevo registro"}
+                </div>
+            </div>
+
+
+            <form onSubmit={handleSubmit}>
+
+                <div className="gp-employee-body">
+
+                    {/* =================================================
+                        DATOS PERSONALES
+                       ================================================= */}
+
+                    <section className="gp-employee-section">
+                        <div className="gp-employee-section-header">
+                            <div className="gp-employee-section-title">
+                                <div className="gp-employee-section-icon">
+                                    <ContactRound size={16} />
                                 </div>
-                                <div className="col-md-4">
-                                    <label className="form-label">NIT</label>
-                                    <input
-                                        type="text"
-                                        name="nit"
-                                        value={empleado.nit}
-                                        onChange={handleChange}
-                                        placeholder="Nit"
-                                        className="form-control form-control-sm"
-                                    />
-                                </div>
-                            </div>
-                            <div className="row g-2">
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Tipo Identificación
-                                    </label>
-                                    '
-                                    <select
-                                        name="id_identificacion"
-                                        value={empleado.id_identificacion}
-                                        onChange={handleChange}
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                    >
-                                        <option value="">
-                                            Seleccionar Identificación
-                                        </option>
-                                        {identificaciones.map(
-                                            (identificacion) => (
-                                                <option
-                                                    key={
-                                                        identificacion.id_identificacion
-                                                    }
-                                                    value={
-                                                        identificacion.id_identificacion
-                                                    }
-                                                >
-                                                    {identificacion.nombre}
-                                                </option>
-                                            )
-                                        )}
-                                    </select>
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Número de identificación
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="numero_identificacion"
-                                        value={empleado.numero_identificacion}
-                                        onChange={handleChange}
-                                        placeholder="Número de identificación"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                    />
+
+                                <div>
+                                    <h2>
+                                        Datos personales
+                                    </h2>
+
+                                    <p>
+                                        Información de identificación
+                                        y contacto del empleado.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="row g-2">
-                                <div className="col-md-4">
-                                    <label className="form-label">
-                                        Teléfono casa
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="telefono_casa"
-                                        value={empleado.telefono_casa}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "telefono_casa",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
-                                        placeholder="Teléfono casa"
-                                        className="form-control form-control-sm"
-                                        inputMode="numeric"
-                                        maxLength={8}
-                                    />
+
+                            <div className="gp-employee-required-info">
+                                <span />
+                                Campos obligatorios
+                            </div>
+                        </div>
+
+
+                        <div className="gp-employee-grid">
+
+                            {/* NOMBRE */}
+
+                            <div className="gp-employee-field gp-col-8">
+                                <label>
+                                    Nombre completo
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="nombre"
+                                    value={empleado.nombre}
+                                    onChange={handleChange}
+                                    placeholder="Nombre completo del empleado"
+                                    className="gp-employee-input gp-required"
+                                    required
+                                />
+                            </div>
+
+
+                            {/* NIT */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    NIT
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="nit"
+                                    value={empleado.nit}
+                                    onChange={handleChange}
+                                    placeholder="Número de NIT"
+                                    className="gp-employee-input"
+                                />
+                            </div>
+
+
+                            {/* TIPO IDENTIFICACIÓN */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Tipo de identificación
+                                    <b>*</b>
+                                </label>
+
+                                <select
+                                    name="id_identificacion"
+                                    value={
+                                        empleado.id_identificacion
+                                    }
+                                    onChange={handleChange}
+                                    className="gp-employee-input gp-required"
+                                >
+                                    <option value="">
+                                        Seleccionar identificación
+                                    </option>
+
+                                    {identificaciones.map(
+                                        (identificacion) => (
+                                            <option
+                                                key={
+                                                    identificacion.id_identificacion
+                                                }
+                                                value={
+                                                    identificacion.id_identificacion
+                                                }
+                                            >
+                                                {
+                                                    identificacion.nombre
+                                                }
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
+
+
+                            {/* NÚMERO IDENTIFICACIÓN */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Número de identificación
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="numero_identificacion"
+                                    value={
+                                        empleado.numero_identificacion
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="Número de identificación"
+                                    className="gp-employee-input gp-required"
+                                />
+                            </div>
+
+
+                            {/* GÉNERO */}
+
+                            <div className="gp-employee-field gp-col-2">
+                                <label>
+                                    Género
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="genero"
+                                    value={empleado.genero}
+                                    onChange={handleChange}
+                                    placeholder="Género"
+                                    className="gp-employee-input"
+                                />
+                            </div>
+
+
+                            {/* NACIMIENTO */}
+
+                            <div className="gp-employee-field gp-col-2">
+                                <label>
+                                    Fecha nacimiento
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="fecha_nacimiento"
+                                    value={
+                                        empleado.fecha_nacimiento
+                                    }
+                                    onChange={handleChange}
+                                    className="gp-employee-input"
+                                />
+                            </div>
+
+
+                            {/* TELÉFONO CASA */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Teléfono casa
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="telefono_casa"
+                                    value={
+                                        empleado.telefono_casa
+                                    }
+                                    onChange={(e) => {
+                                        const value =
+                                            e.target.value.replace(
+                                                /\D/g,
+                                                "",
+                                            );
+
+                                        if (
+                                            value.length <= 8
+                                        ) {
+                                            handleChange({
+                                                target: {
+                                                    name: "telefono_casa",
+                                                    value,
+                                                },
+                                            });
+                                        }
+                                    }}
+                                    placeholder="00000000"
+                                    className="gp-employee-input"
+                                    inputMode="numeric"
+                                    maxLength={8}
+                                />
+                            </div>
+
+
+                            {/* CELULAR */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Celular
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="movil"
+                                    value={empleado.movil}
+                                    onChange={(e) => {
+                                        const value =
+                                            e.target.value.replace(
+                                                /\D/g,
+                                                "",
+                                            );
+
+                                        if (
+                                            value.length <= 8
+                                        ) {
+                                            handleChange({
+                                                target: {
+                                                    name: "movil",
+                                                    value,
+                                                },
+                                            });
+                                        }
+                                    }}
+                                    placeholder="00000000"
+                                    className="gp-employee-input gp-required"
+                                    inputMode="numeric"
+                                    maxLength={8}
+                                />
+                            </div>
+
+
+                            {/* OTRO TEL */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Otro teléfono
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="otro_telefono"
+                                    value={
+                                        empleado.otro_telefono
+                                    }
+                                    onChange={(e) => {
+                                        const value =
+                                            e.target.value.replace(
+                                                /\D/g,
+                                                "",
+                                            );
+
+                                        if (
+                                            value.length <= 8
+                                        ) {
+                                            handleChange({
+                                                target: {
+                                                    name: "otro_telefono",
+                                                    value,
+                                                },
+                                            });
+                                        }
+                                    }}
+                                    placeholder="00000000"
+                                    className="gp-employee-input"
+                                    inputMode="numeric"
+                                    maxLength={8}
+                                />
+                            </div>
+
+
+                            {/* CORREO PERSONAL */}
+
+                            <div className="gp-employee-field gp-col-6">
+                                <label>
+                                    Correo personal
+                                </label>
+
+                                <input
+                                    type="email"
+                                    name="correo_personal"
+                                    value={
+                                        empleado.correo_personal
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="correo@ejemplo.com"
+                                    className="gp-employee-input"
+                                />
+                            </div>
+
+
+                            {/* DIRECCIÓN */}
+
+                            <div className="gp-employee-field gp-col-6">
+                                <label>
+                                    Dirección
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="direccion"
+                                    value={
+                                        empleado.direccion
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="Dirección del empleado"
+                                    className="gp-employee-input"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+
+                    {/* =================================================
+                        SALUD / EMERGENCIA
+                       ================================================= */}
+
+                    <section className="gp-employee-section">
+                        <div className="gp-employee-section-header">
+                            <div className="gp-employee-section-title">
+                                <div className="gp-employee-section-icon gp-health-icon">
+                                    <HeartPulse size={16} />
                                 </div>
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Celular
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="movil"
-                                        value={empleado.movil}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "movil",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
-                                        placeholder="Celular"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                        inputMode="numeric"
-                                        maxLength={8}
-                                    />
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label">
-                                        Otro teléfono
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="otro_telefono"
-                                        value={empleado.otro_telefono}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "otro_telefono",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
-                                        placeholder="Otro teléfono"
-                                        className="form-control form-control-sm"
-                                        inputMode="numeric"
-                                        maxLength={8}
-                                    />
+
+                                <div>
+                                    <h2>
+                                        Salud y contacto de emergencia
+                                    </h2>
+
+                                    <p>
+                                        Información necesaria para
+                                        atención en caso de emergencia.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="row g-2">
-                                <div className="col-md-5">
-                                    <label className="form-label">
-                                        Correo personal
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="correo_personal"
-                                        value={empleado.correo_personal}
-                                        onChange={handleChange}
-                                        placeholder="Correo personal"
-                                        className="form-control form-control-sm"
-                                    />
+                        </div>
+
+
+                        <div className="gp-employee-grid">
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Problemas de salud
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="salud"
+                                    value={empleado.salud}
+                                    onChange={handleChange}
+                                    placeholder="Indicar o escribir NINGUNO"
+                                    className="gp-employee-input gp-required"
+                                />
+                            </div>
+
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Contacto de emergencia
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="contacto_emergencia"
+                                    value={
+                                        empleado.contacto_emergencia
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="Nombre del contacto"
+                                    className="gp-employee-input gp-required"
+                                />
+                            </div>
+
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Teléfono de emergencia
+                                    <b>*</b>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="telefono_emergencia"
+                                    value={
+                                        empleado.telefono_emergencia
+                                    }
+                                    onChange={(e) => {
+                                        const value =
+                                            e.target.value.replace(
+                                                /\D/g,
+                                                "",
+                                            );
+
+                                        if (
+                                            value.length <= 8
+                                        ) {
+                                            handleChange({
+                                                target: {
+                                                    name: "telefono_emergencia",
+                                                    value,
+                                                },
+                                            });
+                                        }
+                                    }}
+                                    placeholder="00000000"
+                                    className="gp-employee-input gp-required"
+                                    inputMode="numeric"
+                                    maxLength={8}
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+
+                    {/* =================================================
+                        EMPRESA
+                       ================================================= */}
+
+                    <section className="gp-employee-section">
+                        <div className="gp-employee-section-header">
+                            <div className="gp-employee-section-title">
+                                <div className="gp-employee-section-icon">
+                                    <BriefcaseBusiness size={16} />
                                 </div>
-                                <div className="col-md-2">
-                                    <label className="form-label">Género</label>
-                                    <input
-                                        type="text"
-                                        name="genero"
-                                        value={empleado.genero}
-                                        onChange={handleChange}
-                                        placeholder="Género"
-                                        className="form-control form-control-sm"
-                                    />
-                                </div>
-                                <div className="col-md-2">
-                                    <label className="form-label">
-                                        Fecha nacimiento
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="fecha_nacimiento"
-                                        value={empleado.fecha_nacimiento}
-                                        onChange={handleChange}
-                                        placeholder="Fecha nacimiento"
-                                        className="form-control form-control-sm"
-                                    />
+
+                                <div>
+                                    <h2>
+                                        Información de la empresa
+                                    </h2>
+
+                                    <p>
+                                        Área, puesto e información
+                                        administrativa del empleado.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="row g-2">
-                                <div className="col-md-6">
-                                    <label className="form-label">
-                                        Dirección
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="direccion"
-                                        value={empleado.direccion}
-                                        onChange={handleChange}
-                                        placeholder="Dirección"
-                                        className="form-control form-control-sm"
-                                    />
-                                </div>
-                            </div>
-                        </FormSection>
-                        <FormSection title="Información de salud y contacto de emergencia">
-                            <div className="row g-2">
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Problemas de salud
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="salud"
-                                        value={empleado.salud}
-                                        onChange={handleChange}
-                                        placeholder="Problemas de salud"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                    />
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Contacto emergencia
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="contacto_emergencia"
-                                        value={empleado.contacto_emergencia}
-                                        onChange={handleChange}
-                                        placeholder="Contacto emergencia"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                    />
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label campo-obligatorio-label">
-                                        Teléfono emergencia
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="telefono_emergencia"
-                                        value={empleado.telefono_emergencia}
-                                        //onChange={handleChange}
-                                        onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                ); // Solo números
-                                            if (value.length <= 8) {
-                                                handleChange({
-                                                    target: {
-                                                        name: "telefono_emergencia",
-                                                        value,
-                                                    },
-                                                });
-                                            }
-                                        }}
-                                        placeholder="Teléfono emergencia"
-                                        className="form-control form-control-sm campo-obligatorio-fondo"
-                                        inputMode="numeric"
-                                        maxLength={8}
-                                    />
-                                </div>
-                            </div>
-                        </FormSection>
-                        <FormSection title="Información de la empresa">
-                            <div className="row g-2">
-                                <div className="col-md-6">
-                                    <label className="form-label">Área</label>
-                                    <select
-                                        name="id_departamento"
-                                        value={empleado.id_departamento}
-                                        onChange={handleDepartamentoChange}
-                                        className="form-control form-control-sm"
-                                    >
-                                        <option value="">
-                                            Seleccionar Área
-                                        </option>
-                                        {departamentos.map((departamento) => (
+                        </div>
+
+
+                        <div className="gp-employee-grid">
+
+                            {/* ÁREA */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Área de trabajo
+                                    <b>*</b>
+                                </label>
+
+                                <select
+                                    name="id_departamento"
+                                    value={
+                                        empleado.id_departamento
+                                    }
+                                    onChange={
+                                        handleDepartamentoChange
+                                    }
+                                    className="gp-employee-input gp-required"
+                                >
+                                    <option value="">
+                                        Seleccionar área
+                                    </option>
+
+                                    {departamentos.map(
+                                        (departamento) => (
                                             <option
                                                 key={
                                                     departamento.id_departamento
@@ -598,146 +842,223 @@ function EmpleadoForm() {
                                                     departamento.id_departamento
                                                 }
                                             >
-                                                {departamento.nombre}
+                                                {
+                                                    departamento.nombre
+                                                }
                                             </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">Puesto</label>
-                                    <select
-                                        name="id_puesto"
-                                        value={empleado.id_puesto}
-                                        onChange={handleChange}
-                                        className="form-control form-control-sm"
-                                    >
-                                        <option value="">
-                                            Seleccionar Puesto
-                                        </option>
-                                        {puestos.map((puesto) => (
-                                            <option
-                                                key={puesto.id_puesto}
-                                                value={puesto.id_puesto}
-                                            >
-                                                {puesto.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                        ),
+                                    )}
+                                </select>
                             </div>
-                            <div className="row g-2">
-                                <div className="col-md-2">
-                                    <label className="form-label">
-                                        Fecha ingreso
-                                    </label>
+
+
+                            {/* PUESTO */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Puesto
+                                    <b>*</b>
+                                </label>
+
+                                <select
+                                    name="id_puesto"
+                                    value={
+                                        empleado.id_puesto
+                                    }
+                                    onChange={handleChange}
+                                    className="gp-employee-input gp-required"
+                                    disabled={
+                                        !empleado.id_departamento
+                                    }
+                                >
+                                    <option value="">
+                                        {empleado.id_departamento
+                                            ? "Seleccionar puesto"
+                                            : "Seleccione primero un área"}
+                                    </option>
+
+                                    {puestos.map(
+                                        (puesto) => (
+                                            <option
+                                                key={
+                                                    puesto.id_puesto
+                                                }
+                                                value={
+                                                    puesto.id_puesto
+                                                }
+                                            >
+                                                {
+                                                    puesto.nombre
+                                                }
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
+
+
+                            {/* FECHA INGRESO */}
+
+                            <div className="gp-employee-field gp-col-4">
+                                <label>
+                                    Fecha de ingreso
+                                </label>
+
+                                <div className="gp-employee-date">
+                                    <CalendarDays
+                                        size={14}
+                                    />
+
                                     <input
                                         type="date"
                                         name="fecha_ingreso"
-                                        value={empleado.fecha_ingreso}
+                                        value={
+                                            empleado.fecha_ingreso
+                                        }
                                         onChange={handleChange}
-                                        placeholder="Fecha ingreso"
-                                        className="form-control form-control-sm"
-                                    />
-                                </div>
-                                <div className="col-md-5">
-                                    <label className="form-label">
-                                        Correo empresa
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="correo_empresa"
-                                        value={empleado.correo_empresa}
-                                        onChange={handleChange}
-                                        placeholder="Correo empresa"
-                                        className="form-control form-control-sm"
+                                        className="gp-employee-input"
                                     />
                                 </div>
                             </div>
-                            <div className="row g-2">
-                                <div className="col-md-4">
-                                    <label className="form-label">
-                                        Departamento
-                                    </label>
-                                    <select
-                                        name="id_departamentopais"
-                                        value={empleado.id_departamentopais}
-                                        onChange={handleChange}
-                                        className="form-control form-control-sm"
-                                    >
-                                        <option value="">
-                                            Seleccionar Departamento
-                                        </option>
-                                        {departamentosPais.map(
-                                            (departamentoPais) => (
-                                                <option
-                                                    key={
-                                                        departamentoPais.iddepartamentopais
-                                                    }
-                                                    value={
-                                                        departamentoPais.iddepartamentopais
-                                                    }
-                                                >
-                                                    {departamentoPais.nombre}
-                                                </option>
-                                            )
-                                        )}
-                                    </select>
-                                </div>
-                                <div className="col-md-8">
-                                    <label className="form-label">
-                                        Observaciones
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="observaciones"
-                                        value={empleado.observaciones}
-                                        onChange={handleChange}
-                                        placeholder="Observaciones"
-                                        className="form-control form-control-sm"
-                                    />
-                                </div>
+
+
+                            {/* CORREO EMPRESA */}
+
+                            <div className="gp-employee-field gp-col-6">
+                                <label>
+                                    Correo empresa
+                                </label>
+
+                                <input
+                                    type="email"
+                                    name="correo_empresa"
+                                    value={
+                                        empleado.correo_empresa
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="empleado@empresa.com"
+                                    className="gp-employee-input"
+                                />
                             </div>
-                        </FormSection>
-                        <div
-                            className="mt-4 p-3 border rounded shadow-sm bg-light"
-                            style={{ borderColor: "#ddd" }}
-                        >
-                            <div className="d-flex flex-wrap gap-2 justify-content-end">
-                                <button
-                                    type="submit"
-                                    className="btn btn-sm btn-guardar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{ minWidth: "150px" }}
+
+
+                            {/* DEPTO PAÍS */}
+
+                            <div className="gp-employee-field gp-col-6">
+                                <label>
+                                    Departamento
+                                </label>
+
+                                <select
+                                    name="id_departamentopais"
+                                    value={
+                                        empleado.id_departamentopais
+                                    }
+                                    onChange={handleChange}
+                                    className="gp-employee-input"
                                 >
-                                    <FaSave /> GUARDAR
-                                </button>
-                                <button
-                                    type="button" // Importante: no es un botón de submit
-                                    className="btn btn-sm btn-limpiar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{
-                                        minWidth: "150px",
-                                        color: "#000",
-                                        border: "1px solid #ccc",
-                                    }}
-                                    onClick={limpiarCampos} // Asocia la función al evento onClick
-                                >
-                                    <FaBroom />{" "}
-                                    {/* Puedes usar otro icono como FaBroom */}{" "}
-                                    LIMPIAR
-                                </button>
-                                <Link
-                                    to="/empleados/lista"
-                                    className="btn btn-sm btn-consultar d-flex align-items-center justify-content-center gap-2 flex-fill"
-                                    style={{ minWidth: "150px" }}
-                                >
-                                    <FaSearch /> CONSULTAR
-                                </Link>
+                                    <option value="">
+                                        Seleccionar departamento
+                                    </option>
+
+                                    {departamentosPais.map(
+                                        (
+                                            departamentoPais,
+                                        ) => (
+                                            <option
+                                                key={
+                                                    departamentoPais.iddepartamentopais
+                                                }
+                                                value={
+                                                    departamentoPais.iddepartamentopais
+                                                }
+                                            >
+                                                {
+                                                    departamentoPais.nombre
+                                                }
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
+
+
+                            {/* OBSERVACIONES */}
+
+                            <div className="gp-employee-field gp-col-12">
+                                <label>
+                                    Observaciones
+                                </label>
+
+                                <textarea
+                                    name="observaciones"
+                                    value={
+                                        empleado.observaciones
+                                    }
+                                    onChange={handleChange}
+                                    placeholder="Información adicional del empleado..."
+                                    className="gp-employee-input gp-employee-textarea"
+                                    rows={3}
+                                />
                             </div>
                         </div>
-                    </form>
+                    </section>
                 </div>
-            </div>
+
+
+                {/* =================================================
+                    ACCIONES
+                   ================================================= */}
+
+                <div className="gp-employee-actions">
+
+                    <div className="gp-employee-actions-info">
+                        <span>
+                            <b>*</b> Campos requeridos para guardar
+                            el empleado.
+                        </span>
+                    </div>
+
+
+                    <div className="gp-employee-actions-buttons">
+
+                        <button
+                            type="button"
+                            className="gp-employee-action gp-employee-clear"
+                            onClick={limpiarCampos}
+                        >
+                            <Eraser size={15} />
+
+                            Limpiar
+                        </button>
+
+
+                        <Link
+                            to="/empleados/lista"
+                            className="gp-employee-action gp-employee-search"
+                        >
+                            <Search size={15} />
+
+                            Consultar
+                        </Link>
+
+
+                        <button
+                            type="submit"
+                            className="gp-employee-action gp-employee-save"
+                        >
+                            <Save size={15} />
+
+                            {id
+                                ? "Actualizar empleado"
+                                : "Guardar empleado"}
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    );
+    </div>
+);
 }
 
 export default EmpleadoForm;

@@ -1,131 +1,531 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import Login from './components/Login';
-import Home from './components/Home'; // Crea un componente Home
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Empleado from './components/EmpleadoForm';
-import ListaEmpleados from './components/ListaEmpleados';
-import EditarEmpleado from './components/EmpleadoForm'; // Importa el componente EditarEmpleado
-import Clientes from './components/ClienteRegistro';
-import ListaClientes from './components/ListaClientes';
-import EditarCliente from './components/ClienteRegistro'; // Importa el componente EditarCliente
-import ContactoCliente from './components/ContactoClienteForm';
-import ListaContactoCliente from './components/ListaContactoCliente';
-import EditarContactoCliente from './components/ContactoClienteForm'; // Importa el componente EditarContactoCliente
-import RegistroCotizacion from './components/CotizacionForm';
-import ListaCotizaciones from './components/ListaCotizaciones';
-import EditarCotizacion from './components/CotizacionForm';
-import ListaCotizacionesCosteo from './components/ListaCotizacionesCoteo';
-import CotizacionCosteo from './components/CotizacionCosteo';
-import RegistroProductoPredefinido from './components/ProductoPredefinidoForm';
-import ListaProductoPredefinido from './components/ListaProductosPredefinidos';
-import EditarProductoPredefinido from './components/ProductoPredefinidoForm';
-import MonitorFacturacion from './components/MonitorFacturacion';
-import ListaCotizacionesParaCosteo from './components/ListaCotizacionesCosteo';
-import ListaCotizacionesPreFacturacion from './components/CotizacionesPreFacturacion'; 
-import RegistroPedidoProduccion from './components/PedidoProduccion'; 
-import ListaPedidosProduccion from './components/PedidoProduccionLista'; 
-import EditarPedidoProduccion from './components/PedidoProduccion';
-import CuentasPorCobrarFiltro from './components/CuentasPorCobrarFiltro'; 
-import ReciboRegistro from './components/ReciboRegistro';
-import ReciboEditar from './components/ReciboRegistro';
-import ReciboConsulta from './components/RecibosConsulta';
-import ConsultaCotizacionesContabilidad from './components/CotizacionesConsultaContabilidad';
-import CarteraClientesContabilidad from './components/reportes/contabilidad/ReporteCartera';
-import ClienteContactosForm from './components/ClienteContactosForm'; 
-import VentasPrefacturacion from './components/reportes/contabilidad/ReportePrefacturacion'; 
-import ResumenFactuasPagadas from './components/reportes/contabilidad/ResumenFacturasPagadas';
-import ResumenVentasPorVendedor from './components/reportes/contabilidad/ReporteVentasPorCliente';
-import FacturasAnuladas from './components/reportes/contabilidad/ReporteFacturasAnuladas.jsx';
-import ReporteNotasAjuste from './components/reportes/contabilidad/ReporteNotasAjuste.jsx';
-import ReporteCuentasPorCobrar from './components/reportes/contabilidad/ReporteCuentasPorCobrar.jsx';
-import AreaTrabajoForm from './components/AreaTrabajoForm.jsx';
-import ListaAreaTrabajo from './components/ListaAreaTrabajo.jsx';
-import MonitorProduccion from './components/MonitorProduccion.jsx';
-// Si necesitas un layout común, puedes importar un componente de layout aquí
-import Layout from './components/Layout'; // Nuevo layout
-//import Header from './components/Header'; // Por si acaso
-import '../css/generalesForm.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+/* =========================================================
+   COMPONENTES PRINCIPALES
+========================================================= */
+
+import Login from "./components/Login";
+import Home from "./components/Home";
+import Layout from "./components/Layout";
+
+/* =========================================================
+   EMPLEADOS
+========================================================= */
+
+import Empleado from "./components/EmpleadoForm";
+import ListaEmpleados from "./components/ListaEmpleados";
+import EditarEmpleado from "./components/EmpleadoForm";
+
+/* =========================================================
+   CLIENTES
+========================================================= */
+
+import Clientes from "./components/ClienteRegistro";
+import ListaClientes from "./components/ListaClientes";
+import EditarCliente from "./components/ClienteRegistro";
+
+/* =========================================================
+   CONTACTOS CLIENTE
+========================================================= */
+
+import ContactoCliente from "./components/ContactoClienteForm";
+import ListaContactoCliente from "./components/ListaContactoCliente";
+import EditarContactoCliente from "./components/ContactoClienteForm";
+
+/* =========================================================
+   COTIZACIONES
+========================================================= */
+
+import RegistroCotizacion from "./components/CotizacionForm";
+import ListaCotizaciones from "./components/ListaCotizaciones";
+import EditarCotizacion from "./components/CotizacionForm";
+
+import ListaCotizacionesCosteo from "./components/ListaCotizacionesCoteo";
+import CotizacionCosteo from "./components/CotizacionCosteo";
+
+import ListaCotizacionesParaCosteo from "./components/ListaCotizacionesCosteo";
+import ListaCotizacionesPreFacturacion from "./components/CotizacionesPreFacturacion";
+
+import MonitorFacturacion from "./components/MonitorFacturacion";
+
+/* =========================================================
+   PRODUCTOS PREDEFINIDOS
+========================================================= */
+
+import RegistroProductoPredefinido from "./components/ProductoPredefinidoForm";
+import ListaProductoPredefinido from "./components/ListaProductosPredefinidos";
+import EditarProductoPredefinido from "./components/ProductoPredefinidoForm";
+
+/* =========================================================
+   PRODUCCIÓN
+========================================================= */
+
+import RegistroPedidoProduccion from "./components/PedidoProduccion";
+import ListaPedidosProduccion from "./components/PedidoProduccionLista";
+import EditarPedidoProduccion from "./components/PedidoProduccion";
+
+import MonitorProduccion from "./components/MonitorProduccion.jsx";
+
 import MaquinasProduccion from "./components/pedidosproduccion/maquinas/MaquinasProduccion";
+
+/* =========================================================
+   ÁREAS DE TRABAJO
+========================================================= */
+
+import AreaTrabajoForm from "./components/AreaTrabajoForm.jsx";
+import ListaAreaTrabajo from "./components/ListaAreaTrabajo.jsx";
+
+/* =========================================================
+   LOGÍSTICA
+========================================================= */
+
 import AutorizacionALogistica from "./components/AutorizacionALogistica";
 import LogisticaProduccionMonitor from "./components/LogisticaProduccionMonitor";
 
+/* =========================================================
+   RECIBOS
+========================================================= */
+
+import ReciboRegistro from "./components/ReciboRegistro";
+import ReciboEditar from "./components/ReciboRegistro";
+import ReciboConsulta from "./components/RecibosConsulta";
+
+/* =========================================================
+   CONTABILIDAD / REPORTES
+========================================================= */
+
+import CuentasPorCobrarFiltro from "./components/CuentasPorCobrarFiltro";
+
+import ConsultaCotizacionesContabilidad from "./components/CotizacionesConsultaContabilidad";
+
+import CarteraClientesContabilidad from "./components/reportes/contabilidad/ReporteCartera";
+
+import VentasPrefacturacion from "./components/reportes/contabilidad/ReportePrefacturacion";
+
+import ResumenFactuasPagadas from "./components/reportes/contabilidad/ResumenFacturasPagadas";
+
+import ResumenVentasPorVendedor from "./components/reportes/contabilidad/ReporteVentasPorCliente";
+
+import FacturasAnuladas from "./components/reportes/contabilidad/ReporteFacturasAnuladas.jsx";
+
+import ReporteNotasAjuste from "./components/reportes/contabilidad/ReporteNotasAjuste.jsx";
+
+import ReporteCuentasPorCobrar from "./components/reportes/contabilidad/ReporteCuentasPorCobrar.jsx";
+
+import AutorizacionPedidosProduccion from "./components/AutorizacionPedidosProduccion";
+
+/* =========================================================
+   OTROS
+========================================================= */
+
+import ClienteContactosForm from "./components/ClienteContactosForm";
+
+/* =========================================================
+   CSS / BOOTSTRAP
+========================================================= */
+
+import "../css/generalesForm.css";
+import "../css/gp-modules.css";
+
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+
+import ProgramacionLogisticaVentas from "./components/logistica-ventas/ProgramacionLogisticaVentas";
+import CalendarioLogisticaVentas from "./components/logistica-ventas/CalendarioLogisticaVentas";
+import LogisticaVentasRutas from "./components/logistica-ventas/LogisticaVentasRutas";
+
+import LogisticaVentasPilotos from "./components/logistica-ventas/LogisticaVentasPilotos";
+
+import LogisticaVentasVehiculos from "./components/logistica-ventas/LogisticaVentasVehiculos";
+
+/* =========================================================
+   APLICACIÓN
+========================================================= */
+
 function App() {
-    // Función para verificar si el usuario está autenticado
+    /* =====================================================
+       VERIFICAR AUTENTICACIÓN
+    ===================================================== */
+
     const isAuthenticated = () => {
-        const token = localStorage.getItem('token');
-        return !!token; // Devuelve true si hay un token, false si no
+        const token = localStorage.getItem("token");
+
+        return !!token;
     };
 
-    // Componente para proteger rutas
+    /* =====================================================
+       RUTA PROTEGIDA
+    ===================================================== */
+
     const ProtectedRoute = ({ children }) => {
         if (!isAuthenticated()) {
-            return <Navigate to="/" />; // Redirige a /login si no está autenticado
+            return <Navigate to="/" replace />;
         }
+
         return children;
     };
-    
+
+    /* =====================================================
+       ROUTES
+    ===================================================== */
+
     return (
         <BrowserRouter>
             <Routes>
+                {/* =================================================
+                    LOGIN
+                ================================================= */}
+
                 <Route path="/" element={<Login />} />
-                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                {/* <Route element={<Layout />}> */}
-                    <Route path="/empleados/crear" element={<ProtectedRoute><Empleado /></ProtectedRoute>} />
-                    <Route path="/empleados/lista" element={<ProtectedRoute><ListaEmpleados /></ProtectedRoute>} />
-                    <Route path="/empleados/editar/:id" element={<ProtectedRoute><EditarEmpleado /></ProtectedRoute>} /> {/* Agrega esta ruta */}
-                    <Route path="/clientes/crear" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-                    <Route path="/clientes/lista" element={<ProtectedRoute><ListaClientes /></ProtectedRoute>} />
-                    <Route path="/clientes/editar/:id" element={<ProtectedRoute><EditarCliente /></ProtectedRoute>} /> {/* Agrega esta ruta */}
-                    <Route path="/contacto_cliente/crear" element={<ProtectedRoute><ContactoCliente /></ProtectedRoute>} />
-                    <Route path="/contacto_cliente/lista" element={<ProtectedRoute><ListaContactoCliente /></ProtectedRoute>} />
-                    <Route path="/contacto_cliente/editar/:id" element={<ProtectedRoute><EditarContactoCliente /></ProtectedRoute>} /> Agrega esta ruta
-                    <Route path="/cotizaciones/crear" element={<ProtectedRoute><RegistroCotizacion /></ProtectedRoute>} />
-                    <Route path="/cotizaciones/lista" element={<ProtectedRoute><ListaCotizaciones /></ProtectedRoute>} />
-                    <Route path="/cotizaciones/editar/:id" element={<ProtectedRoute><EditarCotizacion /></ProtectedRoute>} /> Agrega esta ruta
-                    <Route path="/costeocotizaciones/lista" element={<ProtectedRoute><ListaCotizacionesCosteo /></ProtectedRoute>} />
-                    <Route path="/costeocotizaciones/costeo/:id" element={<ProtectedRoute><CotizacionCosteo /></ProtectedRoute>} />
-                    <Route path="/productospredefinidos/crear" element={<ProtectedRoute><RegistroProductoPredefinido /></ProtectedRoute>} />
-                    <Route path="/productospredefinidos/lista" element={<ProtectedRoute><ListaProductoPredefinido /></ProtectedRoute>} />
-                    <Route path="/productospredefinidos/editar/:id" element={<ProtectedRoute><EditarProductoPredefinido /></ProtectedRoute>} />
-                    <Route path="/monitorfacturacion/lista" element={<ProtectedRoute><MonitorFacturacion /></ProtectedRoute>} />
-                    <Route path="/cotizacionescosteo/lista" element={<ProtectedRoute><ListaCotizacionesParaCosteo /></ProtectedRoute>} />
-                    <Route path="/cotizacionesprefacturacion/lista" element={<ProtectedRoute><ListaCotizacionesPreFacturacion /></ProtectedRoute>} />
-                    <Route path="/pedidosproduccion/crear" element={<ProtectedRoute><RegistroPedidoProduccion /></ProtectedRoute>} />
-                    <Route path="/pedidosproduccion/lista" element={<ProtectedRoute><ListaPedidosProduccion /></ProtectedRoute>} />
-                    <Route path="/pedidosproduccion/editar/:id" element={<ProtectedRoute><EditarPedidoProduccion /></ProtectedRoute>} /> {/* Agrega esta ruta */}
-                    <Route path="/cuentas-por-cobrar/lista" element={<ProtectedRoute><CuentasPorCobrarFiltro /></ProtectedRoute>} />
-                    <Route path="/recibos/crear" element={<ProtectedRoute><ReciboRegistro /></ProtectedRoute>} />
-                    <Route path="/recibos/editar/:id" element={<ProtectedRoute><ReciboEditar /></ProtectedRoute>} />
-                    <Route path="/recibos/lista" element={<ProtectedRoute><ReciboConsulta /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/cotizaciones" element={<ProtectedRoute><ConsultaCotizacionesContabilidad /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/cartera" element={<ProtectedRoute><CarteraClientesContabilidad /></ProtectedRoute>} />
-                    <Route path="/clientes/datos" element={<ProtectedRoute><ClienteContactosForm /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/prefacturacion" element={<ProtectedRoute><VentasPrefacturacion /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/facturas-pagadas" element={<ProtectedRoute><ResumenFactuasPagadas /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/ventas-vendedor" element={<ProtectedRoute><ResumenVentasPorVendedor /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/facturas-anuladas" element={<ProtectedRoute><FacturasAnuladas /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/notas-ajuste" element={<ProtectedRoute><ReporteNotasAjuste /></ProtectedRoute>} />
-                    <Route path="/reportes/contabilidad/cuentas-por-cobrar" element={<ProtectedRoute><ReporteCuentasPorCobrar /></ProtectedRoute>} />
 
-                    <Route path="/area_trabajo/nuevo" element={<ProtectedRoute><AreaTrabajoForm /></ProtectedRoute>} />
-                    <Route path="/area_trabajo/editar/:id" element={<ProtectedRoute><AreaTrabajoForm /></ProtectedRoute>} />
-                    <Route path="/area_trabajo/lista" element={<ProtectedRoute><ListaAreaTrabajo /></ProtectedRoute>} />
+                {/* =================================================
+                    TODA LA APLICACIÓN AUTENTICADA
 
-                    <Route path="/monitor_produccion" element={<ProtectedRoute><MonitorProduccion /></ProtectedRoute>} />
-                    <Route path="/maquinas_produccion" element={<ProtectedRoute><MaquinasProduccion /></ProtectedRoute>} />
-                    <Route path="/autorizacion_logistica/lista" element={<ProtectedRoute><AutorizacionALogistica /></ProtectedRoute>} />
-                    <Route path="/logistica_produccion/monitor" element={<ProtectedRoute><LogisticaProduccionMonitor /></ProtectedRoute>} />
-                {/* </Route> */}
+                    Layout contiene:
+                    - Sidebar
+                    - Topbar
+                    - Usuario
+                    - Logout
+                    - Permisos
+                    - Outlet
+                ================================================= */}
+
+                <Route
+                    element={
+                        <ProtectedRoute>
+                            <Layout />
+                        </ProtectedRoute>
+                    }
+                >
+                    {/* =============================================
+                        HOME
+                    ============================================= */}
+
+                    <Route path="/home" element={<Home />} />
+
+                    {/* =============================================
+                        EMPLEADOS
+                    ============================================= */}
+
+                    <Route path="/empleados/crear" element={<Empleado />} />
+
+                    <Route
+                        path="/empleados/lista"
+                        element={<ListaEmpleados />}
+                    />
+
+                    <Route
+                        path="/empleados/editar/:id"
+                        element={<EditarEmpleado />}
+                    />
+
+                    {/* =============================================
+                        CLIENTES
+                    ============================================= */}
+
+                    <Route path="/clientes/crear" element={<Clientes />} />
+
+                    <Route path="/clientes/lista" element={<ListaClientes />} />
+
+                    <Route
+                        path="/clientes/editar/:id"
+                        element={<EditarCliente />}
+                    />
+
+                    <Route
+                        path="/clientes/datos"
+                        element={<ClienteContactosForm />}
+                    />
+
+                    {/* =============================================
+                        CONTACTOS CLIENTE
+                    ============================================= */}
+
+                    <Route
+                        path="/contacto_cliente/crear"
+                        element={<ContactoCliente />}
+                    />
+
+                    <Route
+                        path="/contacto_cliente/lista"
+                        element={<ListaContactoCliente />}
+                    />
+
+                    <Route
+                        path="/contacto_cliente/editar/:id"
+                        element={<EditarContactoCliente />}
+                    />
+
+                    {/* =============================================
+                        COTIZACIONES
+                    ============================================= */}
+
+                    <Route
+                        path="/cotizaciones/crear"
+                        element={<RegistroCotizacion />}
+                    />
+
+                    <Route
+                        path="/cotizaciones/lista"
+                        element={<ListaCotizaciones />}
+                    />
+
+                    <Route
+                        path="/cotizaciones/editar/:id"
+                        element={<EditarCotizacion />}
+                    />
+
+                    {/* =============================================
+                        COSTEO COTIZACIONES
+                    ============================================= */}
+
+                    <Route
+                        path="/costeocotizaciones/lista"
+                        element={<ListaCotizacionesCosteo />}
+                    />
+
+                    <Route
+                        path="/costeocotizaciones/costeo/:id"
+                        element={<CotizacionCosteo />}
+                    />
+
+                    <Route
+                        path="/cotizacionescosteo/lista"
+                        element={<ListaCotizacionesParaCosteo />}
+                    />
+
+                    {/* =============================================
+                        PRE-FACTURACIÓN / FACTURACIÓN
+                    ============================================= */}
+
+                    <Route
+                        path="/cotizacionesprefacturacion/lista"
+                        element={<ListaCotizacionesPreFacturacion />}
+                    />
+
+                    <Route
+                        path="/monitorfacturacion/lista"
+                        element={<MonitorFacturacion />}
+                    />
+
+                    {/* =============================================
+                        PRODUCTOS PREDEFINIDOS
+                    ============================================= */}
+
+                    <Route
+                        path="/productospredefinidos/crear"
+                        element={<RegistroProductoPredefinido />}
+                    />
+
+                    <Route
+                        path="/productospredefinidos/lista"
+                        element={<ListaProductoPredefinido />}
+                    />
+
+                    <Route
+                        path="/productospredefinidos/editar/:id"
+                        element={<EditarProductoPredefinido />}
+                    />
+
+                    {/* =============================================
+                        PEDIDOS DE PRODUCCIÓN
+                    ============================================= */}
+
+                    <Route
+                        path="/pedidosproduccion/crear"
+                        element={<RegistroPedidoProduccion />}
+                    />
+
+                    <Route
+                        path="/pedidosproduccion/lista"
+                        element={<ListaPedidosProduccion />}
+                    />
+
+                    <Route
+                        path="/pedidosproduccion/editar/:id"
+                        element={<EditarPedidoProduccion />}
+                    />
+
+                    {/* =============================================
+                        MONITOR PRODUCCIÓN
+                    ============================================= */}
+
+                    <Route
+                        path="/monitor_produccion"
+                        element={<MonitorProduccion />}
+                    />
+
+                    <Route
+                        path="/maquinas_produccion"
+                        element={<MaquinasProduccion />}
+                    />
+
+                    {/* =============================================
+                        ÁREAS DE TRABAJO
+                    ============================================= */}
+
+                    <Route
+                        path="/area_trabajo/nuevo"
+                        element={<AreaTrabajoForm />}
+                    />
+
+                    <Route
+                        path="/area_trabajo/editar/:id"
+                        element={<AreaTrabajoForm />}
+                    />
+
+                    <Route
+                        path="/area_trabajo/lista"
+                        element={<ListaAreaTrabajo />}
+                    />
+
+                    {/* =============================================
+                        LOGÍSTICA
+                    ============================================= */}
+
+                    <Route
+                        path="/autorizacion_logistica/lista"
+                        element={<AutorizacionALogistica />}
+                    />
+
+                    <Route
+                        path="/logistica_produccion/monitor"
+                        element={<LogisticaProduccionMonitor />}
+                    />
+
+                    {/* =============================================
+                        RECIBOS
+                    ============================================= */}
+
+                    <Route path="/recibos/crear" element={<ReciboRegistro />} />
+
+                    <Route
+                        path="/recibos/editar/:id"
+                        element={<ReciboEditar />}
+                    />
+
+                    <Route path="/recibos/lista" element={<ReciboConsulta />} />
+
+                    {/* =============================================
+                        CUENTAS POR COBRAR
+                    ============================================= */}
+
+                    <Route
+                        path="/cuentas-por-cobrar/lista"
+                        element={<CuentasPorCobrarFiltro />}
+                    />
+
+                    {/* =============================================
+                            AUTORIZACIÓN PEDIDOS - CONTABILIDAD
+                        ============================================= */}
+
+                    <Route
+                        path="/pedidosproduccion/autorizacion-contabilidad"
+                        element={<AutorizacionPedidosProduccion />}
+                    />
+
+                    {/* =============================================
+                        REPORTES CONTABILIDAD
+                    ============================================= */}
+
+                    <Route
+                        path="/reportes/contabilidad/cotizaciones"
+                        element={<ConsultaCotizacionesContabilidad />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/cartera"
+                        element={<CarteraClientesContabilidad />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/prefacturacion"
+                        element={<VentasPrefacturacion />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/facturas-pagadas"
+                        element={<ResumenFactuasPagadas />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/ventas-vendedor"
+                        element={<ResumenVentasPorVendedor />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/facturas-anuladas"
+                        element={<FacturasAnuladas />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/notas-ajuste"
+                        element={<ReporteNotasAjuste />}
+                    />
+
+                    <Route
+                        path="/reportes/contabilidad/cuentas-por-cobrar"
+                        element={<ReporteCuentasPorCobrar />}
+                    />
+
+                    {/* =================================================
+                    LOGISTICA DE VENTAS
+                ================================================= */}
+
+                    <Route
+                        path="/logistica-ventas/programacion"
+                        element={<ProgramacionLogisticaVentas />}
+                    />
+
+                    <Route
+                        path="/logistica-ventas/calendario"
+                        element={<CalendarioLogisticaVentas />}
+                    />
+
+                    <Route
+                        path="/logistica-ventas/rutas"
+                        element={<LogisticaVentasRutas />}
+                    />
+                    <Route
+                        path="/logistica-ventas/pilotos"
+                        element={<LogisticaVentasPilotos />}
+                    />
+
+                    <Route
+                        path="/logistica-ventas/vehiculos"
+                        element={<LogisticaVentasVehiculos />}
+                    />
+                </Route>
+
+                {/* =================================================
+                    RUTA NO ENCONTRADA
+                ================================================= */}
+
+                <Route
+                    path="*"
+                    element={
+                        isAuthenticated() ? (
+                            <Navigate to="/home" replace />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
+                    }
+                />
             </Routes>
         </BrowserRouter>
     );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+/* =========================================================
+   RENDER
+========================================================= */
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
 root.render(
     <React.StrictMode>
         <App />
-    </React.StrictMode>
+    </React.StrictMode>,
 );
