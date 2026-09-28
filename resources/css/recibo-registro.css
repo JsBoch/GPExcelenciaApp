@@ -445,25 +445,6 @@
 }
 
 
-/* MONTO INLINE */
-
-.gp-receipt-amount-input {
-    width: 125px;
-}
-
-.gp-receipt-amount-input
-    .MuiOutlinedInput-root {
-    height: 30px;
-}
-
-.gp-receipt-amount-input
-    input {
-    padding: 5px 7px !important;
-
-    font-size: 9px;
-}
-
-
 /* =========================================================
    FORMULARIO
    ========================================================= */
@@ -967,4 +948,65 @@
     .gp-receipt-heading-icon {
         display: none;
     }
+}
+
+/* =========================================================
+   MONTO A PAGAR
+   ========================================================= */
+
+.gp-receipt-table
+    .gp-receipt-amount-cell {
+    width: 150px;
+    min-width: 150px;
+
+    padding: 5px 8px;
+
+    vertical-align: middle;
+}
+
+.gp-receipt-table
+    .gp-receipt-inline-amount {
+    display: block !important;
+
+    width: 125px !important;
+
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+
+    margin: 0 0 0 auto !important;
+    padding: 0 8px !important;
+
+    box-sizing: border-box !important;
+
+    color: #27364a !important;
+    background: #fff !important;
+
+    border: 1px solid #cad4de !important;
+    border-radius: 6px !important;
+
+    outline: none !important;
+
+    font-family: inherit !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+
+    line-height: 30px !important;
+    text-align: right !important;
+
+    position: static !important;
+    transform: none !important;
+}
+
+.gp-receipt-table
+    .gp-receipt-inline-amount:focus {
+    border-color:
+        var(
+            --gp-blue,
+            #0e4f84
+        ) !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(14, 79, 132, 0.07) !important;
 }
