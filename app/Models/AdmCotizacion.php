@@ -67,6 +67,9 @@ class AdmCotizacion extends Model
         'impuesto_iva',
         'total',
         'modo_descuento',
+        'timbre_prensa_base',
+        'timbre_prensa_porcentaje',
+        'timbre_prensa_monto',
     ];
 
     protected $casts = [

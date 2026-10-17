@@ -99,13 +99,32 @@ FACTURA GP
         }
 
         .tabla-detalles-body,
-.tabla-detalles-body td {
-    color: #000000;
-}
+        .tabla-detalles-body td {
+            color: #000000;
+        }
     </style>
 </head>
 
 <body>
+
+@if ($esVistaPrevia ?? false)
+    <div style="
+        position: fixed;
+        top: 42%;
+        left: 8%;
+        width: 84%;
+        text-align: center;
+        color: #B42318;
+        border: 3px solid #B42318;
+        padding: 12px;
+        font-size: 23px;
+        font-weight: bold;
+        z-index: 100;
+    ">
+        VISTA PREVIA - SIN VALIDEZ FISCAL
+    </div>
+@endif
+
     <img src="{{ public_path('images/marcagua_gp.png') }}" class="watermark" alt="Marca de agua">
 
     <div class="content">
@@ -219,8 +238,41 @@ FACTURA GP
                 @endforeach
             </tbody>
         </table>
+
+        @if (($cotizacion->timbre_prensa_monto ?? 0) > 0)
+
+        <table
+            width="100%"
+            style="
+            margin-top: 10px;
+            border-collapse: collapse;
+            font-size: 11px;
+            color: #000000;
+        ">
+            <tr>
+                <td style="width: 70%;"></td>
+
+                <td
+                    style="
+                    width: 30%;
+                    text-align: right;
+                    padding: 5px;
+                    border-top: 1px solid #0A467C;
+                ">
+                    <strong>Timbre de Prensa (0.5%):</strong>
+                    Q {{ number_format(
+                    $cotizacion->timbre_prensa_monto,
+                    2,
+                    '.',
+                    ','
+                ) }}
+                </td>
+            </tr>
+        </table>
+
+        @endif
         <!-- Spacer SOLO para la última página (porque está al final del flujo) -->
-        <div class="last-page-spacer" style="height:47mm;"></div>        
+        <div class="last-page-spacer" style="height:47mm;"></div>
     </div><!-- /content -->
 
 

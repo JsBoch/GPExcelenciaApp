@@ -176,7 +176,61 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reporte/anuladas', [MonitorFacturacionController::class, 'reporteAnuladas']);
     Route::get('/reporte/notas-credito', [MonitorFacturacionController::class, 'reporteNotasCredito']);
     Route::get('/reporte/notas-ajuste', [MonitorFacturacionController::class, 'reporteNotasAjuste']);
+
+    Route::get(
+        '/monitorfacturacion/{id}/factura-previa-timbre',
+        [MonitorFacturacionController::class, 'vistaPreviaFacturaTimbre']
+    );
+
+    Route::get(
+        '/monitorfacturacion/{id}/factura-previa-timbre',
+        [MonitorFacturacionController::class, 'vistaPreviaFacturaTimbre']
+    );
+
+    Route::get(
+        '/monitorfacturacion/{idcotizacion}/probar-xml-certificado',
+        [MonitorFacturacionController::class, 'probarLecturaXMLCertificado']
+    );
+
+    Route::get(
+        '/monitorfacturacion/intentos-nota/{idintento}/validar',
+        [MonitorFacturacionController::class, 'probarIntentoNotaFEL']
+    );
+
+    Route::get(
+        '/monitorfacturacion/intentos/{idintento}/probar-bloqueo',
+        [MonitorFacturacionController::class, 'probarBloqueoEnvioFEL']
+    );
 });
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get(
+        '/fel/notas/intentos/{idintento}',
+        [MonitorFacturacionController::class, 'consultarIntentoNotaFEL']
+    )
+        ->whereNumber('idintento');
+
+    Route::post(
+        '/fel/notas/intentos/{idintento}/conciliar-local',
+        [MonitorFacturacionController::class, 'conciliarIntentoNotaFELDesdeRespuestaLocal']
+    )
+        ->whereNumber('idintento');
+
+    Route::get(
+        '/fel/notas/cotizaciones/{idcotizacion}/intentos',
+        [MonitorFacturacionController::class, 'listarIntentosNotaFELPorCotizacion']
+    )->whereNumber('idcotizacion');
+
+    Route::get('/fel/notas/cxc/pendientes',
+    [MonitorFacturacionController::class, 'listarNotasFELPendientesCXC']);
+
+    Route::post(
+    'fel/notas/{idnota}/regularizar-cxc',
+    [MonitorFacturacionController::class, 'regularizarNotaFELCxC']
+)->whereNumber('idnota');
+
+});
+
 
 //CONSULTA COTIZACIONES COSTEO
 Route::middleware('auth:sanctum')->group(function () {
@@ -495,28 +549,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/logistica-produccion/board', [LogisticaProduccionController::class, 'board']);
     Route::get('/logistica-produccion/calendario', [LogisticaProduccionController::class, 'calendario']);
     Route::get(
-    '/logistica-ventas/cronograma',
-    [
-        LogisticaVentasController::class,
-        'cronograma'
-    ]
-);
+        '/logistica-ventas/cronograma',
+        [
+            LogisticaVentasController::class,
+            'cronograma'
+        ]
+    );
 
-Route::post(
-    '/logistica-ventas/cronograma/pedidos/{id}/asignar',
-    [
-        LogisticaVentasController::class,
-        'asignarPedidoCronograma'
-    ]
-)->whereNumber('id');
+    Route::post(
+        '/logistica-ventas/cronograma/pedidos/{id}/asignar',
+        [
+            LogisticaVentasController::class,
+            'asignarPedidoCronograma'
+        ]
+    )->whereNumber('id');
 
-Route::put(
-    '/logistica-ventas/cronograma/pedidos/{id}/mover',
-    [
-        LogisticaVentasController::class,
-        'moverPedidoSinRutaCronograma'
-    ]
-)->whereNumber('id');
+    Route::put(
+        '/logistica-ventas/cronograma/pedidos/{id}/mover',
+        [
+            LogisticaVentasController::class,
+            'moverPedidoSinRutaCronograma'
+        ]
+    )->whereNumber('id');
     Route::get('/logistica-produccion/carga', [LogisticaProduccionController::class, 'cargaPorFecha']);
     Route::put('/logistica-produccion/{id}/fecha', [LogisticaProduccionController::class, 'cambiarFecha']);
     Route::put('/logistica-produccion/{id}/estado', [LogisticaProduccionController::class, 'cambiarEstado']);

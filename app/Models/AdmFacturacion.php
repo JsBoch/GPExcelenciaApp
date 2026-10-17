@@ -10,12 +10,39 @@ class AdmFacturacion extends Model
     protected $table = 'adm_facturacion';
     protected $primaryKey = 'idfactura';
     protected $fillable = [
-        'idcotizacion','resultado','uuid','serie','numero','descripcion',
-        'fecha_certificacion','xml_certificado','alertas','errores','identificador',
-        'numero_crtf','tipo_crtf','tipo_especial_crtf','nombre_crtf','email_crtf','direccion_crtf',
-        'estado','fecha_anulacion','motivo_anulacion','idusuario_anula','nofactura'
+        'idcotizacion',
+        'resultado',
+        'uuid',
+        'serie',
+        'numero',
+        'descripcion',
+        'fecha_certificacion',
+        'xml_certificado',
+        'alertas',
+        'errores',
+        'identificador',
+        'numero_crtf',
+        'tipo_crtf',
+        'tipo_especial_crtf',
+        'nombre_crtf',
+        'email_crtf',
+        'direccion_crtf',
+        'estado',
+        'fecha_anulacion',
+        'motivo_anulacion',
+        'idusuario_anula',
+        'nofactura',
+        'subtotal_factura',
+        'descuento_factura',
+        'iva_factura',
+        'timbre_prensa_base',
+        'timbre_prensa_porcentaje',
+        'timbre_prensa_monto',
+        'total_factura',
     ];
 
-    public function cotizacion() { return $this->belongsTo(AdmCotizacion::class, 'idcotizacion'); }
+    public function cotizacion()
+    {
+        return $this->belongsTo(AdmCotizacion::class, 'idcotizacion');
+    }
 }
-

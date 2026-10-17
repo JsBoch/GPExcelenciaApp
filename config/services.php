@@ -35,9 +35,56 @@ return [
         ],
     ],
 
+    // 'infile' => [
+    //     'codigo' => env('INFILE_EMISOR_CODIGO'),
+    //     'clave'  => env('INFILE_EMISOR_CLAVE'),
+    //     'url'    => env('INFILE_URL'),
+    // ],
+
+
+    // 'infile' => [
+    //     'url' => env('INFILE_API_URL'),
+    //     'usuario_api' => env('INFILE_USUARIO_API'),
+    //     'llave_api' => env('INFILE_LLAVE_API'),
+    //     'usuario_firma' => env('INFILE_USUARIO_FIRMA'),
+    //     'llave_firma' => env('INFILE_LLAVE_FIRMA'),
+    //     'envio_intentos_habilitado' => env(
+    //         'INFILE_ENVIO_INTENTOS_HABILITADO',
+    //         false
+    //     ),
+    // ],
+
     'infile' => [
-    'codigo' => env('INFILE_EMISOR_CODIGO'),
-    'clave'  => env('INFILE_EMISOR_CLAVE'),
-    'url'    => env('INFILE_URL'),
+        // Configuración utilizada por el flujo anterior
+        'codigo' => env('INFILE_EMISOR_CODIGO'),
+        'clave' => env('INFILE_EMISOR_CLAVE'),
+
+        // Configuración de integración FEL
+        'url' => env('INFILE_API_URL', env('INFILE_URL')),
+        'usuario_api' => env('INFILE_USUARIO_API'),
+        'llave_api' => env('INFILE_LLAVE_API'),
+        'usuario_firma' => env('INFILE_USUARIO_FIRMA'),
+        'llave_firma' => env('INFILE_LLAVE_FIRMA'),
+
+        // Bloqueo de seguridad
+        'envio_intentos_habilitado' => env(
+            'INFILE_ENVIO_INTENTOS_HABILITADO',
+            false
+        ),
+
+        'fcam_intentos_habilitado' => env(
+            'INFILE_FCAM_INTENTOS_HABILITADO',
+            false
+        ),
+
+        'timbre_controlado' => [
+            'habilitado' => env('FCAM_TIMBRE_CONTROLADO_HABILITADO', false),
+            'cotizacion_id' => env('FCAM_TIMBRE_CONTROLADO_COTIZACION_ID') !== null
+                ? (int) env('FCAM_TIMBRE_CONTROLADO_COTIZACION_ID') : null,
+            'total_factura' => env('FCAM_TIMBRE_CONTROLADO_TOTAL_FACTURA'),
+            'vence_en' => env('FCAM_TIMBRE_CONTROLADO_VENCE_EN'),
+        ],
+
     ],
+
 ];

@@ -49,6 +49,11 @@ class CotizacionController extends Controller
                 'c.total_general',
                 'c.descuento_monto',
                 'c.total',
+                'c.timbre_prensa_monto',
+                DB::raw(
+                    '(COALESCE(c.total, 0) + COALESCE(c.timbre_prensa_monto, 0)) AS total_a_pagar'
+                ),
+                'c.costear',
                 'c.costear',
                 'cl.nombre as cliente',
                 'cl.nit',
@@ -213,7 +218,12 @@ class CotizacionController extends Controller
 
                 // --- Cabecera ---
                 $datosCotizacion = $request->except('detalles', 'idempotency_key');
-                $datosCotizacion['tipo_facturacion'] = $request->input('tipo_facturacion', 'BIEN'); // no intentes hacer mass-assign de detalles
+                $tipoFacturacion = $request->input('tipo_facturacion');
+
+                $datosCotizacion['tipo_facturacion'] =
+                    in_array($tipoFacturacion, ['BIEN', 'SERVICIO'], true)
+                    ? $tipoFacturacion
+                    : 'BIEN'; // no intentes hacer mass-assign de detalles
                 $datosCotizacion['idcotizacion']     = $idCotizacion;
                 $datosCotizacion['nocotizacion']     = $nocotizacion;
                 $user = auth()->user();
@@ -240,6 +250,7 @@ class CotizacionController extends Controller
                 }
 
                 $detalles = $this->recalcularDetallesDesdeFrontend($detalles);
+                $calculoTimbre = $this->calcularTimbrePrensa($detalles);
 
                 $subtotal = 0;
                 $iva = 0;
@@ -259,6 +270,15 @@ class CotizacionController extends Controller
                 $datosCotizacion['descuento_monto'] = round($descuento, 2);
 
                 $datosCotizacion['total_general'] = round($total + $descuento, 2);
+
+                $datosCotizacion['timbre_prensa_base'] =
+                    $calculoTimbre['timbre_prensa_base'];
+
+                $datosCotizacion['timbre_prensa_porcentaje'] =
+                    $calculoTimbre['timbre_prensa_porcentaje'];
+
+                $datosCotizacion['timbre_prensa_monto'] =
+                    $calculoTimbre['timbre_prensa_monto'];
 
                 $cotizacion = AdmCotizacion::create($datosCotizacion);
 
@@ -312,6 +332,7 @@ class CotizacionController extends Controller
                         'subtotal'            => $detalleData['subtotal'] ?? 0, //no
                         'total'               => $detalleData['total'] ?? 0, //si pero esto debería ser precio
                         'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
+                        'aplica_timbre_prensa' => ($detalleData['aplica_timbre_prensa'] ?? 'N') === 'S' ? 'S' : 'N',
                     ]);
 
                     $lastUsedDetId = $nextDetalleId;
@@ -427,6 +448,7 @@ class CotizacionController extends Controller
                 'd.impuesto_iva',
                 'd.subtotal',
                 'd.porcentaje_aplicado',
+                'd.aplica_timbre_prensa',
 
                 DB::raw('d.imagen as imagen_ruta'),
             ]);
@@ -464,6 +486,8 @@ class CotizacionController extends Controller
             // 🔥 REGLA CLAVE: primero recalcular
             $detalles = $this->recalcularDetallesDesdeFrontend($detalles);
 
+            $calculoTimbre = $this->calcularTimbrePrensa($detalles);
+
             // 🔥 luego sumar cabecera
             $subtotal = 0;
             $iva = 0;
@@ -491,7 +515,12 @@ class CotizacionController extends Controller
                 'idempotency_key',
             ]);
 
-            $datosCabecera['tipo_facturacion'] = $request->input('tipo_facturacion', 'BIEN');
+            $tipoFacturacion = $request->input('tipo_facturacion');
+
+            $datosCabecera['tipo_facturacion'] =
+                in_array($tipoFacturacion, ['BIEN', 'SERVICIO'], true)
+                ? $tipoFacturacion
+                : 'BIEN';
             $datosCabecera['usuario_modificacion'] = $user->name ?? 'system';
             $datosCabecera['fecha_modificacion'] = now();
 
@@ -505,6 +534,15 @@ class CotizacionController extends Controller
             $datosCabecera['total'] = round($total, 2);
             $datosCabecera['descuento_monto'] = round($descuento, 2);
             $datosCabecera['total_general'] = round($total + $descuento, 2);
+
+            $datosCabecera['timbre_prensa_base'] =
+                $calculoTimbre['timbre_prensa_base'];
+
+            $datosCabecera['timbre_prensa_porcentaje'] =
+                $calculoTimbre['timbre_prensa_porcentaje'];
+
+            $datosCabecera['timbre_prensa_monto'] =
+                $calculoTimbre['timbre_prensa_monto'];
 
             $cotizacion->update($datosCabecera);
 
@@ -571,6 +609,7 @@ class CotizacionController extends Controller
                     'precio'              => $detalleData['precio'] ?? 0,
                     'subtotal'            => $detalleData['subtotal'] ?? 0,
                     'porcentaje_aplicado' => $detalleData['porcentaje_aplicado'] ?? 0,
+                    'aplica_timbre_prensa' => ($detalleData['aplica_timbre_prensa'] ?? 'N') === 'S' ? 'S' : 'N',
                 ]);
 
                 $lastUsedDetId = $nextDetalleId;
@@ -878,7 +917,15 @@ class CotizacionController extends Controller
             // $cotizacion->detalles = $detalles;
             $cotizacion->fecha_cotizacion = $fecha_cot;
 
-            $totalEnLetras = $this->convertirNumeroALetrasConCentavos($cotizacion->total);
+            $totalFinal = round(
+                (float) $cotizacion->total +
+                    (float) ($cotizacion->timbre_prensa_monto ?? 0),
+                2
+            );
+
+            $totalEnLetras = $this->convertirNumeroALetrasConCentavos(
+                $totalFinal
+            );
 
             return response()->json([
                 'cotizacion' => $cotizacion,
@@ -1322,6 +1369,47 @@ class CotizacionController extends Controller
         }
 
         return $detalles;
+    }
+
+    private function calcularTimbrePrensa(array $detalles): array
+    {
+        $baseTimbreCentavos = 0;
+        $timbreCentavos = 0;
+
+        foreach ($detalles as $detalle) {
+
+            if (($detalle['aplica_timbre_prensa'] ?? 'N') !== 'S') {
+                continue;
+            }
+
+            // Base después del descuento, sin IVA.
+            // El subtotal ya está calculado por Laravel.
+            $base = round(
+                (float) ($detalle['subtotal'] ?? 0),
+                2
+            );
+
+            $centavosBase = (int) round($base * 100);
+
+            $baseTimbreCentavos += $centavosBase;
+
+            // 0.5% por renglón, al centavo superior.
+            $centavosImpuesto = (int) ceil(
+                ($centavosBase * 0.005) - 0.000000001
+            );
+
+            $timbreCentavos += $centavosImpuesto;
+        }
+
+        return [
+            'timbre_prensa_base' =>
+            $baseTimbreCentavos / 100,
+
+            'timbre_prensa_porcentaje' => 0.5000,
+
+            'timbre_prensa_monto' =>
+            $timbreCentavos / 100,
+        ];
     }
 
     public function notaEnvioResumen($id)

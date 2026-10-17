@@ -1276,7 +1276,11 @@ function ListaCotizaciones() {
                                             </TableCell>
 
                                             <TableCell align="right">
-                                                Total
+                                                Timbre Prensa
+                                            </TableCell>
+
+                                            <TableCell align="right">
+                                                Total a pagar
                                             </TableCell>
 
                                             <TableCell>Costear</TableCell>
@@ -1309,7 +1313,7 @@ function ListaCotizaciones() {
                                         {loading ? (
                                             <TableRow>
                                                 <TableCell
-                                                    colSpan={15}
+                                                    colSpan={16}
                                                     align="center"
                                                     className="cotizaciones-table-message"
                                                 >
@@ -1319,7 +1323,7 @@ function ListaCotizaciones() {
                                         ) : rowsToShow.length === 0 ? (
                                             <TableRow>
                                                 <TableCell
-                                                    colSpan={15}
+                                                    colSpan={16}
                                                     align="center"
                                                     className="cotizaciones-table-message"
                                                 >
@@ -1432,12 +1436,30 @@ function ListaCotizaciones() {
                                                             )}
                                                         </TableCell>
 
+                                                        <TableCell align="right">
+                                                            {Number(
+                                                                row.timbre_prensa_monto ||
+                                                                    0,
+                                                            ) > 0
+                                                                ? fmtMoney(
+                                                                      row.timbre_prensa_monto,
+                                                                  )
+                                                                : "—"}
+                                                        </TableCell>
+
                                                         <TableCell
                                                             align="right"
                                                             className="cotizacion-total-cell"
                                                         >
                                                             {fmtMoney(
-                                                                row.total,
+                                                                Number(
+                                                                    row.total ||
+                                                                        0,
+                                                                ) +
+                                                                    Number(
+                                                                        row.timbre_prensa_monto ||
+                                                                            0,
+                                                                    ),
                                                             )}
                                                         </TableCell>
 
