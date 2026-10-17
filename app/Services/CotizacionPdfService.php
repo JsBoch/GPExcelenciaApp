@@ -30,10 +30,13 @@ class CotizacionPdfService
                 'c.trabajo',
                 'c.version',
                 'c.tipo_facturacion',
-                'c.descuento_monto',
+               'c.descuento_monto',
                 'c.subtotal',
                 'c.impuesto_iva',
-                'c.total',                
+                'c.total',
+                'c.timbre_prensa_base',
+                'c.timbre_prensa_porcentaje',
+                'c.timbre_prensa_monto',              
             )
             ->from('adm_cotizacion as c')
             ->join('clientes as cl', 'c.idcliente', '=', 'cl.idcliente')

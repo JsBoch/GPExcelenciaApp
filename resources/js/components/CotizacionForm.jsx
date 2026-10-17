@@ -188,6 +188,7 @@ function CotizacionForm() {
         subtotal: 0,
         total: 0,
         porcentaje_aplicado: 0,
+        aplica_timbre_prensa: "N",
     });
 
     useEffect(() => {
@@ -860,7 +861,11 @@ function CotizacionForm() {
         formData.append("total_general", cotizacionActualizada.total_general);
         formData.append(
             "tipo_facturacion",
-            cotizacionActualizada.tipo_facturacion,
+            ["BIEN", "SERVICIO"].includes(
+                cotizacionActualizada.tipo_facturacion,
+            )
+                ? cotizacionActualizada.tipo_facturacion
+                : "BIEN",
         );
 
         if (esComodin && vendedorAsignado) {
@@ -923,6 +928,11 @@ function CotizacionForm() {
                 detalle.subtotal || 0,
             );
             formData.append(`detalles[${index}][total]`, detalle.total || 0);
+
+            formData.append(
+                `detalles[${index}][aplica_timbre_prensa]`,
+                detalle.aplica_timbre_prensa || "N",
+            );
 
             // Imagenes
             if (detalle.imagen) {
@@ -1093,6 +1103,7 @@ function CotizacionForm() {
                             : formState.imagen_ruta ||
                               originalItem.imagen_ruta ||
                               null, // Mantener la ruta existente si no hay archivo nuevo
+                    aplica_timbre_prensa: formState.aplica_timbre_prensa || "N",
                 };
 
                 //console.log('[handleAddDetalle - Editando] updatedItem FINAL:', JSON.parse(JSON.stringify(updatedItem)));
@@ -1130,6 +1141,7 @@ function CotizacionForm() {
 
                 // otros campos que necesites para un nuevo detalle, como incluye_foto, etc.
                 incluye_foto: formState.imagen instanceof File ? "S" : "N",
+                aplica_timbre_prensa: formState.aplica_timbre_prensa || "N",
             };
             //console.log('[handleAddDetalle - Agregando Nuevo] newItem FINAL:', JSON.parse(JSON.stringify(newItem)));
             setDetalles([...detalles, newItem]);
@@ -1149,6 +1161,7 @@ function CotizacionForm() {
             imagen_preview: null,
             imagen_ruta: null,
             precio_unitario: 0,
+            aplica_timbre_prensa: "N",
         });
         // Enfocar cantidad tras limpiar (sirve para Enter y para clic en Agregar)
         requestAnimationFrame(() => {
@@ -1234,6 +1247,7 @@ function CotizacionForm() {
             imagen: null, // Cuando se edita, la imagen ya está guardada, no se "carga" aquí
             imagen_preview: previewUrl,
             imagen_ruta: rowData.imagen_ruta || null, // ¡CRUCIAL! Conservar la ruta de la imagen existente en el estado del formulario.
+            aplica_timbre_prensa: rowData.aplica_timbre_prensa || "N",
         });
 
         // Lógica del modal de imagen (parece estar bien, pero asegúrate que usa la previewUrl correcta)
@@ -1312,6 +1326,17 @@ function CotizacionForm() {
             enableColumnDragging: false,
             Cell: ({ cell }) => <strong>{cell.getValue()}</strong>,
             enablePinning: true, // 👉 columna sticky izquierda
+        },
+        {
+            accessorKey: "aplica_timbre_prensa",
+            header: "T. Prensa",
+            size: 90,
+            Cell: ({ cell }) =>
+                cell.getValue() === "S" ? (
+                    <span className="badge bg-success">Sí</span>
+                ) : (
+                    <span className="badge bg-secondary">No</span>
+                ),
         },
         {
             accessorKey: "acciones",
@@ -1604,6 +1629,53 @@ function CotizacionForm() {
         link.download = `detalles_cotizacion_${Date.now()}.csv`;
         link.click();
     };
+
+    const baseTimbreVista = detalles.reduce((acum, item) => {
+        if (item.aplica_timbre_prensa !== "S") return acum;
+
+        const cantidad = Number(item.cantidad) || 0;
+        const precioUnitario = Number(item.precio_unitario) || 0;
+        const descuento = Number(item.descuento) || 0;
+
+        const baseConIVA = Math.max(0, cantidad * precioUnitario - descuento);
+
+        const subtotal = Math.round((baseConIVA / 1.12) * 100) / 100;
+
+        return acum + subtotal;
+    }, 0);
+
+    const baseTimbreRedondeada = Math.round(baseTimbreVista * 100) / 100;
+
+    const timbrePrensaVista =
+        detalles.reduce((acumulado, item) => {
+            if (item.aplica_timbre_prensa !== "S") {
+                return acumulado;
+            }
+
+            const cantidad = Number(item.cantidad) || 0;
+            const precioUnitario = Number(item.precio_unitario) || 0;
+            const descuento = Number(item.descuento) || 0;
+
+            const totalConIVA = Math.max(
+                0,
+                cantidad * precioUnitario - descuento,
+            );
+
+            const subtotal = Math.round((totalConIVA / 1.12) * 100) / 100;
+
+            const centavosBase = Math.round(subtotal * 100);
+
+            const timbreCentavos = Math.ceil(
+                centavosBase * 0.005 - 0.000000001,
+            );
+
+            return acumulado + timbreCentavos;
+        }, 0) / 100;
+
+    const totalConTimbreVista =
+        Math.round(
+            ((Number(cotizacion.total) || 0) + timbrePrensaVista) * 100,
+        ) / 100;
 
     return (
         <div className="gp-module-page cotizacion-layout">
@@ -2003,6 +2075,25 @@ function CotizacionForm() {
 
                                     <div className="col">
                                         <label className="form-label">
+                                            Timbre de Prensa
+                                        </label>
+
+                                        <select
+                                            name="aplica_timbre_prensa"
+                                            value={
+                                                detalle.aplica_timbre_prensa ||
+                                                "N"
+                                            }
+                                            onChange={handleDetalleChange}
+                                            className="form-select form-select-sm"
+                                        >
+                                            <option value="N">No</option>
+                                            <option value="S">Sí</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="col">
+                                        <label className="form-label">
                                             Total
                                         </label>
                                         <input
@@ -2276,16 +2367,16 @@ function CotizacionForm() {
                                     </div>
 
                                     {/* Resumen de subtotal / IVA / total */}
-                                    <div className="col-md-6 d-flex flex-column justify-content-between">
-                                        <div className="row g-2 mb-2">
-                                            <div className="col-md-4">
+                                    {/* Resumen de subtotal / IVA / Timbre / Total */}
+                                    <div className="col-md-6 d-flex flex-column gap-2">
+                                        <div className="row g-2">
+                                            <div className="col-md-6">
                                                 <label className="form-label">
-                                                    Subtotal
+                                                    Subtotal sin IVA
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    name="subtotal"
-                                                    value={parseFloat(
+                                                    value={Number(
                                                         cotizacion.subtotal ||
                                                             0,
                                                     ).toFixed(2)}
@@ -2293,14 +2384,14 @@ function CotizacionForm() {
                                                     className="form-control form-control-sm"
                                                 />
                                             </div>
-                                            <div className="col-md-4">
+
+                                            <div className="col-md-6">
                                                 <label className="form-label">
                                                     IVA
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    name="impuesto_iva"
-                                                    value={parseFloat(
+                                                    value={Number(
                                                         cotizacion.impuesto_iva ||
                                                             0,
                                                     ).toFixed(2)}
@@ -2308,26 +2399,57 @@ function CotizacionForm() {
                                                     className="form-control form-control-sm"
                                                 />
                                             </div>
-                                            <div className="col-md-4 d-flex align-items-end">
-                                                <div className="erp-summary-box erp-summary-box-main w-100">
-                                                    <label>Total</label>
-                                                    <input
-                                                        type="text"
-                                                        name="total"
-                                                        value={parseFloat(
-                                                            cotizacion.total ||
-                                                                0,
-                                                        ).toLocaleString(
+                                        </div>
+
+                                        {timbrePrensaVista > 0 && (
+                                            <div className="border rounded-3 p-3 bg-light">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>
+                                                            Timbre de Prensa
+                                                            (0.5%)
+                                                        </strong>
+                                                        <div className="small text-muted">
+                                                            Base afecta sin IVA:
+                                                            Q{" "}
+                                                            {baseTimbreRedondeada.toLocaleString(
+                                                                "es-GT",
+                                                                {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                },
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <strong className="text-success">
+                                                        Q{" "}
+                                                        {timbrePrensaVista.toLocaleString(
                                                             "es-GT",
                                                             {
-                                                                style: "currency",
-                                                                currency: "GTQ",
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
                                                             },
                                                         )}
-                                                        readOnly
-                                                    />
+                                                    </strong>
                                                 </div>
                                             </div>
+                                        )}
+
+                                        <div className="erp-summary-box erp-summary-box-main w-100">
+                                            <label>TOTAL A PAGAR</label>
+
+                                            <input
+                                                type="text"
+                                                value={totalConTimbreVista.toLocaleString(
+                                                    "es-GT",
+                                                    {
+                                                        style: "currency",
+                                                        currency: "GTQ",
+                                                    },
+                                                )}
+                                                readOnly
+                                            />
                                         </div>
                                     </div>
                                 </div>

@@ -40,6 +40,7 @@ class AdmDetalleCotizacion extends Model
         'subtotal',
         'total',
         'porcentaje_aplicado',
+        'aplica_timbre_prensa',
     ];
 
     public function cotizacion()

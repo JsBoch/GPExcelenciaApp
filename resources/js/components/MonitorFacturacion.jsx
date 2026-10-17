@@ -113,6 +113,16 @@ function MonitorFacturacion() {
     const [notaLoading, setNotaLoading] = useState(false);
     const [notaForm, setNotaForm] = useState({ motivo: "", monto: "" });
 
+    // Seguimiento FEL en desarrollo: nunca transmite documentos.
+    const [showIntentoModal, setShowIntentoModal] = useState(false);
+    const [intentosFEL, setIntentosFEL] = useState([]);
+    const [cotizacionSeguimiento, setCotizacionSeguimiento] = useState(null);
+    const [intentoFEL, setIntentoFEL] = useState(null);
+    const [intentoLoading, setIntentoLoading] = useState(false);
+    const [intentoConciliando, setIntentoConciliando] = useState(false);
+    const [permisosFEL, setPermisosFEL] = useState({ consultar: false, conciliar: false });
+
+
     // ====== Listado de notas FEL ======
     const [showNotasModal, setShowNotasModal] = useState(false);
     const [notas, setNotas] = useState([]);
@@ -667,6 +677,95 @@ function MonitorFacturacion() {
         setShowNotaModal(true);
     };
 
+    // ====== Seguimiento automático de intentos FEL (sin emitir) ======
+    const cargarIntentosFEL = async (idcotizacion, idPreferido = null) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("No hay sesión activa.");
+        setIntentoLoading(true);
+        try {
+            const { data } = await axios.get(
+                `/api/fel/notas/cotizaciones/${idcotizacion}/intentos`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            const items = Array.isArray(data?.intentos) ? data.intentos : [];
+            setIntentosFEL(items);
+            setIntentoFEL((anterior) =>
+                items.find((item) => Number(item.idintento) === Number(idPreferido ?? anterior?.idintento)) ||
+                items[0] || null
+            );
+        } catch (e) {
+            setIntentosFEL([]);
+            setIntentoFEL(null);
+            const status = e.response?.status;
+            alertify.error(status === 403 ? "No tienes permiso para consultar intentos FEL."
+                : status === 404 ? "La consulta FEL no está disponible en este entorno."
+                : "No fue posible cargar el seguimiento FEL.");
+        } finally {
+            setIntentoLoading(false);
+        }
+    };
+
+    const abrirSeguimientoFEL = async (idPreferido = null) => {
+        if (!import.meta.env.DEV || !registroSeleccionado) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("No hay sesión activa.");
+        const idcotizacion = registroSeleccionado.idcotizacion;
+        setCotizacionSeguimiento({
+            idcotizacion,
+            nocotizacion: registroSeleccionado.nocotizacion,
+        });
+        setShowIntentoModal(true);
+        setIntentosFEL([]);
+        setIntentoFEL(null);
+        setPermisosFEL({ consultar: false, conciliar: false });
+        try {
+            const { data } = await axios.get("/api/user", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const rutas = new Set(
+                (data?.perfiles || []).flatMap((perfil) =>
+                    (perfil.opciones || []).map((opcion) => opcion.ruta),
+                ),
+            );
+            const consultar = rutas.has("fel-consultar-intentos");
+            setPermisosFEL({
+                consultar,
+                conciliar: rutas.has("fel-conciliar-intentos"),
+            });
+            if (consultar) await cargarIntentosFEL(idcotizacion, idPreferido);
+        } catch {
+            alertify.error("No fue posible verificar los permisos FEL.");
+        }
+    };
+
+    const conciliarIntentoFEL = async () => {
+        if (!intentoFEL || !permisosFEL.conciliar ||
+            !["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado)) return;
+        if (!window.confirm("Se intentará recuperar únicamente una respuesta FEL ya almacenada. No se enviará ningún documento a INFILE. ¿Continuar?")) return;
+        const token = localStorage.getItem("token");
+        if (!token) return alertify.error("Sesión no disponible.");
+        setIntentoConciliando(true);
+        try {
+            const { data } = await axios.post(
+                `/api/fel/notas/intentos/${intentoFEL.idintento}/conciliar-local`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            alertify.success(data?.mensaje || "Conciliación completada.");
+            await cargarNotasFel(notaFiltroTipo);
+        } catch (e) {
+            const status = e.response?.status;
+            alertify.error(status === 403 ? "No tienes permiso para conciliar."
+                : status === 409 ? (e.response?.data?.mensaje || "No hay confirmación recuperable. El intento sigue bloqueado.")
+                : "Error al consultar la conciliación local.");
+        } finally {
+            if (cotizacionSeguimiento?.idcotizacion) {
+                await cargarIntentosFEL(cotizacionSeguimiento.idcotizacion, intentoFEL.idintento);
+            }
+            setIntentoConciliando(false);
+        }
+    };
+
     // ====== Notas: confirmar (del ORIGINAL) ======
     const confirmarNota = async () => {
         if (!registroSeleccionado) return;
@@ -696,24 +795,24 @@ function MonitorFacturacion() {
                 { headers: { Authorization: `Bearer ${token}` } },
             );
 
-            if (data?.resultado) {
-                alertify.success(
-                    `${
-                        notaTipo === "NCRE"
-                            ? "Nota de crédito"
-                            : "Nota de débito"
-                    } certificada. UUID: ${data.uuid}`,
-                );
+            if (data?.resultado && data?.modo === "PREPARADO_SIN_CERTIFICAR" && data?.intento?.idintento) {
+                alertify.success("Nota preparada correctamente. NO está certificada.");
+                setShowNotaModal(false);
+                await abrirSeguimientoFEL(data.intento.idintento);
+                // No marcar nota certificada ni imprimir PDF hasta tener certificación real.
+            } else if (data?.resultado && data?.uuid && !data?.modo) {
+                // Compatibilidad defensiva ante respuestas históricas del backend.
+                alertify.success(`Nota certificada. UUID: ${data.uuid}`);
                 setShowNotaModal(false);
                 fetchCotizaciones();
             } else {
-                alertify.error(data?.errores || "No certificado");
+                alertify.error(data?.mensaje || data?.errores || "No fue posible preparar la nota.");
             }
         } catch (e) {
             const msg =
                 e.response?.data?.errores ||
                 e.response?.data?.message ||
-                "Error al certificar la nota.";
+                "Error al preparar la nota.";
             alertify.error(msg);
         } finally {
             setNotaLoading(false);
@@ -954,7 +1053,7 @@ function MonitorFacturacion() {
 
         {
             field: "total_general",
-            headerName: "Total",
+            headerName: "Total a pagar",
             minWidth: 130,
             align: "right",
             headerAlign: "right",
@@ -964,7 +1063,11 @@ function MonitorFacturacion() {
                 params?.row?.total_general ?? params?.value ?? null,
 
             renderCell: (params) => {
-                const raw = params?.value ?? params?.row?.total_general ?? null;
+                const raw =
+    params?.row?.total_a_pagar ??
+    params?.row?.total_general ??
+    params?.value ??
+    null;
                 const n = toNumberSafe(raw);
                 return n == null
                     ? ""
@@ -975,6 +1078,19 @@ function MonitorFacturacion() {
                       });
             },
         },
+        {
+    field: "timbre_prensa_monto",
+    headerName: "T. Prensa",
+    minWidth: 125,
+    align: "right",
+    headerAlign: "right",
+    sortable: false,
+    renderCell: ({ row }) => {
+        const monto = Number(row?.timbre_prensa_monto || 0);
+
+        return monto > 0 ? asGTQ(monto) : "—";
+    },
+},
         // {
         //     field: "total_debug",
         //     headerName: "Total(raw)",
@@ -1645,6 +1761,13 @@ function MonitorFacturacion() {
                         </ListItemIcon>
                         <ListItemText primary="Historial de Notas FEL…" />
                     </MenuItem>
+                    {import.meta.env.DEV && (
+                        <MenuItem onClick={() => { closeActions(); abrirSeguimientoFEL(); }}
+                            disabled={!registroSeleccionado || Number(registroSeleccionado.estado) !== 6}>
+                            <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
+                            <ListItemText primary="Seguimiento de intento FEL…" secondary="Historial de la cotización (desarrollo)" />
+                        </MenuItem>
+                    )}
                     <Divider />
 
                     {/* COMENTARIOS */}
@@ -2319,8 +2442,8 @@ function MonitorFacturacion() {
                             }
                         />
                         <div className="form-text">
-                            Se emitirá la {notaTipo === "NCRE" ? "NC" : "ND"}{" "}
-                            con <strong>una sola línea</strong> por este monto.
+                            Se preparará la {notaTipo === "NCRE" ? "NC" : "ND"}{" "}
+                            con <strong>una sola línea</strong>. No se enviará a INFILE.
                         </div>
                     </div>
                 </ModalBody>
@@ -2337,14 +2460,104 @@ function MonitorFacturacion() {
                         onClick={confirmarNota}
                         disabled={notaLoading}
                     >
-                        {notaLoading
-                            ? "Enviando…"
-                            : notaTipo === "NCRE"
-                              ? "Certificar NC"
-                              : "Certificar ND"}
+                        {notaLoading ? "Preparando…" : "Preparar nota"}
                     </Button>
                 </ModalFooter>
             </Modal>
+
+            {/* Consulta / conciliación de intentos FEL: disponible solo en desarrollo */}
+            {import.meta.env.DEV && (
+                <Modal isOpen={showIntentoModal} toggle={() => setShowIntentoModal(false)} centered size="lg">
+                    <ModalHeader toggle={() => setShowIntentoModal(false)}>
+                        Seguimiento de intentos FEL
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="alert alert-info mb-3">
+                            Este módulo no envía documentos a INFILE. Una nota preparada todavía no es una nota certificada.
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+                            <div className="fw-semibold">
+                                Cotización {cotizacionSeguimiento?.nocotizacion || cotizacionSeguimiento?.idcotizacion || "—"}
+                            </div>
+                            <Button color="primary" outline size="sm"
+                                disabled={intentoLoading || !permisosFEL.consultar}
+                                onClick={() => cargarIntentosFEL(cotizacionSeguimiento.idcotizacion)}>
+                                {intentoLoading ? "Actualizando…" : "Actualizar"}
+                            </Button>
+                        </div>
+                        {permisosFEL.consultar && (
+                            intentoLoading ? <p className="text-muted">Cargando intentos…</p> :
+                            intentosFEL.length === 0 ? (
+                                <div className="alert alert-secondary">Esta cotización todavía no tiene intentos de NCRED/NDEB registrados.</div>
+                            ) : (
+                                <div className="table-responsive mb-3">
+                                    <table className="table table-sm table-hover align-middle">
+                                        <thead><tr><th>Intento</th><th>Tipo</th><th>Estado</th><th>Acción</th></tr></thead>
+                                        <tbody>{intentosFEL.map((item) => (
+                                            <tr key={item.idintento}>
+                                                <td>#{item.idintento}</td>
+                                                <td>{item.tipo_documento}</td>
+                                                <td><Chip size="small" label={item.estado}
+                                                    color={item.estado === "CERTIFICADO" ? "success"
+                                                        : item.estado === "INCIERTO" ? "error"
+                                                        : item.estado === "ENVIANDO" ? "warning" : "default"} /></td>
+                                                <td style={{ width: 150, whiteSpace: "nowrap" }}>
+                                                    <Button
+                                                        size="sm"
+                                                        outline={Number(intentoFEL?.idintento) !== Number(item.idintento)}
+                                                        color="primary"
+                                                        className="text-nowrap"
+                                                        style={{ minWidth: 116, whiteSpace: "nowrap" }}
+                                                        onClick={() => setIntentoFEL(item)}
+                                                        disabled={Number(intentoFEL?.idintento) === Number(item.idintento)}
+                                                    >
+                                                        {Number(intentoFEL?.idintento) === Number(item.idintento)
+                                                            ? "Seleccionado"
+                                                            : "Ver detalle"}
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            )
+                        )}
+                        {!permisosFEL.consultar && (
+                            <div className="text-muted mb-3">Tu perfil no tiene habilitada la consulta FEL.</div>
+                        )}
+                        {intentoFEL && (
+                            <div className="border rounded-3 p-3">
+                                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                    <strong>{intentoFEL.tipo_documento} · Intento #{intentoFEL.idintento}</strong>
+                                    <Chip size="small" label={intentoFEL.estado}
+                                        color={intentoFEL.estado === "CERTIFICADO" ? "success"
+                                            : intentoFEL.estado === "INCIERTO" ? "error"
+                                            : intentoFEL.estado === "ENVIANDO" ? "warning" : "default"} />
+                                </div>
+                                <div className="mb-2"><strong>Identificador:</strong> <span className="text-break">{intentoFEL.identificador}</span></div>
+                                <div className="mb-2"><strong>UUID de origen:</strong> <span className="text-break">{intentoFEL.uuid_origen || "—"}</span></div>
+                                <div className="mb-2"><strong>UUID de nota:</strong> <span className="text-break">{intentoFEL.uuid || "Aún no confirmado"}</span></div>
+                                {intentoFEL.estado === "PREPARADO" && (
+                                    <div className="alert alert-secondary mb-0">Documento preparado, sin certificar. El envío permanece deshabilitado.</div>
+                                )}
+                                {["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado) && (
+                                    <div className="alert alert-warning">
+                                        El resultado fiscal no está confirmado. No prepares ni reenvíes otro documento hasta conciliarlo.
+                                    </div>
+                                )}
+                                {["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado) && permisosFEL.conciliar && (
+                                    <Button color="warning" disabled={intentoConciliando} onClick={conciliarIntentoFEL}>
+                                        {intentoConciliando ? "Conciliando…" : "Conciliar respuesta local"}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="secondary" onClick={() => setShowIntentoModal(false)}>Cerrar</Button>
+                    </ModalFooter>
+                </Modal>
+            )}
 
             {/* Modal listado de Notas FEL */}
             <Modal
