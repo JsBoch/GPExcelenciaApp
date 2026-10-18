@@ -365,5 +365,68 @@ class FCAMTimbrePrensaIntegralTest extends TestCase
         $this->assertSame(0, DB::table('adm_cuentas_porcobrar')->where('idcotizacion', $this->idCotizacion)->count());
     }
 
-    
+    private function comprobarVencimientoFCAM(int $idTipoPago, int $dias): void
+{
+    // Requiere las filas de prueba 1=CONTADO y 2=CREDITO, no los IDs productivos.
+    $tipo = DB::table('adm_tipo_pago')->where('idtipopago', $idTipoPago)->value('tipo');
+    $this->assertSame($dias === 0 ? 'CONTADO' : 'CREDITO', strtoupper(trim((string) $tipo)));
+
+    DB::table('adm_cotizacion')
+        ->where('idcotizacion', $this->idCotizacion)
+        ->update(['idtipopago' => $idTipoPago]);
+
+    config()->set('services.infile.fcam_intentos_habilitado', true);
+    config()->set('services.infile.envio_intentos_habilitado', true);
+    config()->set('services.infile.fcam_timbre_simulacion_testing', true);
+    config()->set('services.infile.url', 'https://infile-simulado.example.test/fel');
+    config()->set('services.infile.usuario_api', 'SIMULADO');
+    config()->set('services.infile.llave_api', 'SIMULADA');
+    config()->set('services.infile.usuario_firma', 'SIMULADO');
+    config()->set('services.infile.llave_firma', 'SIMULADA');
+
+    $respuesta = app(MonitorFacturacionController::class)
+        ->generarXMLFactura($this->solicitud(), $this->idCotizacion);
+
+    $this->assertSame(200, $respuesta->getStatusCode(), $respuesta->getContent());
+    Http::assertSentCount(1);
+
+    $intento = DB::table('adm_fel_intentos')
+        ->where('idcotizacion', $this->idCotizacion)->first();
+    $this->assertNotNull($intento);
+    $this->assertSame('CERTIFICADO', $intento->estado);
+
+    $xml = new \DOMDocument();
+    $this->assertTrue($xml->loadXML((string) $intento->xml_enviado));
+    $xp = new \DOMXPath($xml);
+    $xp->registerNamespace('dte', 'http://www.sat.gob.gt/dte/fel/0.2.0');
+
+    $emision = $xp->evaluate('string(//dte:DatosGenerales/@FechaHoraEmision)');
+    $vencimientoXml = $xp->evaluate('string(//*[local-name()="FechaVencimiento"])');
+    $this->assertNotSame('', $emision);
+    $this->assertNotSame('', $vencimientoXml);
+
+    $fechaEmision = \Carbon\CarbonImmutable::parse($emision)->startOfDay();
+    $fechaEsperada = $fechaEmision->addDays($dias)->format('Y-m-d');
+    $this->assertSame($fechaEsperada, $vencimientoXml);
+
+    $cxc = DB::table('adm_cuentas_porcobrar')
+        ->where('idcotizacion', $this->idCotizacion)->first();
+    $this->assertNotNull($cxc);
+    $this->assertSame(
+        $fechaEsperada,
+        \Carbon\CarbonImmutable::parse((string) $cxc->fecha_vencimiento)->format('Y-m-d')
+    );
+    $this->assertEqualsWithDelta(1752.47, (float) $cxc->saldo_pendiente, .001);
+}
+
+public function test_fcam_contado_vence_el_mismo_dia_en_xml_y_cxc(): void
+{
+    $this->comprobarVencimientoFCAM(1, 0);
+}
+
+public function test_fcam_credito_vence_a_30_dias_en_xml_y_cxc(): void
+{
+    $this->comprobarVencimientoFCAM(2, 30);
+}
+
 }
