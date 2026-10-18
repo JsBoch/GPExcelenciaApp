@@ -1630,7 +1630,18 @@ class MonitorFacturacionController extends Controller
 
         // Fecha única de referencia: emisión y vencimiento del complemento FCAM.
         $fechaEmisionFCAM = now();
-        $fechaVencimientoFCAM = $fechaEmisionFCAM->copy()->addDays(30)->toDateString();
+
+        // Consultar la condición de pago registrada en la cotización.
+        $tipoPagoFCAM = DB::table('adm_cotizacion as c')
+            ->join('adm_tipo_pago as tp', 'tp.idtipopago', '=', 'c.idtipopago')
+            ->where('c.idcotizacion', $idcotizacion)
+            ->value('tp.tipo');
+
+        $esContadoFCAM = strtoupper(trim((string) $tipoPagoFCAM)) === 'CONTADO';
+
+        $fechaVencimientoFCAM = $esContadoFCAM
+            ? $fechaEmisionFCAM->toDateString()
+            : $fechaEmisionFCAM->copy()->addDays(30)->toDateString();
 
         //4
         $doc = new \DOMDocument('1.0', 'UTF-8');
@@ -2323,54 +2334,54 @@ class MonitorFacturacionController extends Controller
 
         try {
             $response = \App\Support\FCAMEnvioProtegido::transmitir(
-    function () use (
-        $timbreCotizacion,
-        $idcotizacion,
-        $totalConTimbre,
-        $fcamConIntentos,
-        $idintentoFCAM,
-        $identificador,
-        $hashXmlOriginalFCAM,
-        $xmlString
-    ): bool {
-        // FCAM sin timbre conserva el flujo que ya funciona.
-        if (!app()->environment('production') || $timbreCotizacion <= 0) {
-            return true;
-        }
+                function () use (
+                    $timbreCotizacion,
+                    $idcotizacion,
+                    $totalConTimbre,
+                    $fcamConIntentos,
+                    $idintentoFCAM,
+                    $identificador,
+                    $hashXmlOriginalFCAM,
+                    $xmlString
+                ): bool {
+                    // FCAM sin timbre conserva el flujo que ya funciona.
+                    if (!app()->environment('production') || $timbreCotizacion <= 0) {
+                        return true;
+                    }
 
-        // Releer la autorización y el intento justo al despachar el POST.
-        $permiso = \App\Support\FCAMTimbreAutorizacion::permiteProduccion(
-            (int) $idcotizacion,
-            (float) $totalConTimbre
-        );
+                    // Releer la autorización y el intento justo al despachar el POST.
+                    $permiso = \App\Support\FCAMTimbreAutorizacion::permiteProduccion(
+                        (int) $idcotizacion,
+                        (float) $totalConTimbre
+                    );
 
-        $intentoActual = $idintentoFCAM !== null
-            ? DB::table('adm_fel_intentos')
-                ->where('idintento', $idintentoFCAM)
-                ->first()
-            : null;
+                    $intentoActual = $idintentoFCAM !== null
+                        ? DB::table('adm_fel_intentos')
+                        ->where('idintento', $idintentoFCAM)
+                        ->first()
+                        : null;
 
-        return \App\Support\FCAMTimbrePreEnvio::evaluar(
-            $permiso,
-            (bool) $fcamConIntentos,
-            $intentoActual,
-            (int) $idcotizacion,
-            (int) $idintentoFCAM,
-            (string) $identificador,
-            (string) $hashXmlOriginalFCAM,
-            (string) $xmlString
-        );
-    },
-    (string) $apiUrl,
-    $headers,
-    (string) $xmlString
-);
+                    return \App\Support\FCAMTimbrePreEnvio::evaluar(
+                        $permiso,
+                        (bool) $fcamConIntentos,
+                        $intentoActual,
+                        (int) $idcotizacion,
+                        (int) $idintentoFCAM,
+                        (string) $identificador,
+                        (string) $hashXmlOriginalFCAM,
+                        (string) $xmlString
+                    );
+                },
+                (string) $apiUrl,
+                $headers,
+                (string) $xmlString
+            );
 
-if ($response === null) {
-    throw new \RuntimeException(
-        'Bloqueo preventivo antes del POST: autorizacion caducada o intento FEL inconsistente; no hubo transmision.'
-    );
-}
+            if ($response === null) {
+                throw new \RuntimeException(
+                    'Bloqueo preventivo antes del POST: autorizacion caducada o intento FEL inconsistente; no hubo transmision.'
+                );
+            }
 
 
             if ($idintentoFCAM !== null) {
@@ -2415,7 +2426,8 @@ if ($response === null) {
                 $correo,
                 $direccion,
                 $importesFactura,
-                $idintentoFCAM
+                $idintentoFCAM,
+                $fechaVencimientoFCAM,
             ) {
                 $cotizacion = AdmCotizacion::lockForUpdate()->findOrFail($idcotizacion);
 
@@ -2529,7 +2541,7 @@ if ($response === null) {
                         $cxcoriginal->update([
                             'idfactura'          => $factura->idfactura,
                             'fecha_emision'      => now(),
-                            'fecha_vencimiento'  => now()->addDays(30),
+                            'fecha_vencimiento' => $fechaVencimientoFCAM,
                             'monto_original'     => $montoOriginal,
                             'saldo_pendiente'    => $saldo,
                             'monto_pagado'       => 0,
@@ -2573,7 +2585,7 @@ if ($response === null) {
                             'idfactura'          => $factura->idfactura,
                             'idcliente'          => $cotizacion->idcliente,
                             'fecha_emision'      => now(),
-                            'fecha_vencimiento'  => now()->addDays(30),
+                            'fecha_vencimiento' => $fechaVencimientoFCAM,
                             'moneda'             => 'GTQ',
                             'tasa_cambio'        => 1,
                             'monto_original'     => $montoOriginal,
