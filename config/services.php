@@ -85,6 +85,11 @@ return [
             'vence_en' => env('FCAM_TIMBRE_CONTROLADO_VENCE_EN'),
         ],
 
+        'consulta_nit_url' => env(
+    'INFILE_CONSULTA_NIT_URL',
+    'https://consultareceptores.feel.com.gt/rest/action'
+),
+
     ],
 
 ];

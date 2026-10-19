@@ -1080,6 +1080,8 @@ function ClienteRegistro() {
                         }
                     );
 
+//                     console.log("RESPUESTA COMPLETA INFILE:", res.data);
+// console.log("RAZON SOCIAL:", res.data.razon_social);
 
                 if (
                     res.data.ok
