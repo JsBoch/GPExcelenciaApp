@@ -41,9 +41,20 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::define('fel-regularizar-cxc', function (User $user) {
-    return $user->perfiles()->whereHas('opciones', function ($q) {
-        $q->where('ruta', 'fel-regularizar-cxc');
-    })->exists();
-});
+            return $user->perfiles()->whereHas('opciones', function ($q) {
+                $q->where('ruta', 'fel-regularizar-cxc');
+            })->exists();
+        });
+
+        Gate::define(
+            'fel-transmitir-notas',
+            function (User $user) {
+                return $user->perfiles()
+                    ->whereHas('opciones', function ($query) {
+                        $query->where('ruta', 'fel-transmitir-notas');
+                    })
+                    ->exists();
+            }
+        );
     }
 }

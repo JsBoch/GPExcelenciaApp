@@ -120,8 +120,11 @@ function MonitorFacturacion() {
     const [intentoFEL, setIntentoFEL] = useState(null);
     const [intentoLoading, setIntentoLoading] = useState(false);
     const [intentoConciliando, setIntentoConciliando] = useState(false);
-    const [permisosFEL, setPermisosFEL] = useState({ consultar: false, conciliar: false });
-
+    const [intentoTransmitiendo, setIntentoTransmitiendo] = useState(false);
+    const [permisosFEL, setPermisosFEL] = useState({
+        consultar: false,
+        conciliar: false,
+    });
 
     // ====== Listado de notas FEL ======
     const [showNotasModal, setShowNotasModal] = useState(false);
@@ -408,82 +411,63 @@ function MonitorFacturacion() {
 
     // ====== PDF Factura generada en backend ======
     const abrirFactura = async (id) => {
-    const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
-    if (!token) {
-        return alertify.error(
-            "Token no encontrado para abrir PDF."
-        );
-    }
+        if (!token) {
+            return alertify.error("Token no encontrado para abrir PDF.");
+        }
 
-    try {
-        const url = `${
-            import.meta.env.VITE_API_URL
-        }/monitorfacturacion/${id}/facturapdf`;
+        try {
+            const url = `${
+                import.meta.env.VITE_API_URL
+            }/monitorfacturacion/${id}/facturapdf`;
 
-        console.log("Solicitando PDF factura:", url);
+            console.log("Solicitando PDF factura:", url);
 
-        const res = await fetch(url, {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: "application/pdf",
-            },
-        });
+            const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/pdf",
+                },
+            });
 
-        if (!res.ok) {
-            const errorText = await res.text();
+            if (!res.ok) {
+                const errorText = await res.text();
 
-            console.error(
-                "Error generando PDF factura:",
-                {
+                console.error("Error generando PDF factura:", {
                     status: res.status,
                     statusText: res.statusText,
                     url,
                     response: errorText,
-                }
-            );
+                });
 
-            alertify.error(
-                `No se pudo generar el PDF. Error ${res.status}.`
-            );
+                alertify.error(
+                    `No se pudo generar el PDF. Error ${res.status}.`,
+                );
 
-            return;
+                return;
+            }
+
+            const contentType = res.headers.get("content-type") || "";
+
+            console.log("Content-Type PDF:", contentType);
+
+            const blob = await res.blob();
+
+            const fileURL = URL.createObjectURL(blob);
+
+            window.open(fileURL, "_blank", "noopener");
+
+            setTimeout(() => {
+                URL.revokeObjectURL(fileURL);
+            }, 60_000);
+        } catch (err) {
+            console.error("Error al abrir PDF factura:", err);
+
+            alertify.error("Error al abrir el PDF.");
         }
-
-        const contentType =
-            res.headers.get("content-type") || "";
-
-        console.log(
-            "Content-Type PDF:",
-            contentType
-        );
-
-        const blob = await res.blob();
-
-        const fileURL =
-            URL.createObjectURL(blob);
-
-        window.open(
-            fileURL,
-            "_blank",
-            "noopener"
-        );
-
-        setTimeout(() => {
-            URL.revokeObjectURL(fileURL);
-        }, 60_000);
-    } catch (err) {
-        console.error(
-            "Error al abrir PDF factura:",
-            err
-        );
-
-        alertify.error(
-            "Error al abrir el PDF."
-        );
-    }
-};
+    };
 
     // ====== Tooltips bootstrap ======
     useEffect(() => {
@@ -689,24 +673,34 @@ function MonitorFacturacion() {
             );
             const items = Array.isArray(data?.intentos) ? data.intentos : [];
             setIntentosFEL(items);
-            setIntentoFEL((anterior) =>
-                items.find((item) => Number(item.idintento) === Number(idPreferido ?? anterior?.idintento)) ||
-                items[0] || null
+            setIntentoFEL(
+                (anterior) =>
+                    items.find(
+                        (item) =>
+                            Number(item.idintento) ===
+                            Number(idPreferido ?? anterior?.idintento),
+                    ) ||
+                    items[0] ||
+                    null,
             );
         } catch (e) {
             setIntentosFEL([]);
             setIntentoFEL(null);
             const status = e.response?.status;
-            alertify.error(status === 403 ? "No tienes permiso para consultar intentos FEL."
-                : status === 404 ? "La consulta FEL no está disponible en este entorno."
-                : "No fue posible cargar el seguimiento FEL.");
+            alertify.error(
+                status === 403
+                    ? "No tienes permiso para consultar intentos FEL."
+                    : status === 404
+                      ? "La consulta FEL no está disponible en este entorno."
+                      : "No fue posible cargar el seguimiento FEL.",
+            );
         } finally {
             setIntentoLoading(false);
         }
     };
 
     const abrirSeguimientoFEL = async (idPreferido = null) => {
-        if (!import.meta.env.DEV || !registroSeleccionado) return;
+        if (!registroSeleccionado) return;
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("No hay sesión activa.");
         const idcotizacion = registroSeleccionado.idcotizacion;
@@ -739,9 +733,18 @@ function MonitorFacturacion() {
     };
 
     const conciliarIntentoFEL = async () => {
-        if (!intentoFEL || !permisosFEL.conciliar ||
-            !["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado)) return;
-        if (!window.confirm("Se intentará recuperar únicamente una respuesta FEL ya almacenada. No se enviará ningún documento a INFILE. ¿Continuar?")) return;
+        if (
+            !intentoFEL ||
+            !permisosFEL.conciliar ||
+            !["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado)
+        )
+            return;
+        if (
+            !window.confirm(
+                "Se intentará recuperar únicamente una respuesta FEL ya almacenada. No se enviará ningún documento a INFILE. ¿Continuar?",
+            )
+        )
+            return;
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Sesión no disponible.");
         setIntentoConciliando(true);
@@ -755,14 +758,118 @@ function MonitorFacturacion() {
             await cargarNotasFel(notaFiltroTipo);
         } catch (e) {
             const status = e.response?.status;
-            alertify.error(status === 403 ? "No tienes permiso para conciliar."
-                : status === 409 ? (e.response?.data?.mensaje || "No hay confirmación recuperable. El intento sigue bloqueado.")
-                : "Error al consultar la conciliación local.");
+            alertify.error(
+                status === 403
+                    ? "No tienes permiso para conciliar."
+                    : status === 409
+                      ? e.response?.data?.mensaje ||
+                        "No hay confirmación recuperable. El intento sigue bloqueado."
+                      : "Error al consultar la conciliación local.",
+            );
         } finally {
             if (cotizacionSeguimiento?.idcotizacion) {
-                await cargarIntentosFEL(cotizacionSeguimiento.idcotizacion, intentoFEL.idintento);
+                await cargarIntentosFEL(
+                    cotizacionSeguimiento.idcotizacion,
+                    intentoFEL.idintento,
+                );
             }
             setIntentoConciliando(false);
+        }
+    };
+
+    const certificarIntentoNotaFEL = async () => {
+        if (!intentoFEL || intentoTransmitiendo) return;
+
+        if (intentoFEL.estado !== "PREPARADO") {
+            return alertify.error(
+                "Este intento no se encuentra preparado para certificar.",
+            );
+        }
+
+        if (intentoFEL.permite_transmitir !== true) {
+            return alertify.error(
+                "La certificación no está habilitada o no tienes autorización.",
+            );
+        }
+
+        if (!permisosFEL.consultar) {
+            return alertify.error(
+                "No tienes permiso para consultar el intento FEL.",
+            );
+        }
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            return alertify.error("Sesión no disponible.");
+        }
+
+        const confirmado = window.confirm(
+            `¿Deseas certificar esta ${intentoFEL.tipo_documento}?\n\n` +
+                `Intento: #${intentoFEL.idintento}\n` +
+                `Esta operación enviará un documento fiscal real a INFILE.\n\n` +
+                `No debes repetir el envío si la respuesta es incierta.`,
+        );
+
+        if (!confirmado) return;
+
+        setIntentoTransmitiendo(true);
+
+        const idintento = intentoFEL.idintento;
+        const idcotizacion = intentoFEL.idcotizacion;
+
+        try {
+            const { data } = await axios.post(
+                `/api/fel/notas/intentos/${idintento}/transmitir`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            if (data?.estado === "CERTIFICADO" && data?.uuid) {
+                alertify.success(
+                    `Nota certificada correctamente. UUID: ${data.uuid}`,
+                );
+
+                await cargarNotasFel(notaFiltroTipo);
+                await fetchCotizaciones();
+            } else if (data?.estado === "INCIERTO") {
+                alertify.warning(
+                    "El resultado fiscal no está confirmado. " +
+                        "No vuelvas a enviar este intento.",
+                );
+            } else {
+                alertify.error(
+                    data?.mensaje || "No se confirmó la certificación.",
+                );
+            }
+        } catch (error) {
+            const data = error.response?.data;
+
+            if (data?.estado === "INCIERTO") {
+                alertify.warning(
+                    "El intento requiere conciliación. No lo reenvíes.",
+                );
+            } else if (!error.response) {
+                alertify.warning(
+                    "No se recibió una respuesta del servidor. " +
+                        "El documento pudo haberse enviado. " +
+                        "Consulta su estado antes de realizar otra operación.",
+                );
+            } else {
+                alertify.error(
+                    data?.mensaje || "No fue posible certificar la nota.",
+                );
+            }
+        } finally {
+            try {
+                await cargarIntentosFEL(idcotizacion, idintento);
+            } finally {
+                setIntentoTransmitiendo(false);
+            }
         }
     };
 
@@ -795,8 +902,14 @@ function MonitorFacturacion() {
                 { headers: { Authorization: `Bearer ${token}` } },
             );
 
-            if (data?.resultado && data?.modo === "PREPARADO_SIN_CERTIFICAR" && data?.intento?.idintento) {
-                alertify.success("Nota preparada correctamente. NO está certificada.");
+            if (
+                data?.resultado &&
+                data?.modo === "PREPARADO_SIN_CERTIFICAR" &&
+                data?.intento?.idintento
+            ) {
+                alertify.success(
+                    "Nota preparada correctamente. NO está certificada.",
+                );
                 setShowNotaModal(false);
                 await abrirSeguimientoFEL(data.intento.idintento);
                 // No marcar nota certificada ni imprimir PDF hasta tener certificación real.
@@ -806,7 +919,11 @@ function MonitorFacturacion() {
                 setShowNotaModal(false);
                 fetchCotizaciones();
             } else {
-                alertify.error(data?.mensaje || data?.errores || "No fue posible preparar la nota.");
+                alertify.error(
+                    data?.mensaje ||
+                        data?.errores ||
+                        "No fue posible preparar la nota.",
+                );
             }
         } catch (e) {
             const msg =
@@ -1064,10 +1181,10 @@ function MonitorFacturacion() {
 
             renderCell: (params) => {
                 const raw =
-    params?.row?.total_a_pagar ??
-    params?.row?.total_general ??
-    params?.value ??
-    null;
+                    params?.row?.total_a_pagar ??
+                    params?.row?.total_general ??
+                    params?.value ??
+                    null;
                 const n = toNumberSafe(raw);
                 return n == null
                     ? ""
@@ -1079,18 +1196,18 @@ function MonitorFacturacion() {
             },
         },
         {
-    field: "timbre_prensa_monto",
-    headerName: "T. Prensa",
-    minWidth: 125,
-    align: "right",
-    headerAlign: "right",
-    sortable: false,
-    renderCell: ({ row }) => {
-        const monto = Number(row?.timbre_prensa_monto || 0);
+            field: "timbre_prensa_monto",
+            headerName: "T. Prensa",
+            minWidth: 125,
+            align: "right",
+            headerAlign: "right",
+            sortable: false,
+            renderCell: ({ row }) => {
+                const monto = Number(row?.timbre_prensa_monto || 0);
 
-        return monto > 0 ? asGTQ(monto) : "—";
-    },
-},
+                return monto > 0 ? asGTQ(monto) : "—";
+            },
+        },
         // {
         //     field: "total_debug",
         //     headerName: "Total(raw)",
@@ -1762,10 +1879,23 @@ function MonitorFacturacion() {
                         <ListItemText primary="Historial de Notas FEL…" />
                     </MenuItem>
                     {import.meta.env.DEV && (
-                        <MenuItem onClick={() => { closeActions(); abrirSeguimientoFEL(); }}
-                            disabled={!registroSeleccionado || Number(registroSeleccionado.estado) !== 6}>
-                            <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
-                            <ListItemText primary="Seguimiento de intento FEL…" secondary="Historial de la cotización (desarrollo)" />
+                        <MenuItem
+                            onClick={() => {
+                                closeActions();
+                                abrirSeguimientoFEL();
+                            }}
+                            disabled={
+                                !registroSeleccionado ||
+                                Number(registroSeleccionado.estado) !== 6
+                            }
+                        >
+                            <ListItemIcon>
+                                <Visibility fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                                primary="Seguimiento de notas FEL"
+                                secondary="Consultar intentos y certificación"
+                            />
                         </MenuItem>
                     )}
                     <Divider />
@@ -2443,7 +2573,8 @@ function MonitorFacturacion() {
                         />
                         <div className="form-text">
                             Se preparará la {notaTipo === "NCRE" ? "NC" : "ND"}{" "}
-                            con <strong>una sola línea</strong>. No se enviará a INFILE.
+                            con <strong>una sola línea</strong>. No se enviará a
+                            INFILE.
                         </div>
                     </div>
                 </ModalBody>
@@ -2466,98 +2597,248 @@ function MonitorFacturacion() {
             </Modal>
 
             {/* Consulta / conciliación de intentos FEL: disponible solo en desarrollo */}
-            {import.meta.env.DEV && (
-                <Modal isOpen={showIntentoModal} toggle={() => setShowIntentoModal(false)} centered size="lg">
-                    <ModalHeader toggle={() => setShowIntentoModal(false)}>
-                        Seguimiento de intentos FEL
-                    </ModalHeader>
-                    <ModalBody>
-                        <div className="alert alert-info mb-3">
-                            Este módulo no envía documentos a INFILE. Una nota preparada todavía no es una nota certificada.
+            <Modal
+                isOpen={showIntentoModal}
+                toggle={() => setShowIntentoModal(false)}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={() => setShowIntentoModal(false)}>
+                    Seguimiento de intentos FEL
+                </ModalHeader>
+                <ModalBody>
+                    <div className="alert alert-info mb-3">
+                        Una nota preparada no es un documento fiscal
+                        certificado. La certificación únicamente se realiza al
+                        seleccionar un intento preparado y confirmar
+                        expresamente su envío a INFILE.
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+                        <div className="fw-semibold">
+                            Cotización{" "}
+                            {cotizacionSeguimiento?.nocotizacion ||
+                                cotizacionSeguimiento?.idcotizacion ||
+                                "—"}
                         </div>
-                        <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
-                            <div className="fw-semibold">
-                                Cotización {cotizacionSeguimiento?.nocotizacion || cotizacionSeguimiento?.idcotizacion || "—"}
+                        <Button
+                            color="primary"
+                            outline
+                            size="sm"
+                            disabled={intentoLoading || !permisosFEL.consultar}
+                            onClick={() =>
+                                cargarIntentosFEL(
+                                    cotizacionSeguimiento.idcotizacion,
+                                )
+                            }
+                        >
+                            {intentoLoading ? "Actualizando…" : "Actualizar"}
+                        </Button>
+                    </div>
+                    {permisosFEL.consultar &&
+                        (intentoLoading ? (
+                            <p className="text-muted">Cargando intentos…</p>
+                        ) : intentosFEL.length === 0 ? (
+                            <div className="alert alert-secondary">
+                                Esta cotización todavía no tiene intentos de
+                                NCRED/NDEB registrados.
                             </div>
-                            <Button color="primary" outline size="sm"
-                                disabled={intentoLoading || !permisosFEL.consultar}
-                                onClick={() => cargarIntentosFEL(cotizacionSeguimiento.idcotizacion)}>
-                                {intentoLoading ? "Actualizando…" : "Actualizar"}
-                            </Button>
-                        </div>
-                        {permisosFEL.consultar && (
-                            intentoLoading ? <p className="text-muted">Cargando intentos…</p> :
-                            intentosFEL.length === 0 ? (
-                                <div className="alert alert-secondary">Esta cotización todavía no tiene intentos de NCRED/NDEB registrados.</div>
-                            ) : (
-                                <div className="table-responsive mb-3">
-                                    <table className="table table-sm table-hover align-middle">
-                                        <thead><tr><th>Intento</th><th>Tipo</th><th>Estado</th><th>Acción</th></tr></thead>
-                                        <tbody>{intentosFEL.map((item) => (
+                        ) : (
+                            <div className="table-responsive mb-3">
+                                <table className="table table-sm table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Intento</th>
+                                            <th>Tipo</th>
+                                            <th>Estado</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {intentosFEL.map((item) => (
                                             <tr key={item.idintento}>
                                                 <td>#{item.idintento}</td>
                                                 <td>{item.tipo_documento}</td>
-                                                <td><Chip size="small" label={item.estado}
-                                                    color={item.estado === "CERTIFICADO" ? "success"
-                                                        : item.estado === "INCIERTO" ? "error"
-                                                        : item.estado === "ENVIANDO" ? "warning" : "default"} /></td>
-                                                <td style={{ width: 150, whiteSpace: "nowrap" }}>
+                                                <td>
+                                                    <Chip
+                                                        size="small"
+                                                        label={item.estado}
+                                                        color={
+                                                            item.estado ===
+                                                            "CERTIFICADO"
+                                                                ? "success"
+                                                                : item.estado ===
+                                                                    "INCIERTO"
+                                                                  ? "error"
+                                                                  : item.estado ===
+                                                                      "ENVIANDO"
+                                                                    ? "warning"
+                                                                    : "default"
+                                                        }
+                                                    />
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        width: 150,
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                >
                                                     <Button
                                                         size="sm"
-                                                        outline={Number(intentoFEL?.idintento) !== Number(item.idintento)}
+                                                        outline={
+                                                            Number(
+                                                                intentoFEL?.idintento,
+                                                            ) !==
+                                                            Number(
+                                                                item.idintento,
+                                                            )
+                                                        }
                                                         color="primary"
                                                         className="text-nowrap"
-                                                        style={{ minWidth: 116, whiteSpace: "nowrap" }}
-                                                        onClick={() => setIntentoFEL(item)}
-                                                        disabled={Number(intentoFEL?.idintento) === Number(item.idintento)}
+                                                        style={{
+                                                            minWidth: 116,
+                                                            whiteSpace:
+                                                                "nowrap",
+                                                        }}
+                                                        onClick={() =>
+                                                            setIntentoFEL(item)
+                                                        }
+                                                        disabled={
+                                                            Number(
+                                                                intentoFEL?.idintento,
+                                                            ) ===
+                                                            Number(
+                                                                item.idintento,
+                                                            )
+                                                        }
                                                     >
-                                                        {Number(intentoFEL?.idintento) === Number(item.idintento)
+                                                        {Number(
+                                                            intentoFEL?.idintento,
+                                                        ) ===
+                                                        Number(item.idintento)
                                                             ? "Seleccionado"
                                                             : "Ver detalle"}
                                                     </Button>
                                                 </td>
                                             </tr>
-                                        ))}</tbody>
-                                    </table>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    {!permisosFEL.consultar && (
+                        <div className="text-muted mb-3">
+                            Tu perfil no tiene habilitada la consulta FEL.
+                        </div>
+                    )}
+                    {intentoFEL && (
+                        <div className="border rounded-3 p-3">
+                            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <strong>
+                                    {intentoFEL.tipo_documento} · Intento #
+                                    {intentoFEL.idintento}
+                                </strong>
+                                <Chip
+                                    size="small"
+                                    label={intentoFEL.estado}
+                                    color={
+                                        intentoFEL.estado === "CERTIFICADO"
+                                            ? "success"
+                                            : intentoFEL.estado === "INCIERTO"
+                                              ? "error"
+                                              : intentoFEL.estado === "ENVIANDO"
+                                                ? "warning"
+                                                : "default"
+                                    }
+                                />
+                            </div>
+                            <div className="mb-2">
+                                <strong>Identificador:</strong>{" "}
+                                <span className="text-break">
+                                    {intentoFEL.identificador}
+                                </span>
+                            </div>
+                            <div className="mb-2">
+                                <strong>UUID de origen:</strong>{" "}
+                                <span className="text-break">
+                                    {intentoFEL.uuid_origen || "—"}
+                                </span>
+                            </div>
+                            <div className="mb-2">
+                                <strong>UUID de nota:</strong>{" "}
+                                <span className="text-break">
+                                    {intentoFEL.uuid || "Aún no confirmado"}
+                                </span>
+                            </div>
+                            {intentoFEL.estado === "PREPARADO" && (
+                                <div className="mt-3">
+                                    {intentoFEL.permite_transmitir === true ? (
+                                        <div className="alert alert-info">
+                                            La nota está preparada, pero todavía
+                                            no está certificada. Al confirmar,
+                                            se enviará este documento a INFILE.
+                                        </div>
+                                    ) : (
+                                        <div className="alert alert-secondary">
+                                            Nota preparada correctamente. La
+                                            certificación todavía no está
+                                            habilitada para este usuario o para
+                                            el sistema. El documento permanece
+                                            sin enviar.
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        color="success"
+                                        disabled={
+                                            intentoTransmitiendo ||
+                                            intentoLoading ||
+                                            intentoFEL.permite_transmitir !==
+                                                true
+                                        }
+                                        onClick={certificarIntentoNotaFEL}
+                                    >
+                                        {intentoTransmitiendo
+                                            ? "Certificando nota..."
+                                            : "Certificar nota en INFILE"}
+                                    </Button>
                                 </div>
-                            )
-                        )}
-                        {!permisosFEL.consultar && (
-                            <div className="text-muted mb-3">Tu perfil no tiene habilitada la consulta FEL.</div>
-                        )}
-                        {intentoFEL && (
-                            <div className="border rounded-3 p-3">
-                                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                    <strong>{intentoFEL.tipo_documento} · Intento #{intentoFEL.idintento}</strong>
-                                    <Chip size="small" label={intentoFEL.estado}
-                                        color={intentoFEL.estado === "CERTIFICADO" ? "success"
-                                            : intentoFEL.estado === "INCIERTO" ? "error"
-                                            : intentoFEL.estado === "ENVIANDO" ? "warning" : "default"} />
+                            )}
+                            {["INCIERTO", "ENVIANDO"].includes(
+                                intentoFEL.estado,
+                            ) && (
+                                <div className="alert alert-warning">
+                                    El resultado fiscal no está confirmado. No
+                                    prepares ni reenvíes otro documento hasta
+                                    conciliarlo.
                                 </div>
-                                <div className="mb-2"><strong>Identificador:</strong> <span className="text-break">{intentoFEL.identificador}</span></div>
-                                <div className="mb-2"><strong>UUID de origen:</strong> <span className="text-break">{intentoFEL.uuid_origen || "—"}</span></div>
-                                <div className="mb-2"><strong>UUID de nota:</strong> <span className="text-break">{intentoFEL.uuid || "Aún no confirmado"}</span></div>
-                                {intentoFEL.estado === "PREPARADO" && (
-                                    <div className="alert alert-secondary mb-0">Documento preparado, sin certificar. El envío permanece deshabilitado.</div>
-                                )}
-                                {["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado) && (
-                                    <div className="alert alert-warning">
-                                        El resultado fiscal no está confirmado. No prepares ni reenvíes otro documento hasta conciliarlo.
-                                    </div>
-                                )}
-                                {["INCIERTO", "ENVIANDO"].includes(intentoFEL.estado) && permisosFEL.conciliar && (
-                                    <Button color="warning" disabled={intentoConciliando} onClick={conciliarIntentoFEL}>
-                                        {intentoConciliando ? "Conciliando…" : "Conciliar respuesta local"}
+                            )}
+                            {import.meta.env.DEV &&
+                                ["INCIERTO", "ENVIANDO"].includes(
+                                    intentoFEL.estado,
+                                ) &&
+                                permisosFEL.conciliar && (
+                                    <Button
+                                        color="warning"
+                                        disabled={intentoConciliando}
+                                        onClick={conciliarIntentoFEL}
+                                    >
+                                        {intentoConciliando
+                                            ? "Conciliando…"
+                                            : "Conciliar respuesta local"}
                                     </Button>
                                 )}
-                            </div>
-                        )}
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="secondary" onClick={() => setShowIntentoModal(false)}>Cerrar</Button>
-                    </ModalFooter>
-                </Modal>
-            )}
+                        </div>
+                    )}
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setShowIntentoModal(false)}
+                    >
+                        Cerrar
+                    </Button>
+                </ModalFooter>
+            </Modal>
 
             {/* Modal listado de Notas FEL */}
             <Modal

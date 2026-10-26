@@ -77,6 +77,12 @@ return [
             false
         ),
 
+        // Habilitación independiente para certificar NCRE y NDEB.
+'notas_envio_habilitado' => env(
+    'INFILE_NOTAS_ENVIO_HABILITADO',
+    false
+),
+
         'timbre_controlado' => [
             'habilitado' => env('FCAM_TIMBRE_CONTROLADO_HABILITADO', false),
             'cotizacion_id' => env('FCAM_TIMBRE_CONTROLADO_COTIZACION_ID') !== null

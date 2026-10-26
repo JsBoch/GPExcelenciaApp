@@ -4201,14 +4201,6 @@ class MonitorFacturacionController extends Controller
         $tipo = strtoupper(trim((string) $tipo));
         $idcotizacion = (int) $idcotizacion;
 
-        // El flujo antiguo no debe transmitir en NINGÚN ambiente, aun con bandera true.
-        // En producción se mantiene bloqueado hasta disponer del endpoint autorizado.
-        if (!app()->environment('local')) {
-            return response()->json([
-                'resultado' => false,
-                'mensaje' => 'Emisión de notas FEL pendiente de habilitación controlada.',
-            ], 503);
-        }
 
         if (
             !in_array($tipo, ['NCRE', 'NDEB'], true) ||
@@ -5795,6 +5787,62 @@ class MonitorFacturacionController extends Controller
             }
 
             if (in_array($tipoDocumento, ['NCRE', 'NDEB'], true)) {
+
+                // Solo NCRE/NDEB: comprobar fecha del XML persistido.
+                // No altera la rama FCAM.
+                $xmlDoc = new \DOMDocument();
+
+                $xmlAnterior = libxml_use_internal_errors(true);
+
+                try {
+                    $xmlCargado = $xmlDoc->loadXML(
+                        (string) $intento->xml_enviado,
+                        LIBXML_NONET
+                    );
+                } finally {
+                    libxml_clear_errors();
+                    libxml_use_internal_errors($xmlAnterior);
+                }
+
+                if (!$xmlCargado) {
+                    return [
+                        'valido' => false,
+                        'mensaje' => 'El XML almacenado no es válido.',
+                    ];
+                }
+
+                $xpath = new \DOMXPath($xmlDoc);
+
+                $nodosFecha = $xpath->query(
+                    '//*[local-name()="DatosGenerales"]/@FechaHoraEmision'
+                );
+
+                if (!$nodosFecha || $nodosFecha->length !== 1) {
+                    return [
+                        'valido' => false,
+                        'mensaje' => 'No se encontró una fecha única de emisión en el XML.',
+                    ];
+                }
+
+                $fechaXML = trim((string) $nodosFecha->item(0)->nodeValue);
+
+                $fechaEmision = \DateTimeImmutable::createFromFormat(
+                    '!Y-m-d\TH:i:s',
+                    $fechaXML,
+                    new \DateTimeZone(config('app.timezone'))
+                );
+
+                if (
+                    !$fechaEmision ||
+                    $fechaEmision->format('Y-m-d\TH:i:s') !== $fechaXML ||
+                    $fechaEmision->format('Y-m-d') !== now()->format('Y-m-d') ||
+                    $fechaEmision->getTimestamp() > now()->getTimestamp()
+                ) {
+                    return [
+                        'valido' => false,
+                        'mensaje' => 'La fecha del XML no corresponde al día actual. Se requiere revisión del intento antes de emitir.',
+                    ];
+                }
                 $factura = $this->facturaVigente((int) $intento->idcotizacion);
                 if (
                     !$factura ||
@@ -5887,9 +5935,9 @@ class MonitorFacturacionController extends Controller
 
         // No habilitar esta prueba si la transmisión está activa.
         abort_if(
-            config('services.infile.envio_intentos_habilitado', false),
-            403,
-            'Prueba bloqueada: el envío FEL está habilitado.'
+            config('services.infile.envio_intentos_habilitado', false)
+                || config('services.infile.notas_envio_habilitado', false),
+            403
         );
 
         $intento = DB::table('adm_fel_intentos')
@@ -6504,7 +6552,7 @@ class MonitorFacturacionController extends Controller
             $resultadoFiscal['cxc_ya_existia'] = (bool) ($aplicacion['ya_existia'] ?? false);
         } catch (\Throwable $e) {
             // Evitar poner datos personales o respuestas FEL completas en logs.
-            \Illuminate\Support\Facades\Log::error('Nota FEL certificada con ajuste CxC pendiente', [
+            Log::error('Nota FEL certificada con ajuste CxC pendiente', [
                 'idintento' => $idintento,
                 'idnota' => $resultadoFiscal['idnota'] ?? null,
                 'tipo_excepcion' => get_class($e),
@@ -6521,13 +6569,84 @@ class MonitorFacturacionController extends Controller
     }
 
 
+    /**
+     * Certifica exclusivamente un intento NCRE/NDEB ya preparado.
+     * Nunca genera un XML nuevo.
+     */
+    public function transmitirNotaFEL(int $idintento)
+    {
+        \Illuminate\Support\Facades\Gate::authorize(
+            'fel-transmitir-notas'
+        );
+
+        if (!config('services.infile.notas_envio_habilitado', false)) {
+            return response()->json([
+                'resultado' => false,
+                'estado' => 'BLOQUEADO',
+                'mensaje' => 'La certificación de notas FEL está deshabilitada.',
+            ], 503);
+        }
+
+        $intento = DB::table('adm_fel_intentos')
+            ->where('idintento', $idintento)
+            ->whereIn('tipo_documento', ['NCRE', 'NDEB'])
+            ->first([
+                'idintento',
+                'idcotizacion',
+                'tipo_documento',
+                'estado',
+            ]);
+
+        if (!$intento) {
+            return response()->json([
+                'resultado' => false,
+                'mensaje' => 'No existe un intento de nota FEL válido.',
+            ], 404);
+        }
+
+        if ($intento->estado !== 'PREPARADO') {
+            return response()->json([
+                'resultado' => false,
+                'estado' => $intento->estado,
+                'mensaje' => 'El intento ya fue procesado o requiere conciliación. No se reenviará.',
+            ], 409);
+        }
+
+        // Revalida y reserva el intento usando el mecanismo existente.
+        $resultado = $this->transmitirIntentoFEL(
+            (int) $intento->idintento,
+            (string) $intento->tipo_documento
+        );
+
+        $estado = $resultado['estado'] ?? 'BLOQUEADO';
+
+        $httpStatus = match ($estado) {
+            'CERTIFICADO' => 200,
+            'INCIERTO' => 202,
+            default => 409,
+        };
+
+        return response()->json([
+            'resultado' => (bool) ($resultado['valido'] ?? false),
+            'estado' => $estado,
+            'idintento' => $idintento,
+            'idnota' => $resultado['idnota'] ?? null,
+            'uuid' => $resultado['uuid'] ?? null,
+            'mensaje' => $resultado['mensaje'] ?? (
+                $estado === 'CERTIFICADO'
+                ? 'Nota FEL certificada correctamente.'
+                : 'No fue posible completar la certificación.'
+            ),
+        ], $httpStatus);
+    }
+
     private function transmitirIntentoFEL(int $idintento, string $tipoDocumento): array
     {
-        if (!config('services.infile.envio_intentos_habilitado', false)) {
+        if (!config('services.infile.notas_envio_habilitado', false)) {
             return [
                 'valido' => false,
                 'estado' => 'BLOQUEADO',
-                'mensaje' => 'El envío de intentos FEL no está habilitado.',
+                'mensaje' => 'La certificación de notas FEL no está habilitada.',
             ];
         }
 
@@ -6674,6 +6793,8 @@ class MonitorFacturacionController extends Controller
         }
     }
 
+
+
     private function conciliarIntentoNotaFELLocal(int $idintento): array
     {
         $intento = DB::table('adm_fel_intentos')->where('idintento', $idintento)->first();
@@ -6751,7 +6872,7 @@ class MonitorFacturacionController extends Controller
 
     public function consultarIntentoNotaFEL(int $idintento)
     {
-        abort_unless(app()->environment('local', 'testing'), 404);
+
 
         \Illuminate\Support\Facades\Gate::authorize('fel-consultar-intentos');
 
@@ -6782,7 +6903,10 @@ class MonitorFacturacionController extends Controller
         return response()->json([
             'resultado' => true,
             'intento' => $intento,
-            'permite_transmitir' => false,
+            'permite_transmitir' =>
+            $intento->estado === 'PREPARADO'
+                && config('services.infile.notas_envio_habilitado', false)
+                && \Illuminate\Support\Facades\Gate::allows('fel-transmitir-notas'),
             'requiere_conciliacion' => in_array($intento->estado, ['ENVIANDO', 'INCIERTO'], true),
         ]);
     }
@@ -6810,7 +6934,7 @@ class MonitorFacturacionController extends Controller
 
     public function listarIntentosNotaFELPorCotizacion(int $idcotizacion)
     {
-        abort_unless(app()->environment('local', 'testing'), 404);
+
         \Illuminate\Support\Facades\Gate::authorize('fel-consultar-intentos');
 
         $cotizacionExiste = DB::table('adm_cotizacion')
@@ -6842,6 +6966,18 @@ class MonitorFacturacionController extends Controller
                 'fecha_envio',
                 'fecha_respuesta',
             ]);
+
+        $puedeCertificarNotas =
+            config('services.infile.notas_envio_habilitado', false)
+            && \Illuminate\Support\Facades\Gate::allows('fel-transmitir-notas');
+
+        $intentos->transform(function ($intento) use ($puedeCertificarNotas) {
+            $intento->permite_transmitir =
+                $puedeCertificarNotas
+                && $intento->estado === 'PREPARADO';
+
+            return $intento;
+        });
 
         return response()->json([
             'resultado' => true,

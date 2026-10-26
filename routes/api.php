@@ -210,6 +210,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     )
         ->whereNumber('idintento');
 
+    // Certificación real de un intento NCRE/NDEB preparado.
+    Route::post(
+        '/fel/notas/intentos/{idintento}/transmitir',
+        [MonitorFacturacionController::class, 'transmitirNotaFEL']
+    )->whereNumber('idintento');
+
     Route::post(
         '/fel/notas/intentos/{idintento}/conciliar-local',
         [MonitorFacturacionController::class, 'conciliarIntentoNotaFELDesdeRespuestaLocal']
@@ -221,14 +227,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         [MonitorFacturacionController::class, 'listarIntentosNotaFELPorCotizacion']
     )->whereNumber('idcotizacion');
 
-    Route::get('/fel/notas/cxc/pendientes',
-    [MonitorFacturacionController::class, 'listarNotasFELPendientesCXC']);
+    Route::get(
+        '/fel/notas/cxc/pendientes',
+        [MonitorFacturacionController::class, 'listarNotasFELPendientesCXC']
+    );
 
     Route::post(
-    'fel/notas/{idnota}/regularizar-cxc',
-    [MonitorFacturacionController::class, 'regularizarNotaFELCxC']
-)->whereNumber('idnota');
-
+        'fel/notas/{idnota}/regularizar-cxc',
+        [MonitorFacturacionController::class, 'regularizarNotaFELCxC']
+    )->whereNumber('idnota');
 });
 
 

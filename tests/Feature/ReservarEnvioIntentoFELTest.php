@@ -20,9 +20,10 @@ class ReservarEnvioIntentoFELTest extends TestCase
         if (
             !app()->environment('testing') ||
             DB::connection()->getDatabaseName() !== 'gp_excelencia_fel_test' ||
-            config('services.infile.envio_intentos_habilitado', false) !== false
+            config('services.infile.envio_intentos_habilitado', false) !== false ||
+            config('services.infile.fcam_intentos_habilitado', false) !== false
         ) {
-            throw new RuntimeException('Prueba de reserva FEL bloqueada: entorno/base/configuracion incorrectos.');
+            throw new RuntimeException('Prueba de reserva FEL bloqueada: entorno/base/configuración incorrectos.');
         }
     }
 
@@ -49,12 +50,15 @@ class ReservarEnvioIntentoFELTest extends TestCase
             . '</dte:SAT></dte:GTDocumento>';
     }
 
-    private function xmlNota(string $uuidOrigen): string
+    private function xmlNota(string $uuidOrigen, ?string $fecha = null): string
     {
+        $fecha ??= now()->format('Y-m-d\TH:i:s');
+        $fechaSegura = htmlspecialchars($fecha, ENT_QUOTES | ENT_XML1, 'UTF-8');
+
         return '<?xml version="1.0" encoding="UTF-8"?>'
             . '<dte:GTDocumento xmlns:dte="http://www.sat.gob.gt/dte/fel/0.2.0" xmlns:cno="http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0">'
             . '<dte:SAT><dte:DTE><dte:DatosEmision>'
-            . '<dte:DatosGenerales Tipo="NCRE"/>'
+            . '<dte:DatosGenerales Tipo="NCRE" FechaHoraEmision="' . $fechaSegura . '"/>'
             . '<dte:Receptor IDReceptor="TEST-NO-VALIDO"/>'
             . '<dte:Items><dte:Item NumeroLinea="1">'
             . '<dte:Impuestos><dte:Impuesto><dte:NombreCorto>IVA</dte:NombreCorto>'
@@ -70,11 +74,11 @@ class ReservarEnvioIntentoFELTest extends TestCase
             . '</dte:DatosEmision></dte:DTE></dte:SAT></dte:GTDocumento>';
     }
 
-    private function crearIntento(): array
+    private function crearIntento(?string $fechaXML = null): array
     {
         $uuidOrigen = (string) Str::uuid();
         $identificador = (string) Str::uuid();
-        $xml = $this->xmlNota($uuidOrigen);
+        $xml = $this->xmlNota($uuidOrigen, $fechaXML);
 
         $idfactura = DB::table('adm_facturacion')->insertGetId([
             'idcotizacion' => 900001,
@@ -213,5 +217,14 @@ class ReservarEnvioIntentoFELTest extends TestCase
         $this->assertFalse($segunda['valido']);
         $this->assertSame('ENVIANDO', $segunda['estado']);
         $this->assertSame('ENVIANDO', DB::table('adm_fel_intentos')->where('idintento', $id)->value('estado'));
+    }
+
+    public function test_intento_de_ayer_no_puede_reservarse(): void
+    {
+        [$id] = $this->crearIntento(now()->subDay()->format('Y-m-d\TH:i:s'));
+        $resultado = $this->reservar($id);
+        $this->assertFalse($resultado['valido']);
+        $this->assertStringContainsString('fecha', strtolower($resultado['mensaje']));
+        $this->comprobarPreparado($id);
     }
 }
