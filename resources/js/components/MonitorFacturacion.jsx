@@ -1878,26 +1878,24 @@ function MonitorFacturacion() {
                         </ListItemIcon>
                         <ListItemText primary="Historial de Notas FEL…" />
                     </MenuItem>
-                    {import.meta.env.DEV && (
-                        <MenuItem
-                            onClick={() => {
-                                closeActions();
-                                abrirSeguimientoFEL();
-                            }}
-                            disabled={
-                                !registroSeleccionado ||
-                                Number(registroSeleccionado.estado) !== 6
-                            }
-                        >
-                            <ListItemIcon>
-                                <Visibility fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary="Seguimiento de notas FEL"
-                                secondary="Consultar intentos y certificación"
-                            />
-                        </MenuItem>
-                    )}
+                    <MenuItem
+                        onClick={() => {
+                            closeActions();
+                            abrirSeguimientoFEL();
+                        }}
+                        disabled={
+                            !registroSeleccionado ||
+                            Number(registroSeleccionado.estado) !== 6
+                        }
+                    >
+                        <ListItemIcon>
+                            <Visibility fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Seguimiento de notas FEL"
+                            secondary="Consultar intentos y certificación"
+                        />
+                    </MenuItem>
                     <Divider />
 
                     {/* COMENTARIOS */}
