@@ -3048,8 +3048,11 @@ class MonitorFacturacionController extends Controller
 
 
         if (
-            app()->environment('local') &&
-            $request->boolean('vista_previa_ncre_total_xml')
+            $request->boolean('preparar_intento_nota') ||
+            (
+                app()->environment('local') &&
+                $request->boolean('vista_previa_ncre_total_xml')
+            )
         ) {
             $factura = $this->facturaVigente((int) $idcotizacion);
 
@@ -3115,9 +3118,17 @@ class MonitorFacturacionController extends Controller
                     ], 422);
                 }
 
-                if (
-                    $request->boolean('preparar_intento_nota')
-                ) {
+                if ($request->boolean('preparar_intento_nota')) {
+                    \Illuminate\Support\Facades\Gate::authorize(
+                        'fel-preparar-notas'
+                    );
+
+                    abort_unless(
+                        config('services.infile.notas_envio_habilitado', false),
+                        503,
+                        'La preparación de notas FEL está deshabilitada.'
+                    );
+
                     $intento = $this->prepararIntentoNotaFEL(
                         (int) $idcotizacion,
                         'NCRE',
@@ -3133,7 +3144,6 @@ class MonitorFacturacionController extends Controller
                     ], $intento['valido'] ? 200 : 409);
                 }
 
-
                 return response()->json([
                     'resultado' => true,
                     'modo' => 'PREVIA_NCRE_TOTAL_DESDE_XML',
@@ -3143,10 +3153,18 @@ class MonitorFacturacionController extends Controller
                     'conciliacion' => $conciliacion,
                 ]);
             } catch (\Throwable $e) {
+                Log::error(
+                    'Error preparando NCRE desde XML certificado',
+                    [
+                        'idcotizacion' => (int) $idcotizacion,
+                        'tipo_error' => get_class($e),
+                    ]
+                );
+
                 return response()->json([
                     'resultado' => false,
-                    'message' => $e->getMessage(),
-                ], 422);
+                    'message' => 'No se pudo preparar la Nota de Crédito. Revise el registro del servidor.',
+                ], 500);
             }
         }
 
@@ -3189,6 +3207,14 @@ class MonitorFacturacionController extends Controller
                 'xml' => $res['xml'],
             ]);
         }
+
+        \Illuminate\Support\Facades\Gate::authorize('fel-preparar-notas');
+
+        abort_unless(
+            config('services.infile.notas_envio_habilitado', false),
+            503,
+            'La preparación de notas FEL está deshabilitada.'
+        );
 
         return $this->enviarXMLAFEL(
             $idcotizacion,
@@ -3407,10 +3433,10 @@ class MonitorFacturacionController extends Controller
 
         $fechaLimiteNCRE = $fechaOrigenFiscal->addMonthsNoOverflow(2);
 
-        $vigenciaFrase922 = \Carbon\CarbonImmutable::parse(
-            '2026-10-29 00:00:00',
-            'America/Guatemala'
-        );
+        // $vigenciaFrase922 = \Carbon\CarbonImmutable::parse(
+        //     '2026-10-29 00:00:00',
+        //     'America/Guatemala'
+        // );
 
         $requiereFrase922 =
             \App\Services\Fel\ReglaFrase922::aplica(
@@ -4424,9 +4450,9 @@ class MonitorFacturacionController extends Controller
 
 
     public function generarPdfNotaFel(int $idnota)
-{
-    $nota = DB::table('adm_notas_fel as nf')
-        ->selectRaw("
+    {
+        $nota = DB::table('adm_notas_fel as nf')
+            ->selectRaw("
             nf.idnota, nf.idcotizacion, nf.tipo, nf.motivo,
             nf.monto_total as monto, nf.monto_gravable, nf.monto_impuesto,
             nf.exento_iva,
@@ -4440,91 +4466,91 @@ class MonitorFacturacionController extends Controller
             nf.uuid_origen as uuid_factura,
             DATE(nf.fecha_emision_origen) as fecha_factura
         ")
-        ->where('nf.idnota', $idnota)
-        ->where('nf.resultado', 'S')
-        ->first();
+            ->where('nf.idnota', $idnota)
+            ->where('nf.resultado', 'S')
+            ->first();
 
-    if (!$nota) {
-        return response()->json(['message' => 'Nota certificada no encontrada'], 404);
-    }
-
-    $mostrarFrase922 = false;
-
-    if ($nota->tipo === 'NCRE') {
-        $intento = DB::table('adm_fel_intentos')
-            ->where('idnota', $nota->idnota)
-            ->where('idcotizacion', $nota->idcotizacion)
-            ->where('tipo_documento', 'NCRE')
-            ->where('estado', 'CERTIFICADO')
-            ->where('uuid', $nota->uuid_nota)
-            ->first(['xml_enviado', 'xml_hash']);
-
-        if ($intento) {
-            $xml = (string) $intento->xml_enviado;
-            $hash = (string) $intento->xml_hash;
-
-            if ($xml === '' || $hash === '' || !hash_equals($hash, hash('sha256', $xml))) {
-                return response()->json([
-                    'message' => 'No se pudo verificar la integridad del XML fiscal de la nota.',
-                ], 409);
-            }
-
-            $doc = new \DOMDocument();
-            $anterior = libxml_use_internal_errors(true);
-
-            try {
-                $valido = $doc->loadXML($xml, LIBXML_NONET);
-            } finally {
-                libxml_clear_errors();
-                libxml_use_internal_errors($anterior);
-            }
-
-            if (!$valido) {
-                return response()->json([
-                    'message' => 'El XML fiscal de la nota no es válido.',
-                ], 409);
-            }
-
-            $xpath = new \DOMXPath($doc);
-            $xpath->registerNamespace('dte', 'http://www.sat.gob.gt/dte/fel/0.2.0');
-
-            $frases = $xpath->query(
-                '//dte:DatosEmision/dte:Frases/dte:Frase[@TipoFrase="9" and @CodigoEscenario="22"]'
-            );
-
-            if ($frases === false || $frases->length > 1) {
-                return response()->json([
-                    'message' => 'La información de la frase fiscal no es válida.',
-                ], 409);
-            }
-
-            $mostrarFrase922 = $frases->length === 1;
+        if (!$nota) {
+            return response()->json(['message' => 'Nota certificada no encontrada'], 404);
         }
-        // Compatibilidad: notas históricas sin intento asociado conservan el comportamiento previo.
-        // No inferir nunca la frase por fechas ni por metadatos no certificados.
+
+        $mostrarFrase922 = false;
+
+        if ($nota->tipo === 'NCRE') {
+            $intento = DB::table('adm_fel_intentos')
+                ->where('idnota', $nota->idnota)
+                ->where('idcotizacion', $nota->idcotizacion)
+                ->where('tipo_documento', 'NCRE')
+                ->where('estado', 'CERTIFICADO')
+                ->where('uuid', $nota->uuid_nota)
+                ->first(['xml_enviado', 'xml_hash']);
+
+            if ($intento) {
+                $xml = (string) $intento->xml_enviado;
+                $hash = (string) $intento->xml_hash;
+
+                if ($xml === '' || $hash === '' || !hash_equals($hash, hash('sha256', $xml))) {
+                    return response()->json([
+                        'message' => 'No se pudo verificar la integridad del XML fiscal de la nota.',
+                    ], 409);
+                }
+
+                $doc = new \DOMDocument();
+                $anterior = libxml_use_internal_errors(true);
+
+                try {
+                    $valido = $doc->loadXML($xml, LIBXML_NONET);
+                } finally {
+                    libxml_clear_errors();
+                    libxml_use_internal_errors($anterior);
+                }
+
+                if (!$valido) {
+                    return response()->json([
+                        'message' => 'El XML fiscal de la nota no es válido.',
+                    ], 409);
+                }
+
+                $xpath = new \DOMXPath($doc);
+                $xpath->registerNamespace('dte', 'http://www.sat.gob.gt/dte/fel/0.2.0');
+
+                $frases = $xpath->query(
+                    '//dte:DatosEmision/dte:Frases/dte:Frase[@TipoFrase="9" and @CodigoEscenario="22"]'
+                );
+
+                if ($frases === false || $frases->length > 1) {
+                    return response()->json([
+                        'message' => 'La información de la frase fiscal no es válida.',
+                    ], 409);
+                }
+
+                $mostrarFrase922 = $frases->length === 1;
+            }
+            // Compatibilidad: notas históricas sin intento asociado conservan el comportamiento previo.
+            // No inferir nunca la frase por fechas ni por metadatos no certificados.
+        }
+
+        $empresa = [
+            'nombre' => 'GP EXCELENCIA, S.A.',
+            'nit' => '109126599',
+            'direccion' => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
+            'telefonos' => '2309-9419 / 2294-9257',
+            'email' => 'ventas@gpexcelencia.com',
+            'web' => 'www.gpexcelencia.com',
+        ];
+
+        $html = view('pdf.nota_fel', [
+            'nota' => $nota,
+            'empresa' => $empresa,
+            'esCredito' => $nota->tipo === 'NCRE',
+            'mostrarFrase922' => $mostrarFrase922,
+        ])->render();
+
+        $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
+        $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
+
+        return $pdf->stream($fn);
     }
-
-    $empresa = [
-        'nombre' => 'GP EXCELENCIA, S.A.',
-        'nit' => '109126599',
-        'direccion' => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
-        'telefonos' => '2309-9419 / 2294-9257',
-        'email' => 'ventas@gpexcelencia.com',
-        'web' => 'www.gpexcelencia.com',
-    ];
-
-    $html = view('pdf.nota_fel', [
-        'nota' => $nota,
-        'empresa' => $empresa,
-        'esCredito' => $nota->tipo === 'NCRE',
-        'mostrarFrase922' => $mostrarFrase922,
-    ])->render();
-
-    $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
-    $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
-
-    return $pdf->stream($fn);
-}
 
 
 
@@ -6038,10 +6064,10 @@ class MonitorFacturacionController extends Controller
                             'America/Guatemala'
                         );
 
-                        $vigencia = \Carbon\CarbonImmutable::parse(
-                            '2026-10-29 00:00:00',
-                            'America/Guatemala'
-                        );
+                        // $vigencia = \Carbon\CarbonImmutable::parse(
+                        //     '2026-10-29 00:00:00',
+                        //     'America/Guatemala'
+                        // );
                     } catch (\Throwable $e) {
                         return [
                             'valido' => false,
@@ -7130,17 +7156,18 @@ class MonitorFacturacionController extends Controller
         return response()->json([
             'resultado' => true,
             'intento' => $intento,
-            'permite_transmitir' =>
-            $intento->estado === 'PREPARADO'
-                && config('services.infile.notas_envio_habilitado', false)
-                && \Illuminate\Support\Facades\Gate::allows('fel-transmitir-notas'),
+            'permite_transmitir' => (
+                $intento->estado === 'PREPARADO'
+                && config('services.infile.notas_envio_habilitado', false) === true
+                && \Illuminate\Support\Facades\Gate::allows('fel-transmitir-notas')
+            ),
             'requiere_conciliacion' => in_array($intento->estado, ['ENVIANDO', 'INCIERTO'], true),
         ]);
     }
 
     public function conciliarIntentoNotaFELDesdeRespuestaLocal(int $idintento)
     {
-        abort_unless(app()->environment('local', 'testing'), 404);
+        //abort_unless(app()->environment('local', 'testing'), 404);
 
         // Requiere sesión autenticada y permiso explícito definido en el proyecto.
         // Sin Gate/política configurada, deniega por defecto.
