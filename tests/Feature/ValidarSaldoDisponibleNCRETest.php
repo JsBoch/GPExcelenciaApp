@@ -17,12 +17,9 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        if (
-            !app()->environment('testing') ||
+        if (!app()->environment('testing') ||
             DB::connection()->getDatabaseName() !== 'gp_excelencia_fel_test' ||
-            config('services.infile.envio_intentos_habilitado', false) !== false
-        ) {
+            config('services.infile.envio_intentos_habilitado', false) !== false) {
             throw new RuntimeException('Pruebas de saldo NCRE bloqueadas: entorno/base/configuración incorrectos.');
         }
     }
@@ -35,6 +32,8 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
         return '<?xml version="1.0" encoding="UTF-8"?>'
             . '<dte:GTDocumento xmlns:dte="http://www.sat.gob.gt/dte/fel/0.2.0">'
             . '<dte:SAT><dte:DTE><dte:DatosEmision>'
+            . '<dte:DatosGenerales Tipo="FCAM" CodigoMoneda="GTQ" FechaHoraEmision="'
+            . now('America/Guatemala')->format('Y-m-d\TH:i:s') . '"/>'
             . '<dte:Receptor IDReceptor="TEST-NO-VALIDO" NombreReceptor="CLIENTE FICTICIO FEL"/>'
             . '<dte:Items><dte:Item NumeroLinea="1" BienOServicio="S">'
             . '<dte:Cantidad>1</dte:Cantidad><dte:UnidadMedida>UNI</dte:UnidadMedida>'
@@ -64,7 +63,6 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
             'total_factura' => 215.00,
             'xml_certificado' => $this->xmlOrigen($uuid),
         ]);
-
         return AdmFacturacion::where('idfactura', $id)->firstOrFail();
     }
 
@@ -112,7 +110,6 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
     {
         $factura = $this->crearFactura();
         $this->crearNotaCertificada($factura, 100.00);
-
         $resultado = $this->validar($factura, 115.00);
         $this->assertTrue($resultado['valido'], $resultado['mensaje'] ?? '');
         $this->assertEqualsWithDelta(100.00, $resultado['total_acreditado'], 0.001);
@@ -123,7 +120,6 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
     {
         $factura = $this->crearFactura();
         $this->crearNotaCertificada($factura, 100.00);
-
         $resultado = $this->validar($factura, 116.00);
         $this->assertFalse($resultado['valido']);
         $this->assertEqualsWithDelta(115.00, $resultado['disponible'], 0.001);
@@ -134,7 +130,6 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
     {
         $factura = $this->crearFactura();
         $this->crearIntentoPendiente($factura, 'INCIERTO');
-
         $resultado = $this->validar($factura, 50.00);
         $this->assertFalse($resultado['valido']);
         $this->assertCount(1, $resultado['intentos_pendientes']);
@@ -144,7 +139,6 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
     {
         $factura = $this->crearFactura();
         $this->crearIntentoPendiente($factura, 'PREPARADO', 'NDEB');
-
         $resultado = $this->validar($factura, 50.00);
         $this->assertFalse($resultado['valido']);
         $this->assertCount(1, $resultado['intentos_pendientes']);
@@ -171,9 +165,7 @@ class ValidarSaldoDisponibleNCRETest extends TestCase
         $controlador = app(MonitorFacturacionController::class);
         $metodo = new \ReflectionMethod($controlador, 'prepararIntentoNotaFEL');
         $resultado = $metodo->invoke($controlador, 900001, 'NCRE', $factura->uuid, $xmlNuevo, $meta);
-
         $this->assertFalse($resultado['valido']);
-        $this->assertSame(0, DB::table('adm_fel_intentos')
-            ->where('uuid_origen', $factura->uuid)->count());
+        $this->assertSame(0, DB::table('adm_fel_intentos')->where('uuid_origen', $factura->uuid)->count());
     }
 }
