@@ -35,6 +35,9 @@ class ReservarEnvioIntentoFELTest extends TestCase
         return '<?xml version="1.0" encoding="UTF-8"?>'
             . '<dte:GTDocumento xmlns:dte="http://www.sat.gob.gt/dte/fel/0.2.0">'
             . '<dte:SAT><dte:DTE><dte:DatosEmision>'
+            . '<dte:DatosGenerales Tipo="FCAM" CodigoMoneda="GTQ" FechaHoraEmision="'
+            . now('America/Guatemala')->format('Y-m-d\TH:i:s')
+            . '"/>'
             . '<dte:Receptor IDReceptor="TEST-NO-VALIDO" NombreReceptor="CLIENTE FICTICIO FEL"/>'
             . '<dte:Items><dte:Item NumeroLinea="1" BienOServicio="S">'
             . '<dte:Cantidad>1</dte:Cantidad><dte:UnidadMedida>UNI</dte:UnidadMedida>'

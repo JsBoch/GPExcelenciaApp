@@ -89,6 +89,22 @@
   </tr>
 </table>
 
+@if($esCredito && ($mostrarFrase922 ?? false))
+    <div style="
+        margin-top:14px;
+        padding:10px 12px;
+        border:1px solid #444;
+        background-color:#f5f5f5;
+        font-size:11px;
+        font-weight:bold;
+        line-height:1.6;
+        page-break-inside:avoid;
+    ">
+        Documento emitido posterior a los dos meses de la factura,
+        no se reconoce como crédito fiscal, según Art. 17 Ley del IVA.
+    </div>
+@endif
+
 <p class="small" style="margin-top:10px">
   Documento generado electrónicamente conforme a la normativa FEL – SAT Guatemala.
 </p>

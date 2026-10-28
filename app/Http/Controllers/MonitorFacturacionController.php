@@ -3375,10 +3375,54 @@ class MonitorFacturacionController extends Controller
         $fact = $this->facturaVigente((int)$idcotizacion);
         if (!$fact) return null; // no hay DTE vigente que referenciar
 
+        // Regla SAT: Frase 9, Escenario 22.
+        // Vigencia desde 29/10/2026 00:00 Guatemala.
+        // Aplica exclusivamente a NCRE posteriores a dos meses
+        // calendario de la fecha fiscal de emisión de la factura.
+
+        $fechaEmisionNota = \Carbon\CarbonImmutable::now(
+            'America/Guatemala'
+        );
+
+        $lecturaFechaOrigen = $this->leerXMLFacturaCertificada($fact);
+
+        if (!$lecturaFechaOrigen['valido']) {
+            throw new \RuntimeException(
+                $lecturaFechaOrigen['mensaje']
+                    ?? 'No fue posible validar el XML de origen.'
+            );
+        }
+
+        $fechaOrigenFiscal = \Carbon\CarbonImmutable::createFromFormat(
+            '!Y-m-d',
+            $lecturaFechaOrigen['fecha_emision_fiscal'],
+            'America/Guatemala'
+        );
+
+        if (!$fechaOrigenFiscal) {
+            throw new \RuntimeException(
+                'La fecha fiscal de origen es inválida.'
+            );
+        }
+
+        $fechaLimiteNCRE = $fechaOrigenFiscal->addMonthsNoOverflow(2);
+
+        $vigenciaFrase922 = \Carbon\CarbonImmutable::parse(
+            '2026-10-29 00:00:00',
+            'America/Guatemala'
+        );
+
+        $requiereFrase922 =
+            \App\Services\Fel\ReglaFrase922::aplica(
+                $tipo,
+                $fechaOrigenFiscal->toDateString(),
+                $fechaEmisionNota->format('Y-m-d\TH:i:s')
+            );
+        //************************************* */
         $lecturaOrigen = null;
 
         if ($totalDesdeXML) {
-            $lecturaOrigen = $this->leerXMLFacturaCertificada($fact);
+            $lecturaOrigen = $lecturaFechaOrigen;
 
             if (!$lecturaOrigen['valido']) {
                 throw new \RuntimeException(
@@ -3457,7 +3501,10 @@ class MonitorFacturacionController extends Controller
 
         $DatosGenerales = $doc->createElement('dte:DatosGenerales');
         $DatosGenerales->setAttribute('CodigoMoneda', 'GTQ');
-        $DatosGenerales->setAttribute('FechaHoraEmision', now()->format('Y-m-d\TH:i:s'));
+        $DatosGenerales->setAttribute(
+            'FechaHoraEmision',
+            $fechaEmisionNota->format('Y-m-d\TH:i:s')
+        );
         $DatosGenerales->setAttribute('Tipo', $tipo); // NCRE | NDEB
         $DatosEmision->appendChild($DatosGenerales);
 
@@ -3594,12 +3641,28 @@ class MonitorFacturacionController extends Controller
 
         $Receptor->appendChild($dirReceptor);
 
-        // Frases
+
+
+        // Frases tributarias de NCRE/NDEB.
         $Frases = $doc->createElement('dte:Frases');
+
+        // Conservar la frase que ya utilizaba el sistema.
         $Frase = $doc->createElement('dte:Frase');
         $Frase->setAttribute('CodigoEscenario', '1');
         $Frase->setAttribute('TipoFrase', '1');
         $Frases->appendChild($Frase);
+
+        // SAT: Frase 9, Escenario 22.
+        // Únicamente para NCRE fuera de los dos meses calendario
+        // y dentro de la vigencia de la nueva validación.
+        if ($requiereFrase922) {
+            $fraseExtemporanea = $doc->createElement('dte:Frase');
+            $fraseExtemporanea->setAttribute('CodigoEscenario', '22');
+            $fraseExtemporanea->setAttribute('TipoFrase', '9');
+
+            $Frases->appendChild($fraseExtemporanea);
+        }
+
         $DatosEmision->appendChild($Frases);
 
         // Ítems de la nota
@@ -3898,7 +3961,10 @@ class MonitorFacturacionController extends Controller
         $Complemento->setAttribute('URIComplemento', 'http://www.sat.gob.gt/fel/notas.xsd');
 
         $ReferenciasNota = $doc->createElementNS('http://www.sat.gob.gt/face2/ComplementoReferenciaNota/0.1.0', 'cno:ReferenciasNota');
-        $ReferenciasNota->setAttribute('FechaEmisionDocumentoOrigen', Carbon::parse($fact->fecha_certificacion)->toDateString());
+        $ReferenciasNota->setAttribute(
+            'FechaEmisionDocumentoOrigen',
+            $fechaOrigenFiscal->toDateString()
+        );
         $ReferenciasNota->setAttribute('MotivoAjuste', $motivo);
         $ReferenciasNota->setAttribute('NumeroAutorizacionDocumentoOrigen', $fact->uuid);
         $ReferenciasNota->setAttribute('NumeroDocumentoOrigen', $fact->numero);
@@ -3915,6 +3981,7 @@ class MonitorFacturacionController extends Controller
                 'idcliente'       => $cli->idcliente ?? null,
                 'tipo'            => $tipo,
                 'motivo'          => $motivo,
+                'frase_9_22' => $requiereFrase922,
                 'monto_total'     => $monto,
                 'monto_gravable'  => $monto_gravable,
                 'monto_impuesto'  => $monto_impuesto,
@@ -3931,7 +3998,7 @@ class MonitorFacturacionController extends Controller
                     'uuid'          => $fact->uuid,
                     'serie'         => $fact->serie,
                     'numero'        => $fact->numero,
-                    'fecha_emision' => Carbon::parse($fact->fecha_certificacion)->toDateString(),
+                    'fecha_emision' => $fechaOrigenFiscal->toDateString(),
                 ],
                 'timbre_prensa_base' => $totalDesdeXML
                     ? round($baseTimbreNota, 2) : 0.00,
@@ -4357,63 +4424,108 @@ class MonitorFacturacionController extends Controller
 
 
     public function generarPdfNotaFel(int $idnota)
-    {
-        $nota = DB::table('adm_notas_fel as nf')
-            ->selectRaw("
-            nf.idnota,
-            nf.idcotizacion,
-            nf.tipo,
-            nf.motivo,
-            nf.monto_total  as monto,
-            nf.monto_gravable,
-            nf.monto_impuesto,
+{
+    $nota = DB::table('adm_notas_fel as nf')
+        ->selectRaw("
+            nf.idnota, nf.idcotizacion, nf.tipo, nf.motivo,
+            nf.monto_total as monto, nf.monto_gravable, nf.monto_impuesto,
             nf.exento_iva,
-
-            -- receptor
-            nf.receptor_nombre    as cliente,
-            nf.receptor_numero    as receptor_numero,
+            nf.receptor_nombre as cliente,
+            nf.receptor_numero as receptor_numero,
             nf.receptor_direccion as direccion,
-
-            -- ⚠️ datos de la NOTA certificada
-            nf.uuid_nota,
-            nf.serie_nota,
-            nf.numero_nota,
+            nf.uuid_nota, nf.serie_nota, nf.numero_nota,
             DATE(COALESCE(nf.fecha_nota, nf.created_at)) as fecha_nota,
-
-            -- referencia a FACTURA origen (desde lo que persistimos en nf.*_origen)
-            nf.serie_origen       as serie_factura,
-            nf.numero_origen      as numero_factura,
-            nf.uuid_origen        as uuid_factura,
+            nf.serie_origen as serie_factura,
+            nf.numero_origen as numero_factura,
+            nf.uuid_origen as uuid_factura,
             DATE(nf.fecha_emision_origen) as fecha_factura
         ")
-            ->where('nf.idnota', $idnota)
-            ->first();
+        ->where('nf.idnota', $idnota)
+        ->where('nf.resultado', 'S')
+        ->first();
 
-        if (!$nota) {
-            return response()->json(['message' => 'Nota no encontrada'], 404);
-        }
-
-        // Datos de tu empresa
-        $empresa = [
-            'nombre'     => 'GP EXCELENCIA, S.A.',
-            'nit'        => '109126599',
-            'direccion'  => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
-            'telefonos'  => '2309-9419 / 2294-9257',
-            'email'      => 'ventas@gpexcelencia.com',
-            'web'        => 'www.gpexcelencia.com',
-        ];
-
-        $html = view('pdf.nota_fel', [
-            'nota'      => $nota,
-            'empresa'   => $empresa,
-            'esCredito' => $nota->tipo === 'NCRE',
-        ])->render();
-
-        $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
-
-        $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
-        return $pdf->stream($fn);
+    if (!$nota) {
+        return response()->json(['message' => 'Nota certificada no encontrada'], 404);
     }
+
+    $mostrarFrase922 = false;
+
+    if ($nota->tipo === 'NCRE') {
+        $intento = DB::table('adm_fel_intentos')
+            ->where('idnota', $nota->idnota)
+            ->where('idcotizacion', $nota->idcotizacion)
+            ->where('tipo_documento', 'NCRE')
+            ->where('estado', 'CERTIFICADO')
+            ->where('uuid', $nota->uuid_nota)
+            ->first(['xml_enviado', 'xml_hash']);
+
+        if ($intento) {
+            $xml = (string) $intento->xml_enviado;
+            $hash = (string) $intento->xml_hash;
+
+            if ($xml === '' || $hash === '' || !hash_equals($hash, hash('sha256', $xml))) {
+                return response()->json([
+                    'message' => 'No se pudo verificar la integridad del XML fiscal de la nota.',
+                ], 409);
+            }
+
+            $doc = new \DOMDocument();
+            $anterior = libxml_use_internal_errors(true);
+
+            try {
+                $valido = $doc->loadXML($xml, LIBXML_NONET);
+            } finally {
+                libxml_clear_errors();
+                libxml_use_internal_errors($anterior);
+            }
+
+            if (!$valido) {
+                return response()->json([
+                    'message' => 'El XML fiscal de la nota no es válido.',
+                ], 409);
+            }
+
+            $xpath = new \DOMXPath($doc);
+            $xpath->registerNamespace('dte', 'http://www.sat.gob.gt/dte/fel/0.2.0');
+
+            $frases = $xpath->query(
+                '//dte:DatosEmision/dte:Frases/dte:Frase[@TipoFrase="9" and @CodigoEscenario="22"]'
+            );
+
+            if ($frases === false || $frases->length > 1) {
+                return response()->json([
+                    'message' => 'La información de la frase fiscal no es válida.',
+                ], 409);
+            }
+
+            $mostrarFrase922 = $frases->length === 1;
+        }
+        // Compatibilidad: notas históricas sin intento asociado conservan el comportamiento previo.
+        // No inferir nunca la frase por fechas ni por metadatos no certificados.
+    }
+
+    $empresa = [
+        'nombre' => 'GP EXCELENCIA, S.A.',
+        'nit' => '109126599',
+        'direccion' => '11 calle 41-20 Aldea El Naranjito, Zona 6 de Mixco, Guatemala',
+        'telefonos' => '2309-9419 / 2294-9257',
+        'email' => 'ventas@gpexcelencia.com',
+        'web' => 'www.gpexcelencia.com',
+    ];
+
+    $html = view('pdf.nota_fel', [
+        'nota' => $nota,
+        'empresa' => $empresa,
+        'esCredito' => $nota->tipo === 'NCRE',
+        'mostrarFrase922' => $mostrarFrase922,
+    ])->render();
+
+    $pdf = Pdf::loadHTML($html)->setPaper('letter', 'portrait');
+    $fn = sprintf('%s_%s-%s.pdf', $nota->tipo, $nota->serie_nota ?? 'SN', $nota->numero_nota ?? '0');
+
+    return $pdf->stream($fn);
+}
+
 
 
     public function generarPdfUltimaNotaPorTipo(Request $request, int $idcotizacion)
@@ -5119,6 +5231,31 @@ class MonitorFacturacionController extends Controller
             'http://www.sat.gob.gt/dte/fel/0.2.0'
         );
 
+        $fechaEmisionOriginal = trim((string) $xpath->evaluate(
+            'string((//dte:DatosEmision/dte:DatosGenerales/@FechaHoraEmision)[1])'
+        ));
+
+        if (
+            $fechaEmisionOriginal === '' ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}T/', $fechaEmisionOriginal)
+        ) {
+            return [
+                'valido' => false,
+                'mensaje' => 'El XML certificado no contiene una fecha de emisión fiscal válida.',
+            ];
+        }
+
+        try {
+            $fechaEmisionFiscal = \Carbon\CarbonImmutable::parse(
+                $fechaEmisionOriginal,
+                'America/Guatemala'
+            )->toDateString();
+        } catch (\Throwable $e) {
+            return [
+                'valido' => false,
+                'mensaje' => 'No fue posible interpretar la fecha fiscal de la factura.',
+            ];
+        }
 
         $receptorNodo = $xpath->query(
             '//dte:DatosEmision/dte:Receptor'
@@ -5253,6 +5390,7 @@ class MonitorFacturacionController extends Controller
             'gran_total' => round($granTotal, 2),
             'items' => $items,
             'receptor' => $receptor,
+            'fecha_emision_fiscal' => $fechaEmisionFiscal,
         ];
     }
 
@@ -5851,6 +5989,95 @@ class MonitorFacturacionController extends Controller
                     strcasecmp((string) $factura->uuid, (string) $intento->uuid_origen) !== 0
                 ) {
                     return ['valido' => false, 'mensaje' => 'La factura origen no está vigente o no coincide.'];
+                }
+
+                // Validación SAT 9-22 exclusivamente para NCRE.
+                // Nunca se modifica el XML persistido.
+
+                if ($tipoDocumento === 'NCRE') {
+                    $lectura = $this->leerXMLFacturaCertificada($factura);
+
+                    if (!$lectura['valido']) {
+                        return [
+                            'valido' => false,
+                            'mensaje' => 'No se pudo verificar la fecha fiscal de origen.',
+                        ];
+                    }
+
+                    $docIntento = new \DOMDocument();
+
+                    if (!@$docIntento->loadXML(
+                        (string) $intento->xml_enviado,
+                        LIBXML_NONET
+                    )) {
+                        return [
+                            'valido' => false,
+                            'mensaje' => 'XML preparado inválido.',
+                        ];
+                    }
+
+                    $xpathIntento = new \DOMXPath($docIntento);
+                    $xpathIntento->registerNamespace(
+                        'dte',
+                        'http://www.sat.gob.gt/dte/fel/0.2.0'
+                    );
+
+                    $fechaXml = trim((string) $xpathIntento->evaluate(
+                        'string((//dte:DatosEmision/dte:DatosGenerales/@FechaHoraEmision)[1])'
+                    ));
+
+                    try {
+                        $fechaDocumento = \Carbon\CarbonImmutable::parse(
+                            $fechaXml,
+                            'America/Guatemala'
+                        );
+
+                        $fechaOrigen = \Carbon\CarbonImmutable::createFromFormat(
+                            '!Y-m-d',
+                            $lectura['fecha_emision_fiscal'],
+                            'America/Guatemala'
+                        );
+
+                        $vigencia = \Carbon\CarbonImmutable::parse(
+                            '2026-10-29 00:00:00',
+                            'America/Guatemala'
+                        );
+                    } catch (\Throwable $e) {
+                        return [
+                            'valido' => false,
+                            'mensaje' => 'Fechas fiscales inválidas.',
+                        ];
+                    }
+
+                    if (!$fechaDocumento || !$fechaOrigen || $fechaXml === '') {
+                        return [
+                            'valido' => false,
+                            'mensaje' => 'Fechas fiscales incompletas.',
+                        ];
+                    }
+
+                    $requiereFrase =
+                        \App\Services\Fel\ReglaFrase922::aplica(
+                            $tipoDocumento,
+                            $lectura['fecha_emision_fiscal'],
+                            $fechaXml
+                        );
+
+                    $cantidadFrases = $xpathIntento->query(
+                        '//dte:DatosEmision/dte:Frases/dte:Frase
+            [@TipoFrase="9" and @CodigoEscenario="22"]'
+                    )->length;
+
+                    if (
+                        ($requiereFrase && $cantidadFrases !== 1) ||
+                        (!$requiereFrase && $cantidadFrases !== 0)
+                    ) {
+                        return [
+                            'valido' => false,
+                            'mensaje' =>
+                            'La Frase SAT 9-22 no corresponde con las fechas fiscales del XML.',
+                        ];
+                    }
                 }
 
                 $meta = json_decode((string) $intento->metadatos_fiscales, true);
@@ -6965,7 +7192,27 @@ class MonitorFacturacionController extends Controller
                 'fecha_creacion',
                 'fecha_envio',
                 'fecha_respuesta',
+                'metadatos_fiscales',
             ]);
+
+        $intentos = $intentos->map(function ($intento) {
+            $meta = json_decode(
+                (string) $intento->metadatos_fiscales,
+                true
+            );
+
+            $intento->motivo = is_array($meta)
+                ? ($meta['motivo'] ?? null)
+                : null;
+
+            $intento->monto_total = is_array($meta)
+                ? ($meta['monto_total'] ?? null)
+                : null;
+
+            unset($intento->metadatos_fiscales);
+
+            return $intento;
+        });
 
         $puedeCertificarNotas =
             config('services.infile.notas_envio_habilitado', false)

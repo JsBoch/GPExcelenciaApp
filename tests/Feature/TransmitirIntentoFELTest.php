@@ -51,7 +51,6 @@ class TransmitirIntentoFELTest extends TestCase
         ) {
 
             throw new RuntimeException('Prueba HTTP FEL bloqueada: entorno/base/configuración incorrectos.');
-
         }
 
 
@@ -76,7 +75,6 @@ class TransmitirIntentoFELTest extends TestCase
         config()->set('services.infile.usuario_firma', 'TEST');
 
         config()->set('services.infile.llave_firma', 'TEST');
-
     }
 
 
@@ -118,7 +116,6 @@ class TransmitirIntentoFELTest extends TestCase
             '"/></dte:Complementos>' .
 
             '</dte:DatosEmision></dte:DTE></dte:SAT></dte:GTDocumento>';
-
     }
 
 
@@ -135,30 +132,30 @@ class TransmitirIntentoFELTest extends TestCase
 
 
 
-       $idfactura = DB::table('adm_facturacion')->insertGetId([
+        $idfactura = DB::table('adm_facturacion')->insertGetId([
 
-    'idcotizacion' => 900001,
+            'idcotizacion' => 900001,
 
-    'resultado' => 'S',
+            'resultado' => 'S',
 
-    'estado' => 1,
+            'estado' => 1,
 
-    'uuid' => $uuidOrigen,
+            'uuid' => $uuidOrigen,
 
-    'serie' => 'TEST',
+            'serie' => 'TEST',
 
-    'numero' => '100',
+            'numero' => '100',
 
-    'total_factura' => 215,
+            'total_factura' => 215,
 
-    'fecha_certificacion' => now(),
+            'fecha_certificacion' => now(),
 
 
 
-    // XML certificado ficticio de la factura original.
-    'xml_certificado' => $this->xmlOrigen($uuidOrigen),
+            // XML certificado ficticio de la factura original.
+            'xml_certificado' => $this->xmlOrigen($uuidOrigen),
 
-]);
+        ]);
 
 
 
@@ -254,14 +251,13 @@ class TransmitirIntentoFELTest extends TestCase
 
             'estado' => 'PREPARADO',
 
-            'respuesta_certificador' => null,            
+            'respuesta_certificador' => null,
 
         ]);
 
 
 
         return [$idintento, $identificador, $respuesta];
-
     }
 
 
@@ -275,7 +271,6 @@ class TransmitirIntentoFELTest extends TestCase
         $metodo = new \ReflectionMethod($controlador, 'guardarNotaCertificadaFEL');
 
         return $metodo->invoke($controlador, $idintento, $respuesta);
-
     }
 
 
@@ -291,7 +286,6 @@ class TransmitirIntentoFELTest extends TestCase
         $metodo = new \ReflectionMethod($controlador, 'transmitirIntentoFEL');
 
         return $metodo->invoke($controlador, $idintento, 'NCRE');
-
     }
 
 
@@ -304,27 +298,27 @@ class TransmitirIntentoFELTest extends TestCase
 
 
 
-       Http::fake([
+        Http::fake([
 
-    'https://fel-test.invalid/*' => Http::response(
+            'https://fel-test.invalid/*' => Http::response(
 
-        $respuesta,
+                $respuesta,
 
-        200,
+                200,
 
-        ['Content-Type' => 'application/json']
+                ['Content-Type' => 'application/json']
 
-    ),
+            ),
 
-]);
+        ]);
 
         $this->assertTrue($respuesta['resultado']);
 
-$this->assertNotEmpty($respuesta['uuid']);
+        $this->assertNotEmpty($respuesta['uuid']);
 
-$this->assertNotEmpty($respuesta['serie']);
+        $this->assertNotEmpty($respuesta['serie']);
 
-$this->assertNotEmpty($respuesta['numero']);
+        $this->assertNotEmpty($respuesta['numero']);
 
         // $resultado = $this->transmitir($id);
         // $this->assertTrue($resultado['valido']);
@@ -332,7 +326,7 @@ $this->assertNotEmpty($respuesta['numero']);
 
 
 
-$this->assertTrue($resultado['valido']);
+        $this->assertTrue($resultado['valido']);
 
 
 
@@ -360,7 +354,8 @@ $this->assertTrue($resultado['valido']);
 
         Http::assertSentCount(1);
 
-        Http::assertSent(fn ($request) =>
+        Http::assertSent(
+            fn($request) =>
 
             $request->hasHeader('Identificador', $identificador)
 
@@ -379,7 +374,6 @@ $this->assertTrue($resultado['valido']);
         $this->assertSame(1, DB::table('adm_notas_fel')
 
             ->where('identificador', $identificador)->count());
-
     }
 
 
@@ -392,15 +386,15 @@ $this->assertTrue($resultado['valido']);
 
         Http::fake([
 
-    'https://fel-test.invalid/*' => Http::response([
+            'https://fel-test.invalid/*' => Http::response([
 
-        'resultado' => false,
+                'resultado' => false,
 
-        'descripcion' => 'RECHAZO SIMULADO',
+                'descripcion' => 'RECHAZO SIMULADO',
 
-    ], 422),
+            ], 422),
 
-]);
+        ]);
 
 
 
@@ -437,94 +431,91 @@ $this->assertTrue($resultado['valido']);
         $this->assertSame('BLOQUEADO', $segundo['estado']);
 
         Http::assertSentCount(1);
-
     }
 
 
 
 
 
-public function test_timeout_simulado_congela_intento_sin_reenvio(): void
+    public function test_timeout_simulado_congela_intento_sin_reenvio(): void
 
-{
+    {
 
-    [$id, $identificador] = $this->crearIntento();
-
-
-
-    $llamadas = 0;
+        [$id, $identificador] = $this->crearIntento();
 
 
 
-    Http::fake([
-
-        'https://fel-test.invalid/*' => function () use (&$llamadas) {
-
-            $llamadas++;
+        $llamadas = 0;
 
 
 
-            throw new ConnectionException('TIMEOUT SIMULADO');
+        Http::fake([
 
-        },
+            'https://fel-test.invalid/*' => function () use (&$llamadas) {
 
-    ]);
-
-
-
-    $resultado = $this->transmitir($id);
+                $llamadas++;
 
 
 
-    $this->assertFalse($resultado['valido']);
+                throw new ConnectionException('TIMEOUT SIMULADO');
+            },
 
-    $this->assertSame('INCIERTO', $resultado['estado']);
-
-    $this->assertSame(1, $llamadas);
-
-
-
-    $this->assertDatabaseHas('adm_fel_intentos', [
-
-        'idintento' => $id,
-
-        'estado' => 'INCIERTO',
-
-        'idnota' => null,
-
-    ]);
+        ]);
 
 
 
-    $this->assertSame(
-
-        0,
-
-        DB::table('adm_notas_fel')
-
-            ->where('identificador', $identificador)
-
-            ->count()
-
-    );
+        $resultado = $this->transmitir($id);
 
 
 
-    // Una segunda ejecución debe bloquearse sin realizar otro envío.
-    $segundo = $this->transmitir($id);
+        $this->assertFalse($resultado['valido']);
+
+        $this->assertSame('INCIERTO', $resultado['estado']);
+
+        $this->assertSame(1, $llamadas);
 
 
 
-    $this->assertFalse($segundo['valido']);
+        $this->assertDatabaseHas('adm_fel_intentos', [
 
-    $this->assertSame('BLOQUEADO', $segundo['estado']);
+            'idintento' => $id,
+
+            'estado' => 'INCIERTO',
+
+            'idnota' => null,
+
+        ]);
 
 
 
-    // El callback únicamente debe haberse ejecutado una vez.
-    $this->assertSame(1, $llamadas);
+        $this->assertSame(
 
-}
+            0,
+
+            DB::table('adm_notas_fel')
+
+                ->where('identificador', $identificador)
+
+                ->count()
+
+        );
+
+
+
+        // Una segunda ejecución debe bloquearse sin realizar otro envío.
+        $segundo = $this->transmitir($id);
+
+
+
+        $this->assertFalse($segundo['valido']);
+
+        $this->assertSame('BLOQUEADO', $segundo['estado']);
+
+
+
+        // El callback únicamente debe haberse ejecutado una vez.
+        $this->assertSame(1, $llamadas);
+    }
 
 
 
@@ -573,7 +564,6 @@ public function test_timeout_simulado_congela_intento_sin_reenvio(): void
         $this->assertSame('BLOQUEADO', $segundo['estado']);
 
         Http::assertSentCount(1);
-
     }
 
 
@@ -593,6 +583,9 @@ public function test_timeout_simulado_congela_intento_sin_reenvio(): void
             . '<dte:GTDocumento xmlns:dte="http://www.sat.gob.gt/dte/fel/0.2.0">'
 
             . '<dte:SAT><dte:DTE><dte:DatosEmision>'
+            . '<dte:DatosGenerales Tipo="FCAM" CodigoMoneda="GTQ" FechaHoraEmision="'
+            . now('America/Guatemala')->format('Y-m-d\TH:i:s')
+            . '"/>'
 
             . '<dte:Receptor IDReceptor="TEST-NO-VALIDO" NombreReceptor="CLIENTE FICTICIO FEL"/>'
 
@@ -619,7 +612,5 @@ public function test_timeout_simulado_congela_intento_sin_reenvio(): void
             . '</dte:NumeroAutorizacion></dte:Certificacion>'
 
             . '</dte:SAT></dte:GTDocumento>';
-
     }
-
 }
