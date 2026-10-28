@@ -1939,24 +1939,6 @@ function MonitorFacturacion() {
                         </ListItemIcon>
                         <ListItemText primary="Historial de Notas FEL…" />
                     </MenuItem>
-                    <MenuItem
-                        onClick={() => {
-                            closeActions();
-                            abrirNota("NCRE");
-                        }}
-                        disabled={
-                            !registroSeleccionado ||
-                            Number(registroSeleccionado.estado) !== 6
-                        }
-                    >
-                        <ListItemIcon>
-                            <Visibility fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="Seguimiento de notas FEL"
-                            secondary="Consultar intentos y certificación"
-                        />
-                    </MenuItem>
                     <Divider />
 
                     {/* COMENTARIOS */}
