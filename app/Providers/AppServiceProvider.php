@@ -56,5 +56,13 @@ class AppServiceProvider extends ServiceProvider
                     ->exists();
             }
         );
+
+        Gate::define('fel-preparar-notas', function (User $user) {
+            return $user->perfiles()
+                ->whereHas('opciones', function ($query) {
+                    $query->where('ruta', 'fel-preparar-notas');
+                })
+                ->exists();
+        });
     }
 }
