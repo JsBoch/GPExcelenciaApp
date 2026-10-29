@@ -654,7 +654,8 @@ function MonitorFacturacion() {
 
     // ====== Notas: un solo modal para preparación y seguimiento ======
     const abrirNota = async (tipo) => {
-        if (!registroSeleccionado) return alertify.error("Seleccione un registro");
+        if (!registroSeleccionado)
+            return alertify.error("Seleccione un registro");
         setNotaTipo(tipo);
         setNotaEtapa("CARGANDO");
         setNotaIntentoId(null);
@@ -691,7 +692,9 @@ function MonitorFacturacion() {
             });
             if (!consultar) {
                 setNotaEtapa("ERROR");
-                return alertify.error("No tienes permiso para consultar intentos FEL.");
+                return alertify.error(
+                    "No tienes permiso para consultar intentos FEL.",
+                );
             }
             const { data } = await axios.get(
                 `/api/fel/notas/cotizaciones/${registroSeleccionado.idcotizacion}/intentos`,
@@ -699,16 +702,33 @@ function MonitorFacturacion() {
             );
             const items = Array.isArray(data?.intentos) ? data.intentos : [];
             setIntentosFEL(items);
-            const pendiente = items.find((item) =>
-                ["PREPARADO", "ENVIANDO", "INCIERTO"].includes(item.estado),
+            const pendientes = ["PREPARADO", "ENVIANDO", "INCIERTO"];
+
+            const intentosDelTipo = items.filter(
+                (item) => item.tipo_documento === tipo,
             );
-            if (pendiente) {
-                setIntentoFEL(pendiente);
-                mostrarDatosIntento(pendiente);
-                setNotaIntentoId(pendiente.idintento);
+
+            const pendiente = intentosDelTipo.find((item) =>
+                pendientes.includes(item.estado),
+            );
+
+            const certificado = intentosDelTipo.find(
+                (item) => item.estado === "CERTIFICADO",
+            );
+
+            // Primero atender intentos pendientes.
+            // En este flujo NCRE, una certificación total impide preparar otra.
+            const intentoBloqueante =
+                pendiente || (tipo === "NCRE" ? certificado : null);
+
+            if (intentoBloqueante) {
+                setIntentoFEL(intentoBloqueante);
+                mostrarDatosIntento(intentoBloqueante);
+                setNotaIntentoId(intentoBloqueante.idintento);
                 setNotaEtapa("INTENTO");
             } else {
-                // Se puede preparar una nota nueva; el historial certificado sigue visible.
+                setIntentoFEL(null);
+                setNotaIntentoId(null);
                 setNotaEtapa("FORMULARIO");
             }
         } catch (error) {
@@ -727,7 +747,10 @@ function MonitorFacturacion() {
         setNotaTipo(item.tipo_documento === "NDEB" ? "NDEB" : "NCRE");
         setNotaForm({
             motivo: typeof item.motivo === "string" ? item.motivo : "",
-            monto: item.monto_total != null ? Number(item.monto_total).toFixed(2) : "",
+            monto:
+                item.monto_total != null
+                    ? Number(item.monto_total).toFixed(2)
+                    : "",
         });
     };
 
@@ -743,9 +766,14 @@ function MonitorFacturacion() {
             );
             const items = Array.isArray(data?.intentos) ? data.intentos : [];
             setIntentosFEL(items);
-            const elegido = items.find(
-                (item) => Number(item.idintento) === Number(idPreferido ?? intentoFEL?.idintento),
-            ) || items[0] || null;
+            const elegido =
+                items.find(
+                    (item) =>
+                        Number(item.idintento) ===
+                        Number(idPreferido ?? intentoFEL?.idintento),
+                ) ||
+                items[0] ||
+                null;
             setIntentoFEL(elegido);
             if (showNotaModal && elegido) {
                 mostrarDatosIntento(elegido);
@@ -945,39 +973,92 @@ function MonitorFacturacion() {
 
     // ====== Preparación, sin transmisión automática ======
     const confirmarNota = async () => {
-        if (!registroSeleccionado || notaOperacionRef.current || notaEtapa !== "FORMULARIO") return;
+        if (
+            !registroSeleccionado ||
+            notaOperacionRef.current ||
+            notaEtapa !== "FORMULARIO"
+        )
+            return;
+
+        if (
+            notaTipo === "NCRE" &&
+            intentosFEL.some(
+                (item) =>
+                    item.tipo_documento === "NCRE" &&
+                    [
+                        "PREPARADO",
+                        "ENVIANDO",
+                        "INCIERTO",
+                        "CERTIFICADO",
+                    ].includes(item.estado),
+            )
+        ) {
+            alertify.error(
+                "Esta factura ya tiene una Nota de Crédito registrada o certificada. " +
+                    "Consulta el historial FEL antes de continuar.",
+            );
+            return;
+        }
+
         const token = localStorage.getItem("token");
         if (!token) return alertify.error("Token no encontrado.");
         const monto = Number(notaForm.monto);
-        if (!notaForm.motivo?.trim()) return alertify.error("Ingresa el motivo.");
-        if (!Number.isFinite(monto) || monto <= 0) return alertify.error("Monto inválido.");
-        if (notaTipo === "NCRE" && Math.abs(monto - Number(registroSeleccionado.total_general || 0)) > 0.001) {
-            return alertify.error("Esta modalidad prepara solo NCRE total. No se ha habilitado el ajuste parcial en este flujo.");
+        if (!notaForm.motivo?.trim())
+            return alertify.error("Ingresa el motivo.");
+        if (!Number.isFinite(monto) || monto <= 0)
+            return alertify.error("Monto inválido.");
+        if (
+            notaTipo === "NCRE" &&
+            Math.abs(monto - Number(registroSeleccionado.total_general || 0)) >
+                0.001
+        ) {
+            return alertify.error(
+                "Esta modalidad prepara solo NCRE total. No se ha habilitado el ajuste parcial en este flujo.",
+            );
         }
-        if (!window.confirm(
-            `¿Preparar ${notaTipo} por ${asGTQ(monto)}?\n\n` +
-            "Esta acción almacena un intento fiscal. NO certifica ni envía a INFILE.",
-        )) return;
+        if (
+            !window.confirm(
+                `¿Preparar ${notaTipo} por ${asGTQ(monto)}?\n\n` +
+                    "Esta acción almacena un intento fiscal. NO certifica ni envía a INFILE.",
+            )
+        )
+            return;
 
         notaOperacionRef.current = true;
         setNotaLoading(true);
         try {
             const idcotizacion = registroSeleccionado.idcotizacion;
-            const url = notaTipo === "NCRE"
-                ? `${import.meta.env.VITE_API_URL}/notacredito/${idcotizacion}`
-                : `${import.meta.env.VITE_API_URL}/notadebito/${idcotizacion}`;
+            const url =
+                notaTipo === "NCRE"
+                    ? `${import.meta.env.VITE_API_URL}/notacredito/${idcotizacion}`
+                    : `${import.meta.env.VITE_API_URL}/notadebito/${idcotizacion}`;
             const { data } = await axios.post(
                 url,
-                { motivo: notaForm.motivo.trim(), monto, preparar_intento_nota: true,
-                  ...(notaTipo === "NCRE" ? { vista_previa_ncre_total_xml: true } : {}) },
+                {
+                    motivo: notaForm.motivo.trim(),
+                    monto,
+                    preparar_intento_nota: true,
+                    ...(notaTipo === "NCRE"
+                        ? { vista_previa_ncre_total_xml: true }
+                        : {}),
+                },
                 { headers: { Authorization: `Bearer ${token}` } },
             );
             // Compatible con ambos nombres existentes de respuesta del backend.
-            const preparado = data?.resultado === true &&
-                ["PREPARAR_NCRE_SIN_CERTIFICAR", "PREPARAR_NDEB_SIN_CERTIFICAR", "PREPARADO_SIN_CERTIFICAR"].includes(data?.modo);
+            const preparado =
+                data?.resultado === true &&
+                [
+                    "PREPARAR_NCRE_SIN_CERTIFICAR",
+                    "PREPARAR_NDEB_SIN_CERTIFICAR",
+                    "PREPARADO_SIN_CERTIFICAR",
+                ].includes(data?.modo);
             const idintento = data?.intento?.idintento;
             if (!preparado || !idintento) {
-                return alertify.error(data?.mensaje || data?.message || "No se confirmó la preparación.");
+                return alertify.error(
+                    data?.mensaje ||
+                        data?.message ||
+                        "No se confirmó la preparación.",
+                );
             }
             setNotaIntentoId(idintento);
             setNotaEtapa("INTENTO");
@@ -985,10 +1066,16 @@ function MonitorFacturacion() {
             await cargarIntentosFEL(idcotizacion, idintento);
             // El usuario debe confirmar por separado la transmisión real.
         } catch (error) {
-            const mensaje = error.response?.data?.mensaje ||
-                error.response?.data?.message || error.response?.data?.errores ||
+            const mensaje =
+                error.response?.data?.mensaje ||
+                error.response?.data?.message ||
+                error.response?.data?.errores ||
                 "No se confirmó la preparación. Consulta intentos antes de repetir.";
-            alertify.error(typeof mensaje === "string" ? mensaje : "Error al preparar la nota.");
+            alertify.error(
+                typeof mensaje === "string"
+                    ? mensaje
+                    : "Error al preparar la nota.",
+            );
             // En caso de pérdida de respuesta, no permitir repetición ciega.
             setNotaEtapa("ERROR");
         } finally {
@@ -2537,92 +2624,229 @@ function MonitorFacturacion() {
                     – Ajuste
                 </ModalHeader>
                 <ModalBody>
-                    {notaEtapa === "CARGANDO" && <div className="alert alert-info">Verificando intentos FEL existentes…</div>}
+                    {notaEtapa === "CARGANDO" && (
+                        <div className="alert alert-info">
+                            Verificando intentos FEL existentes…
+                        </div>
+                    )}
                     {notaEtapa === "ERROR" && (
                         <div className="alert alert-warning">
-                            No se pudo comprobar de manera segura el estado de la nota.
-                            Cierra y vuelve a abrir el formulario para consultar el seguimiento.
-                            No repitas la preparación sin verificar los intentos.
+                            No se pudo comprobar de manera segura el estado de
+                            la nota. Cierra y vuelve a abrir el formulario para
+                            consultar el seguimiento. No repitas la preparación
+                            sin verificar los intentos.
                         </div>
                     )}
                     {notaEtapa === "INTENTO" && (
                         <div className="border rounded-3 p-3 mb-3">
                             <div className="d-flex justify-content-between align-items-center mb-2">
-                                <strong>Intento FEL #{intentoFEL?.idintento || notaIntentoId}</strong>
-                                <Chip size="small" label={intentoFEL?.estado || "Consultando…"}
-                                    color={intentoFEL?.estado === "CERTIFICADO" ? "success" :
-                                        ["INCIERTO", "ENVIANDO"].includes(intentoFEL?.estado) ? "warning" : "default"} />
+                                <strong>
+                                    Intento FEL #
+                                    {intentoFEL?.idintento || notaIntentoId}
+                                </strong>
+                                <Chip
+                                    size="small"
+                                    label={intentoFEL?.estado || "Consultando…"}
+                                    color={
+                                        intentoFEL?.estado === "CERTIFICADO"
+                                            ? "success"
+                                            : ["INCIERTO", "ENVIANDO"].includes(
+                                                    intentoFEL?.estado,
+                                                )
+                                              ? "warning"
+                                              : "default"
+                                    }
+                                />
                             </div>
                             <div className="small text-break mb-2">
-                                <strong>Identificador:</strong> {intentoFEL?.identificador || "—"}
+                                <strong>Identificador:</strong>{" "}
+                                {intentoFEL?.identificador || "—"}
                             </div>
                             <div className="small text-break mb-2">
-                                <strong>UUID de origen:</strong> {intentoFEL?.uuid_origen || "—"}
+                                <strong>UUID de origen:</strong>{" "}
+                                {intentoFEL?.uuid_origen || "—"}
                             </div>
-                            {intentoFEL?.uuid && <div className="small text-break mb-2"><strong>UUID certificado:</strong> {intentoFEL.uuid}</div>}
+                            {intentoFEL?.uuid && (
+                                <div className="small text-break mb-2">
+                                    <strong>UUID certificado:</strong>{" "}
+                                    {intentoFEL.uuid}
+                                </div>
+                            )}
                             {intentoFEL?.estado === "PREPARADO" && (
                                 <>
-                                    <p className="small mb-2">La nota está preparada, pero aún no certificada.</p>
-                                    <Button color={intentoFEL.permite_transmitir === true && permisosFEL.consultar ? "success" : "secondary"}
-                                        outline={intentoFEL.permite_transmitir !== true || !permisosFEL.consultar}
-                                        style={intentoFEL.permite_transmitir !== true || !permisosFEL.consultar
-                                            ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
-                                        disabled={intentoTransmitiendo || intentoLoading ||
-                                            intentoFEL.permite_transmitir !== true || !permisosFEL.consultar}
-                                        onClick={certificarIntentoNotaFEL}>
-                                        {intentoTransmitiendo ? "Certificando…" : "Certificar en INFILE"}
+                                    <p className="small mb-2">
+                                        La nota está preparada, pero aún no
+                                        certificada.
+                                    </p>
+                                    <Button
+                                        color={
+                                            intentoFEL.permite_transmitir ===
+                                                true && permisosFEL.consultar
+                                                ? "success"
+                                                : "secondary"
+                                        }
+                                        outline={
+                                            intentoFEL.permite_transmitir !==
+                                                true || !permisosFEL.consultar
+                                        }
+                                        style={
+                                            intentoFEL.permite_transmitir !==
+                                                true || !permisosFEL.consultar
+                                                ? {
+                                                      opacity: 0.65,
+                                                      cursor: "not-allowed",
+                                                  }
+                                                : undefined
+                                        }
+                                        disabled={
+                                            intentoTransmitiendo ||
+                                            intentoLoading ||
+                                            intentoFEL.permite_transmitir !==
+                                                true ||
+                                            !permisosFEL.consultar
+                                        }
+                                        onClick={certificarIntentoNotaFEL}
+                                    >
+                                        {intentoTransmitiendo
+                                            ? "Certificando…"
+                                            : "Certificar en INFILE"}
                                     </Button>
-                                    {intentoFEL.permite_transmitir !== true &&
-                                        <p className="small text-muted mt-2 mb-0">Transmisión no habilitada o sin autorización.</p>}
+                                    {intentoFEL.permite_transmitir !== true && (
+                                        <p className="small text-muted mt-2 mb-0">
+                                            Transmisión no habilitada o sin
+                                            autorización.
+                                        </p>
+                                    )}
                                 </>
                             )}
-                            {["ENVIANDO", "INCIERTO"].includes(intentoFEL?.estado) &&
-                                <div className="alert alert-warning mb-2">Resultado no confirmado. No reenviar ni preparar otro documento; requiere conciliación.</div>}
-                            {intentoFEL?.estado === "CERTIFICADO" && intentoFEL?.idnota && intentoFEL?.uuid && (
-                                <Button color="primary" onClick={() => imprimirNota(intentoFEL.idnota)}>
-                                    Ver PDF certificado
-                                </Button>
+                            {["ENVIANDO", "INCIERTO"].includes(
+                                intentoFEL?.estado,
+                            ) && (
+                                <div className="alert alert-warning mb-2">
+                                    Resultado no confirmado. No reenviar ni
+                                    preparar otro documento; requiere
+                                    conciliación.
+                                </div>
                             )}
+                            {intentoFEL?.estado === "CERTIFICADO" &&
+                                intentoFEL?.idnota &&
+                                intentoFEL?.uuid && (
+                                    <Button
+                                        color="primary"
+                                        onClick={() =>
+                                            imprimirNota(intentoFEL.idnota)
+                                        }
+                                    >
+                                        Ver PDF certificado
+                                    </Button>
+                                )}
                             <div className="mt-3">
-                                <Button size="sm" color="secondary" outline
-                                    disabled={intentoLoading || !permisosFEL.consultar}
-                                    onClick={() => cargarIntentosFEL(cotizacionSeguimiento.idcotizacion, notaIntentoId)}>
-                                    {intentoLoading ? "Consultando…" : "Actualizar estado"}
+                                <Button
+                                    size="sm"
+                                    color="secondary"
+                                    outline
+                                    disabled={
+                                        intentoLoading || !permisosFEL.consultar
+                                    }
+                                    onClick={() =>
+                                        cargarIntentosFEL(
+                                            cotizacionSeguimiento.idcotizacion,
+                                            notaIntentoId,
+                                        )
+                                    }
+                                >
+                                    {intentoLoading
+                                        ? "Consultando…"
+                                        : "Actualizar estado"}
                                 </Button>
                             </div>
                         </div>
                     )}
-                    {["INTENTO", "FORMULARIO"].includes(notaEtapa) && intentosFEL.length > 0 && (
-                        <div className="mb-3">
-                            <div className="fw-semibold mb-2">Historial de intentos FEL</div>
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle mb-0">
-                                    <thead><tr><th>Intento</th><th>Tipo</th><th>Estado</th><th>Acción</th></tr></thead>
-                                    <tbody>
-                                        {intentosFEL.map((item) => (
-                                            <tr key={item.idintento}>
-                                                <td>#{item.idintento}</td>
-                                                <td>{item.tipo_documento}</td>
-                                                <td><Chip size="small" label={item.estado} /></td>
-                                                <td style={{ minWidth: 130 }}><Button size="sm" outline color="primary"
-                                                    className="text-nowrap"
-                                                    style={{ minWidth: 108, whiteSpace: "nowrap" }}
-                                                    disabled={intentoLoading || Number(item.idintento) === Number(intentoFEL?.idintento)}
-                                                    onClick={() => {
-                                                        setIntentoFEL(item);
-                                                        setNotaIntentoId(item.idintento);
-                                                        mostrarDatosIntento(item);
-                                                        setNotaEtapa("INTENTO");
-                                                    }}>
-                                                    {Number(item.idintento) === Number(intentoFEL?.idintento) ? "Seleccionado" : "Ver"}
-                                                </Button></td>
+                    {["INTENTO", "FORMULARIO"].includes(notaEtapa) &&
+                        intentosFEL.length > 0 && (
+                            <div className="mb-3">
+                                <div className="fw-semibold mb-2">
+                                    Historial de intentos FEL
+                                </div>
+                                <div className="table-responsive">
+                                    <table className="table table-sm table-hover align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Intento</th>
+                                                <th>Tipo</th>
+                                                <th>Estado</th>
+                                                <th>Acción</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {intentosFEL.map((item) => (
+                                                <tr key={item.idintento}>
+                                                    <td>#{item.idintento}</td>
+                                                    <td>
+                                                        {item.tipo_documento}
+                                                    </td>
+                                                    <td>
+                                                        <Chip
+                                                            size="small"
+                                                            label={item.estado}
+                                                        />
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            minWidth: 130,
+                                                        }}
+                                                    >
+                                                        <Button
+                                                            size="sm"
+                                                            outline
+                                                            color="primary"
+                                                            className="text-nowrap"
+                                                            style={{
+                                                                minWidth: 108,
+                                                                whiteSpace:
+                                                                    "nowrap",
+                                                            }}
+                                                            disabled={
+                                                                intentoLoading ||
+                                                                Number(
+                                                                    item.idintento,
+                                                                ) ===
+                                                                    Number(
+                                                                        intentoFEL?.idintento,
+                                                                    )
+                                                            }
+                                                            onClick={() => {
+                                                                setIntentoFEL(
+                                                                    item,
+                                                                );
+                                                                setNotaIntentoId(
+                                                                    item.idintento,
+                                                                );
+                                                                mostrarDatosIntento(
+                                                                    item,
+                                                                );
+                                                                setNotaEtapa(
+                                                                    "INTENTO",
+                                                                );
+                                                            }}
+                                                        >
+                                                            {Number(
+                                                                item.idintento,
+                                                            ) ===
+                                                            Number(
+                                                                intentoFEL?.idintento,
+                                                            )
+                                                                ? "Seleccionado"
+                                                                : "Ver"}
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
                     {registroSeleccionado && (
                         <>
                             <div className="mb-3">
@@ -2636,7 +2860,8 @@ function MonitorFacturacion() {
                                 <div className="col-md-6">
                                     <div className="small text-muted">FEL</div>
                                     <div className="fw-semibold">
-                                        {registroSeleccionado.serie && registroSeleccionado.numero
+                                        {registroSeleccionado.serie &&
+                                        registroSeleccionado.numero
                                             ? `${registroSeleccionado.serie}-${registroSeleccionado.numero}`
                                             : "Documento FEL original"}
                                     </div>
@@ -2679,7 +2904,11 @@ function MonitorFacturacion() {
                                     motivo: e.target.value,
                                 })
                             }
-                            placeholder={notaEtapa === "INTENTO" ? "Motivo no disponible en el seguimiento" : "Ej. Descuento por devolución parcial"}
+                            placeholder={
+                                notaEtapa === "INTENTO"
+                                    ? "Motivo no disponible en el seguimiento"
+                                    : "Ej. Descuento por devolución parcial"
+                            }
                         />
                     </div>
 
@@ -2702,11 +2931,22 @@ function MonitorFacturacion() {
                             }
                         />
                         <div className="form-text">
-                            {notaEtapa === "FORMULARIO"
-                                ? <>Se preparará la {notaTipo === "NCRE" ? "NC" : "ND"} con <strong>una sola línea</strong>. No se enviará a INFILE.</>
-                                : notaEtapa === "INTENTO"
-                                  ? <>El intento está registrado. Los datos no pueden modificarse aquí ni se permite preparar otro intento mientras exista uno pendiente. {!["PREPARADO", "CERTIFICADO"].includes(intentoFEL?.estado) && "Si el resultado es incierto, requiere conciliación antes de cualquier otro trámite."}</>
-                                  : "Verificando estado antes de permitir la preparación."}
+                            {notaEtapa === "FORMULARIO" ? (
+                                <>
+                                    Se preparará la{" "}
+                                    {notaTipo === "NCRE" ? "NC" : "ND"} con{" "}
+                                    <strong>una sola línea</strong>. No se
+                                    enviará a INFILE.
+                                </>
+                            ) : notaEtapa === "INTENTO" ? (
+                                <>
+                                    {intentoFEL?.estado === "CERTIFICADO"
+                                        ? "Esta nota ya fue certificada. Puedes consultar su UUID y descargar el PDF desde el historial."
+                                        : "El intento está registrado. No puede prepararse otro mientras exista un trámite pendiente."}
+                                </>
+                            ) : (
+                                "Verificando estado antes de permitir la preparación."
+                            )}
                         </div>
                     </div>
                 </ModalBody>
