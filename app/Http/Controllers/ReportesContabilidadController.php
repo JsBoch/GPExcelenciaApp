@@ -27,10 +27,10 @@ class ReportesContabilidadController extends Controller
 
         $query = $this->construirConsultaCotizaciones($request->all());
 
-//             Log::info('SQL generado:', [
-//     'sql' => $query->toSql(),
-//     'bindings' => $query->getBindings()
-// ]);
+        //             Log::info('SQL generado:', [
+        //     'sql' => $query->toSql(),
+        //     'bindings' => $query->getBindings()
+        // ]);
 
         $perPage = $request->input('per_page', 10);
         $page = $request->input('page', 1);
@@ -414,11 +414,11 @@ class ReportesContabilidadController extends Controller
 
         $query->orderBy('fecha_cotizacion', 'asc');
 
-//     Log::info('SQL generado:', [
-//     'sql' => $query->toSql(),
-//     'bindings' => $query->getBindings(),
-//     'filtros' => $filtros
-// ]);
+        //     Log::info('SQL generado:', [
+        //     'sql' => $query->toSql(),
+        //     'bindings' => $query->getBindings(),
+        //     'filtros' => $filtros
+        // ]);
 
         return $query;
     }
@@ -434,10 +434,20 @@ class ReportesContabilidadController extends Controller
 
         return DB::table('adm_cuentas_porcobrar as cxc')
             ->join('clientes as cli', 'cli.idcliente', '=', 'cxc.idcliente')
-            ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
-            ->Join('adm_facturacion as fac', function ($join) {
-                $join->on('cot.idcotizacion', '=', 'fac.idcotizacion')
-                    ->where('fac.estado', '>', 0); // ← evita tomar facturas estado 0
+            // ->leftJoin('adm_cotizacion as cot', 'cot.idcotizacion', '=', 'cxc.idcotizacion')
+            // ->Join('adm_facturacion as fac', function ($join) {
+            //     $join->on('cot.idcotizacion', '=', 'fac.idcotizacion')
+            //         ->where('fac.estado', '>', 0); // ← evita tomar facturas estado 0
+            // })
+            ->leftJoin(
+                'adm_cotizacion as cot',
+                'cot.idcotizacion',
+                '=',
+                'cxc.idcotizacion'
+            )
+            ->join('adm_facturacion as fac', function ($join) {
+                $join->on('fac.idfactura', '=', 'cxc.idfactura')
+                    ->where('fac.estado', '>', 0);
             })
             ->leftJoin('adm_departamentopais as dep', 'dep.iddepartamentopais', '=', 'cli.iddepartamento')
             ->leftJoin('adm_empleados as emp', 'emp.iduser', '=', 'cot.idusuario')

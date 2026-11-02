@@ -2168,6 +2168,60 @@ class MonitorFacturacionController extends Controller
             ], 422);
         }
 
+
+        /**
+         * 2026-11-02
+         */
+
+        // =======================================================
+        // VALIDACIÓN PREVIA DE INTEGRIDAD CXC - FCAM
+        // No modificar datos ni transmitir si existe conflicto.
+        // =======================================================
+
+        $cxcExistente = AdmCuentasPorCobrar::where(
+            'idcotizacion',
+            $idcotizacion
+        )->get();
+
+        $cotizacionCXC = AdmCotizacion::findOrFail($idcotizacion);
+
+        if ($cxcExistente->count() > 1) {
+            return response()->json([
+                'resultado' => false,
+                'mensaje' => 'Existen varias cuentas por cobrar para esta cotización. Revisión contable requerida.',
+            ], 409);
+        }
+
+        $cxcPrevia = $cxcExistente->first();
+
+        if ($cxcPrevia) {
+
+            if ((int) $cxcPrevia->estado !== 0) {
+                return response()->json([
+                    'resultado' => false,
+                    'mensaje' => 'Esta cotización ya tiene una cuenta por cobrar activa. Verifique antes de certificar.',
+                ], 409);
+            }
+
+            if ((int) $cxcPrevia->idcliente !== (int) $cotizacionCXC->idcliente) {
+                return response()->json([
+                    'resultado' => false,
+                    'mensaje' => 'La cuenta por cobrar anulada pertenece a otro cliente. Revisión contable requerida.',
+                ], 409);
+            }
+
+            if (
+                round((float) $cxcPrevia->monto_pagado, 2) != 0.00
+                || round((float) $cxcPrevia->saldo_pendiente, 2) != 0.00
+            ) {
+                return response()->json([
+                    'resultado' => false,
+                    'mensaje' => 'La cuenta por cobrar anulada conserva importes. Revisión contable requerida.',
+                ], 409);
+            }
+        }
+        //===================================================================
+
         // Bloque 2: FCAM con intentos persistentes. La integración nueva permanece
         // DESACTIVADA hasta validación operativa. Sin activarla el flujo habitual
         // de FCAM sin timbre conserva su comportamiento previo.
@@ -2514,8 +2568,53 @@ class MonitorFacturacionController extends Controller
                     $cotizacion->update(['estado' => 6]);
 
                     //CxC por factura (NO por cotización genérica)
-                    //CxC por factura (NO por cotización genérica)
-                    $cxcoriginal = AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->first();
+
+                    //2026-11-02 $cxcoriginal = AdmCuentasPorCobrar::where('idcotizacion', $cotizacion->idcotizacion)->first();
+
+                    //==================================
+                    // Releer con bloqueo dentro de la transacción.
+                    $cuentasExistentes = AdmCuentasPorCobrar::where(
+                        'idcotizacion',
+                        $cotizacion->idcotizacion
+                    )
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($cuentasExistentes->count() > 1) {
+                        throw new \RuntimeException(
+                            'Existen múltiples CxC para la cotización. Conciliación requerida.'
+                        );
+                    }
+
+                    $cxcoriginal = $cuentasExistentes->first();
+
+                    if ($cxcoriginal) {
+
+                        if ((int) $cxcoriginal->estado !== 0) {
+                            throw new \RuntimeException(
+                                'La cotización ya tiene una CxC activa.'
+                            );
+                        }
+
+                        if (
+                            (int) $cxcoriginal->idcliente !==
+                            (int) $cotizacion->idcliente
+                        ) {
+                            throw new \RuntimeException(
+                                'El cliente de la CxC no coincide con la cotización.'
+                            );
+                        }
+
+                        if (
+                            round((float) $cxcoriginal->monto_pagado, 2) != 0.00
+                            || round((float) $cxcoriginal->saldo_pendiente, 2) != 0.00
+                        ) {
+                            throw new \RuntimeException(
+                                'La CxC anulada conserva importes. Revisión requerida.'
+                            );
+                        }
+                    }
+                    //==================================
 
                     if ($cxcoriginal && $cxcoriginal->estado == 0) {
                         //Reactivar (ya estaba anulada)
@@ -2539,6 +2638,8 @@ class MonitorFacturacionController extends Controller
                         $saldo = $importesFactura['total_factura'];
 
                         $cxcoriginal->update([
+                            'idcliente'          => $cotizacion->idcliente,
+                            'idcotizacion'       => $cotizacion->idcotizacion,
                             'idfactura'          => $factura->idfactura,
                             'fecha_emision'      => now(),
                             'fecha_vencimiento' => $fechaVencimientoFCAM,
