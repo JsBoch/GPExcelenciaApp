@@ -24,6 +24,7 @@ class AjustesVentaController extends Controller
             'idcotizacion' => 'nullable|integer|min:1',
             'idcliente' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',
+            'nocotizacion' => 'nullable|integer|min:1',
         ]);
 
         $query = DB::table('adm_ajustes_venta as a')
@@ -68,6 +69,13 @@ class AjustesVentaController extends Controller
 
         if (!empty($filtros['idcotizacion'])) {
             $query->where('a.idcotizacion', $filtros['idcotizacion']);
+        }
+
+        if (!empty($filtros['nocotizacion'])) {
+            $query->where(
+                'c.nocotizacion',
+                $filtros['nocotizacion']
+            );
         }
 
         if (!empty($filtros['idcliente'])) {
@@ -270,6 +278,37 @@ class AjustesVentaController extends Controller
         ]);
     }
 
+
+
+    public function buscarPorNumero(int $numero): JsonResponse
+    {
+        Gate::authorize('ajustes-ventas.consultar');
+
+        if ($numero <= 0) {
+            return response()->json([
+                'message' => 'Número de cotización inválido.'
+            ], 422);
+        }
+
+        $coincidencias = DB::table('adm_cotizacion')
+            ->where('nocotizacion', $numero)
+            ->limit(2)
+            ->pluck('idcotizacion');
+
+        if ($coincidencias->isEmpty()) {
+            return response()->json([
+                'message' => 'No se encontró la cotización CT' . $numero
+            ], 404);
+        }
+
+        if ($coincidencias->count() > 1) {
+            return response()->json([
+                'message' => 'El número de cotización está duplicado. Requiere revisión.'
+            ], 409);
+        }
+
+        return $this->contexto((int) $coincidencias->first());
+    }
 
 
     /**
@@ -582,7 +621,7 @@ class AjustesVentaController extends Controller
                 'min:0',
                 'max:4294967295',
             ],
-            
+
 
             'detalles.*.precio_nuevo' =>
             'nullable|numeric|min:0|decimal:0,2',

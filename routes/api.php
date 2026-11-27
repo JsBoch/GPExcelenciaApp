@@ -779,6 +779,13 @@ Route::middleware('auth:sanctum')->group(function () {
         [AjustesVentaController::class, 'store']
     );
 
+
+Route::get(
+    '/ajustes-ventas/buscar-numero/{numero}',
+    [AjustesVentaController::class, 'buscarPorNumero']
+)->whereNumber('numero');
+
+
     Route::post(
         '/ajustes-ventas/{id}/aprobar',
         [AjustesVentaController::class, 'aprobar']
@@ -812,4 +819,6 @@ Route::middleware('auth:sanctum')->group(function () {
         '/ajustes-ventas',
         [AjustesVentaController::class, 'index']
     );
+
+    
 });
