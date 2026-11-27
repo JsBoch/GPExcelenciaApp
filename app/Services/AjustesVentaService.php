@@ -213,7 +213,7 @@ class AjustesVentaService
             }
 
 
-           $this->validarCotizacionSimple($cotizacion);
+            $this->validarCotizacionSimple($cotizacion);
 
 
             if (DB::table('adm_ajustes_venta')
@@ -299,7 +299,10 @@ class AjustesVentaService
                     $cantidadNueva
                 );
 
-                if ($totalNuevo !== $totalPermitido) {
+                if (
+                    $cantidadNueva !== $cantidadAnterior &&
+                    $totalNuevo !== $totalPermitido
+                ) {
                     $this->error(
                         "detalles.$indice.total_nuevo",
                         'El importe propuesto no corresponde a la cantidad. ' .
@@ -311,15 +314,15 @@ class AjustesVentaService
 
                 if (
                     $datos['tipo_ajuste'] === 'REDUCCION'
-                    && !($cantidadNueva < $cantidadAnterior && $totalNuevo < $totalAnterior)
+                    && !($cantidadNueva <= $cantidadAnterior && $totalNuevo < $totalAnterior)
                 ) {
-                    $this->error("detalles.$indice", 'La reducción debe disminuir cantidad e importe.');
+                    $this->error("detalles.$indice", 'La reducción debe disminuir el importe sin aumentar la cantidad.');
                 }
                 if (
                     $datos['tipo_ajuste'] === 'AUMENTO'
-                    && !($cantidadNueva > $cantidadAnterior && $totalNuevo > $totalAnterior)
+                    && !($cantidadNueva >= $cantidadAnterior && $totalNuevo > $totalAnterior)
                 ) {
-                    $this->error("detalles.$indice", 'El aumento debe incrementar cantidad e importe.');
+                    $this->error("detalles.$indice", 'El aumento debe incrementar el importe sin disminuir la cantidad.');
                 }
 
                 $delta = $totalNuevo - $totalAnterior;
@@ -484,9 +487,11 @@ class AjustesVentaService
                     (int) $detalleAjuste->cantidad_nueva
                 );
 
+                $vigente = $this->vigenteDetalle($detalle);
+
                 if (
-                    $this->dineroACentavos($detalleAjuste->total_nuevo)
-                    !== $totalEsperado
+                    (int) $detalleAjuste->cantidad_nueva !== $vigente['cantidad'] &&
+                    $this->dineroACentavos($detalleAjuste->total_nuevo) !== $totalEsperado
                 ) {
                     $this->error(
                         'idajuste',
@@ -494,9 +499,7 @@ class AjustesVentaService
                             'a las condiciones originales de la cotización.'
                     );
                 }
-
-
-                $vigente = $this->vigenteDetalle($detalle);
+                
                 if (
                     (int) $detalleAjuste->cantidad_anterior !== $vigente['cantidad']
                     || $this->dineroACentavos($detalleAjuste->total_anterior) !== $vigente['total']
