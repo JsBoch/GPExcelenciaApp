@@ -29,6 +29,8 @@ use App\Http\Controllers\AreaTrabajoController;
 use App\Http\Controllers\PlanificacionDetalleProduccionController;
 use App\Http\Controllers\LogisticaProduccionController;
 use App\Http\Controllers\LogisticaVentasController;
+use App\Http\Controllers\AjustesVentaController;
+use App\Http\Controllers\ImpresionAjusteVentaController;
 
 //
 // Route::get('/user', function (Request $request) {
@@ -763,4 +765,51 @@ Route::middleware('auth:sanctum')->group(function () {
             'quitarPedidoProgramacion'
         ]
     )->whereNumber('id');
+});
+
+//AJUSTES DE VENTAS
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get(
+        '/ajustes-ventas/contexto/{idcotizacion}',
+        [AjustesVentaController::class, 'contexto']
+    )->whereNumber('idcotizacion');
+
+    Route::post(
+        '/ajustes-ventas',
+        [AjustesVentaController::class, 'store']
+    );
+
+    Route::post(
+        '/ajustes-ventas/{id}/aprobar',
+        [AjustesVentaController::class, 'aprobar']
+    )->whereNumber('id');
+
+    Route::post(
+        '/ajustes-ventas/{id}/rechazar',
+        [AjustesVentaController::class, 'rechazar']
+    )->whereNumber('id');
+
+    Route::get(
+        '/ajustes-ventas/resumen',
+        [AjustesVentaController::class, 'resumen']
+    );
+
+    Route::get(
+        '/ajustes-ventas/permisos',
+        [AjustesVentaController::class, 'permisos']
+    );
+
+    Route::get('/ajustes-ventas/{id}/imprimir', [ImpresionAjusteVentaController::class, 'imprimir'])
+    ->whereNumber('id');
+
+
+    Route::get(
+        '/ajustes-ventas/{id}',
+        [AjustesVentaController::class, 'show']
+    )->whereNumber('id');
+
+    Route::get(
+        '/ajustes-ventas',
+        [AjustesVentaController::class, 'index']
+    );
 });

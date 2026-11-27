@@ -140,6 +140,8 @@ import LogisticaVentasPilotos from "./components/logistica-ventas/LogisticaVenta
 
 import LogisticaVentasVehiculos from "./components/logistica-ventas/LogisticaVentasVehiculos";
 
+import AjustesVentas from "./Pages/AjustesVentas/AjustesVentas";
+
 /* =========================================================
    APLICACIÓN
 ========================================================= */
@@ -497,6 +499,12 @@ function App() {
                         path="/logistica-ventas/vehiculos"
                         element={<LogisticaVentasVehiculos />}
                     />
+
+                    {/* =================================================
+                            AJUSTES DE VENTAS
+                        ================================================= */}
+
+                    <Route path="/ajustes-ventas" element={<AjustesVentas />} />
                 </Route>
 
                 {/* =================================================
