@@ -111,6 +111,18 @@ export const OPTION_CONFIG = {
         icon: <FiDollarSign />,
     },
 
+
+/* AJUSTES DE VENTAS */
+
+"Consultar Ajustes de Ventas": {
+    section: "Comercial",
+    group: "Ajustes de Ventas",
+    to: "/ajustes-ventas",
+    text: "Solicitudes y autorizaciones",
+    icon: <FiClipboard />,
+},
+
+
     /* PRODUCTOS */
 
     "Registro productos_predefinidos": {
@@ -358,6 +370,7 @@ export const OPTION_CONFIG = {
 export const GROUP_ICONS = {
     Clientes: <FiUsers />,
     Cotizaciones: <FiFileText />,
+    "Ajustes de Ventas": <FiClipboard />,
     Productos: <FiBox />,
     Facturación: <FiFileText />,
     Pedidos: <FiClipboard />,
@@ -367,6 +380,7 @@ export const GROUP_ICONS = {
     Empleados: <FiUsers />,
     Recibos: <FiDollarSign />,
     Contabilidad: <FiBarChart2 />,
+    
 };
 
 export const MENU_ORDER = [

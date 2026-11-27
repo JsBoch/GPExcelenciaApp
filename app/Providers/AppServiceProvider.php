@@ -64,5 +64,44 @@ class AppServiceProvider extends ServiceProvider
                 })
                 ->exists();
         });
+
+
+        /*
+|--------------------------------------------------------------------------
+| AJUSTES DE VENTAS
+|--------------------------------------------------------------------------
+*/
+
+        Gate::define('ajustes-ventas.consultar', function (User $user) {
+            return $user->perfiles()
+                ->whereHas('opciones', function ($query) {
+                    $query->where('ruta', 'ajustes-ventas.consultar');
+                })
+                ->exists();
+        });
+
+        Gate::define('ajustes-ventas.registrar', function (User $user) {
+            return $user->perfiles()
+                ->whereHas('opciones', function ($query) {
+                    $query->where('ruta', 'ajustes-ventas.registrar');
+                })
+                ->exists();
+        });
+
+        Gate::define('ajustes-ventas.aprobar', function (User $user) {
+            return $user->perfiles()
+                ->whereHas('opciones', function ($query) {
+                    $query->where('ruta', 'ajustes-ventas.aprobar');
+                })
+                ->exists();
+        });
+
+        Gate::define('ajustes-ventas.reportes', function (User $user) {
+            return $user->perfiles()
+                ->whereHas('opciones', function ($query) {
+                    $query->where('ruta', 'ajustes-ventas.reportes');
+                })
+                ->exists();
+        });
     }
 }

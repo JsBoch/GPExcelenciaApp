@@ -36,15 +36,22 @@ final class ReglaFrase922
 
         $origen = self::fecha($fechaOrigen);
 
-        // Dos meses calendario desde el mismo día.
-        // El día de vencimiento todavía es válido.
-        $limite = $origen
-            ->startOfDay()
-            ->addMonthsNoOverflow(2);
+        // La frase aplica desde el primer día del tercer mes
+        // calendario posterior al mes de emisión de la factura.
+        //
+        // Ejemplo:
+        // Factura: 2026-09-03
+        // Octubre: primer mes posterior
+        // Noviembre: segundo mes posterior
+        // Diciembre: tercer mes posterior (aplica frase 9-22).
+
+        $inicioAplicacion = $origen
+            ->startOfMonth()
+            ->addMonthsNoOverflow(3);
 
         return $emisionNota
             ->startOfDay()
-            ->greaterThan($limite);
+            ->greaterThanOrEqualTo($inicioAplicacion);
     }
 
     private static function fecha(
